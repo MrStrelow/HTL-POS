@@ -18,7 +18,7 @@
 
     *  **1. Test** über L01-03
 
-2) **Bis zu den Semesterferien**
+2) **Bis zu den Weihnachtsferien**
 
      *  Objekte und Klassen **(L04 - 5 Wochen)** mit ...
         * **zwei** ``Aufgaben`` und laufend kurze Zettelübungen
