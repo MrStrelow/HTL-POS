@@ -12,7 +12,7 @@
 >11) Wir betrachten bei einem ``2d-Array`` zuerst die y-Achse, dann die x-Achse bei Erstellung, Lese- und Schreibzugriffen.
 >12) Die y-Achse zählt von oben nach unten mit positiven Zahlen und die x-Achse mit positiven Zahlen von links nach rechts. 
 >13) Um ein ``2d-Array`` abzuarbeiten, benötigen wir für jede ``Dimension`` eine eigene Schleife. Zusammen sind diese ``verschachtelte Schleifen``.
->14) Wir können das ``Array`` mit der ``Methode`` *brett.GetLength(0)* fragen wie viele ``Elemente`` dieses in der ``DImension`` *0* hat. Gleiches gilt für ``Dimension`` *1* und *brett.GetLength(1)*.
+>14) Wir können das ``Array`` mit der ``Methode`` *brett.GetLength(0)* fragen wie viele ``Elemente`` dieses in der ``Dimension`` *0* hat. Gleiches gilt für ``Dimension`` *1* und *brett.GetLength(1)*.
 >15) ``Arrays`` sind ``Verweistypen``. Reichen wir sie an eine ``Methode`` weiter, arbeitet diese stets auf den **originalen Daten**. Änderungen innerhalb der Methode sind sofort überall im Programm darüber wirksam.
 >16) Ein ``Seiteneffekt`` beschreibt eine nicht direkt Sichtbare Änderung von ``Variablen``.
 
