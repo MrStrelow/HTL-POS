@@ -32,7 +32,7 @@ Sie finden hier Unterlagen zu den jeweiligen ``Jahrgängen`` von *1* bis *5*.
 3) Diese sind eine ``Ansammlung von Projekten``. 
 4) ``Projekte`` beinhalten ``Programmcode`` den wir ausführen.
 
->**Tipp:** Drücken Sie doppelt auf eine ``Projektmappe`` um diese in einer ``IDE`` wie ``Visual Studio`` oder ``Rider`` zu öffnen. Wählen Sie ein ``Projekt`` darain aus und führen Sie dieses aus.
+>**Anmerkung:** Drücke doppelt auf eine ``Projektmappe`` um diese in einer ``IDE`` wie ``Visual Studio`` oder ``Rider`` zu öffnen. Wählen Sie ein ``Projekt`` darain aus und führen Sie dieses aus.
 
 Ein ``Jahrgang`` sieht folgendermaßen aus:
 ```
@@ -45,20 +45,24 @@ Ein ``Jahrgang`` sieht folgendermaßen aus:
 |   ├── 📁 AufgabeXAlsProjekt/
 │   │   ├── 📄 Loesung.cs
 │   │   └── 📄 Angabe.md
-│   └── 🎵L01LektionAlsProjektmappe.sln
+|   │   ...
 |   ├── 📁 Skriptum/
 │   │   ├── 📄 L01.1Thema.md
 │   │   ├── 📄 L01.1Thema-Folien.md
 │   │   └── 📄 L01.2Thema.md
-|   │       ...
-│   └── 🎵L01LektionAlsProjektmappe.sln
+|   │   ...
+|   ├── 📁 ZettelUebungen/
+│   │   ├── 📄 L01.1Thema.md
+│   │   └── 📄 L01.2Thema.md
+|   │   ...
+    └── 🎵L01LektionAlsProjektmappe.sln
 ├── 📁 L01LiveCodingAlsProjektmappe/
-|   ├── 📁 Beispiel1AlsProjekt/
+|   ├── 📁 Mitschrift1AlsProjekt/
 │   │   └── 📄 Program.cs
 |   │   ...
-|   ├── 📁 BeispielXAlsProjekt/
+|   ├── 📁 MitschriftXAlsProjekt/
 │   │   └── 📄 Program.cs
-│   └── 🎵L01LektionAlsProjektmappe.sln
+│   └── 🎵L01LiveCodingAlsProjektmappe.sln
 ...
 ├── 📁 LxxLetzeLektionAlsProjektmappe/
 ├── 📁 LxxLetzesLiveCodingAlsProjektmappe/
@@ -66,6 +70,7 @@ Ein ``Jahrgang`` sieht folgendermaßen aus:
 
 Folgende ``Projektmappen`` und ``Projekte`` sind nenneswert:
 * Die ``Lektion`` beinhaltet ``Aufgaben``. Für jede ``Aufgabe`` gibt es eine ``Angabe`` und eine ``Lösung``. Eine ``Lösung`` muss nicht vorkommen. 
+* Die ``Lektion`` beinhaltet ``Zetteluebungen``. Für jede ``Zetteluebunge`` gibt es eine ``Angabe``. Die ``Lösung`` wird in der Schule diskutiert.
 * Für jede ``Lektion`` gibt es eine ``Projektmappe`` die *LiveCoding* im Namen hat. Diese beinhaltet ``Projekte`` welche *Beispiele* beinhaltet die wir *gemeinsam innerhalb der Stunde erarbeiten* erarbeiten. **Diese sind nicht Beispiele welche als **
 * Die ``Angaben`` beinhalten Links zu den benötigten *Skripten* und *Materialien*. 
 
