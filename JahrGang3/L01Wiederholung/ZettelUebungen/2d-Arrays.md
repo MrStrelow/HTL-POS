@@ -1,8 +1,11 @@
 **Zettelübung: 2D-Arrays**
 
-**Name:** ___________________________ **Klasse:** _________ **Datum:** _________
+**Name:** 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+**Datum:** 
+_ _ _ _ _ _ _ _ _ _ _ _ 
 
-**Aufgabe 1: Code-Analyse – Was gibt die Konsole aus?**
+**Übung 1: Code-Analyse – Was gibt die Konsole aus?**
 Gegeben ist der folgende C#-Code mit einem 2D-Array. Betrachte den Code genau und notiere rechts daneben, was auf der Konsole ausgegeben wird.
 
 ```csharp
@@ -12,13 +15,17 @@ int[,] spielfeld =
     { 40, 50, 60 },
     { 70, 80, 90 }
 };
-
+```
+#### 1. - Zugriff mit Indices
+```csharp
 // 1. Einzelne Zugriffe:
 Console.WriteLine(spielfeld[0, 2]);      // Ausgabe: ___________
 Console.WriteLine(spielfeld[2, 0]);      // Ausgabe: ___________
 Console.WriteLine(spielfeld[1, 1]);      // Ausgabe: ___________
+```
 
-// 2. Verschachtelte Schleife:
+#### 2. - Verschachtelte Schleife:
+```csharp
 for (int y = 0; y < 2; y++)
 {
     for (int x = 0; x < 2; x++)
@@ -30,7 +37,13 @@ for (int y = 0; y < 2; y++)
 // Trage hier die exakte Ausgabe der Schleifen ein (inkl. Zeilenumbrüche):
 // ___________________
 // ___________________
-
+// ___________________
+```
+.
+.
+.
+#### 3. - Verschachtelte Schleife:
+```csharp
 // 3. Verschachtelte Schleife:
 for (int x = 0; x < 2; x++)
 {
@@ -43,7 +56,11 @@ for (int x = 0; x < 2; x++)
 // Trage hier die exakte Ausgabe der Schleifen ein (inkl. Zeilenumbrüche):
 // ___________________
 // ___________________
+// ___________________
+```
 
+#### 4. - Verschachtelte Schleife:
+```csharp
 // 4. Verschachtelte Schleife:
 for (int x = 0; x < 4; x++)
 {
@@ -56,9 +73,24 @@ for (int x = 0; x < 4; x++)
 // Trage hier die exakte Ausgabe der Schleifen ein (inkl. Zeilenumbrüche):
 // ___________________
 // ___________________
+// ___________________
 ```
-
-**Aufgabe 2: Code ergänzen**
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+**Übung 2: Code ergänzen**
 Vervollständige den folgenden Code, indem die fehlenden Zeichen, ``Indizes`` oder ``Methodenaufrufe`` in die Lücken (`___`) einträgst.
 
 ```csharp
