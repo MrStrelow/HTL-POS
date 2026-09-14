@@ -77,35 +77,37 @@ public class Plane
         Thread.Sleep(timeToSleep);
     }
 
-    public void Position(Hamster hamster, Direction direction)
+    public (int x, int y) Position(Hamster hamster, Direction direction)
     {
-        var pos = hamster.Position;
+        var futurePosition = hamster.Position;
 
         switch (direction)
         {
             case Direction.UP:
-                if (pos.y > 0)
+                if (futurePosition.y > 0)
                     // Alternativ:// hamster.Position = (hamster.Position.x, hamster.Position.y - 1);
-                    pos.y--;
+                    // aber schlechte Koppelung!
+                    futurePosition.y--;
                 break;
 
             case Direction.DOWN:
-                if (pos.y < Size - 1)
-                    pos.y++;
+                if (futurePosition.y < Size - 1)
+                    futurePosition.y++;
                 break;
 
             case Direction.LEFT:
-                if (pos.x > 0)
-                    pos.x--;
+                if (futurePosition.x > 0)
+                    futurePosition.x--;
                 break;
 
             case Direction.RIGHT:
                 if (hamster.Position.x < Size - 1)
-                    pos.x++;
+                    futurePosition.x++;
                 break;
         }
 
-        hamster.Position = pos;
+        // hamster.Position = futurePosition; // schlechte Koppelung! Besser kapseln verhindert es!
+        return futurePosition;
     }
 
     public void AssignElementsToPlane()

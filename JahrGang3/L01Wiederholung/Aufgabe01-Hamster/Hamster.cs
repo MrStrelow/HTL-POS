@@ -50,7 +50,8 @@ public class Hamster
         int index = random.Next(Enum.GetValues<Direction>().Length);
         var direction = Enum.GetValues<Direction>()[index];
 
-        plane.Position(this, direction);
+        Position = plane.Position(this, direction);
+        //plane.Position(this, direction); // position macht es für uns! koppelung.
     }
 
     public void NutritionBehaviour()
