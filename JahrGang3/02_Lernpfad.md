@@ -10,7 +10,6 @@
 
     *  NuGets - Packete und commandline Parameters **(L02 - 1 Woche)** mit...
         * **einer** ``Aufgabe`` laufend kurze Zettelübungen 
-        * Character encoding (Surrogate Pairs), Kontroll-Sequenzen \u001b[, Value Tuples, komplexere Stringmanipulationen, ... 
 
     * Weitere Collections **(L03 - 1 Woche)** mit... 
         * **einer** ``Aufgabe`` laufend kurze Zettelübungen 
@@ -18,23 +17,22 @@
 
     *  **1. Test** über L01-03
 
-2) **Bis zu den Semesterferien**
+2) **Bis zu den Weihnachtsferien**
 
      *  Funktionale Denkweisen: Lambdas, Delegates und LINQ **(L04 - 4 Wochen)** mit ...
         * **zwei** ``Aufgaben`` und laufend kurze Zettelübungen
         * Verweise als Methoden -> Methoden als Variablen!, Eine Methode ohne Namen - Lambda,  **L**anguage.**IN**tegrated.**Q**uery - Anwendung auf Datenstrukturen, Prädikatenlogik (und später Datenbanken mit EF- CORE, je nachdem ob zeit ist).
 
-    *  Events (Observer) und JSON **(L05 - 2 Wochen)** mit...
-        * **einer** ``Aufgabe`` laufend kurze Zettelübungen 
-        * Auslöser -> wir reagieren.
-
     *  Threads und Tasks **(L06- 2 Wochen)** mit...
         * **einer** ``Aufgabe`` und laufend kurze Zettelübungen 
-        * Race Conditions, Tasks vs. Threads, async/await keywords, promises.
+        * Race Conditions, Tasks vs. Threads, async/await keywords, promises. 
 
     *  **2. Test** über L04-06
 
 3) **Bis zu den Osterferien**
+    *  Events (Observer) und JSON **(L05 - 2 Wochen)** mit...
+        * **einer** ``Aufgabe`` laufend kurze Zettelübungen 
+        * Auslöser -> wir reagieren.
 
      * Regular Expressions **(L07 - 2 Wochen)** mit ...
         * **zwei** ``Aufgaben`` und laufend kurze Zettelübungen

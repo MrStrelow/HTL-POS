@@ -1,0 +1,4 @@
+﻿<Solution>
+  <Project Path="Aufgabe01-Hamster\Aufgabe01-Hamster.csproj" />
+  <Project Path="Skripten\Skripten.csproj" />
+</Solution>
