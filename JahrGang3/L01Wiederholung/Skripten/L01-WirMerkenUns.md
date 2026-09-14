@@ -18,3 +18,31 @@
 
 >**Wir merken uns von [TricksMitParametern](L01.2-TricksMitParameterVonMethoden.md):** 
 >1) 
+
+>**Wir merken uns zu Klassendiagrammen:**
+>1) Eine ``Klasse`` ist ein Bauplan und ein ``Objekt`` ist das konkrete Ding im Arbeitsspeicher. 
+>2) ``Objekte`` brauchen theoretisch keine ``Klassen``, aber in C# muss jedes ``Objekt`` zwingend aus einer ``Klasse`` instanziiert werden.
+>3) Ein ``Objekt`` besteht aus ``Eigenschaften``/``Feldern`` für dessen ``Zustand`` und ``Methoden`` für dessen Verhalten. Wir nennen diese zusammen ``Mitglieder``.
+>4) Wir nutzen eine ``Assoziation`` (``Hat-Beziehung``) um Aufgaben an andere ``Objekte`` zu *delegieren*.
+>5) Ein ``Objekt`` *delegiert* Arbeit an ein anderes ``Objekt`` unter der Verwendung der ``Methoden`` des anderen ``Objektes``. Das Ergebnis bekommen wir, ohne zu wissen, wie es im Detail erledigt wurde.
+>6) Wenn nur ein ``Objekt`` das andere kennt, ist die Beziehung ``unidirektional``. Wenn beide sich kennen, ist sie ``bidirektional``.
+>7) Wir schreiben ``Multiplizitäten`` an die Linien im UML-Diagramm, um zu zeigen, wie viele ``Objekte`` beteiligt sind (z.B. *1* oder *0..**).
+>8) Eine ``unidirektionale`` Beziehung auf ``Objektebene`` bedeutet ``Objekt`` A kennt ``Objekt`` B, aber ``Objekt`` B kennt dasselbe ``Objekt`` A nicht.
+>9) Eine ``unidirektionale`` Beziehung auf ``Klassenebene`` bedeutet ``Klasse`` A kennt ``Klasse`` B, aber ``Klasse`` B kennt ``Klasse`` A nicht.
+>10) Eine ``bidirektionale`` Beziehung auf ``Objektebene`` bedeutet ``Objekt`` A kennt ``Objekt`` B, und ``Objekt`` B kennt das Selbe ``Objekt`` A.
+>11) Eine ``bidirektionale`` Beziehung auf ``Klassenebene`` bedeutet ``Klasse`` A kennt ``Klasse`` B, und ``Klasse`` B kennt ``Klasse`` A. 
+
+
+>**Wir merken uns zu Klassen und Objekten in C#:** 
+> Eine ``Assoziation`` wird in C# mit einem ``Feld`` oder einer ``Eigenschaft`` umgesetzt.
+>1) Wir nutzen ``Konstruktoren``, um beim Erstellen mit *new* den Startzustand des ``Objekts`` festzulegen.
+>2) Ein ``Copy-Konstruktor`` erstellt ein neues ``Objekt`` basierend auf einem bestehenden. Es ist das *Gleiche* aber nicht das *Selbe*.
+>3) Wir steuern die Sichtbarkeit mit ``public`` (überall), ``private`` (nur in der eigenen Klasse) und ``protected`` (eigene und abgeleitete Klassen).
+>4) Wir ``kapseln`` ``Felder`` und greifen über ``Eigenschaften`` mit *get* und *set* auf unsere Daten zu.
+>5) Bei ``Full Properties`` schreiben wir das ``Backing Field`` selbst, bei ``Auto Properties`` erstellt der Compiler dieses Feld unsichtbar für uns.
+>6) Ab .NET 10 greifen wir bei bestimmten Properties mit dem Schlüsselwort ``field`` direkt auf dieses unsichtbare Feld zu und benötigen kein explizit geschriebenes ``Backing Field`` mehr.
+>7) Wir verstecken ``Felder`` mit *private* (``Data Hiding``) und erlauben den Zugriff auf diese nur kontrolliert über ``Methoden`` oder ``Properties`` (``Kapselung``).
+>8) ``Data Hiding`` + ``Kapselung`` = ``Datenabstraktion``.
+>9) ``Datenabstraktion`` bedeutet wir zeigen nach außen nur *was* man machen kann, aber nicht *wie* es intern funktioniert.
+>10) Der ``Zusammenhalt`` einer ``Klasse`` beschreibt, wie gut die ``Mitglieder`` innerhalb einer ``Klasse`` "logisch" bei der Erfüllung *einer einzigen Aufgabe* zusammenpassen. ``Zusammenhalt`` hoch: Eine Klasse kümmer sich *nur* um das Bewegugnsverhalten eines *Hamsters*. ``Zusammenhalt`` niedrig: Eine Klasse kümmert sich um Bewegugnsverhalten, UI, Datenbank und Logik eines *Hamsters* gleichzeitig. 
+>11) Die ``Kopplung`` eines ``Objektes`` beschreibt, wie stark verschiedene ``Objekte`` voneinander abhängen. Der *Hamser* muss umprogrammiert werden sobald sich der code der ``Plane`` ändert. Z.B. wir verwenden image 2D-Array, statt einem string 2D-Array. Beide sind gekoppelt und sind wartungsintensiver. Eine gute ``Kapselung`` verringert die ``Kopplung``.
