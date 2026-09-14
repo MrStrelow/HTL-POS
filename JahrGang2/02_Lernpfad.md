@@ -28,13 +28,12 @@
         * **einer** ``Aufgabe`` laufend kurze Zettelübungen 
         * lineare Kongruenzgeneratoren, Zufallszahlen erzeugen und anwenden.
 
-    *  Listen und Dictionaries **(L06- 2 Woche)** mit...
-        * **einer** ``Aufgabe`` laufend kurze Zettelübungen 
-        * Wann verwende ich was? Anwenden der Listen und dictionaries mit den bestehenden Methoden, foreach vs. for
-
     *  **2. Test** über L04-06
 
 3) **Bis zu den Osterferien**
+    *  Listen und Dictionaries **(L06- 2 Woche)** mit...
+        * **einer** ``Aufgabe`` laufend kurze Zettelübungen 
+        * Wann verwende ich was? Anwenden der Listen und dictionaries mit den bestehenden Methoden, foreach vs. for
 
      *  Rekursion und eigene Linked List/Ring Buffer **(L07 - 3 Wochen)** mit ...
         * **zwei** ``Aufgaben`` und laufend kurze Zettelübungen

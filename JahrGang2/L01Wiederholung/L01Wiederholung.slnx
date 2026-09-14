@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Exercise1-MusterUndDessenLogischeFormeln/Exercise1-LogischeFormelnFuerEinSchachbrett.csproj" />
+  <Project Path="Exercise3-PrimitiveTypenUmwandeln/Exercise3-PrimitiveTypenUmwandeln.csproj" />
+  <Project Path="Skripten/Skripten.csproj" />
+</Solution>
