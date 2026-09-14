@@ -18,6 +18,9 @@
 DesignTimeBuild/
 ProjectEvaluation/
 
+# Rider
+.idea/
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
