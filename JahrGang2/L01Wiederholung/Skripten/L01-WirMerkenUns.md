@@ -1,16 +1,32 @@
 >**Wir merken uns von [Operatoren](L02.1Operatoren.md):** 
->1. Logische Operatoren dienen dazu, mehrere einzelne Bedingungen (Ausdrücke) miteinander zu verknüpfen, um am Ende ein einzelnes `true` oder `false` als Gesamtergebnis zu erhalten.
->2. Das **logische UND (`&&`)** verwenden wir, wenn zwingend **alle** verknüpften Bedingungen gleichzeitig zutreffen müssen. 
->3. Das **logische ODER (`||`)** verwenden wir, wenn **mindestens eine** der Alternativen ausreicht, um fortzufahren. 
->4. Das **logische NICHT (`!`)** verwenden wir, um eine Bedingung gezielt umzukehren. 
-<!-- 1. Der Zuweisungsoperator `=` ist kein mathematisches Gleichheitszeichen! Er nimmt immer das Ergebnis auf der rechten Seite und speichert es in die Variable auf der linken Seite.
-1. Die Verarbeitung findet strikt von rechts nach links statt.
-2. Bei der Division von zwei Ganzzahlen (`int`) schneidet C# die Kommastellen einfach ab (z. B. `5 / 2` ergibt `2`).
-3. Der Modulo-Operator `%` gibt den **Rest einer Division** zurück. Er ist perfekt, um zu prüfen, ob eine Zahl gerade ist (`zahl % 2 == 0`).
-4. Ein einzelnes `=` ist eine Zuweisung. Wollen wir zwei Werte auf Gleichheit überprüfen, müssen wir zwingend das **doppelte Gleichheitszeichen** `==` verwenden.
-5.  Das Ergebnis eines Vergleichs ist immer ein Wahrheitswert (ein `bool`: also `true` oder `false`).
-6.  Das logische UND (`&&`) ergibt nur dann `true`, wenn **alle** verknüpften Bedingungen wahr sind. 
-7.  Das logische ODER (`||`) ergibt bereits `true`, wenn **mindestens eine** der Bedingungen wahr ist. 
-8.  Das logische NICHT (`!`) dreht den Wahrheitswert einfach um (aus `true` wird `false` und umgekehrt).
-9.  `i++` ist lediglich eine praktische Kurzschreibweise für `i = i + 1`
-10. Kombinierte Operatoren wie `x += 5` helfen uns, Code kürzer zu fassen (entspricht `x = x + 5`). -->
+>1. ``Logische Operatoren`` haben als ``Eingangsparameter`` den ``Typ`` *bool* und als ``Ausgangsparameter`` ebenso. 
+>2. ``Vergleichs-Operatoren`` haben als ``Eingangsparameter`` vergleichbare ``Typen`` wie z.B. *int*, *double*, ... und als ``Ausgangsparameter`` den ``Typ`` *bool*.  
+>3. Das ``logische UND`` *&&* ergibt *true*, wenn **alle** ``Eingangsparameter`` gleichzeitig zutreffen (*true* sind). 
+>4. Das ``logische UND`` *&&* verwenden wir, um alles aufzulisten was zutreffen *muss*.
+>5. Das ``logische ODER`` *&&* ergibt *true*, wenn **mindestens ein**  ``Eingangsparameter`` zutrifft (*true* ist). 
+>6. Das ``logische ODER`` *||* verwenden wir, um zwei *Teillösungen* zusammenzufassen.
+>1. Wenn keine ``logische Formel`` für eine *Problemstellung* gefunden werden kann, versuchen wir einfachere ``Teilprobleme`` zu lösen. Wir fügen diese später zusammen um die *Problemstellung* zu lösen.
+>5. Das ``logische NICHT`` *!* ergibt *true*, wenn die vorherige ``Eingangsparameter`` *false* ist. Wir ``negieren`` damit eine ``Aussage`` bzw. ``logische Formel`` bzw. ``boolescher Ausdruck``. 
+
+
+**Wir merken uns von [Schleifen](L02.2Schleifen.md):**
+>1. Bei einer ``Zählschleife`` *wissen wir wie oft* diese sich wiederholt und setzen es mit **for** um. 
+>2. Bei einer ``While-Schleife`` *wissen wir **nicht** wie oft* diese sich wiederholt und setzen es mit **while** um.
+>3. Die *runden Klammern* bei einer ``Schleife`` nennen wir den ``Schleifenkopf``.
+>4. Die ``Schleifen-Bedingung`` ist eine ``logische Formel``, welche steuert wie oft die ``Schleife`` sich wiederholt.
+>5. Bei der ``Zählschleife`` gibt es *drei* Bausteine im ``Schleifenkopf``. Diese sind ``Zählvariable``, ``Schleifen-Bedingung`` und ``Inkrement``. 
+>6. Bei der ``While-Schleife`` gibt es *einen* Baustein im ``Schleifenkopf``. Dieser ist die ``Schleifen-Bedingung``.
+
+>**Wir merken uns von [Verzweigungen](L02.3Verzweigungen.md):**
+1. Die ``Bedingung`` ist eine ``logische Formel``, welche steuert, ob wir den folgenden ``Block`` ausführen oder nicht.
+2. Eine ``bedingte Anweisung`` **if ohne else** führt einen ``Block`` nur aus, wenn ihre ``Bedingung`` *true* ist.
+3. Eine ``Verzweigung`` **if mit else** besitzt *zwei* ``Blöcke`` und sichert zu, dass *einer* der beiden *immer* ausgeführt wird. 
+4. Die ``Bedingung`` bei einer ``Verzweigung`` steuert, welcher ``Block`` ausgeführt wird.
+5. Eine ``Mehrfachverzweigung`` **if mit else if** oder *switch* besitzt *mehrere* ``Blöcke`` und sichert zu, dass *einer* davon *immer* ausgeführt wird. 
+6. Ein ``Ausdruck`` kann den ``Zuweisungsoperator`` *links* neben sich stehen haben. 
+7. Eine ``Anweisung`` kann *nicht* den ``Zuweisungsoperator`` *links* neben sich stehen haben. 
+8. Ein **switch** als ``Anweisung`` ist in neuen Sprachen begrenzt nützlich.
+9. Ein **switch** als ``Ausdruck`` ist in neuen Sprachen nützlich und wird als ``Pattern-Matching`` bezeichnet.
+10. Eine ``verschachtelte Verzweigung`` entsteht, wenn wir ``bedigte Anweisungen``, ``Verzweigungen`` oder ``Mehrfachverzweigungen`` in den ``Block`` einer anderen ``bedigte Anweisung``, ``Verzweigung`` oder ``Mehrfachverzweigung`` schreiben. 
+11. Eine ``Verschachtelte Verzweigung`` ist ab einer Tiefe von *drei* zu vermeiden. 
+12. Wir können eine ``Verschachtelte Verzweigung`` mit dem ``De Morgan'schen Gesetz`` zu *flachen* ``bedingten Anweisungen`` umformen.
