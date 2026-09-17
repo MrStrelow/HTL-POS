@@ -1,5 +1,5 @@
 <Solution>
-  <Project Path="../../../../../../Documents/GitHub/HTL-POS/JahrGang3/L01Wiederholung/Aufgabe01-Hamster/Aufgabe01-Hamster.csproj" />
-  <Project Path="../../../../../../Documents/GitHub/HTL-POS/JahrGang3/L01Wiederholung/Skripten/Skripten.csproj" />
-  <Project Path="../../../../../../Documents/GitHub/HTL-POS/JahrGang3/L01Wiederholung/ZettelUebungen/ZettelUebungen.csproj" />
+  <Project Path="Aufgabe01-Hamster/Aufgabe01-Hamster.csproj" />
+  <Project Path="Skripten/Skripten.csproj" />
+  <Project Path="ZettelUebungen/ZettelUebungen.csproj" />
 </Solution>

@@ -32,7 +32,7 @@ for (int y = 0; y < 2; y++)
     {
         Console.WriteLine(spielfeld[y, x] + " ");
     }
-    Console.Write();
+    Console.Write("");
 }
 // Trage hier die exakte Ausgabe der Schleifen ein (inkl. Zeilenumbrüche):
 // ___________________

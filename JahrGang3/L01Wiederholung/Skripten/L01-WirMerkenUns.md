@@ -2,12 +2,12 @@
 >1) Ein ``Array`` ist eine Ansammlung von ``Werten`` welche logisch zusammengehören. 
 >2) Wir legen ein ``Array`` an indem wir nach dem ``Typ`` eine *eckige Klammer* schreiben.
 >3) Wenn wir wissen welche ``Werte`` in ein ``Array`` kommen, schreiben wir nach dem ``Zuweisungsoperator`` *{ "Anna", "Ben" };*. 
->4) Wenn wir *nicht* wissen welche ``Werte`` in ein ``Array`` kommen, aber wie groß es sein soll, schreiben wir nach dem ``Zuweisungsoperator`` z.B. *new int[10];* wenn wir genau *10* ``Elemente`` haben wollen. 
+>4) Wenn wir *nicht* wissen welche ``Werte`` in ein ``Array`` kommen, aber wie groß es sein soll, schreiben wir nach dem ``Zuweisungsoperator`` z.B. *new int[10];* wenn wir genau Platz für *10* ``Elemente`` haben wollen. 
 >5) Ein einzelner ``Wert`` welcher sich in einem ``Array`` befindet, wird ``Element`` genannt. 
 >6) Ein ``Array`` besitzt mehrere ``Indices``, welche uns erlauben auf eine Position zuzugreifen. 
 >7) Wir greifen auf ein ``Element`` des ``Arrays`` zu indem wir eine *eckige Klammer* nach dem *Namen* der ``Variable`` schreiben.
 >8) Der ``Index`` ist immer genau um *1* kleiner als die tatsächliche Position des Elements. 
->9)  Wenn ein ``Array`` mit einer ``For-Schleife`` durchlaufen wird, muss die ``Zählvariable`` bei *0* beginnen.
+>9) Wenn ein ``Array`` mit einer ``For-Schleife`` durchlaufen wird, ist es einfacher wenn die ``Zählvariable`` bei *0* beginnt.
 >10) Weitere ``Dimensionen`` können dem ``Array`` hinzugefügt werden indem wir ein *Komma* zwischen eckigen Klammern *int[,] personendaten;* schreiben.
 >11) Wir betrachten bei einem ``2d-Array`` zuerst die y-Achse, dann die x-Achse bei Erstellung, Lese- und Schreibzugriffen.
 >12) Die y-Achse zählt von oben nach unten mit positiven Zahlen und die x-Achse mit positiven Zahlen von links nach rechts. 
@@ -20,7 +20,7 @@
 >1) 
 
 >**Wir merken uns zu Klassendiagrammen:**
->1) Eine ``Klasse`` ist ein Bauplan und ein ``Objekt`` ist das konkrete Ding im Arbeitsspeicher. 
+>1) Eine ``Klasse`` ist ein Bauplan für ein ``Objekt`` und ein ``Objekt`` ist eine ``Instanz`` der ``Klasse``. 
 >2) ``Objekte`` brauchen theoretisch keine ``Klassen``, aber in C# muss jedes ``Objekt`` zwingend aus einer ``Klasse`` instanziiert werden.
 >3) Ein ``Objekt`` besteht aus ``Eigenschaften``/``Feldern`` für dessen ``Zustand`` und ``Methoden`` für dessen Verhalten. Wir nennen diese zusammen ``Mitglieder``.
 >4) Wir nutzen eine ``Assoziation`` (``Hat-Beziehung``) um Aufgaben an andere ``Objekte`` zu *delegieren*.
