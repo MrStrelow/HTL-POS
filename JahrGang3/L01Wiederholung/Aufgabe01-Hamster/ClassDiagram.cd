@@ -2,6 +2,9 @@
 <ClassDiagram MajorVersion="1" MinorVersion="1">
   <Class Name="Hamster.Hamster">
     <Position X="2.75" Y="6" Width="2.5" />
+    <Compartments>
+      <Compartment Name="Methods" Collapsed="true" />
+    </Compartments>
     <AssociationLine Name="plane" Type="Hamster.Plane" FixedFromPoint="true" FixedToPoint="true">
       <Path>
         <Point X="3.812" Y="6" />
@@ -10,7 +13,7 @@
       </Path>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>AAAAAAAEEYAAAAAkABAAAAAAAIQAQgAAAAAAABgBAAE=</HashCode>
+      <HashCode>AAAAAAAEEYAAAAAkABAAAAAAAIQAAgAAAQAAABgBAAE=</HashCode>
       <FileName>Hamster.cs</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -50,13 +53,6 @@
       <Field Name="_Seedlings" />
       <Field Name="_hamsters" />
     </ShowAsCollectionAssociation>
-  </Class>
-  <Class Name="Hamster.Simulation">
-    <Position X="10.5" Y="0.5" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAA=</HashCode>
-      <FileName>Simulation.cs</FileName>
-    </TypeIdentifier>
   </Class>
   <Class Name="Hamster.Seedling">
     <Position X="10" Y="6" Width="1.5" />
