@@ -26,11 +26,11 @@
 >6. Ein ``Ausdruck`` kann den ``Zuweisungsoperator`` *links* neben sich stehen haben. 
 >7. Eine ``Anweisung`` kann *nicht* den ``Zuweisungsoperator`` *links* neben sich stehen haben. 
 >8. Eine ``verschachtelte Verzweigung`` entsteht, wenn wir ``bedigte Anweisungen``, ``Verzweigungen`` oder ``Mehrfachverzweigungen`` in den ``Block`` einer anderen ``bedigte >Anweisung``, ``Verzweigung`` oder ``Mehrfachverzweigung`` schreiben. 
->9. Eine ``verschachtelte Verzweigung`` ist ab einer Tiefe von *drei* zu vermeiden. 
+<!-- >9. Eine ``verschachtelte Verzweigung`` ist ab einer Tiefe von *drei* zu vermeiden. 
 >10. Wir können eine ``verschachtelte Verzweigung`` mit dem ``De Morgan'schen Gesetz`` zu *flachen* ``bedingten Anweisungen`` umformen.
 >11. Die ``verchachtelte Verzweigung`` stellt ein ``logisches UND`` dar. 
 >12. *Mehrere untereinander* geschriebene ``bedingte Anweisungen`` mit ``early exit`` stellen ein ``logisches ODER`` dar. 
 >13. Eine ``Guard Clause`` wird mit ist ein *securtiy check*. Mehrere ``bedingte Anweisungen`` werden *untereinander* geschrieben und fragen in der ``Bedingung`` nach dem *ungewünschten Zustand* ❌ ab.
 >14. Bei einer ``Guard Clause`` ist der *gewünschte Zustand* ✅ nach am Ende nach allen erflogreich abschlossenen ``bedingte Anweisungen`` erreicht.
-<!-- >8. Ein **switch** als ``Anweisung`` ist in neuen Sprachen begrenzt nützlich.
+>8. Ein **switch** als ``Anweisung`` ist in neuen Sprachen begrenzt nützlich.
 >9. Ein **switch** als ``Ausdruck`` ist in neuen Sprachen nützlich und wird als ``Pattern-Matching`` bezeichnet. -->
