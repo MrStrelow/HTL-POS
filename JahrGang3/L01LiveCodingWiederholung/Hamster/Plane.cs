@@ -7,4 +7,5 @@ public class Plane
     // Konstruktoren
     // Methoden
     // private Methoden
+    string what;
 }
