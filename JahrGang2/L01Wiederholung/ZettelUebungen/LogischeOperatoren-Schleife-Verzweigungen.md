@@ -17,7 +17,7 @@ Versuche die logische Formel für folgendes Muster zu finden.
   y 2️⃣⬜🔺⬛⬜🔺⬛
     3️⃣🔺⬛⬜🔺⬛⬜
     4️⃣⬛⬜🔺⬛⬜🔺
-    5️⃣⬛🔺⬛⬜🔺⬛
+    5️⃣⬜🔺⬛⬜🔺⬛
 ```
 
 ```csharp
@@ -138,10 +138,8 @@ for (________; ________; ________)
 ### Schleifen mit Verzweigungen
 **Übung 5: Alles zusammen**
 Vervollständige den folgenden Code, indem die fehlenden Variablen, ``Operatoren`` oder ``Methodenaufrufe`` in die Lücken (`___`) einträgst. Das Muster aus *Übung 1* ist abzubilden. 
-
 ```
 int groesse = 5;
-
 // Zustaendigkeit: Gehe jede Zeile des Musters ab
 for (________; ________; ________)
 {
@@ -151,7 +149,7 @@ for (________; ________; ________)
         // Zusztaendigkeit: Entscheide ob ein Feld weiß, schwarz oder rot ist.
         bool ist________Feld = ________________________________________________;
         bool ist________Feld = ________________________________________________;
-
+        bool ist________Feld = ________________________________________________;
         // Zustaendigkeit: 
         // Wenn das Feld weiß ist, ...
         ______ (_________________________)
@@ -165,14 +163,19 @@ for (________; ________; ________)
             // dann schreibe es auf die Console, 
             Console.Write("⬛");
         }
-        // ansonsten, ...
-        ______
+        // ansonsten, Wenn das Feld rot ist, ...
+        ______ (_________________________)
         {
-            // schreibe das rote Symbol auf die Console, 
+            // dann schreibe es auf die Console, 
             Console.Write("🔺");
         }
+        // ansonsten, wenn wir einen Fehler gemacht haben...
+        ______
+        {
+            // schreibe das Fehler-Symbol auf die Console, 
+            Console.Write("💀");
+        }
     }
-
     ________________________;
 }
 ```
