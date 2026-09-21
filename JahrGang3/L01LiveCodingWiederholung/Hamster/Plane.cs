@@ -23,13 +23,26 @@ public class Plane
             }
         }
 
-        // Was nun?
+        // Befülle mit Seedings 🌱
+        Random random = new Random();
+        int numberOfSeedings = random.Next(1, Size*Size+1);
+        for (int i = 0; i < numberOfSeedings; i++)
+        {
+            Seedling seedling = new Seedling();
+        }
     }
 
     // Methoden
     public void Print()
     {
-
+        for (int zeile = 0; zeile < Size; zeile++)
+        {
+            for (int spalte = 0; spalte < Size; spalte++)
+            {
+                Console.Write(_plane[zeile, spalte]);
+            }
+            Console.WriteLine();
+        }
     }
 
     // private Methoden
