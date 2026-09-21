@@ -19,14 +19,14 @@ for (int y = 0; y < 6; y++)
             (y % 3 == 2 && x % 3 == 0);
 
         bool isRedSymbol = 
-            () || 
-            () || 
-            ();
+            (y % 3 == 0 && x % 3 == 0) || 
+            (y % 3 == 1 && x % 3 == 2) || 
+            (y % 3 == 2 && x % 3 == 1);
 
-        bool isBlackSymbol = 
-            () || 
-            () || 
-            ();
+        bool isBlackSymbol =
+            (y % 3 == 0 && x % 3 == 1) ||
+            (y % 3 == 1 && x % 3 == 0) ||
+            (y % 3 == 2 && x % 3 == 2);
 
         if (isWhiteSymbol) 
         {
