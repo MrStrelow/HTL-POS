@@ -199,7 +199,7 @@ Eine Vorlage (z. B. für eine [``Console-App``](#console-app)), die automatisch 
 * **Auto Property:** Der Code besteht nur aus `{ get; set; }`. Der [``Compiler``](#compiler) generiert das [``Backing Field``](#backing-field) im Hintergrund selbst.
 
 ### Referenz
-Eine Speicheradresse, die wie ein Wegweiser auf den tatsächlichen Ort der Daten im [``Heap``](#heap) zeigt.
+Eine [``Speicheradresse``](#Speicheradresse), die wie ein Wegweiser auf den tatsächlichen Ort der Daten im [``Heap``](#heap) zeigt.
 
 ### Rider
 Eine sehr leistungsstarke, plattformübergreifende C#-[``IDE``](#ide) von JetBrains, die als professionelle Alternative zu [``Visual Studio``](#visual-studio) genutzt werden kann.
@@ -283,7 +283,7 @@ Operatoren (wie `==`, `!=`, `<`, `>`), die zwei Werte miteinander vergleichen un
 Schleifen, die sich innerhalb des Codeblocks einer anderen Schleife befinden (ein Loop in einem Loop). Sie sind zwingend notwendig, um mehrdimensionale Strukturen wie ein [``2D-Array``](#2d-array) zu durchlaufen.
 
 ### Verweistypen
-*(Reference Types)* Datentypen, bei denen die Variable nicht den eigentlichen [``Wert``](#wert) speichert, sondern nur die Speicheradresse ([``Referenz``](#referenz)), wo die Daten im Arbeitsspeicher liegen.
+*(Reference Types)* Datentypen, bei denen die Variable nicht den eigentlichen [``Wert``](#wert) speichert, sondern nur die [``Speicheradresse``](#Speicheradresse) ([``Referenz``](#referenz)), wo die Daten im Arbeitsspeicher liegen.
 
 ### Verzweigung
 Eine Kontrollstruktur (wie `if` mit `else`), die den Programmfluss basierend auf einer bestimmten Bedingung in genau zwei verschiedene Richtungen lenkt (wahr oder falsch). Bei mehr als zwei Wegen spricht man von einer [``Mehrfachverzweigung``](#mehrfachverzweigung).
@@ -317,3 +317,60 @@ Der Vorgang, bei dem einer [``Variablen``](#variable) oder einem Speicherplatz i
 
 ### Zuweisungsoperator
 Das Gleichheitszeichen (`=`) in C#. Es nimmt den [``Wert``](#wert) auf der rechten Seite und speichert ihn in der [``Variablen``](#variable) auf der linken Seite.
+
+### Anweisung
+*(Statement)* Ein vollständiger Ausführungsbefehl in C#, der eine Aktion durchführt (z. B. Variablenzuweisung, Methodenaufruf). Eine Anweisung liefert selbst keinen [``Wert``](#wert) zurück und wird stets mit einem Semikolon (`;`) abgeschlossen.
+
+### Ausdruck
+*(Expression)* Ein Code-Fragment in C#, das vom Programm ausgewertet wird und als Ergebnis exakt einen [``Wert``](#wert) zurückgibt (z. B. die Rechnung `5 + 3` oder der Vergleich `alter >= 18`). Ein Ausdruck kann Teil einer [``Anweisung``](#anweisung) sein.
+
+### Aussage
+In der Programmierung oft synonym für einen logischen [``Ausdruck``](#ausdruck) verwendet, der als Ergebnis entweder wahr (`true`) oder falsch (`false`) ist.
+
+### Bedingung
+Ein logischer [``Ausdruck``](#ausdruck), der zu einem booleschen Wert (`true` oder `false`) ausgewertet wird. Er entscheidet in einer [``Kontrollstruktur``](#kontrollstruktur) (wie `if` oder `while`), ob ein bestimmter Code-[``Block``](#block) ausgeführt wird oder nicht.
+
+### Block
+Ein Code-Abschnitt in C#, der durch **geschweifte Klammern** `{ }` (nicht eckig!) eingeschlossen ist. Er fasst mehrere Anweisungen zusammen und definiert den Gültigkeitsbereich ([``Scope``](#scope)) für darin deklarierte [``Variablen``](#variable).
+
+### De Morgan'sches Gesetz
+Zwei Regeln der Aussagenlogik, mit denen sich [``logische Formeln``](#logische-formel) umformen lassen (z. B. wird `!(A && B)` zu `!A || !B`). In der Programmierung hilft dies, komplexe [``Bedingungen``](#bedingung) in Verzweigungen zu vereinfachen und lesbarer zu machen.
+
+### Definition
+Die tatsächliche Bereitstellung von Speicherplatz im Arbeitsspeicher oder die konkrete Implementierung von Code. Bei [``Variablen``](#variable) in C# geschieht die Definition meist gleichzeitig mit der [``Deklaration``](#deklaration). Bei einer [``Methode``](#methode) ist die Deklaration nur der Name und Rückgabetyp, während die *Definition* der eigentliche Code-[``Block``](#block) (der Rumpf in `{ }`) ist, der beschreibt, was die Methode konkret tut.
+
+### Deklaration
+Das reine Bekanntmachen einer [``Variablen``](#variable), [``Klasse``](#klasse) oder [``Methode``](#methode) beim [``Compiler``](#compiler). Dabei wird festgelegt, welchen [``Typ``](#typ) und welchen Namen das Konstrukt hat (z. B. `int alter;`). Es wird hierbei noch kein konkreter [``Wert``](#wert) und keine [``Speicheradresse``](#Speicheradresse) zugewiesen.
+
+### Speicheradresse
+Eine eindeutige numerische Kennung (ein exakter Ort) im Arbeitsspeicher des Computers, an dem Daten abgelegt werden. Während [``Variablen``](#variable) von einfachen [``Typen``](#typ) (wie `int`) ihren [``Wert``](#wert) direkt an ihrer eigenen [``Speicheradresse``](#Speicheradresse) (meist auf dem [``Stack``](#stack)) ablegen, speichern [``Verweistypen``](#verweistypen) lediglich eine [``Referenz``](#referenz), die wie ein Wegweiser auf die Speicheradresse der echten Daten im [``Heap``](#heap) zeigt.
+
+### Initialisierung
+Die allererste Zuweisung eines [``Wertes``](#wert) an eine [``Variable``](#variable), nachdem diese [``deklariert``](#deklaration) wurde. Dies kann direkt in derselben Zeile wie die Deklaration geschehen (z. B. `int alter = 18;`) oder zu einem späteren Zeitpunkt im Code. Ohne Initialisierung kann eine lokale Variable in C# nicht verwendet werden.
+
+### Early Exit
+Ein Programmierstil, bei dem eine Methode (mit `return`) oder eine Schleife (mit `break` oder `continue`) so früh wie möglich verlassen wird, sobald feststeht, dass der restliche Code nicht mehr ausgeführt werden muss. Das verhindert tiefe Verschachtelungen.
+
+### Guard Clause
+Eine spezielle [``If-Anweisung``](#if-anweisung) ganz am Anfang einer Methode oder Schleife, die als eine Art "Türsteher" auf Fehler oder unerwünschte Zustände (❌) prüft. Trifft der Fehler zu, wird sofort ein [``Early Exit``](#early-exit) ausgeführt. 
+
+### Logische Formel
+Eine Kombination aus [``Werten``](#wert), [``Variablen``](#variable) und [``logischen Operatoren``](#logische-operatoren), die mathematisch ausgewertet wird und als Ergebnis strikt `true` oder `false` liefert.
+
+### Negieren
+Das logische Umkehren eines Wahrheitswertes. Aus `true` wird `false` und umgekehrt. In C# wird dies mit dem unären Operator `!` (logisches NICHT) vor einer Variablen oder einem [``Ausdruck``](#ausdruck) durchgeführt.
+
+### Pattern-Matching
+Ein fortgeschrittenes C#-Feature (oft in [``Switch-Ausdrücken``](#switch-ausdruck) genutzt), das es erlaubt, den [``Wert``](#wert) oder den [``Typ``](#typ) eines Objekts sehr kompakt gegen komplexe Muster (Patterns) zu prüfen.
+
+### Schleifenkopf
+Der Definitionsteil einer [``Schleife``](#schleife) (meist innerhalb der runden Klammern). Bei der `while`-Schleife enthält er nur die [``Bedingung``](#bedingung), bei der `for`-Schleife bündelt er zusätzlich die [``Zählvariable``](#zählvariable) und das [``Inkrement``](#inkrement).
+
+### Teilproblem
+Ein kleineres, überschaubares und leichter lösbares Problem, in das eine große, komplexe Programmieraufgabe zerlegt wird, um den Code übersichtlicher und besser wartbar zu machen.
+
+### Verschachtelte Verzweigung
+Eine [``Verzweigung``](#verzweigung) (wie z. B. eine If-Anweisung), die sich innerhalb des Code-[``Blocks``](#block) einer anderen Verzweigung befindet. Dies stellt logisch oft ein zusätzliches UND (`&&`) dar.
+
+### Kommentar
+Textabschnitte im Quellcode, die vom [``Compiler``](#compiler) komplett ignoriert werden. Sie dienen ausschließlich dazu, den Code für Menschen (Entwickler) lesbarer zu machen, Erklärungen zu hinterlassen oder die [``Zuständigkeit eines Blocks``](#zuständigkeit-eines-blocks) zu dokumentieren. In C# gibt es einzeilige Kommentare (`//`), mehrzeilige Kommentare (`/* ... */`) und XML-Dokumentationskommentare (`///`).

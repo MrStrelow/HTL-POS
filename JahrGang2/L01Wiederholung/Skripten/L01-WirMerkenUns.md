@@ -1,36 +1,42 @@
 >**Wir merken uns von [Operatoren](L02.1Operatoren.md):** 
->1. ``Logische Operatoren`` haben als ``Eingangsparameter`` den ``Typ`` *bool* und als ``Ausgangsparameter`` ebenso. 
->2. ``Vergleichs-Operatoren`` haben als ``Eingangsparameter`` vergleichbare ``Typen`` wie z.B. *int*, *double*, ... und als ``Ausgangsparameter`` den ``Typ`` *bool*.  
->3. Das ``logische UND`` *&&* ergibt *true*, wenn **alle** ``Eingangsparameter`` gleichzeitig zutreffen (*true* sind). 
->4. Das ``logische UND`` *&&* verwenden wir, um alles aufzulisten was zutreffen *muss*.
->5. Das ``logische ODER`` *&&* ergibt *true*, wenn **mindestens ein**  ``Eingangsparameter`` zutrifft (*true* ist). 
->6. Das ``logische ODER`` *||* verwenden wir, um zwei *Teillösungen* zusammenzufassen.
->7. Wenn keine ``logische Formel`` für eine *Problemstellung* gefunden werden kann, versuchen wir einfachere ``Teilprobleme`` zu lösen. Wir fügen diese später zusammen um die *Problemstellung* zu lösen.
->8. Das ``logische NICHT`` *!* ergibt *true*, wenn die vorherige ``Eingangsparameter`` *false* ist. Wir ``negieren`` damit eine ``Aussage`` bzw. ``logische Formel`` bzw. ``boolescher Ausdruck``. 
-
-
-**Wir merken uns von [Schleifen](L02.2Schleifen.md):**
->1. Bei einer ``Zählschleife`` *wissen wir wie oft* diese sich wiederholt und setzen es mit **for** um. 
->2. Bei einer ``While-Schleife`` *wissen wir **nicht** wie oft* diese sich wiederholt und setzen es mit **while** um.
->3. Die *runden Klammern* bei einer ``Schleife`` nennen wir den ``Schleifenkopf``.
->4. Die ``Schleifen-Bedingung`` ist eine ``logische Formel``, welche steuert wie oft die ``Schleife`` sich wiederholt.
->5. Bei der ``Zählschleife`` gibt es *drei* Bausteine im ``Schleifenkopf``. Diese sind ``Zählvariable``, ``Schleifen-Bedingung`` und ``Inkrement``. 
->6. Bei der ``While-Schleife`` gibt es *einen* Baustein im ``Schleifenkopf``. Dieser ist die ``Schleifen-Bedingung``.
+>1. [``Logische Operatoren``](../../../05_Glossar.md#logische-operatoren) haben als [``Eingangsparameter``](../../../05_Glossar.md#parameter) den [``Typ``](../../../05_Glossar.md#typ) *bool* und als [``Ausgangsparameter``](../../../05_Glossar.md#parameter) ebenso. 
+>2. [``Vergleichs-Operatoren``](../../../05_Glossar.md#vergleichsoperatoren) haben als [``Eingangsparameter``](../../../05_Glossar.md#parameter) vergleichbare [``Typen``](../../../05_Glossar.md#typ) wie z.B. *int*, *double*, ... und als [``Ausgangsparameter``](../../../05_Glossar.md#parameter) den [``Typ``](../../../05_Glossar.md#typ) *bool*.  
+>3. Das [``logische UND``](../../../05_Glossar.md#logische-operatoren) *&&* ergibt *true*, wenn **alle** [``Eingangsparameter``](../../../05_Glossar.md#parameter) gleichzeitig zutreffen (*true* sind). 
+>4. Das [``logische UND``](../../../05_Glossar.md#logische-operatoren) *&&* verwenden wir, um alles aufzulisten was zutreffen *muss*.
+>5. Das [``logische ODER``](../../../05_Glossar.md#logische-operatoren) *||* ergibt *true*, wenn **mindestens ein** [``Eingangsparameter``](../../../05_Glossar.md#parameter) zutrifft (*true* ist). 
+>6. Das [``logische ODER``](../../../05_Glossar.md#logische-operatoren) *||* verwenden wir, um zwei *Teillösungen* zusammenzufassen.
+>7. Wenn keine [``logische Formel``](../../../05_Glossar.md#logische-formel) für eine *Problemstellung* gefunden werden kann, versuchen wir einfachere [``Teilprobleme``](../../../05_Glossar.md#teilprobleme) zu lösen. Wir fügen diese später zusammen um die *Problemstellung* zu lösen.
+>8. Das [``logische NICHT``](../../../05_Glossar.md#logische-operatoren) *!* ergibt *true*, wenn der vorherige [``Eingangsparameter``](../../../05_Glossar.md#parameter) *false* ist. Wir [``negieren``](../../../05_Glossar.md#negieren) damit eine [``Aussage``](../../../05_Glossar.md#aussage) bzw. [``logische Formel``](../../../05_Glossar.md#logische-formel) bzw. einen [``booleschen Ausdruck``](../../../05_Glossar.md#ausdruck). 
 
 >**Wir merken uns von [Verzweigungen](L02.3Verzweigungen.md):**
->1. Die ``Bedingung`` ist eine ``logische Formel``, welche steuert, ob wir den folgenden ``Block`` ausführen oder nicht.
->2. Eine ``bedingte Anweisung`` **if ohne else** führt einen ``Block`` nur aus, wenn ihre ``Bedingung`` *true* ist.
->3. Eine ``Verzweigung`` **if mit else** besitzt *zwei* ``Blöcke`` und sichert zu, dass *einer* der beiden *immer* ausgeführt wird. 
->4. Die ``Bedingung`` bei einer ``Verzweigung`` steuert, welcher ``Block`` ausgeführt wird.
->5. Eine ``Mehrfachverzweigung`` **if mit else if** oder *switch* besitzt *mehrere* ``Blöcke`` und sichert zu, dass *einer* davon *immer* ausgeführt wird. 
->6. Ein ``Ausdruck`` kann den ``Zuweisungsoperator`` *links* neben sich stehen haben. 
->7. Eine ``Anweisung`` kann *nicht* den ``Zuweisungsoperator`` *links* neben sich stehen haben. 
->8. Eine ``verschachtelte Verzweigung`` entsteht, wenn wir ``bedigte Anweisungen``, ``Verzweigungen`` oder ``Mehrfachverzweigungen`` in den ``Block`` einer anderen ``bedigte >Anweisung``, ``Verzweigung`` oder ``Mehrfachverzweigung`` schreiben. 
-<!-- >9. Eine ``verschachtelte Verzweigung`` ist ab einer Tiefe von *drei* zu vermeiden. 
->10. Wir können eine ``verschachtelte Verzweigung`` mit dem ``De Morgan'schen Gesetz`` zu *flachen* ``bedingten Anweisungen`` umformen.
->11. Die ``verchachtelte Verzweigung`` stellt ein ``logisches UND`` dar. 
->12. *Mehrere untereinander* geschriebene ``bedingte Anweisungen`` mit ``early exit`` stellen ein ``logisches ODER`` dar. 
->13. Eine ``Guard Clause`` wird mit ist ein *securtiy check*. Mehrere ``bedingte Anweisungen`` werden *untereinander* geschrieben und fragen in der ``Bedingung`` nach dem *ungewünschten Zustand* ❌ ab.
->14. Bei einer ``Guard Clause`` ist der *gewünschte Zustand* ✅ nach am Ende nach allen erflogreich abschlossenen ``bedingte Anweisungen`` erreicht.
->8. Ein **switch** als ``Anweisung`` ist in neuen Sprachen begrenzt nützlich.
->9. Ein **switch** als ``Ausdruck`` ist in neuen Sprachen nützlich und wird als ``Pattern-Matching`` bezeichnet. -->
+>1. [``Variablen``](../../../05_Glossar.md#variable) befinden sich in einem [``Block``](../../../05_Glossar.md#block), welcher mit *eckigen Klammern* ausgezeichnet wird.
+>2. [``Variablen``](../../../05_Glossar.md#variable) welche innerhalb eines [``Blocks``](../../../05_Glossar.md#block)[``deklariert``](../../../05_Glossar.md#block) werden sind in *diesem* und allen darin *geschachtelten* [``Blöcke``](../../../05_Glossar.md#block) verwendbar. Diese [``Variablen``](../../../05_Glossar.md#variable) sind *in-[``scope``](../../../05_Glossar.md#block)*.
+>3. [``Variablen``](../../../05_Glossar.md#variable) welche innerhalb eines [``Blocks``](../../../05_Glossar.md#block)[``deklariert``](../../../05_Glossar.md#block) werden und in[``Blöcken``](../../../05_Glossar.md#block) außerhalb angesprochen werden. Diese [``Variablen``](../../../05_Glossar.md#variable) sind *out-of-[``scope``](../../../05_Glossar.md#scope)*.
+>1. Die [``Bedingung``](../../../05_Glossar.md#bedingung) ist eine [``logische Formel``](../../../05_Glossar.md#logische-formel), welche steuert, ob wir den folgenden [``Block``](../../../05_Glossar.md#block) ausführen oder nicht.
+>2. Eine [``bedingte Anweisung``](../../../05_Glossar.md#bedingte-anweisung) **if ohne else** führt einen [``Block``](../../../05_Glossar.md#block) nur aus, wenn ihre [``Bedingung``](../../../05_Glossar.md#bedingung) *true* ist.
+>3. Eine [``Verzweigung``](../../../05_Glossar.md#verzweigung) **if mit else** besitzt *zwei* [``Blöcke``](../../../05_Glossar.md#block) und sichert zu, dass *einer* der beiden *immer* ausgeführt wird. 
+>4. Die [``Bedingung``](../../../05_Glossar.md#bedingung) bei einer [``Verzweigung``](../../../05_Glossar.md#verzweigung) steuert, welcher [``Block``](../../../05_Glossar.md#block) ausgeführt wird.
+>5. Eine [``Mehrfachverzweigung``](../../../05_Glossar.md#mehrfachverzweigung) **if mit else if** oder *switch* besitzt *mehrere* [``Blöcke``](../../../05_Glossar.md#block) und sichert zu, dass *einer* davon *immer* ausgeführt wird. 
+>6. Ein [``Ausdruck``](../../../05_Glossar.md#ausdruck) kann den [``Zuweisungsoperator``](../../../05_Glossar.md#zuweisungsoperator) *links* neben sich stehen haben. 
+>7. Eine [``Anweisung``](../../../05_Glossar.md#anweisung) kann *nicht* den [``Zuweisungsoperator``](../../../05_Glossar.md#zuweisungsoperator) *links* neben sich stehen haben. 
+>8. Eine [``verschachtelte Verzweigung``](../../../05_Glossar.md#verschachtelte-verzweigung) entsteht, wenn wir [``bedingte Anweisungen``](../../../05_Glossar.md#bedingte-anweisung), [``Verzweigungen``](../../../05_Glossar.md#verzweigung) oder [``Mehrfachverzweigungen``](../../../05_Glossar.md#mehrfachverzweigung) in den [``Block``](../../../05_Glossar.md#block) einer anderen [``bedingten Anweisung``](../../../05_Glossar.md#bedingte-anweisung), [``Verzweigung``](../../../05_Glossar.md#verzweigung) oder [``Mehrfachverzweigung``](../../../05_Glossar.md#mehrfachverzweigung) schreiben. 
+<!-- >9. Eine [``verschachtelte Verzweigung``](../../../05_Glossar.md#verschachtelte-verzweigung) ist ab einer Tiefe von *drei* zu vermeiden. 
+>10. Wir können eine [``verschachtelte Verzweigung``](../../../05_Glossar.md#verschachtelte-verzweigung) mit dem [``De Morgan'schen Gesetz``](../../../05_Glossar.md#de-morganschen-gesetz) zu *flachen* [``bedingten Anweisungen``](../../../05_Glossar.md#bedingte-anweisung) umformen.
+>11. Die [``verschachtelte Verzweigung``](../../../05_Glossar.md#verschachtelte-verzweigung) stellt ein [``logisches UND``](../../../05_Glossar.md#logische-operatoren) dar. 
+>12. *Mehrere untereinander* geschriebene [``bedingte Anweisungen``](../../../05_Glossar.md#bedingte-anweisung) mit [``early exit``](../../../05_Glossar.md#early-exit) stellen ein [``logisches ODER``](../../../05_Glossar.md#logische-operatoren) dar. 
+>13. Eine [``Guard Clause``](../../../05_Glossar.md#guard-clause) ist ein *security check*. Mehrere [``bedingte Anweisungen``](../../../05_Glossar.md#bedingte-anweisung) werden *untereinander* geschrieben und fragen in der [``Bedingung``](../../../05_Glossar.md#bedingung) nach dem *ungewünschten Zustand* ❌ ab.
+>14. Bei einer [``Guard Clause``](../../../05_Glossar.md#guard-clause) ist der *gewünschte Zustand* ✅ am Ende nach allen erfolgreich abgeschlossenen [``bedingten Anweisungen``](../../../05_Glossar.md#bedingte-anweisung) erreicht.
+>8. Ein **switch** als [``Anweisung``](../../../05_Glossar.md#anweisung) ist in neuen Sprachen begrenzt nützlich.
+>9. Ein **switch** als [``Ausdruck``](../../../05_Glossar.md#ausdruck) ist in neuen Sprachen nützlich und wird als [``Pattern-Matching``](../../../05_Glossar.md#pattern-matching) bezeichnet. -->
+
+**Wir merken uns von [Schleifen](L02.2Schleifen.md):**
+>1. Bei einer [``Zählschleife``](../../../05_Glossar.md#zählschleife) *wissen wir wie oft* diese sich wiederholt und setzen es mit **for** um. 
+>2. Bei einer [``While-Schleife``](../../../05_Glossar.md#while-schleife) *wissen wir **nicht** wie oft* diese sich wiederholt und setzen es mit **while** um.
+>3. Die *runden Klammern* bei einer [``Schleife``](../../../05_Glossar.md#schleife) nennen wir den [``Schleifenkopf``](../../../05_Glossar.md#schleifenkopf).
+>4. Die [``Schleifen-Bedingung``](../../../05_Glossar.md#bedingung) ist eine [``logische Formel``](../../../05_Glossar.md#logische-formel), welche steuert wie oft die [``Schleife``](../../../05_Glossar.md#schleife) sich wiederholt.
+>5. Bei der [``Zählschleife``](../../../05_Glossar.md#zählschleife) gibt es *drei* Bausteine im [``Schleifenkopf``](../../../05_Glossar.md#schleifenkopf). Diese sind [``Zählvariable``](../../../05_Glossar.md#zählvariable), [``Schleifen-Bedingung``](../../../05_Glossar.md#bedingung) und [``Inkrement``](../../../05_Glossar.md#inkrement). 
+>6. Bei der [``While-Schleife``](../../../05_Glossar.md#while-schleife) gibt es *einen* Baustein im [``Schleifenkopf``](../../../05_Glossar.md#schleifenkopf). Dieser ist die [``Schleifen-Bedingung``](../../../05_Glossar.md#bedingung).
+>7. Eine [``Block``](../../../05_Glossar.md#block) besitzt eine [``Zuständigkeit``](../../../05_Glossar.md#zuständigkeit-eines-blocks) welche wir als [``Kommentar``](../../../05_Glossar.md#kommentar) in *natürlicher Sprache* angeben.
+>8. Mit dem [``Befehl``](../../../05_Glossar.md#befehlt) *cd  < projektordner >* (*Change Directory*) welchseln wir im [``Terminal``](../../../05_Glossar.md#console) das *Projektverzeichnis*. Anschließend wird mit dem [``Befehl``](../../../05_Glossar.md#befehlt) *dotnet run* unser [``Projekt``](../../../05_Glossar.md#projekt) [``kompiliert``](../../../05_Glossar.md#compiler) und [``ausgeführt``](../../../05_Glossar.md#ausgeführt).
+>9. Dem [``Befehl``](../../../05_Glossar.md#befehl) *dotnet run* können wir in beliebigen den [``Terminals``](../../../05_Glossar.md#console) unabhängig von einer [``IDE``](../../../05_Glossar.md#befehl) eingeben.
+>10. Wir verwenden den [``Befehl``](../../../05_Glossar.md#befehl) *dotnet run* um [``Emojis``](../../../05_Glossar.md#emojis) konsistenter in einem [``Terminal``](../../../05_Glossar.md#console) darstellen zu können.
