@@ -1,4 +1,6 @@
 <Solution>
+  <Project Path="Aufgabe01-Formen/Aufgabe01-Formen.csproj" />
   <Project Path="Skripten/Skripten.csproj" />
   <Project Path="ZettelUebungen/ZettelUebungen.csproj" Id="95b93d3e-384e-497f-ae6a-830841728d8a" />
+  <Project Path="SMUe/SMUes.csproj"/>
 </Solution>

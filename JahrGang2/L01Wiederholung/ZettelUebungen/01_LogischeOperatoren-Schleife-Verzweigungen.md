@@ -6,8 +6,25 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 _ _ _ _ _ _ _ _ _ _ _ _ 
 
 ### Logische Operatoren
+**Übung 1: Schachbrett 🙂**
+Versuche die logische Formel für folgendes Muster zu finden.
+```
+             x
+    🟦0️⃣1️⃣2️⃣3️⃣4️⃣5️⃣
+    0️⃣⬜⬛⬜⬛⬜⬛
+    1️⃣⬛⬜⬛⬜⬛⬜
+  y 2️⃣⬜⬛⬜⬛⬜⬛
+    3️⃣⬛⬜⬛⬜⬛⬜
+    4️⃣⬜⬛⬜⬛⬜⬛
+    5️⃣⬛⬜⬛⬜⬛⬜
+```
 
-**Übung 1: Schachbrettartig 🙂**
+```csharp
+bool istWeissesFeld     = ________________________________________________;
+bool istSchwarzesFeld   = ________________________________________________;
+```
+
+**Übung 2: Schachbrettartig 🤔**
 Versuche die logische Formel für folgendes Muster zu finden.
 ```
              x
@@ -25,71 +42,10 @@ bool istWeissesFeld     = ________________________________________________;
 bool istSchwarzesFeld   = ________________________________________________;
 bool istRotesFeld       = ________________________________________________;
 ```
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-**Übung 2: Schachbrettartig, ähnlich aber anders 🤔**
-Versuche die logische Formel für folgendes Muster zu finden.
->Hinweis: Schau dir das Schachbrett mit zwei abwechselnden Farben an.
-```
-             x
-    🟦0️⃣1️⃣2️⃣3️⃣4️⃣5️⃣
-    0️⃣🔺⬛⬜🔺⬜⬛
-    1️⃣⬛⬜🔺⬜⬛🔺
-  y 2️⃣⬜🔺⬜⬛🔺⬛
-    3️⃣🔺⬜⬛🔺⬛⬜
-    4️⃣⬜⬛🔺⬛⬜🔺
-    5️⃣⬛🔺⬛⬜🔺⬜
-```
 
-```csharp
-bool istWeissesFeld     = ________________________________________________;
-bool istSchwarzesFeld   = ________________________________________________;
-bool istRotesFeld       = ________________________________________________;
-```
-
-**Übung 3: Ringe 💀**
-Versuche die logische Formel für folgendes Muster zu finden.
->Hinweis: Schau dir das Schachbrett mit zwei abwechselnden Farben an.
-```
-             x
-    🟦0️⃣1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣
-    0️⃣⬛⬛⬛⬛⬛⬛⬛
-    1️⃣⬛⬜⬜⬜⬜⬜⬛
-    2️⃣⬛⬜⬛⬛⬛⬜⬛
-  y 3️⃣⬛⬜⬛🔺⬛⬜⬛
-    4️⃣⬛⬜⬛⬛⬛⬜⬛
-    5️⃣⬛⬜⬜⬜⬜⬜⬛
-    6️⃣⬛⬛⬛⬛⬛⬛⬛
-```
-
-```csharp
-bool istWeissesFeld     = ________________________________________________;
-bool istSchwarzesFeld   = ________________________________________________;
-```
-.
-.
-.
-.
-.
-.
-.
 ### Schleifen
 
-**Übung 4: Ausgabe einer blauen Fläche**
+**Übung 3: Ausgabe einer blauen Fläche**
 ```
 🟦🟦🟦🟦🟦
 🟦🟦🟦🟦🟦
@@ -105,7 +61,11 @@ for (int i = 0; i < 5 * 5; i++)
 }
 ```
 Erzeugt dieser Code das angegebene Muster? Erkläre wieso oder wieso nicht.
-
+$\\$
+$\\$
+$\\$
+$\\$
+$\\$
 
 **Übung 4: Ausgabe einer blauen Fläche - Teil 2**
 Befülle die Lücken um folgendes Muster zu erzeugen.
@@ -128,13 +88,7 @@ for (________; ________; ________)
     ________________________;
 }
 ```
-.
-.
-.
-.
-.
-.
-.
+
 ### Schleifen mit Verzweigungen
 **Übung 5: Alles zusammen**
 Vervollständige den folgenden Code, indem die fehlenden Variablen, ``Operatoren`` oder ``Methodenaufrufe`` in die Lücken (`___`) einträgst. Das Muster aus *Übung 1* ist abzubilden. 
@@ -178,4 +132,41 @@ for (________; ________; ________)
     }
     ________________________;
 }
+```
+
+---
+
+## Bonusübung
+**Übung 6: Schachbrettartig, ähnlich aber anders 🤔**
+```
+             x
+    🟦0️⃣1️⃣2️⃣3️⃣4️⃣5️⃣
+    0️⃣🔺⬛⬜🔺⬜⬛
+    1️⃣⬛⬜🔺⬜⬛🔺
+  y 2️⃣⬜🔺⬜⬛🔺⬛
+    3️⃣🔺⬜⬛🔺⬛⬜
+    4️⃣⬜⬛🔺⬛⬜🔺
+    5️⃣⬛🔺⬛⬜🔺⬜
+```
+
+```csharp
+bool istWeissesFeld     = ________________________________________________;
+bool istSchwarzesFeld   = ________________________________________________;
+bool istRotesFeld       = ________________________________________________;
+```
+**Übung 7: Ringe 💀**
+```
+             x
+    🟦0️⃣1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣
+    0️⃣⬛⬛⬛⬛⬛⬛⬛
+    1️⃣⬛⬜⬜⬜⬜⬜⬛
+    2️⃣⬛⬜⬛⬛⬛⬜⬛
+  y 3️⃣⬛⬜⬛⬜⬛⬜⬛
+    4️⃣⬛⬜⬛⬛⬛⬜⬛
+    5️⃣⬛⬜⬜⬜⬜⬜⬛
+    6️⃣⬛⬛⬛⬛⬛⬛⬛
+```
+```csharp
+bool istWeissesFeld     = ________________________________________________;
+bool istSchwarzesFeld   = ________________________________________________;
 ```
