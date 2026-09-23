@@ -1,23 +1,24 @@
 >**Wir merken uns von [Arrays](L01.1-Arrays.md):** 
->1. Ein ``Array`` ist eine Ansammlung von ``Werten`` welche logisch zusammengehören. 
->2. Ein einzelner ``Wert`` welcher sich in einem ``Array`` befindet, wird ``Element`` genannt. 
->3. Ein ``Array`` besitzt mehrere ``Indices``, welche uns erlauben auf eine Position zuzugreifen. 
->4. Der ``Index`` ist immer genau um *1* kleiner als die tatsächliche Position des Elements. 
->5. Wenn ein ``Array`` mit einer ``For-Schleife`` durchlaufen wird, ist es einfacher wenn die ``Zählvariable`` bei *0* beginnt.
->6. Weitere ``Dimensionen`` können dem ``Array`` hinzugefügt werden indem wir ein *Komma* zwischen eckigen Klammern *int[,] personendaten;* schreiben.
->7. Wir betrachten bei einem ``2d-Array`` zuerst die y-Achse, dann die x-Achse bei Erstellung, Lese- und Schreibzugriffen.
+>1. Ein [``Array``](../../../05_Glossar.md#array) ist eine Ansammlung von [``Werten``](../../../05_Glossar.md#wert) welche logisch zusammengehören. 
+>2. Ein einzelner [``Wert``](../../../05_Glossar.md#wert) welcher sich in einem [``Array``](../../../05_Glossar.md#array) befindet, wird [``Element``](../../../05_Glossar.md#element) genannt. 
+>3. Ein [``Array``](../../../05_Glossar.md#array) besitzt mehrere [``Indices``](../../../05_Glossar.md#index), welche uns erlauben auf eine Position zuzugreifen. 
+>4. Der [``Index``](../../../05_Glossar.md#index) ist immer genau um *1* kleiner als die tatsächliche Position des Elements. 
+>5. Wenn ein [``Array``](../../../05_Glossar.md#array) mit einer [``For-Schleife``](../../../05_Glossar.md#for-schleife) durchlaufen wird, ist es einfacher wenn die [``Zählvariable``](../../../05_Glossar.md#zaehlvariable) bei *0* beginnt.
+>6. Weitere [``Dimensionen``](../../../05_Glossar.md#dimension) können dem [``Array``](../../../05_Glossar.md#array) hinzugefügt werden indem wir ein *Komma* zwischen eckigen Klammern *int[,] personendaten;* schreiben.
+>7. Wir betrachten bei einem [``2d-Array``](../../../05_Glossar.md#2d-array) zuerst die y-Achse, dann die x-Achse bei Erstellung, Lese- und Schreibzugriffen.
 >8. Die y-Achse zählt von oben nach unten mit positiven Zahlen und die x-Achse mit positiven Zahlen von links nach rechts. 
->9. Um ein ``2d-Array`` abzuarbeiten, benötigen wir für jede ``Dimension`` eine eigene Schleife. Zusammen sind diese ``verschachtelte Schleifen``.
->10. Wir können das ``Array`` mit der ``Methode`` *brett.GetLength(0.* fragen wie viele ``Elemente`` dieses in der ``Dimension`` *0* hat. Gleiches gilt für ``Dimension`` *1* und *brett.GetLength(1.*.
+>9. Um ein [``2d-Array``](../../../05_Glossar.md#2d-array) abzuarbeiten, benötigen wir für jede [``Dimension``](../../../05_Glossar.md#dimension) eine eigene Schleife. Zusammen sind diese [``verschachtelte Schleifen``](../../../05_Glossar.md#verschachtelte-schleifen).
+>10. Wir können das [``Array``](../../../05_Glossar.md#array) mit der [``Methode``](../../../05_Glossar.md#methode) *brett.GetLength(0)* fragen wie viele [``Elemente``](../../../05_Glossar.md#element) dieses in der [``Dimension``](../../../05_Glossar.md#dimension) *0* hat. Gleiches gilt für [``Dimension``](../../../05_Glossar.md#dimension) *1* und *brett.GetLength(1)*.
 
-<!-- >6. Wir greifen auf ein ``Element`` des ``Arrays`` zu indem wir eine *eckige Klammer* nach dem *Namen* der ``Variable`` schreiben. -->
-<!-- >2. Wir legen ein ``Array`` an indem wir nach dem ``Typ`` eine *eckige Klammer* schreiben. -->
-<!-- >3. Wenn wir wissen welche ``Werte`` in ein ``Array`` kommen, schreiben wir nach dem ``Zuweisungsoperator`` *{ "Anna", "Ben" };*.  -->
-<!-- >4. Wenn wir *nicht* wissen welche ``Werte`` in ein ``Array`` kommen, aber wie groß es sein soll, schreiben wir nach dem ``Zuweisungsoperator`` z.B. *new int[10];* wenn wir genau Platz für *10* ``Elemente`` haben wollen.  -->
-<!-- >15. ``Arrays`` sind ``Verweistypen``. Reichen wir sie an eine ``Methode`` weiter, arbeitet diese stets auf den **originalen Daten**. Änderungen innerhalb der Methode sind sofort überall im Programm darüber wirksam. -->
-<!-- >16. Ein ``Seiteneffekt`` beschreibt eine nicht direkt Sichtbare Änderung von ``Variablen``. -->
+<!-- 
+>6. Wir greifen auf ein [``Element``](../../../05_Glossar.md#element) des [``Arrays``](../../../05_Glossar.md#array) zu indem wir eine *eckige Klammer* nach dem *Namen* der [``Variable``](../../../05_Glossar.md#variable) schreiben. >2. Wir legen ein [``Array``](../../../05_Glossar.md#array) an indem wir nach dem [``Typ``](../../../05_Glossar.md#typ) eine *eckige Klammer* schreiben.
+>3. Wenn wir wissen welche [``Werte``](../../../05_Glossar.md#wert) in ein [``Array``](../../../05_Glossar.md#array) kommen, schreiben wir nach dem [``Zuweisungsoperator``](../../../05_Glossar.md#zuweisungsoperator) *{ "Anna", "Ben" };*.
+>4. Wenn wir *nicht* wissen welche [``Werte``](../../../05_Glossar.md#wert) in ein [``Array``](../../../05_Glossar.md#array) kommen, aber wie groß es sein soll, schreiben wir nach dem [``Zuweisungsoperator``](../../../05_Glossar.md#zuweisungsoperator) z.B. *new int[10];* wenn wir genau Platz für *10* [``Elemente``](../../../05_Glossar.md#element) haben wollen.
+>15. [``Arrays``](../../../05_Glossar.md#array) sind [``Verweistypen``](../../../05_Glossar.md#verweistyp). Reichen wir sie an eine [``Methode``](../../../05_Glossar.md#methode) weiter, arbeitet diese stets auf den **originalen Daten**. Änderungen innerhalb der Methode sind sofort überall im Programm darüber wirksam.
+>16. Ein [``Seiteneffekt``](../../../05_Glossar.md#seiteneffekt) beschreibt eine nicht direkt Sichtbare Änderung von [``Variablen``](../../../05_Glossar.md#variable).
+ -->
 
->**Wir merken uns von [Klassendiagrammen](L01.2-KlassenUndObjekte-UML.md):**
+>**Wir merken uns von [Klassen und Objekte modellieren](L01.2-KlassenUndObjekte-modellieren.md):**
 >1. [``UML``](../../../05_Glossar.md#uml) ist eine standardisierte grafische Sprache zur Planung und Dokumentation von Softwarestrukturen. Wir schauen uns aber **NICHT** diese Standardisierung an, sondern jene, wie [``Visual Studio``](../../../05_Glossar.md#visual-studio) ein [``Klassendiagramm``](../../../05_Glossar.md#klassendiagramm) darstellt.
 >2. Ein [``Klassendiagramm``](../../../05_Glossar.md#klassendiagramm) stellt dar, welche [``Klassen``](../../../05_Glossar.md#klasse) in unserer [``Domäne``](../../../05_Glossar.md#domäne) existieren und wie diese miteinander in *Verbindung* stehen. Weiters werden die [``Mitglieder``](../../../05_Glossar.md#mitglied) einer [``Klasse``](../../../05_Glossar.md#klasse) sichtbar gemacht.
 >3. Eine [``Klasse``](../../../05_Glossar.md#klasse) ist der Bauplan für ein [``Objekt``](../../../05_Glossar.md#objekt) und beschreibt den [``Zustand``](../../../05_Glossar.md#zustand) und das [``Verhalten``](../../../05_Glossar.md#verhalten) eines [``Objektes``](../../../05_Glossar.md#objekt).
@@ -44,8 +45,7 @@
 >24. Eine [``Klasse``](../../../05_Glossar.md#klasse) darf nur von *einer* [``Basisklasse``](../../../05_Glossar.md#basisklasse) erben, aber *beliebig viele* [``Interfaces``](../../../05_Glossar.md#interface) [``implementieren``](../../../05_Glossar.md#implementierung). -->
 
 
->**Wir merken uns von [Objekte und Klasse schreiben](L01.3-KlassenUndObjekteSchreiben.md):** 
->**Wir merken uns zu Zustand, Sichtbarkeit und Abstraktion:**
+>**Wir merken uns von [Objekte und Klasse schreiben](L01.3-KlassenUndObjekte-programmieren.md):** 
 >1. Wir nutzen [``Konstruktoren``](../../../05_Glossar.md#konstruktor), um beim Erstellen mit *new* den Startzustand des [``Objekts``](../../../05_Glossar.md#objekt) festzulegen.
 >2. Wir steuern die [``Sichtbarkeit``](../../../05_Glossar.md#sichtbarkeitsmodifizierer) von [``Mitgliedern``](../../../05_Glossar.md#mitglied) mit `public`, `private` und `protected`.
 >3. Wir verstecken ``Felder`` **immer** mit `private` vor Zugriffen von außen und setzen damit *sinnvolles* [``Data Hiding``](../../../05_Glossar.md#data-hiding) um.
@@ -63,5 +63,5 @@
 >10. Der ``Zusammenhalt`` einer ``Klasse`` beschreibt, wie gut die ``Mitglieder`` innerhalb einer ``Klasse`` "logisch" bei der Erfüllung *einer einzigen Aufgabe* zusammenpassen. ``Zusammenhalt`` hoch: Eine Klasse kümmer sich *nur* um das Bewegugnsverhalten eines *Hamsters*. ``Zusammenhalt`` niedrig: Eine Klasse kümmert sich um Bewegugnsverhalten, UI, Datenbank und Logik eines *Hamsters* gleichzeitig.  
 >11. Die ``Kopplung`` eines ``Objektes`` beschreibt, wie stark verschiedene ``Objekte`` voneinander abhängen. Der *Hamser* muss umprogrammiert werden sobald sich der code der ``Plane`` ändert. Z.B. wir verwenden image 2D-Array, statt einem string 2D-Array. Beide sind gekoppelt und sind wartungsintensiver. Eine gute ``Kapselung`` verringert die ``Kopplung``. -->
 
->**Wir merken uns von [TricksMitParametern](L01.2-TricksMitParameterVonMethoden.md):** 
+>**Wir merken uns von [Eigene Datenstrukturen programmieren](L01.7-EigeneDatenstrukturen.md):** 
 >1. 

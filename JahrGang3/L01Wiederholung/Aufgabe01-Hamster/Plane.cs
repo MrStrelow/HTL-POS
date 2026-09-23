@@ -79,6 +79,7 @@ public class Plane
 
     public (int x, int y) Position(Hamster hamster, Direction direction)
     {
+        // Als Statement
         var futurePosition = hamster.Position;
 
         switch (direction)
@@ -105,6 +106,18 @@ public class Plane
                     futurePosition.x++;
                 break;
         }
+
+        //// Als Expression
+        //var (x, y) = hamster.Position;
+
+        //var futurePosition = direction switch
+        //{
+        //    Direction.UP when y > 0 => (x, y - 1),
+        //    Direction.DOWN when y < Size - 1 => (x, y + 1),
+        //    Direction.LEFT when x > 0 => (x - 1, y),
+        //    Direction.RIGHT when x < Size - 1 => (x + 1, y),
+        //    _ => (x, y)
+        //};
 
         // hamster.Position = futurePosition; // schlechte Koppelung! Besser kapseln verhindert es!
         return futurePosition;

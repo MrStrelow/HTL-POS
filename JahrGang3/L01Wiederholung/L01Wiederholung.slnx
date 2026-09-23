@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="Aufgabe01-Hamster/Aufgabe01-Hamster.csproj" />
   <Project Path="Skripten/Skripten.csproj" />
+  <Project Path="SMUe/SMUes.csproj" Id="1a8cc57b-aa6e-441d-bbbd-6ac6bf9bb4c5" />
   <Project Path="ZettelUebungen/ZettelUebungen.csproj" />
 </Solution>
