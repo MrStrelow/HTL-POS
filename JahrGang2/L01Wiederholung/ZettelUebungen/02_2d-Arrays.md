@@ -39,9 +39,7 @@ for (int y = 0; y < 2; y++)
 // ___________________
 // ___________________
 ```
-.
-.
-.
+
 #### 3. - Verschachtelte Schleife:
 ```csharp
 // 3. Verschachtelte Schleife:
@@ -75,21 +73,7 @@ for (int x = 0; x < 4; x++)
 // ___________________
 // ___________________
 ```
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
+
 **Übung 2: Code ergänzen**
 Vervollständige den folgenden Code, indem die fehlenden Zeichen, ``Indizes`` oder ``Methodenaufrufe`` in die Lücken (`___`) einträgst.
 
