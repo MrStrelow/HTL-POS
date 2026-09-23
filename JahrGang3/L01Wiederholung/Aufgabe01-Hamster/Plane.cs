@@ -10,7 +10,7 @@ public class Plane
     public int Size { get; }
 
     // Beziehungen
-    private Dictionary<(int x, int y), Seedling> _Seedlings = new();
+    private Dictionary<(int x, int y), Seedling> _seedlings = new();
     private List<Hamster> _hamsters = new();
 
     // Konstruktor
@@ -34,7 +34,7 @@ public class Plane
         for (int i = 0; i < numberOfSeedlings; i++)
         {
             var Seedling = new Seedling(this);
-            _Seedlings[Seedling.Position] = Seedling;
+            _seedlings[Seedling.Position] = Seedling;
         }
 
         // Hamster
@@ -125,7 +125,7 @@ public class Plane
             _plane[hamster.Position.y, hamster.Position.x] = hamster.Representation;
         }
 
-        foreach (var Seedling in _Seedlings.Values)
+        foreach (var Seedling in _seedlings.Values)
         {
             _plane[Seedling.Position.y, Seedling.Position.x] = Seedling.Representation;
         }
@@ -133,31 +133,31 @@ public class Plane
 
     public void HamsterIsEatingSeedlings(Hamster hamster)
     {
-        _Seedlings.Remove(hamster.Position);
+        _seedlings.Remove(hamster.Position);
     }
 
     public void HamsterIsStoringSeedlings(Hamster hamster)
     {
-        _Seedlings.Remove(hamster.Position);
+        _seedlings.Remove(hamster.Position);
     }
 
     public void RegrowSeedlings()
     {
-        int potentialGrowth = (int)Math.Pow(_hamsters.Count, 2) / _Seedlings.Count;
-        int freeTiles = Size * Size - _hamsters.Count - _Seedlings.Count;
+        int potentialGrowth = (int)Math.Pow(_hamsters.Count, 2) / _seedlings.Count;
+        int freeTiles = Size * Size - _hamsters.Count - _seedlings.Count;
 
         int bound = Math.Min(potentialGrowth, freeTiles);
 
         for (int i = 0; i < bound; i++)
         {
             var Seedling = new Seedling(this);
-            _Seedlings[Seedling.Position] = Seedling;
+            _seedlings[Seedling.Position] = Seedling;
         }
     }
 
     public bool AssignInitialPosition(Hamster hamster, (int x, int y) key)
     {
-        if (!_Seedlings.ContainsKey(key) && !TileTakenByHamster(key))
+        if (!_seedlings.ContainsKey(key) && !TileTakenByHamster(key))
         {
             _plane[key.y, key.x] = hamster.Representation;
             return true;
@@ -168,7 +168,7 @@ public class Plane
 
     public bool AssignInitialPosition(Seedling Seedling, (int x, int y) key)
     {
-        if (!_Seedlings.ContainsKey(key) && !TileTakenByHamster(key))
+        if (!_seedlings.ContainsKey(key) && !TileTakenByHamster(key))
         {
             _plane[key.y, key.x] = Seedling.Representation;
             return true;
@@ -194,11 +194,11 @@ public class Plane
 
     public bool ContainsSeedling((int x, int y) key)
     {
-        return _Seedlings.ContainsKey(key);
+        return _seedlings.ContainsKey(key);
     }
 
     public Seedling GetSeedlingOn((int x, int y) key)
     {
-        return _Seedlings[key];
+        return _seedlings[key];
     }
 }

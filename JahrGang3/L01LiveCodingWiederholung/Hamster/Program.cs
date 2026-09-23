@@ -26,4 +26,7 @@ while (!int.TryParse(Console.ReadLine(), out sizeOfPlane) || sizeOfPlane <= 0)
 // Plane objekt erstellen und aufgabe das spiel zu starten
 // * eingabe der größe vom user an Konstruktor übergeben.
 Plane plane = new Plane(sizeOfPlane);
+
+// TODO:
+// 1. Wiederhole für immer die Methodenaufrufe SimulateHamster und Print.
 plane.Print();
