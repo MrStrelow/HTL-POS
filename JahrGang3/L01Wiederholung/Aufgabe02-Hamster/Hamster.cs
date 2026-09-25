@@ -9,12 +9,10 @@ public class Hamster
     // Eigenschaften (Properties)
     public (int x, int y) Position { get; private set; }
     public string Representation { get; private set; }
-
     public bool IsHungry { get; private set; }
 
     // Beziehungen
     private Plane plane;
-    private List<Seedling> mouth = new List<Seedling>();
 
     // Konstruktor
     public Hamster(Plane plane)
@@ -51,63 +49,6 @@ public class Hamster
         var direction = Enum.GetValues<Direction>()[index];
 
         Position = plane.Position(this, direction);
-        //plane.Position(this, direction); // position macht es für uns! koppelung.
-    }
-
-    public void NutritionBehaviour()
-    {
-        var random = new Random();
-
-        // Zufällig hungrig werden
-        if (random.NextDouble() < 0.1)
-        {
-            IsHungry = true;
-            Representation = _hungryRepresentation;
-        }
-
-        if (plane.ContainsSeedling(Position))
-        {
-            if (IsHungry)
-            {
-                EatSeedlingFromTile();
-            }
-            else
-            {
-                StoreInMouth();
-            }
-        }
-        else
-        {
-            if (IsHungry && mouth.Any())
-            {
-                EatSeedlingFromMouth();
-            }
-        }
-    }
-
-    private void EatSeedlingFromMouth()
-    {
-        Eat();
-        mouth.RemoveAt(0);
-    }
-
-    public void EatSeedlingFromTile()
-    {
-        Eat();
-        plane.HamsterIsEatingSeedlings(this);
-    }
-
-    private void Eat()
-    {
-        IsHungry = false;
-        Representation = _fedRepresentation;
-    }
-
-    public void StoreInMouth()
-    {
-        var seedling = plane.GetSeedlingOn(Position);
-        mouth.Add(seedling);
-        plane.HamsterIsStoringSeedlings(this);
     }
 
     public override string ToString()
