@@ -136,7 +136,7 @@ public class Plane
 
 public class Hamster 
 {
-    public Plane Plane { get; } 
+    public Plane Plane { get; private set; } 
     
     public Hamster(Plane plane) 
     {
