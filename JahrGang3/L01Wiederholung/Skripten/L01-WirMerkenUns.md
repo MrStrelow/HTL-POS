@@ -51,9 +51,10 @@
 >3. Wir verstecken ``Felder`` **immer** mit `private` vor Zugriffen von außen und setzen damit *sinnvolles* [``Data Hiding``](../../../05_Glossar.md#data-hiding) um.
 >4. Wir öffnen ``Methoden`` **meistens** mit `public` und erlauben damit Zugriffe von außen.
 >5. Eine [``Eigenschaft``](../../../05_Glossar.md#eigenschaft) ist ein *Hybrid* aus [``Feld``](../../../05_Glossar.md#feld) und [``Methode``](../../../05_Glossar.md#methode).
->6. Wir greifen bei [``Eigenschaften``](../../../05_Glossar.md#eigenschaft) mit *get* und *set* auf das *autoamtisch generierte* ``backing Field`` *kontrolliert* zu, um ungültige Zustände zu verhindern und setzen damit *sinnvolles* [``Data Hiding``](../../../05_Glossar.md#data-hiding) um.
+
 
 <!-- 
+>6. Wir greifen bei [``Eigenschaften``](../../../05_Glossar.md#eigenschaft) mit *get* und *set* auf das *autoamtisch generierte* ``backing Field`` *kontrolliert* zu, um ungültige Zustände zu verhindern und setzen damit *sinnvolles* [``Data Hiding``](../../../05_Glossar.md#data-hiding) um.
 >7. Das Zusammenfügen von zusammengehörigen Daten ([``Feldern``](../../../05_Glossar.md#feld)) und dem darauf operierenden Verhalten ([``Methoden``](../../../05_Glossar.md#methode)) zu einer logischen Einheit nennen wir [``Kapselung``](../../../05_Glossar.md#kapselung).
 >7. [``Data Hiding``](../../../05_Glossar.md#data-hiding) + [``Kapselung``](../../../05_Glossar.md#kapselung) = [``Datenabstraktion``](../../../05_Glossar.md#datenabstraktion).
 >8. [``Datenabstraktion``](../../../05_Glossar.md#datenabstraktion) bedeutet, wir zeigen für eine *sinnvolle* logische Einheit nach außen über eine Schnittstelle nur, *was* man machen kann, aber nicht, *wie* es intern funktioniert.
