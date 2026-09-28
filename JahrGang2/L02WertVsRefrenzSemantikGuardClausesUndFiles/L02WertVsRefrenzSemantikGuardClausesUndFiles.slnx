@@ -1,1 +1,6 @@
-<Solution />
+<Solution>
+  <Project Path="Aufgabe01-GuardClause/Aufgabe01-GuardClause.csproj" />
+  <Project Path="Skripten/Skripten.csproj" />
+  <Project Path="SMUe/SMUe.csproj" />
+  <Project Path="ZettelUebungen/ZettelUebungen.csproj" />
+</Solution>
