@@ -10,13 +10,16 @@ Eine [``Klasse``](#klasse), die von einer anderen Klasse (der [``Basisklasse``](
 Eine spezielle [``Basisklasse``](#basisklasse), von der keine [``Objekte``](#objekt) direkt instanziiert werden dürfen. Sie dient ausschließlich als Vorlage für abgeleitete Klassen und kann [``abstrakte Methoden``](#abstrakte-methode) enthalten.
 
 ### Abstrakte Methode
-Eine [``Methode``](#methode), die in einer abstrakten Klasse oder einem Interface nur [``deklariert``](#deklaration) (ohne Methodenrumpf), aber nicht definiert wird. Die [``abgeleitete Klasse``](#abgeleitete-klasse) wird gezwungen, diese Methode auszuprogrammieren.
+Eine [``Methode``](#methode), die in einer abstrakten Klasse oder einem Interface nur [``deklariert``](#deklaration) (ohne [``Methodenkörper``](#methodenkörper)), aber nicht definiert wird. Die [``abgeleitete Klasse``](#abgeleitete-klasse) wird gezwungen, diese Methode auszuprogrammieren.
 
 ### Angabe / Lösung
 Die textliche Beschreibung (meist als Markdown) einer zu lösenden Programmieraufgabe innerhalb einer [``Lektion``](#lektion). Die dazugehörige Lösung wird oftmals als separates C#-[``Projekt``](#projekt) bereitgestellt.
 
 ### Anweisung
 *(Statement)* Ein vollständiger Ausführungsbefehl in C#, der eine Aktion durchführt (z. B. Variablenzuweisung, Methodenaufruf). Eine Anweisung liefert selbst keinen [``Wert``](#wert) zurück und wird stets mit einem Semikolon (`;`) abgeschlossen.
+
+### Argument
+Der tatsächliche, konkrete [``Wert``](#wert) oder [``Ausdruck``](#ausdruck), der beim [``Aufruf``](#aufruf) einer Funktion oder Methode in den runden Klammern übergeben wird. Er füllt den Platzhalter ([``Parameter``](#parameter)) der Methodendeklaration mit Daten.
 
 ### Arithmetische Operatoren
 Operatoren, die grundlegende mathematische Berechnungen ausführen, wie Addition (`+`), Subtraktion (`-`), Multiplikation (`*`), Division (`/`) und Modulo (`%`).
@@ -27,8 +30,14 @@ Eine Datenstruktur, die eine feste Anzahl von Elementen desselben Datentyps spei
 ### Assoziation
 Eine Assoziation (oft als "Hat-Beziehung" bezeichnet) ist eine [``Beziehung``](#beziehung) zwischen zwei Klassen. Sie drückt aus, dass ein [``Objekt``](#objekt) einer [``Klasse``](#klasse) ein Objekt der anderen Klasse kennt und Aufgaben an dieses delegieren kann.
 
+### Aufruf
+Der Vorgang, bei dem eine definierte Methode oder Funktion ausgeführt wird. In C# geschieht dies durch die Angabe des Methodennamens gefolgt von runden Klammern, in die bei Bedarf Argumente übergeben werden.
+
 ### Ausdruck
 *(Expression)* Ein Code-Fragment in C#, das vom Programm ausgewertet wird und als Ergebnis exakt einen [``Wert``](#wert) zurückgibt (z. B. die Rechnung `5 + 3` oder der Vergleich `alter >= 18`). Ein Ausdruck kann Teil einer [``Anweisung``](#anweisung) sein.
+
+### Ausgangsparameter
+Bezeichnet konzeptionell den Datentyp, den eine Methode als Ergebnis liefert (Rückgabetyp). In C# existieren zudem spezifische `out`-Parameter, die es ermöglichen, Werte explizit über die Parameterliste nach außen zu geben.
 
 ### Aussage
 In der Programmierung oft synonym für einen logischen [``Ausdruck``](#ausdruck) verwendet, der als Ergebnis entweder wahr (`true`) oder falsch (`false`) ist.
@@ -44,6 +53,9 @@ Die allgemeinere [``Klasse``](#klasse), von der andere Klassen (die [``abgeleite
 
 ### Bedingte Anweisung
 Eine Kontrollstruktur (wie `if` ohne `else`), bei der ein Codeblock nur dann ausgeführt wird, wenn eine spezifische Bedingung wahr (`true`) ist. Andernfalls läuft das Programm ohne weitere Aktion weiter.
+
+### Bedingter Ausdruck
+Ein [``Ausdruck``](#ausdruck), der eine [``Bedingung``](#bedingung) auswertet und basierend auf dem Wahrheitswert (`true` oder `false`) direkt einen von zwei Werten zurückgibt (oft realisiert durch den tertiären Operator `?:`).
 
 ### Bedingung
 Ein logischer [``Ausdruck``](#ausdruck), der zu einem booleschen Wert (`true` oder `false`) ausgewertet wird. Er entscheidet in einer [``Kontrollstruktur``](#kontrollstruktur) (wie `if` oder `while`), ob ein bestimmter Code-[``Block``](#block) ausgeführt wird oder nicht.
@@ -111,6 +123,12 @@ Das reine Bekanntmachen einer [``Variablen``](#variable), [``Klasse``](#klasse) 
 ### Dekrement
 Die Verringerung eines numerischen Wertes um genau eins, typischerweise durchgeführt mit dem Operator `--`.
 
+### Delegate
+Ein spezieller Typ in C#, der eine Referenz auf eine Methode mit einer bestimmten Signatur sicher kapselt. Er wird oft genutzt, um Methoden als Parameter an andere Methoden zu übergeben.
+
+### Delegieren
+Das Strukturprinzip, bei dem komplexe Aufgaben in Teilprobleme zerlegt und an spezialisierte Methoden oder Klassen ausgelagert werden. Dies fördert die Lesbarkeit und Wiederverwendbarkeit des Codes.
+
 ### Dimension
 Die Ausdehnung eines [``Arrays``](#array). Ein 1D-Array hat eine Dimension (eine simple Liste). Ein [``2D-Array``](#2d-array) hat zwei Dimensionen (Tabelle/Gitter mit X und Y).
 
@@ -125,6 +143,9 @@ Ein Programmierstil, bei dem eine Methode (mit `return`) oder eine Schleife (mit
 
 ### Eigenschaft
 *(Engl.: Property)* Eine Eigenschaft wirkt nach außen wie eine normale [``Variable``](#variable), ist intern aber eine Kombination aus Methoden (`get` für das Lesen, `set` für das Schreiben), um den Zugriff auf Daten zu kontrollieren.
+
+### Eingangsparameter
+Die in der Deklaration einer Methode definierten Variablen (Parameter), die beim Aufruf der Methode mit konkreten Werten (Argumenten) befüllt werden.
 
 ### Element
 Ein einzelner Datenpunkt (z. B. eine einzelne Zahl oder ein einzelner Text) innerhalb einer übergeordneten Datenstruktur wie einem [``Array``](#array).
@@ -163,7 +184,7 @@ Das traditionell erste [``Programm``](#programm), das man schreibt. Es gibt ledi
 *(Integrated Development Environment)* Eine integrierte Entwicklungsumgebung wie [``Visual Studio``](#visual-studio) oder [``Rider``](#rider). Sie vereint alle wichtigen Werkzeuge – vom Code-Editor über den [``Compiler``](#compiler) bis hin zur [``Debug``](#debug)-Konsole – in einem Programm.
 
 ### Identität
-Das wichtigste Konzept der Objektorientierung. Jedes [``Objekt``](#objekt) ist ein eigenständiges Individuum mit einem eindeutigen Platz im Arbeitsspeicher, selbst wenn es exakt denselben [``Zustand``](#zustand) wie ein anderes Objekt aufweist.
+Das wichtigste Konzept der Objektorientierung. Jedes [``Objekt``](#objekt) ist ein eigenständiges Individuum mit einem einde splitpos Platz im Arbeitsspeicher, selbst wenn es exakt denselben [``Zustand``](#zustand) wie ein anderes Objekt aufweist.
 
 ### Implementierung
 Die tatsächliche Umsetzung oder Programmierung eines Konzepts. Sehr häufig verwendet im Kontext von Interfaces: Eine [``Klasse``](#klasse) implementiert eine [``Schnittstelle``](#schnittstelle), indem sie die vertraglich deklarierten Methoden ausprogrammiert (definiert).
@@ -185,6 +206,9 @@ Der Prozess, bei dem aus einer [``Klasse``](#klasse) (dem Bauplan) ein konkretes
 
 ### Interface
 Der englische Fachbegriff für [``Schnittstelle``](#schnittstelle). Ein strikter Vertrag, der nur aus Methodendeklarationen (ohne Rumpf) und Eigenschaften besteht.
+
+### Iterative Programmierung
+Ein Programmierparadigma, das stark auf den Einsatz von [``Schleifen``](#schleife) (Iterationen) und direkten Zustandsänderungen von Variablen setzt, um Probleme Schritt für Schritt linear abzuarbeiten.
 
 ### Jahrgang
 Entspricht der Schulstufe (1 bis 5) an der HTL. Er strukturiert die Lerninhalte chronologisch nach dem jeweiligen Ausbildungsjahr.
@@ -216,6 +240,9 @@ Eine nicht durch den Compiler erzwungene, aber von Entwicklern vereinbarte Schre
 ### Kopplung
 *(Engl.: Coupling)* Beschreibt den Grad der Abhängigkeit zwischen verschiedenen Modulen oder Klassen. Ein gutes Softwaredesign strebt eine **lose/niedrige Kopplung** an, damit Änderungen nicht alles kaputt machen.
 
+### Lambda
+Ein anonymer, sehr kompakter Funktionsausdruck (meist unter Verwendung des `=>` Operators), der oft für Delegates oder LINQ-Abfragen verwendet wird, ohne eine vollständige Methode deklarieren zu müssen.
+
 ### Lektion
 Eine thematische Unterrichtseinheit innerhalb eines [``Jahrgangs``](#jahrgang). Sie umfasst das theoretische Skriptum, die [``Angaben``](#angabe--lösung) für Aufgaben sowie die dazugehörigen C#-[``Projekte``](#projekt).
 
@@ -238,7 +265,10 @@ Eine Kontrollstruktur, die mehr als zwei mögliche Ausführungspfade bietet. In 
 Ein benannter, wiederverwendbarer Codeblock, der eine spezifische Aufgabe ausführt. Methoden strukturieren das [``Programm``](#programm) und verhindern, dass Code mehrfach geschrieben werden muss.
 
 ### Methodenkopf
-Der obere Teil einer Methodendeklaration (die Signatur), der Sichtbarkeit, Rückgabetyp, Name und die [``Parameter``](#parameter) festlegt, bevor der eigentliche Methodenrumpf `{ ... }` beginnt.
+Der obere Teil einer Methodendeklaration, der Sichtbarkeit, Rückgabetyp, Name und die [``Parameter``](#parameter) festlegt, bevor der eigentliche [``Methodenkörper``](#methodenkörper) `{ ... }` beginnt.
+
+### Methodenkörper
+Der in geschweiften Klammern `{ }` stehende [``Block``](#block) einer Methode. Er enthält die eigentliche Implementierung ([``Definition``](#definition)) der Logik, die beim [``Aufruf``](#aufruf) der Methode ausgeführt wird und reserviert den benötigten Speicher für lokale Variablen.
 
 ### Microsoft-Azure
 Microsofts Cloud-Plattform. Über den **Education**-Bereich erhalten Bildungseinrichtungen kostenlosen Zugang zu professioneller Entwicklungssoftware.
@@ -251,6 +281,9 @@ Unsere schulische Lernplattform. Dies ist der verbindliche Einstiegspunkt: Hier 
 
 ### Multiplizität
 Gibt im UML-Klassendiagramm an den Enden einer [``Assoziation``](#assoziation) an, wie viele Objekte der Zielklasse mit einem Objekt der Ausgangsklasse in Verbindung stehen dürfen (z.B. `1`, `0..1`, `0..*`).
+
+### Name
+*(Auch: Bezeichner / Identifier)* Ein vom Programmierer frei gewählter Begriff, um einer [``Variable``](#variable), [``Funktion``](#funktion) oder [``Klasse``](#klasse) eine eindegetic Bezeichnung zu geben. In C# muss ein Name strikt mit einem Buchstaben oder Unterstrich beginnen.
 
 ### Namespace
 Eine logische Gruppierung von [``Klassen``](#klasse), [``Schnittstellen``](#schnittstelle) und anderen Typen in C#, um den Code zu strukturieren und Namenskonflikte in größeren Projekten zu vermeiden.
@@ -300,11 +333,20 @@ Eine Vorlage (z. B. für eine [``Console-App``](#console-app)), die automatisch 
 * **Full Property:** Die [``Eigenschaft``](#eigenschaft) greift auf ein manuell geschriebenes, privates [``Backing Field``](#backing-field) zu.
 * **Auto Property:** Der Code besteht nur aus `{ get; set; }`. Der [``Compiler``](#compiler) generiert das [``Backing Field``](#backing-field) im Hintergrund selbst.
 
+### Prozedurale Programmierung
+Eine Erweiterung der [``iterativen Programmierung``](#iterative-programmierung), bei der der Code zusätzlich in wiederverwendbare, benannte Blöcke (Prozeduren bzw. [``Funktionen``](#funktion)/[``Methoden``](#methode)) strukturiert und ausgelagert wird, um Aufgaben zu [``delegieren``](#delegieren).
+
 ### Referenz
 Eine [``Speicheradresse``](#Speicheradresse), die wie ein Wegweiser auf den tatsächlichen Ort der Daten im [``Heap``](#heap) zeigt.
 
+### return
+Ein Schlüsselwort, das die Ausführung der aktuellen Methode sofort beendet. Bei Methoden mit einem Rückgabetyp übergibt es das ermittelte Ergebnis an den Aufrufer; bei `void`-Methoden dient es als reiner Abbruch (Early Exit).
+
 ### Rider
 Eine sehr leistungsstarke, plattformübergreifende C#-[``IDE``](#ide) von JetBrains, die als professionelle Alternative zu [``Visual Studio``](#visual-studio) genutzt werden kann.
+
+### Rückgabewert
+Der konkrete Wert oder das Datenpaket, das eine Methode nach ihrer erfolgreichen Ausführung an die Stelle ihres Aufrufs zurückliefert.
 
 ### Runtime
 *(Laufzeitumgebung)*. Die notwendige Software im Hintergrund, um ein [``Programm``](#programm) überhaupt auszuführen. Sie agiert als Übersetzer zwischen dem C#-Code und dem Computer.
@@ -350,6 +392,9 @@ Eine eindeutige numerische Kennung (ein exakter Ort) im Arbeitsspeicher des Comp
 
 ### Stack
 Der schnelle, strikt geordnete Teil des Arbeitsspeichers. Hier werden einfache Werte und die [``Referenzen``](#referenz) zu den Daten im [``Heap``](#heap) gespeichert.
+
+### static
+Ein Zugriffsmodifizierer, der angibt, dass ein Mitglied (Methode, Feld, Eigenschaft) zur Klasse selbst gehört und nicht an ein spezifisches, instanziiertes Objekt gebunden ist.
 
 ### String
 Ein Datentyp in C#, der eine Zeichenkette (Text) speichert. Er wird klassisch in doppelten Anführungszeichen geschrieben (z. B. `"Hallo Welt"`).
@@ -410,6 +455,9 @@ Eine Kontrollstruktur (wie `if` mit `else`), die den Programmfluss basierend auf
 
 ### Visual Studio
 Die umfangreiche, standardmäßige [``IDE``](#ide) von Microsoft für die Entwicklung mit C# und .NET, die wir primär im Unterricht einsetzen.
+
+### void
+Ein Schlüsselwort im Methodenkopf, das definiert, dass diese Methode keinen Rückgabewert liefert (sie verhält sich beim Aufruf wie eine reine Anweisung).
 
 ### Wert
 Die konkreten Daten (z. B. die Zahl `15` oder der Text `"Anna"`), die in einer [``Variablen``](#variable) oder einem Array-[``Element``](#element) gespeichert sind.
