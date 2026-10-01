@@ -1,2 +1,17 @@
->**Wir merken uns von [Guard Clause](L02.1GuardClauses.md):** 
->1. 
+**Wir merken uns von [Guard Clause](L02.1GuardClauses.md):** 
+**Wir merken uns von De Morgans Gesetz und Guard Clauses:**
+
+> 1. Eine [``Guard-Clause``](../../../05_Glossar.md#guard-clause) ist eine Abfolge von *Sicherheitsabfragen* hintereinander.
+> 2. Ein [``early exit``](../../../05_Glossar.md#early-exit) überprüft Fehlerbedingungen und bricht den Ablauf frühzeitig ab.
+> 3. Wenn alle *Sicherheitsabfragen* passiert wurden, erreichen wir sicher den *gewünschten Zustand* des Programms.
+> 4. Das [``logische UND``](../../../05_Glossar.md#logische-operatoren) (*&&* bzw. $\land$) ist einer verschachtelten [``If-Verzweigung``](../../../05_Glossar.md#verschachtelte-verzweigung) gleichzusetzen.
+> 5. Das [``logische ODER``](../../../05_Glossar.md#logische-operatoren) (*||* bzw. $\lor$) ist eine untereinander geschriebene [``bedingten Anweisung``](../../../05_Glossar.md#bedingte-anweisung) mit einem [``early exit``](../../../05_Glossar.md#early-exit).
+> 6. [``De Morgans Gesetz``](../../../05_Glossar.md#de-morganschen-gesetz) stellt die *logische Gleichheit* zwischen [``verschachtelte If-Verzweigungen``](../../../05_Glossar.md#verschachtelte-verzweigung) und [``Guards-Clauses``](../../../05_Glossar.md#guard-clause) her. Es kann dadurch jedes Programm von der "[``verschachtelten If-Verzweigungs``](../../../05_Glossar.md#verschachtelte-verzweigung)"-*Welt* in die "[``Gaurd-CLause``](../../../05_Glossar.md#guard-clause)"-*Welt* umgeschrieben werden.
+> 7. Um eine [``verschachtelte Verzweigung``](../../../05_Glossar.md#verschachtelte-verzweigung) aufzulösen, müssen wir deren [``Bedingungen``](../../../05_Glossar.md#bedingung) *negieren* und diese als [``bedingte Anweisungen``](../../../05_Glossar.md#bedingte-anweisung) mit [``early exit``](../../../05_Glossar.md#early-exit) untereinander schreiben.
+> 8. Dabei beachten wir strikt die *Reihenfolge*: Wir beginnen mit der *äußersten* [``Verzweigung``](../../../05_Glossar.md#verzweigung) als *erste* [``Guard Clause``](../../../05_Glossar.md#guard-clause) und arbeiten uns schrittweise nach innen vor.
+> 9. Kommen *mehrere gewünschte Zustände* vor, müssen wir den Code "schälen" und gezielt nach allen *ungewünschten Zuständen* (❌) in sämtlichen Pfaden (inklusive `else`-[``Zweigen``](../../../05_Glossar.md#verzweigung)) suchen.
+> 10. Die [``Bedingungen``](../../../05_Glossar.md#bedingung), die in einen *ungewünschten Zustand* führen, verknüpfen wir mit einem [``logischen UND``](../../../05_Glossar.md#logische-operatoren) (`&&`) und formulieren daraus unsere [``Guard Clauses``](../../../05_Glossar.md#guard-clause).
+> 11. [``Bedingungen``](../../../05_Glossar.md#bedingung), die durch vorherige [``Guards``](../../../05_Glossar.md#guard-clause) bereits sicher ausgeschlossen wurden, müssen in nachfolgenden Sicherheitsabfragen *nicht* erneut überprüft werden, was [``Bedingungen``](../../../05_Glossar.md#bedingung) spart.
+> 12. Haben wir alle *ungewünschten Zustände* (❌) erfolgreich als [``Guards``](../../../05_Glossar.md#guard-clause) formuliert und abgefangen, verbleiben am Ende der [``Methode``](../../../05_Glossar.md#methode) unverschachtelt und übersichtlich nur noch die *gewünschten Zustände* (✅).
+> 13. Wir erreichen durch [``Guard-Clauses``](../../../05_Glossar.md#guard-clause) eine *Gruppierung* von *ungewünschte Zustände* (❌) und *gewünschten Zustände* (✅).
+> 14. In der Variante der [``verschachtelten Verzweigungen``](../../../05_Glossar.md#verschachtelte-verzweigung) sind diese gemischt und im *tiefsten* [``Block``](../../../05_Glossar.md#block) versteckt.

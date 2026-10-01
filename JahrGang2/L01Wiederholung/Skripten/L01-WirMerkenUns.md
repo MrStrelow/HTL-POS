@@ -53,13 +53,3 @@
 >9. Das Keyword [``return``](../../../05_Glossar.md#return) beendet die [``Funktion``](../../../05_Glossar.md#funktion) und liefert das Ergebnis zurück. Bei **void**-Methoden kann ein *nacktes* **return;** genutzt werden, um die Methode vorzeitig abzubrechen.
 >10. Die [``Deklaration``](../../../05_Glossar.md#deklaration) einer [``Funktion``](../../../05_Glossar.md#funktion) stellt eine [``Schnittstelle``](../../../05_Glossar.md#schnittstelle) dar, an welche wir komplexe [``Teilprobleme``](../../../05_Glossar.md#teilprobleme) [``delegieren``](../../../05_Glossar.md#delegieren).
 >11. Der [``Aufruf``](../../../05_Glossar.md#aufruf) von [``Funktionen``](../../../05_Glossar.md#funktion) kann *geschachtelt* werden, solange der [``Typ``](../../../05_Glossar.md#typ) des [``Rückgabeparameters``](../../../05_Glossar.md#ausgangsparameter) der *inneren* [``Funktion``](../../../05_Glossar.md#funktion) zum [``Eingangsparameter``](../../../05_Glossar.md#eingangsparameter) der *äußeren* Funktion passt.
-
-
-
-
-
-
-
-
-
-
