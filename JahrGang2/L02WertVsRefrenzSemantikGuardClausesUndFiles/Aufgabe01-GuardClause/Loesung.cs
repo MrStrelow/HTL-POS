@@ -18,34 +18,30 @@ namespace Aufgabe1 {
             Age = age;
             IsRegistered = isRegistered;
         }
-    }
-
-    public class Program
-    {
-        public static void ProcessUserGuardClause(User user)
+        public void ProcessUserGuardClause(User user)
         {
             if (user == null)
             {
-                Console.WriteLine("❗User is null.");
+                Console.WriteLine("❌User is null.");
                 return;
             }
 
             if (!user.IsRegistered)
             {
-                Console.WriteLine("❗User is not registered.");
+                Console.WriteLine("❌User is not registered.");
                 return;
             }
 
             if (user.Age < 18)
             {
-                Console.WriteLine("❗User is too young.");
+                Console.WriteLine("❌User is too young.");
                 return;
             }
 
             Console.WriteLine("✅User is processed.");
         }
 
-        public static void ProcessUserNestedIf(User user)
+        public void ProcessUserNestedIf(User user)
         {
             if (user != null)
             {
@@ -57,19 +53,23 @@ namespace Aufgabe1 {
                     }
                     else
                     {
-                        Console.WriteLine("❗User is too young.");
+                        Console.WriteLine("❌User is too young.");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("❗User is not registered.");
+                    Console.WriteLine("❌User is not registered.");
                 }
             }
             else
             {
-                Console.WriteLine("❗User is null.");
+                Console.WriteLine("❌User is null.");
             }
         }
+    }
+
+    public class Program
+    {
 
         public static void CallUe1()
         {
@@ -78,14 +78,14 @@ namespace Aufgabe1 {
 
             Console.WriteLine("\n############### 1 ###############");
             Console.WriteLine("--- Testing original nested-if method ---");
-            Program.ProcessUserGuardClause(hans);
+            hans.ProcessUserGuardClause(hans);
             Console.WriteLine("\n--- Testing new Guard Clause method Variante 1---");
-            Program.ProcessUserNestedIf(hans);
+            hans.ProcessUserNestedIf(hans);
 
             Console.WriteLine("--- Testing original nested-if method ---");
-            Program.ProcessUserGuardClause(alice);
+            alice.ProcessUserGuardClause(alice);
             Console.WriteLine("\n--- Testing new Guard Clause method Variante 1---");
-            Program.ProcessUserNestedIf(alice);
+            alice.ProcessUserNestedIf(alice);
         }
     }
 }
@@ -119,12 +119,12 @@ namespace Aufgabe2
                             }
                             else
                             {
-                                throw new InvalidOperationException("❗User's subscription has expired.");
+                                throw new InvalidOperationException("❌User's subscription has expired.");
                             }
                         }
                         else
                         {
-                            throw new InvalidOperationException("❗User email is missing.");
+                            throw new InvalidOperationException("❌User email is missing.");
                         }
                     }
                     else
@@ -137,49 +137,49 @@ namespace Aufgabe2
                             }
                             else
                             {
-                                throw new InvalidOperationException("❗Senior user's subscription has expired.");
+                                throw new InvalidOperationException("❌Senior user's subscription has expired.");
                             }
                         }
                         else
                         {
-                            throw new InvalidOperationException("❗Senior user email is missing.");
+                            throw new InvalidOperationException("❌Senior user email is missing.");
                         }
                     }
                 }
                 else
                 {
-                    throw new InvalidOperationException("❗User must be older than 18.");
+                    throw new InvalidOperationException("❌User must be older than 18.");
                 }
             }
             else
             {
-                throw new InvalidOperationException("❗User is not active.");
+                throw new InvalidOperationException("❌User is not active.");
             }
         }
 
         public void ProcessUserGuardClause()
         {
-            // ❗Ungewünschte Zustände 
+            // ❌Ungewünschte Zustände 
             // Guard Clauses für allgemeine Prüfungen
             if (!IsActive)
-                throw new InvalidOperationException("❗User is not active.");
+                throw new InvalidOperationException("❌User is not active.");
 
             if (Age <= 18)
-                throw new InvalidOperationException("❗User must be older than 18.");
+                throw new InvalidOperationException("❌User must be older than 18.");
 
             // Weitere Bedingungen je nach Altersgruppe: User
             if (Age < 65 && string.IsNullOrEmpty(Email))
-                throw new InvalidOperationException("❗User email is missing.");
+                throw new InvalidOperationException("❌User email is missing.");
 
             if (Age >= 65 && string.IsNullOrEmpty(Email))
-                throw new InvalidOperationException("❗Senior user email is missing.");
+                throw new InvalidOperationException("❌Senior user email is missing.");
 
             // Weitere Bedingungen je nach Altersgruppe: Senior
             if (Age < 65 && SubscriptionEnd <= DateTime.Now)
-                throw new InvalidOperationException("❗User's subscription has expired.");
+                throw new InvalidOperationException("❌User's subscription has expired.");
 
             if (Age >= 65 && SubscriptionEnd <= DateTime.Now)
-                throw new InvalidOperationException("❗Senior user's subscription has expired.");
+                throw new InvalidOperationException("❌Senior user's subscription has expired.");
 
             // ✅ gewünschte Zustände
             // Beide Endpunkte müssen wir in einer IF-Verzweigung trennen. Auch ein switch möglich.
@@ -198,36 +198,36 @@ namespace Aufgabe2
         // Achtung! Nur als Beispiel! Wenn möglich immer gewünschte von ungewünschten Zuständen Trennen.
         public void ProcessUserGuardClauseMixedWithNested()
         {
-            // ❗Ungewünschte Zustände
+            // ❌Ungewünschte Zustände
             // Guard Clauses für allgemeine Prüfungen
             if (!IsActive)
-                throw new InvalidOperationException("❗User is not active.");
+                throw new InvalidOperationException("❌User is not active.");
 
             if (Age <= 18)
-                throw new InvalidOperationException("❗User must be older than 18.");
+                throw new InvalidOperationException("❌User must be older than 18.");
 
 
             // Weitere Bedingungen je nach Altersgruppe
             if (Age < 65)
             {
-                // ❗Ungewünschte Zustände
+                // ❌Ungewünschte Zustände
                 if (string.IsNullOrEmpty(Email))
-                    throw new InvalidOperationException("❗User email is missing.");
+                    throw new InvalidOperationException("❌User email is missing.");
 
                 if (SubscriptionEnd <= DateTime.Now)
-                    throw new InvalidOperationException("❗User's subscription has expired.");
+                    throw new InvalidOperationException("❌User's subscription has expired.");
 
                 // ✅ gewünschter Zustand
                 Console.WriteLine("✅User is active, adult, has a valid email, and an active subscription.");
             }
             else
             {
-                // ❗Ungewünschte Zustände
+                // ❌Ungewünschte Zustände
                 if (string.IsNullOrEmpty(Email))
-                    throw new InvalidOperationException("❗Senior user email is missing.");
+                    throw new InvalidOperationException("❌Senior user email is missing.");
 
                 if (SubscriptionEnd <= DateTime.Now)
-                    throw new InvalidOperationException("❗Senior user's subscription has expired.");
+                    throw new InvalidOperationException("❌Senior user's subscription has expired.");
 
                 // ✅ gewünschter Zustand
                 Console.WriteLine("✅User is active, a senior, has a valid email, and an active subscription.");
@@ -241,18 +241,18 @@ namespace Aufgabe2
         {
             // Guard Clauses für allgemeine Prüfungen
             if (!IsActive)
-                throw new InvalidOperationException("❗User is not active.");
+                throw new InvalidOperationException("❌User is not active.");
 
             if (Age <= 18)
-                throw new InvalidOperationException("❗User must be older than 18.");
+                throw new InvalidOperationException("❌User must be older than 18.");
 
             // Wir ignorieren hier die Senior vs. User Ausgabe beim Werfen der Exception.
             if (string.IsNullOrEmpty(Email))
-                throw new InvalidOperationException("❗User email is missing.");
+                throw new InvalidOperationException("❌User email is missing.");
 
             // Wir ignorieren hier die Senior vs. User Ausgabe beim Werfen der Exception.
             if (SubscriptionEnd <= DateTime.Now)
-                throw new InvalidOperationException("❗User's subscription has expired.");
+                throw new InvalidOperationException("❌User's subscription has expired.");
 
             // Weitere Bedingungen je nach Altersgruppe
             if (Age < 65)
@@ -340,7 +340,7 @@ namespace Aufgabe3
                                 }
                                 else
                                 {
-                                    throw new InvalidOperationException("❗ Bergführer hat zu wenig Erfahrung für diese Route.");
+                                    throw new InvalidOperationException("❌ Bergführer hat zu wenig Erfahrung für diese Route.");
                                 }
                             }
                             else
@@ -357,45 +357,45 @@ namespace Aufgabe3
                         }
                         else
                         {
-                            throw new InvalidOperationException("❗ Die Zertifizierung des Bergführers ist abgelaufen.");
+                            throw new InvalidOperationException("❌ Die Zertifizierung des Bergführers ist abgelaufen.");
                         }
                     }
                     else
                     {
-                        throw new InvalidOperationException("❗ Bergführer besitzt kein medizinisches Freigabezertifikat.");
+                        throw new InvalidOperationException("❌ Bergführer besitzt kein medizinisches Freigabezertifikat.");
                     }
                 }
                 else
                 {
-                    throw new InvalidOperationException("❗ Bergführer muss älter als 21 Jahre sein.");
+                    throw new InvalidOperationException("❌ Bergführer muss älter als 21 Jahre sein.");
                 }
             }
             else
             {
-                throw new InvalidOperationException("❗ Bergführer ist nicht aktiv.");
+                throw new InvalidOperationException("❌ Bergführer ist nicht aktiv.");
             }
         }
 
         public void ValidateGuideGuardClause()
         {
-            // ❗Ungewünschte Zustände
+            // ❌Ungewünschte Zustände
             if (!IsActive)
-                throw new InvalidOperationException("❗ Bergführer ist nicht aktiv.");
+                throw new InvalidOperationException("❌ Bergführer ist nicht aktiv.");
 
             if (Age < 21)
-                throw new InvalidOperationException("❗ Bergführer muss älter als 21 Jahre sein.");
+                throw new InvalidOperationException("❌ Bergführer muss älter als 21 Jahre sein.");
 
             if (string.IsNullOrEmpty(MedicalClearanceCertificate))
-                throw new InvalidOperationException("❗ Bergführer besitzt kein medizinisches Freigabezertifikat.");
+                throw new InvalidOperationException("❌ Bergführer besitzt kein medizinisches Freigabezertifikat.");
 
             if (CertificationExpiry <= DateTime.Now)
-                throw new InvalidOperationException("❗ Die Zertifizierung des Bergführers ist abgelaufen.");
+                throw new InvalidOperationException("❌ Die Zertifizierung des Bergführers ist abgelaufen.");
 
             if (BergRoute.IstGefährlich && TourCount < 50)
-                throw new InvalidOperationException("❗ Bergführer hat zu wenig Erfahrung für diese Route.");
+                throw new InvalidOperationException("❌ Bergführer hat zu wenig Erfahrung für diese Route.");
 
             if (BergRoute.IstGefährlich && TourCount < 50)
-                throw new InvalidOperationException("❗ Bergführer hat zu wenig Erfahrung für diese Route.");
+                throw new InvalidOperationException("❌ Bergführer hat zu wenig Erfahrung für diese Route.");
                 
             // ✅Gewünschte Zustände
             if (BergRoute.IstGefährlich)
