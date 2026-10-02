@@ -34,9 +34,15 @@ public class User
         IsRegistered = isRegistered;
     }
 
+<<<<<<< HEAD
     public void ProcessUserNestedIf()
     {
         if (Name != "Mathias")
+=======
+    public void ProcessUserNestedIf(User user)
+    {
+        if (user is not null)
+>>>>>>> 744d9106670cd0e39e738336259f54e87fdea8ec
         {
             if (IsRegistered)
             {
@@ -73,8 +79,13 @@ public class Program
         Console.OutputEncoding = Encoding.UTF8;
 
         User user = new User("Alice", 25, true);
+<<<<<<< HEAD
         user.ProcessUserNestedIf();
         user.ProcessUserGuardClause();
+=======
+        user.ProcessUserNestedIf(user);
+        user.ProcessUserGuardClause(user);
+>>>>>>> 744d9106670cd0e39e738336259f54e87fdea8ec
     }
 }
 ```
