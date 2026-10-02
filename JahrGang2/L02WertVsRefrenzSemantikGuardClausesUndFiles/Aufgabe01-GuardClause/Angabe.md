@@ -33,28 +33,16 @@ public class User
         Age = age;
         IsRegistered = isRegistered;
     }
-}
 
-public class Program
-{
-    public static void Main()
+    public void ProcessUserNestedIf()
     {
-        Console.OutputEncoding = Encoding.UTF8;
-
-        User user = new User("Alice", 25, true);
-        ProcessUserNestedIf(user);
-        ProcessUserGuardClause(user);
-    }
-
-    public static void ProcessUserNestedIf(User user)
-    {
-        if (user is not null)
+        if (Name != "Mathias")
         {
-            if (user.IsRegistered)
+            if (IsRegistered)
             {
-                if (user.Age >= 18)
+                if (Age >= 18)
                 {
-                    Console.WriteLine("✅ User is processed.");
+                    Console.WriteLine("✅User is processed.");
                 }
                 else
                 {
@@ -72,9 +60,21 @@ public class Program
         }
     }
 
-    public static void ProcessUserGuardClause(User user) {
+    public void ProcessUserGuardClause(User user) {
         //TODO: Hier deine Guard Clause Logik einfügen.
         throw new NotImplementedException("TODO: Guard Clause Implementierung der Methode: ProcessUserNestedIf");
+    }
+}
+
+public class Program
+{
+    public static void Main()
+    {
+        Console.OutputEncoding = Encoding.UTF8;
+
+        User user = new User("Alice", 25, true);
+        user.ProcessUserNestedIf();
+        user.ProcessUserGuardClause();
     }
 }
 ```
