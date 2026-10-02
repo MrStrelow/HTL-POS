@@ -1,5 +1,4 @@
 **Wir merken uns von [Guard Clause](L02.1GuardClauses.md):** 
-**Wir merken uns von De Morgans Gesetz und Guard Clauses:**
 
 > 1. Eine [``Guard-Clause``](../../../05_Glossar.md#guard-clause) ist eine Abfolge von *Sicherheitsabfragen* hintereinander.
 > 2. Ein [``early exit``](../../../05_Glossar.md#early-exit) überprüft Fehlerbedingungen und bricht den Ablauf frühzeitig ab.

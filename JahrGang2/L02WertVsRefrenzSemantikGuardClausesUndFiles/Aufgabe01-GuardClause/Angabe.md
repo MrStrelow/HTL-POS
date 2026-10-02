@@ -1,15 +1,13 @@
 Welche ``Konzepte`` der Programmiersprache üben wir hier?
 * verschachtelte IF-Verzweigungen
-* early exit 
-* Exceptions werfen
+* *Console.WriteLine* für Ausgabe und ``early-exit`` mit *return*;
+* Boolesche Algebra
 
 Welche ``Denkweisen`` üben wir hier?
-* Wie forme ich If-Verzweigungen um, ohne deren ``Logik`` zu verändern?
+* Wie forme ich ``If-Verzweigungen`` um, ohne deren ``Logik`` zu verändern?
 
 Bei Unklarheiten hier nachlesen: 
-* [Welche Kontrollstrukturen soll ich verwenden?](../Skripten/L03.1Kontrollstrukturen.md)
-* [Was sind gaurd clauses und de morgan's law?](../Skripten/L03.4GuardClauses.md)
-* [exceptions: der 1. Absatz um eine Exception werfen zu können ist notwendig.](../../../modul_3_fortgeschrittene-sprachkonzepte/L00Exceptions/Skripten/L00Exceptions.md)
+* [Was sind gaurd clauses und de morgan's law?](../Skripten/L01.1GuardClauses.md)
 
 ## Projektstruktur
 Erstelle für jede der folgenden ``Aufgaben`` jeweils ein ``Projekt``, welche sich alle in einer ``Solution`` (Projektmappe) befinden.
@@ -18,16 +16,9 @@ In einem Projekt kann nur *eine* ausfürhbare ``Klasse`` sein. Also nur ein ``Ma
 >Für VS: Erstelle dazu eine ``Solution``(Projektmappe) und in dieser ``Solution`` (Projektmappe), füge mit *Rechtsclick auf die Solution (![alt text](image.png)) -> Add (Hinzufügen) -> new Project (neues Projekt) mit Namen Aufgabe 1* ein neues ``Projekt`` in der bestehenden ``Solution`` ein. Wiederhole für Aufgabe 2 und 3.
 
 ## Schreibe verschachtelte Ifs in eine Guard Clause um.
-Wir üben folgende Konzepte der Programmiersprache:
-* verschachtelte IF-Verzweigungen
-* Exceptions
-
-Welche ``Denkweisen`` üben wir hier?
-* logische Ausdrücke in if-else umwandeln
-* Boolesche Algebra
 
 ### Aufgabe 1 - level: 🙂 - Ein gewünschter Zustand
-Implementiere eine 2. Methode ``ProcessUserGuardClause`` und teste ob diese gleich der ``ProcessUserNestedIf`` ist.
+Implementiere eine 2. ``Methode`` *ProcessUserGuardClause* und teste ob diese gleich der *ProcessUserNestedIf* ist.
 
 ```csharp
 public class User
@@ -67,17 +58,17 @@ public class Program
                 }
                 else
                 {
-                    Console.WriteLine("❗User is too young.");
+                    Console.WriteLine("❌User is too young.");
                 }
             }
             else
             {
-                Console.WriteLine("❗User is not registered.");
+                Console.WriteLine("❌User is not registered.");
             }
         }
         else
         {
-            Console.WriteLine("❗User is null.");
+            Console.WriteLine("❌User is null.");
         }
     }
 
@@ -116,12 +107,12 @@ public class User
                         }
                         else
                         {
-                            throw new InvalidOperationException("❗User's subscription has expired.");
+                            Console.WriteLine("❌User's subscription has expired.");
                         }
                     }
                     else
                     {
-                        throw new InvalidOperationException("❗User email is missing.");
+                        Console.WriteLine("❌User email is missing.");
                     }
                 }
                 else
@@ -134,29 +125,29 @@ public class User
                         }
                         else
                         {
-                            throw new InvalidOperationException("❗Senior user's subscription has expired.");
+                            Console.WriteLine("❌Senior user's subscription has expired.");
                         }
                     }
                     else
                     {
-                        throw new InvalidOperationException("❗Senior user email is missing.");
+                        Console.WriteLine("❌Senior user email is missing.");
                     }
                 }
             }
             else
             {
-                throw new InvalidOperationException("❗User must be older than 18.");
+                Console.WriteLine("❌User must be older than 18.");
             }
         }
         else
         {
-            throw new InvalidOperationException("❗User is not active.");
+            Console.WriteLine("❌User is not active.");
         }
     }
 
     public static void ProcessUserGuardClause() {
         //TODO: Hier deine Guard Clause Logik einfügen.
-        throw new NotImplementedException("TODO: Guard Clause Implementierung der Methode: ProcessUser");
+        Console.WriteLine("TODO: Guard Clause Implementierung der Methode: ProcessUser");
     }
 }
 
@@ -174,15 +165,8 @@ public class Program
             SubscriptionEnd = DateTime.Now.AddMonths(1)
         };
 
-        try
-        {
-            user1.ProcessUser();
-            user1.ProcessUserGuardClause();
-        }
-        catch (InvalidOperationException ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
-        }
+        user1.ProcessUser();
+        user1.ProcessUserGuardClause();
     }
 }
 ```
@@ -232,7 +216,7 @@ public class Bergführer
                             }
                             else
                             {
-                                throw new InvalidOperationException("❗ Bergführer hat zu wenig Erfahrung für diese Route.");
+                                Console.WriteLine("❌ Bergführer hat zu wenig Erfahrung für diese Route.");
                             }
                         }
                         else
@@ -249,22 +233,22 @@ public class Bergführer
                     }
                     else
                     {
-                        throw new InvalidOperationException("❗ Die Zertifizierung des Bergführers ist abgelaufen.");
+                        Console.WriteLine("❌ Die Zertifizierung des Bergführers ist abgelaufen.");
                     }
                 }
                 else
                 {
-                    throw new InvalidOperationException("❗ Bergführer besitzt kein medizinisches Freigabezertifikat.");
+                    Console.WriteLine("❌ Bergführer besitzt kein medizinisches Freigabezertifikat.");
                 }
             }
             else
             {
-                throw new InvalidOperationException("❗ Bergführer muss älter als 21 Jahre sein.");
+                Console.WriteLine("❌ Bergführer muss älter als 21 Jahre sein.");
             }
         }
         else
         {
-            throw new InvalidOperationException("❗ Bergführer ist nicht aktiv.");
+            Console.WriteLine("❌ Bergführer ist nicht aktiv.");
         }
     }
 
@@ -292,15 +276,8 @@ public class Program
             BergRoute = new Berg { IstGefährlich = true, höhe = 4000 }
         };
 
-        try
-        {
-            guide.ValidateGuide();
-            guide.ValidateGuideGuardClause();
-        }
-        catch (InvalidOperationException ex)
-        {
-            Console.WriteLine($"Fehler: {ex.Message}");
-        }
+        guide.ValidateGuide();
+        guide.ValidateGuideGuardClause();
     }
 }
 ```
