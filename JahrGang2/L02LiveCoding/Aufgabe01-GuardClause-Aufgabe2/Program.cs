@@ -106,31 +106,37 @@ public class User
         if (!IsActive)
         {
             Console.WriteLine("❌User is not active.");
+            return;
         }
 
         if (!(Age > 18))
         {
             Console.WriteLine("❌User must be older than 18.");
+            return;
         }
 
         if (!(Age < 65) && string.IsNullOrEmpty(Email))
         {
             Console.WriteLine("❌Senior user email is missing.");
+            return;
         }
 
         if (!(Age < 65) && !string.IsNullOrEmpty(Email) && !(SubscriptionEnd > DateTime.Now))
         {
             Console.WriteLine("❌Senior user's subscription has expired.");
+            return;
         }
 
         if (Age < 65 && string.IsNullOrEmpty(Email))
         {
             Console.WriteLine("❌Senior user email is missing.");
+            return;
         }
 
         if (Age < 65 && !string.IsNullOrEmpty(Email) && !(SubscriptionEnd > DateTime.Now))
         {
             Console.WriteLine("❌User's subscription has expired.");
+            return;
         }
 
         // ✅ Gewünschte Zustände
