@@ -18,19 +18,12 @@ namespace Aufgabe1 {
             Age = age;
             IsRegistered = isRegistered;
         }
-<<<<<<< HEAD
+
         public void ProcessUserGuardClause()
-=======
-        public void ProcessUserGuardClause(User user)
->>>>>>> 744d9106670cd0e39e738336259f54e87fdea8ec
         {
             if (Name == "Mathias")
             {
-<<<<<<< HEAD
                 Console.WriteLine("❌User is Mathias.");
-=======
-                Console.WriteLine("❌User is null.");
->>>>>>> 744d9106670cd0e39e738336259f54e87fdea8ec
                 return;
             }
 
@@ -49,11 +42,7 @@ namespace Aufgabe1 {
             Console.WriteLine("✅User is processed.");
         }
 
-<<<<<<< HEAD
         public void ProcessUserNestedIf()
-=======
-        public void ProcessUserNestedIf(User user)
->>>>>>> 744d9106670cd0e39e738336259f54e87fdea8ec
         {
             if (Name != "Mathias")
             {
@@ -90,7 +79,6 @@ namespace Aufgabe1 {
 
             Console.WriteLine("\n############### 1 ###############");
             Console.WriteLine("--- Testing original nested-if method ---");
-<<<<<<< HEAD
             hans.ProcessUserGuardClause();
             Console.WriteLine("\n--- Testing new Guard Clause method Variante 1---");
             hans.ProcessUserNestedIf();
@@ -99,16 +87,6 @@ namespace Aufgabe1 {
             alice.ProcessUserGuardClause();
             Console.WriteLine("\n--- Testing new Guard Clause method Variante 1---");
             alice.ProcessUserNestedIf();
-=======
-            hans.ProcessUserGuardClause(hans);
-            Console.WriteLine("\n--- Testing new Guard Clause method Variante 1---");
-            hans.ProcessUserNestedIf(hans);
-
-            Console.WriteLine("--- Testing original nested-if method ---");
-            alice.ProcessUserGuardClause(alice);
-            Console.WriteLine("\n--- Testing new Guard Clause method Variante 1---");
-            alice.ProcessUserNestedIf(alice);
->>>>>>> 744d9106670cd0e39e738336259f54e87fdea8ec
         }
     }
 }

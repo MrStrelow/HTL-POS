@@ -1,3 +1,5 @@
 <Solution>
+  <Project Path="Aufgabe01-GuardClause-Aufgabe2/Aufgabe01-GuardClause-Teil2.csproj" Id="30a939c0-0270-4dd3-ae95-ea18b7ab47e3" />
+  <Project Path="GuardClause-komplexer/GuardClause-komplexer.csproj" Id="40698129-11c4-45d6-83e3-7d042824f2bb" />
   <Project Path="GuardClause/GuardClause.csproj" />
 </Solution>
