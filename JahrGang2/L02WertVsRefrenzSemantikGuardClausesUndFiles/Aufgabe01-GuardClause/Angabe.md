@@ -60,7 +60,7 @@ public class User
         }
     }
 
-    public void ProcessUserGuardClause(User user) {
+    public void ProcessUserGuardClause() {
         //TODO: Hier deine Guard Clause Logik einfügen.
         throw new NotImplementedException("TODO: Guard Clause Implementierung der Methode: ProcessUserNestedIf");
     }
@@ -145,7 +145,7 @@ public class User
         }
     }
 
-    public static void ProcessUserGuardClause() {
+    public void ProcessUserGuardClause() {
         //TODO: Hier deine Guard Clause Logik einfügen.
         Console.WriteLine("TODO: Guard Clause Implementierung der Methode: ProcessUser");
     }
