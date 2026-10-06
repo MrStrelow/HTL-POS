@@ -1,7 +1,8 @@
 <Solution>
   <Project Path="Aufgabe01-Formen-advanced/Aufgabe01-Formen-advanced.csproj" /> 
   <Project Path="Aufgabe02-Hamster/Aufgabe02-Hamster.csproj" />
+  <Project Path="HausUebung01-Referenzen/HausUebung01-Referenzen.csproj" Id="edc9cca5-abac-407a-b407-a2d2615e59db" />
   <Project Path="Skripten/Skripten.csproj" />
-  <Project Path="SMUe/SMUes.csproj"/>
+  <Project Path="SMUe/SMUes.csproj" />
   <Project Path="ZettelUebungen/ZettelUebungen.csproj" />
 </Solution>

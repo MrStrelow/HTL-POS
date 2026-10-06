@@ -37,7 +37,7 @@ $\\$
 
 ---
 
-## Aufgabe 2 - **logisches UND**
+## Aufgabe 2 - **logisches ODER**
 * Stelle ein ``logisches ODER`` mit einer ``Kontrollstruktur`` dar. 
 Verwende folgene ``logische Formel`` *A || B*
 * Kreise das *Console.WriteLine* ein welches mit der ``Belegung`` von *A* und *B* erreicht wird.
