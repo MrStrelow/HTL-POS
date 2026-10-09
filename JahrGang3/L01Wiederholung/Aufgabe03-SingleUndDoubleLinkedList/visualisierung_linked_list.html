@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linked List Operations Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; overflow: hidden; }
+        .font-code { font-family: 'Fira Code', monospace; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        .val-badge {
+            background-color: rgba(100, 116, 139, 0.2); border: 1px solid rgba(100, 116, 139, 0.4); color: #e2e8f0;
+            padding: 2px 8px; border-radius: 4px; font-size: 13px; font-weight: bold;
+            display: inline-flex; align-items: center; transition: all 0.3s ease;
+        }
+        .val-badge.ref-badge { background-color: rgba(14, 165, 233, 0.1); border-color: rgba(14, 165, 233, 0.3); color: #38bdf8; }
+        .val-badge.null-badge { background-color: rgba(100, 116, 139, 0.1); border-color: rgba(100, 116, 139, 0.3); color: #94a3b8; font-style: italic; }
+        .val-badge.val-update { background-color: rgba(52, 211, 153, 0.2); border-color: rgba(52, 211, 153, 0.5); color: #34d399; animation: pulse-green 1s forwards; }
+        .val-badge.removed-badge { opacity: 0.4; text-decoration: line-through; }
+
+        @keyframes pulse-green { 0% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+        /* Pointer Rings & Highlights */
+        .ring-curr { stroke: #fbbf24; stroke-width: 3px; fill: none; opacity: 0; transform: scale(0.8); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .ring-slow { stroke: #34d399; stroke-width: 3px; fill: none; opacity: 0; transform: scale(0.8); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .ring-fast { stroke: #e879f9; stroke-width: 3px; fill: none; opacity: 0; transform: scale(0.8); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        .active-curr .ring-curr { opacity: 1; transform: scale(1); }
+        .active-slow .ring-slow { opacity: 1; transform: scale(1); }
+        .active-fast .ring-fast { opacity: 1; transform: scale(1); }
+
+        .node-removed circle { stroke: #475569 !important; fill: #0f172a !important; stroke-dasharray: 4; }
+        .node-removed text { fill: #475569 !important; }
+
+        /* Edges */
+        path { transition: all 0.3s ease; }
+        .edge-removed { stroke: #334155 !important; stroke-dasharray: 4; opacity: 0.5; }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col relative">
+
+    <header class="bg-slate-900 border-b border-slate-800 p-4 shrink-0 shadow-md relative z-20 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-sky-400 tracking-tight">Linked List Visualizer</h1>
+            <p class="text-sm text-slate-400 mt-1">Struktur & Speicher Operationen</p>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <div class="flex bg-slate-950 p-1 rounded-lg border border-slate-800">
+                <button id="btn-Singly" class="toggle-btn px-4 py-2 rounded-md text-sm font-bold bg-sky-600 text-white" onclick="setType('Singly')">Singly</button>
+                <button id="btn-Doubly" class="toggle-btn px-4 py-2 rounded-md text-sm font-bold text-slate-400 hover:bg-slate-800" onclick="setType('Doubly')">Doubly</button>
+            </div>
+            
+            <select id="op-select" class="bg-slate-950 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block p-2.5 outline-none font-bold shadow-inner" onchange="setOperation(this.value)">
+                <option value="RemoveFirst">RemoveFirst()</option>
+                <option value="RemoveLast">RemoveLast()</option>
+                <option value="RemovePos">Remove(position)</option>
+                <option value="Find">Find(value)</option>
+                <option value="Get">Get(position)</option>
+                <option value="Contains">Contains(value)</option>
+                <option value="Update">Update(position, val)</option>
+                <option value="HasCycle">HasCycle()</option>
+            </select>
+        </div>
+    </header>
+
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] overflow-hidden p-4 gap-6 bg-slate-950 relative z-10">
+        
+        <!-- Left: SVG Visualisierung -->
+        <section class="bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl relative">
+            <div class="bg-slate-950 py-3 px-5 border-b border-slate-800 flex justify-between items-center">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest">SVG Graph</span>
+                <div class="flex gap-4 text-[11px] font-bold uppercase tracking-wider">
+                    <span class="text-amber-300 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-300"></span>Head/Tail</span>
+                    <span class="text-orange-500 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-orange-500"></span>Next</span>
+                    <span id="legend-prev" class="text-purple-500 hidden items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-500"></span>Prev</span>
+                </div>
+            </div>
+            <div class="flex-1 relative bg-slate-950 flex items-center justify-center p-2">
+                <svg id="svg-canvas" class="w-full h-full" viewBox="0 0 850 350" preserveAspectRatio="xMidYMid meet">
+                    <defs>
+                        <marker id="arrow-next" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#f97316" /></marker>
+                        <marker id="arrow-prev" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#a855f7" /></marker>
+                        <marker id="arrow-removed" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#334155" /></marker>
+                    </defs>
+                    <g id="svg-dynamic-layer"></g>
+                </svg>
+            </div>
+        </section>
+
+        <!-- Right: Memory Area (Stack/Heap) -->
+        <section class="flex flex-col gap-6 overflow-hidden">
+            <div class="flex-[0.8] bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+                <div class="bg-slate-950 py-3 px-5 border-b border-slate-800 flex justify-between items-center">
+                    <span class="text-xs font-semibold text-sky-400 uppercase tracking-widest">Call Stack (Lokale Variablen)</span>
+                </div>
+                <div id="stack-container" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-slate-900/50"></div>
+            </div>
+            <div class="flex-[1.2] bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+                <div class="bg-slate-950 py-3 px-5 border-b border-slate-800">
+                    <span class="text-xs font-semibold text-amber-400 uppercase tracking-widest">Heap Memory (Objekte)</span>
+                </div>
+                <div id="heap-container" class="flex-1 overflow-y-auto p-4 flex grid grid-cols-2 gap-3 bg-slate-900/50 content-start"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-slate-900 border-t border-slate-800 shrink-0 relative z-20 p-4">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto items-center">
+            <div class="lg:col-span-2 bg-slate-950 border border-slate-800 rounded-lg p-4 min-h-[80px] flex flex-col justify-center">
+                <p id="explanation-text" class="text-base text-slate-300 leading-relaxed"></p>
+            </div>
+            <div class="flex items-center justify-center gap-3">
+                <button id="btn-prev" class="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg shadow disabled:opacity-30 transition-all text-sm font-medium border border-slate-700">&larr; Zurück</button>
+                <div class="bg-slate-950 px-5 py-3 rounded-lg border border-slate-800 font-code text-sm text-center min-w-[90px]">
+                    <span id="step-current" class="text-sky-400 font-bold">0</span><span class="text-slate-500">/</span><span id="step-total" class="text-slate-400">0</span>
+                </div>
+                <button id="btn-next" class="px-6 py-3 bg-sky-600 hover:bg-sky-500 text-white rounded-lg shadow disabled:opacity-30 transition-all text-sm font-bold border border-sky-500">Weiter &rarr;</button>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        let currentType = 'Singly';
+        let currentOp = 'RemoveFirst';
+        let currentStep = 0;
+        let currentStepsData = [];
+
+        const nodeRefs = { n1: '@Node1', n2: '@Node2', n3: '@Node3', n4: '@Node4', n5: '@Node5' };
+        const nodePos = { n1: {x: 100, y: 175}, n2: {x: 260, y: 175}, n3: {x: 420, y: 175}, n4: {x: 580, y: 175}, n5: {x: 740, y: 175} };
+
+        // Helper to deep clone state
+        const cloneState = (state) => JSON.parse(JSON.stringify(state));
+
+        // Create base initial state (5 nodes)
+        function getInitialState(type) {
+            let s = {
+                desc: "Startzustand",
+                head: 'n1', tail: 'n5',
+                vars: {}, // stack variables like curr, slow, fast
+                nodes: {
+                    n1: {val: 11, removed: false, updated: false},
+                    n2: {val: 22, removed: false, updated: false},
+                    n3: {val: 33, removed: false, updated: false},
+                    n4: {val: 44, removed: false, updated: false},
+                    n5: {val: 55, removed: false, updated: false}
+                },
+                edges: [
+                    {f: 'n1', t: 'n2', type: 'next'}, {f: 'n2', t: 'n3', type: 'next'},
+                    {f: 'n3', t: 'n4', type: 'next'}, {f: 'n4', t: 'n5', type: 'next'}
+                ],
+                heapEdges: { // specific pointers for heap visualization
+                    n1: {next: 'n2', prev: 'null'}, n2: {next: 'n3', prev: 'n1'},
+                    n3: {next: 'n4', prev: 'n2'}, n4: {next: 'n5', prev: 'n3'},
+                    n5: {next: 'null', prev: 'n4'}
+                }
+            };
+            if (type === 'Doubly') {
+                s.edges.push(
+                    {f: 'n2', t: 'n1', type: 'prev'}, {f: 'n3', t: 'n2', type: 'prev'},
+                    {f: 'n4', t: 'n3', type: 'prev'}, {f: 'n5', t: 'n4', type: 'prev'}
+                );
+            } else {
+                // SLL doesn't have prev
+                Object.keys(s.heapEdges).forEach(k => delete s.heapEdges[k].prev);
+            }
+            return s;
+        }
+
+        // --- Logic Generators for Operations ---
+        function generateSteps(type, op) {
+            let steps = [];
+            let state = getInitialState(type);
+            
+            const pushStep = (desc) => {
+                state.desc = desc;
+                steps.push(cloneState(state));
+            };
+
+            // Initial step
+            pushStep(`Bereit für Operation: <b>${op}</b> bei einer ${type} Linked List.`);
+
+            if (op === 'RemoveFirst') {
+                if (type === 'Singly') {
+                    state.vars.curr = 'n1'; pushStep("Sichere den aktuellen Head in <code>curr</code> (optional für GC).");
+                    state.head = 'n2'; pushStep("<code>Head = Head.Next</code>: Head zeigt nun auf Node 2.");
+                    state.edges = state.edges.filter(e => !(e.f === 'n1' && e.t === 'n2'));
+                    state.heapEdges.n1.next = 'null';
+                    state.nodes.n1.removed = true; pushStep("Node 1 ist nun isoliert und wird vom Garbage Collector entfernt.");
+                } else {
+                    state.head = 'n2'; pushStep("<code>Head = Head.Next</code>: Head zeigt nun auf Node 2.");
+                    state.edges = state.edges.filter(e => e.type !== 'prev' || e.t !== 'n1'); // remove n2->n1
+                    state.heapEdges.n2.prev = 'null'; pushStep("<code>Head.Prev = null</code>: Die Rückreferenz von Node 2 wird entfernt.");
+                    state.edges = state.edges.filter(e => !(e.f === 'n1' && e.t === 'n2'));
+                    state.heapEdges.n1.next = 'null';
+                    state.nodes.n1.removed = true; pushStep("Node 1 ist komplett abgetrennt.");
+                }
+            } 
+            else if (op === 'RemoveLast') {
+                if (type === 'Singly') {
+                    state.vars.curr = 'n1'; pushStep("Beginne bei Head: <code>curr = Head</code>.");
+                    state.vars.curr = 'n2'; pushStep("Iteriere: <code>curr = curr.Next</code>.");
+                    state.vars.curr = 'n3'; pushStep("Iteriere: <code>curr = curr.Next</code>.");
+                    state.vars.curr = 'n4'; pushStep("Angekommen am vorletzten Knoten (<code>curr.Next.Next == null</code>).");
+                    state.tail = 'n4'; pushStep("<code>Tail = curr</code>: Der vorletzte Knoten ist nun das neue Ende.");
+                    state.edges = state.edges.filter(e => !(e.f === 'n4' && e.t === 'n5'));
+                    state.heapEdges.n4.next = 'null';
+                    state.nodes.n5.removed = true; pushStep("<code>curr.Next = null</code>: Die Referenz zum letzten Knoten ist gekappt.");
+                } else {
+                    pushStep("Bei DLL haben wir direkten Zugriff auf das Ende via Tail!");
+                    state.vars.curr = 'n4'; pushStep("<code>Node curr = Tail.Prev</code>: Finde den vorletzten Knoten sofort in O(1).");
+                    state.tail = 'n4'; pushStep("<code>Tail = curr</code>: Der vorletzte Knoten ist das neue Ende.");
+                    state.edges = state.edges.filter(e => !(e.f === 'n4' && e.t === 'n5') && !(e.f === 'n5' && e.t === 'n4'));
+                    state.heapEdges.n4.next = 'null';
+                    state.heapEdges.n5.prev = 'null';
+                    state.nodes.n5.removed = true; pushStep("<code>Tail.Next = null</code>: Der alte letzte Knoten ist isoliert.");
+                }
+            }
+            else if (op === 'RemovePos') {
+                pushStep("Ziel: Entferne Element an Index 2 (Node 3).");
+                if (type === 'Singly') {
+                    state.vars.curr = 'n1'; pushStep("<code>curr = Head</code>: Starte Iteration (Index 0).");
+                    state.vars.curr = 'n2'; pushStep("<code>curr = curr.Next</code>: Iteriere zu Index 1 (Knoten VOR dem Ziel).");
+                    state.edges = state.edges.filter(e => !(e.f === 'n2' && e.t === 'n3'));
+                    state.edges.push({f: 'n2', t: 'n4', type: 'next'});
+                    state.heapEdges.n2.next = 'n4';
+                    pushStep("<code>curr.Next = curr.Next.Next</code>: Der Next-Pointer überspringt Node 3.");
+                    state.edges = state.edges.filter(e => !(e.f === 'n3' && e.t === 'n4'));
+                    state.heapEdges.n3.next = 'null';
+                    state.nodes.n3.removed = true; pushStep("Node 3 ist nicht mehr erreichbar und wird aufgeräumt.");
+                } else {
+                    state.vars.curr = 'n1'; pushStep("<code>curr = Head</code>: Starte Iteration.");
+                    state.vars.curr = 'n2'; pushStep("Index 1...");
+                    state.vars.curr = 'n3'; pushStep("Index 2 erreicht. Wir stehen genau auf dem Knoten, der weg soll.");
+                    
+                    state.edges = state.edges.filter(e => !(e.f === 'n2' && e.t === 'n3'));
+                    state.edges.push({f: 'n2', t: 'n4', type: 'next'});
+                    state.heapEdges.n2.next = 'n4';
+                    pushStep("<code>curr.Prev.Next = curr.Next</code>: Next-Pointer des Vorgängers überspringt Node 3.");
+                    
+                    state.edges = state.edges.filter(e => !(e.f === 'n4' && e.t === 'n3'));
+                    state.edges.push({f: 'n4', t: 'n2', type: 'prev'});
+                    state.heapEdges.n4.prev = 'n2';
+                    pushStep("<code>curr.Next.Prev = curr.Prev</code>: Prev-Pointer des Nachfolgers überspringt Node 3 rückwärts.");
+                    
+                    state.edges = state.edges.filter(e => !(e.f === 'n3' && e.t === 'n4') && !(e.f === 'n3' && e.t === 'n2'));
+                    state.heapEdges.n3.next = 'null'; state.heapEdges.n3.prev = 'null';
+                    state.nodes.n3.removed = true; pushStep("Node 3 ist komplett isoliert.");
+                }
+            }
+            else if (['Find', 'Get', 'Contains', 'Update'].includes(op)) {
+                let targetDesc = op === 'Update' ? "Update Index 2 auf Wert 99" : 
+                                 op === 'Get' ? "Hole Node an Index 2" : 
+                                 "Finde Knoten mit Wert 33";
+                pushStep(`Ziel: ${targetDesc}`);
+                state.vars.curr = 'n1'; pushStep("<code>curr = Head</code>: Starte am Anfang.");
+                state.vars.curr = 'n2'; pushStep("Gehe zu Node 2.");
+                state.vars.curr = 'n3'; pushStep("Angekommen bei Node 3.");
+                
+                if (op === 'Update') {
+                    state.nodes.n3.val = 99;
+                    state.nodes.n3.updated = true;
+                    pushStep("<code>curr.Value = 99</code>: Wert erfolgreich überschrieben!");
+                } else if (op === 'Contains') {
+                    pushStep("Wert gefunden! <code>return true;</code>");
+                } else {
+                    pushStep("Ziel erreicht! <code>return curr;</code>");
+                }
+            }
+            else if (op === 'HasCycle') {
+                pushStep("Prüfung auf Zyklus mit Floyd's Tortoise and Hare.");
+                state.vars.slow = 'n1';
+                state.vars.fast = 'n1'; pushStep("<code>slow = Head; fast = Head;</code>");
+                
+                state.vars.slow = 'n2';
+                state.vars.fast = 'n3'; pushStep("slow = 1 Schritt, fast = 2 Schritte. Nicht gleich.");
+                
+                state.vars.slow = 'n3';
+                state.vars.fast = 'n5'; pushStep("slow = 1 Schritt, fast = 2 Schritte. Nicht gleich.");
+                
+                state.vars.fast = null; pushStep("<code>fast.Next == null</code>: Das Ende der Liste wurde erreicht. Es gibt keinen Zyklus! <code>return false;</code>");
+            }
+
+            return steps;
+        }
+
+        // --- View Builder (SVG + DOM) ---
+        function buildSVGPath(from, to, type) {
+            let p1 = nodePos[from]; let p2 = nodePos[to];
+            let cx = (p1.x + p2.x) / 2; let cy = p1.y + (type==='prev'? 35 : (type==='next'? -35 : 0));
+            
+            // If nodes are not adjacent, make the arc bigger
+            if (Math.abs(p2.x - p1.x) > 170) cy += (type==='prev'? 40 : -40);
+
+            let dx2 = p2.x - cx; let dy2 = p2.y - cy; let l2 = Math.sqrt(dx2*dx2+dy2*dy2);
+            let ex = p2.x - (dx2/l2)*26; let ey = p2.y - (dy2/l2)*26;
+            let dx1 = cx - p1.x; let dy1 = cy - p1.y; let l1 = Math.sqrt(dx1*dx1+dy1*dy1);
+            let sx = p1.x + (dx1/l1)*24; let sy = p1.y + (dy1/l1)*24;
+            
+            return `M ${sx} ${sy} Q ${cx} ${cy} ${ex} ${ey}`;
+        }
+
+        function render() {
+            let st = currentStepsData[currentStep];
+            document.getElementById('btn-prev').disabled = currentStep === 0;
+            document.getElementById('btn-next').disabled = currentStep === currentStepsData.length - 1;
+            document.getElementById('step-current').textContent = currentStep;
+            document.getElementById('step-total').textContent = currentStepsData.length - 1;
+            document.getElementById('explanation-text').innerHTML = st.desc;
+            document.getElementById('legend-prev').style.display = currentType === 'Doubly' ? 'flex' : 'none';
+
+            // SVG Rendern
+            let svgL = document.getElementById('svg-dynamic-layer'); svgL.innerHTML = '';
+            
+            // Draw Edges
+            st.edges.forEach(p => {
+                let path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', buildSVGPath(p.f, p.t, p.type));
+                path.setAttribute('fill', 'none'); 
+                path.setAttribute('stroke', p.type === 'next' ? '#f97316' : '#a855f7');
+                path.setAttribute('stroke-width', '3'); 
+                path.setAttribute('marker-end', `url(#arrow-${p.type})`);
+                svgL.appendChild(path);
+            });
+
+            // Draw Nodes
+            Object.keys(st.nodes).forEach(nId => {
+                let nObj = st.nodes[nId];
+                let p = nodePos[nId];
+                let g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.setAttribute('transform', `translate(${p.x}, ${p.y})`);
+                if (nObj.removed) g.classList.add('node-removed');
+
+                // Pointer highlights
+                let rings = '';
+                if (st.vars.curr === nId) { g.classList.add('active-curr'); rings += `<circle cx="0" cy="0" r="30" class="ring-curr" />`; }
+                if (st.vars.slow === nId) { g.classList.add('active-slow'); rings += `<circle cx="0" cy="0" r="34" class="ring-slow" />`; }
+                if (st.vars.fast === nId) { g.classList.add('active-fast'); rings += `<circle cx="0" cy="0" r="38" class="ring-fast" />`; }
+
+                let labels = '';
+                let yOff = -42;
+                if (st.vars.fast === nId) { labels += `<text x="0" y="${yOff}" text-anchor="middle" font-family="Fira Code" font-size="12" fill="#e879f9" font-weight="bold">fast</text>`; yOff -= 14; }
+                if (st.vars.slow === nId) { labels += `<text x="0" y="${yOff}" text-anchor="middle" font-family="Fira Code" font-size="12" fill="#34d399" font-weight="bold">slow</text>`; yOff -= 14; }
+                if (st.vars.curr === nId) { labels += `<text x="0" y="${yOff}" text-anchor="middle" font-family="Fira Code" font-size="12" fill="#fbbf24" font-weight="bold">curr</text>`; yOff -= 14; }
+                if (st.head === nId) labels += `<text x="0" y="45" text-anchor="middle" font-family="Fira Code" font-size="11" fill="#fcd34d" font-weight="bold">HEAD</text>`;
+                if (st.tail === nId) labels += `<text x="0" y="${st.head===nId ? 58 : 45}" text-anchor="middle" font-family="Fira Code" font-size="11" fill="#fcd34d" font-weight="bold">TAIL</text>`;
+
+                let valFill = nObj.updated ? "#34d399" : "white";
+
+                g.innerHTML = `
+                    ${rings}
+                    <circle cx="0" cy="0" r="22" fill="#0f172a" stroke="${nObj.removed ? '#475569' : '#64748b'}" stroke-width="2" />
+                    <text x="0" y="5" text-anchor="middle" font-family="Fira Code" font-size="14" fill="${valFill}" font-weight="bold">${nObj.val}</text>
+                    <text x="0" y="30" text-anchor="middle" font-family="Inter" font-size="9" fill="#38bdf8" font-weight="600">${nodeRefs[nId]}</text>
+                    ${labels}
+                `;
+                svgL.appendChild(g);
+            });
+
+            // Stack Rendern
+            let stackC = document.getElementById('stack-container'); stackC.innerHTML = '';
+            
+            // System Variables (this)
+            stackC.innerHTML += `<div class="flex justify-between items-center bg-slate-800/80 px-4 py-2.5 rounded border border-slate-700"><span class="font-code text-sm text-slate-300 font-bold">this</span><span class="val-badge ref-badge">@MyList</span></div>`;
+            
+            // Method Variables
+            Object.keys(st.vars).forEach(k => {
+                let v = st.vars[k];
+                let refStr = v ? nodeRefs[v] : 'null';
+                let css = v ? 'ref-badge' : 'null-badge';
+                if (k === 'curr') css += ' ring-1 ring-amber-400 text-amber-200';
+                if (k === 'slow') css += ' ring-1 ring-emerald-400 text-emerald-200';
+                if (k === 'fast') css += ' ring-1 ring-fuchsia-400 text-fuchsia-200';
+                stackC.innerHTML += `<div class="flex justify-between items-center bg-slate-800/80 px-4 py-2.5 rounded border border-slate-700"><span class="font-code text-sm text-slate-300 font-bold">${k}</span><span class="val-badge ${css}">${refStr}</span></div>`;
+            });
+
+            // Heap Rendern
+            let heapC = document.getElementById('heap-container'); heapC.innerHTML = '';
+            
+            Object.keys(st.nodes).forEach(nId => {
+                let nObj = st.nodes[nId];
+                let hEdges = st.heapEdges[nId];
+                
+                let valClass = nObj.updated ? "val-update" : "";
+                let opacity = nObj.removed ? "opacity-40 grayscale" : "";
+                
+                let nextStr = hEdges.next === 'null' ? `<span class="val-badge null-badge">null</span>` : `<span class="val-badge ref-badge">${nodeRefs[hEdges.next]}</span>`;
+                
+                let pHTML = '';
+                if (currentType === 'Doubly') {
+                    let prevStr = hEdges.prev === 'null' ? `<span class="val-badge null-badge">null</span>` : `<span class="val-badge ref-badge">${nodeRefs[hEdges.prev]}</span>`;
+                    pHTML = `<div class="flex justify-between items-center text-[12px] border-t border-slate-700/50 mt-1 pt-1.5"><span class="text-slate-400">Prev:</span> ${prevStr}</div>`;
+                }
+
+                heapC.innerHTML += `
+                <div class="bg-slate-800/80 px-3 py-2.5 rounded border border-slate-700 flex flex-col gap-1 w-full ${opacity}">
+                    <div class="flex justify-between items-center border-b border-slate-700 pb-1.5">
+                        <span class="font-code text-xs text-emerald-400 font-bold">${nodeRefs[nId]}</span>
+                        <span class="val-badge ${valClass} !text-[11px] !py-0.5">Val: ${nObj.val}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-[12px] mt-1"><span class="text-slate-400">Next:</span> ${nextStr}</div>
+                    ${pHTML}
+                </div>`;
+            });
+        }
+
+        // --- Controls ---
+        window.setType = function(type) {
+            currentType = type;
+            document.getElementById('btn-Singly').className = type === 'Singly' ? 'toggle-btn px-4 py-2 rounded-md text-sm font-bold bg-sky-600 text-white' : 'toggle-btn px-4 py-2 rounded-md text-sm font-bold text-slate-400 hover:bg-slate-800';
+            document.getElementById('btn-Doubly').className = type === 'Doubly' ? 'toggle-btn px-4 py-2 rounded-md text-sm font-bold bg-sky-600 text-white' : 'toggle-btn px-4 py-2 rounded-md text-sm font-bold text-slate-400 hover:bg-slate-800';
+            resetSimulation();
+        }
+
+        window.setOperation = function(op) {
+            currentOp = op;
+            resetSimulation();
+        }
+
+        function resetSimulation() {
+            currentStepsData = generateSteps(currentType, currentOp);
+            currentStep = 0;
+            render();
+        }
+
+        document.getElementById('btn-next').onclick = () => { if(currentStep < currentStepsData.length-1) { currentStep++; render(); }};
+        document.getElementById('btn-prev').onclick = () => { if(currentStep > 0) { currentStep--; render(); }};
+        document.addEventListener('keydown', e => { if(e.key === 'ArrowRight') document.getElementById('btn-next').click(); if(e.key === 'ArrowLeft') document.getElementById('btn-prev').click(); });
+
+        // Init
+        resetSimulation();
+    </script>
+</body>
+</html>

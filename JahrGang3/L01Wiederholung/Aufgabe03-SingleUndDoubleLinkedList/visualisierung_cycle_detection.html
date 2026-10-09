@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cycle Detection (Floyd's Algorithm)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; overflow: hidden; }
+        .font-code { font-family: 'Fira Code', monospace; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        .line-active { background-color: rgba(56, 189, 248, 0.15); border-left: 4px solid #38bdf8; }
+        .line-normal { border-left: 4px solid transparent; }
+
+        .val-badge {
+            background-color: rgba(100, 116, 139, 0.2); border: 1px solid rgba(100, 116, 139, 0.4); color: #e2e8f0;
+            padding: 2px 8px; border-radius: 4px; font-size: 13px; font-weight: bold;
+            display: inline-flex; align-items: center; transition: all 0.3s ease;
+        }
+        .val-badge.ref-badge { background-color: rgba(14, 165, 233, 0.1); border-color: rgba(14, 165, 233, 0.3); color: #38bdf8; }
+        .val-badge.null-badge { background-color: rgba(100, 116, 139, 0.1); border-color: rgba(100, 116, 139, 0.3); color: #94a3b8; font-style: italic; }
+        .val-badge.cycle-badge { background-color: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.4); color: #ef4444; animation: pulse-red 2s infinite; }
+
+        .text-slow { color: #34d399; } /* emerald-400 */
+        .text-fast { color: #e879f9; } /* fuchsia-400 */
+        
+        .bg-slow { background-color: rgba(52, 211, 153, 0.15); border-color: rgba(52, 211, 153, 0.4); color: #34d399; }
+        .bg-fast { background-color: rgba(232, 121, 249, 0.15); border-color: rgba(232, 121, 249, 0.4); color: #e879f9; }
+
+        @keyframes pulse-red { 0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 50% { box-shadow: 0 0 8px 2px rgba(239, 68, 68, 0.2); } }
+
+        /* Pointer Rings */
+        .ring-slow { stroke: #34d399; stroke-width: 3px; fill: none; opacity: 0; transform: scale(0.8); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .ring-fast { stroke: #e879f9; stroke-width: 3px; fill: none; opacity: 0; transform: scale(0.8); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .ring-match { stroke: #fbbf24; stroke-width: 5px; filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.8)); }
+
+        .active-slow .ring-slow { opacity: 1; transform: scale(1); }
+        .active-fast .ring-fast { opacity: 1; transform: scale(1); }
+        
+        .path-draw { stroke-dasharray: 1000; stroke-dashoffset: 1000; animation: dash 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        @keyframes dash { to { stroke-dashoffset: 0; } }
+        
+        .cycle-path { stroke-dasharray: 6 4; animation: travel 1s linear infinite; }
+        @keyframes travel { to { stroke-dashoffset: -10; } }
+
+    </style>
+</head>
+
+<body class="h-screen flex flex-col relative">
+
+    <header class="bg-slate-900 border-b border-slate-800 p-4 shrink-0 shadow-md relative z-20 flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-sky-400 tracking-tight">Cycle Detection <span class="text-slate-500 text-lg font-normal">(Floyd's Algorithm)</span></h1>
+            <p class="text-sm text-slate-400 mt-1">Tortoise (<span class="text-slow font-bold">slow</span>) & Hare (<span class="text-fast font-bold">fast</span>) Pointer Visualizer</p>
+        </div>
+        
+        <div class="flex bg-slate-950 p-1 rounded-lg border border-slate-800">
+            <button id="btn-Singly" class="toggle-btn px-4 py-2 rounded-md text-sm font-bold bg-sky-600 text-white" onclick="setType('Singly')">Singly Linked List</button>
+            <button id="btn-Doubly" class="toggle-btn px-4 py-2 rounded-md text-sm font-bold text-slate-400 hover:bg-slate-800" onclick="setType('Doubly')">Doubly Linked List</button>
+        </div>
+    </header>
+
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-[1.2fr_1.5fr_1fr] overflow-hidden p-4 gap-4 bg-slate-950 relative z-10">
+        
+        <!-- Code Section -->
+        <section class="bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl relative">
+            <div class="bg-slate-950 py-2 px-4 border-b border-slate-800 flex items-center gap-2">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-widest">LinkedList.cs</span>
+            </div>
+            <div id="code-container" class="flex-1 overflow-y-auto p-4 font-code text-[14px] leading-7"></div>
+        </section>
+
+        <!-- SVG Visualisierung -->
+        <section class="bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl relative">
+            <div class="bg-slate-950 py-2 px-4 border-b border-slate-800 flex justify-between items-center">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest">SVG Graph</span>
+                <div class="flex gap-3 text-[10px] font-bold uppercase tracking-wider">
+                    <span class="text-orange-500 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-orange-500"></span>Next</span>
+                    <span id="legend-prev" class="text-purple-500 hidden items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-500"></span>Prev</span>
+                    <span class="text-red-500 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500"></span>Cycle</span>
+                </div>
+            </div>
+            <div class="flex-1 relative bg-slate-950 flex items-center justify-center p-2">
+                <svg id="svg-canvas" class="w-full h-full" viewBox="0 0 800 320" preserveAspectRatio="xMidYMid meet">
+                    <defs>
+                        <marker id="arrow-next" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#f97316" /></marker>
+                        <marker id="arrow-prev" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#a855f7" /></marker>
+                        <marker id="arrow-cycle" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#ef4444" /></marker>
+                    </defs>
+                    <g id="svg-dynamic-layer"></g>
+                </svg>
+            </div>
+        </section>
+
+        <!-- Memory Area (Stack/Heap) -->
+        <section class="flex flex-col gap-4 overflow-hidden">
+            <div class="flex-[0.8] bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+                <div class="bg-slate-950 py-2 px-4 border-b border-slate-800"><span class="text-xs font-semibold text-sky-400 uppercase tracking-widest">Call Stack</span></div>
+                <div id="stack-container" class="flex-1 overflow-y-auto p-3 flex flex-col gap-2 bg-slate-900/50"></div>
+            </div>
+            <div class="flex-[1.2] bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+                <div class="bg-slate-950 py-2 px-4 border-b border-slate-800"><span class="text-xs font-semibold text-amber-400 uppercase tracking-widest">Heap Memory</span></div>
+                <div id="heap-container" class="flex-1 overflow-y-auto p-3 flex grid grid-cols-2 gap-2 bg-slate-900/50 content-start"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-slate-900 border-t border-slate-800 shrink-0 relative z-20 p-3">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mx-auto items-center">
+            <div class="lg:col-span-2 bg-slate-950 border border-slate-800 rounded-lg p-3 min-h-[70px] flex flex-col justify-center">
+                <p id="explanation-text" class="text-sm text-slate-300 leading-relaxed"></p>
+            </div>
+            <div class="flex items-center justify-center gap-3">
+                <button id="btn-prev" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded shadow disabled:opacity-30 transition-all text-sm font-medium border border-slate-700">&larr; Zurück</button>
+                <div class="bg-slate-950 px-4 py-2 rounded border border-slate-800 font-code text-sm text-center">
+                    <span id="step-current" class="text-sky-400 font-bold">0</span><span class="text-slate-500">/</span><span id="step-total" class="text-slate-400">0</span>
+                </div>
+                <button id="btn-next" class="px-5 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded shadow disabled:opacity-30 transition-all text-sm font-bold border border-sky-500">Weiter &rarr;</button>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        let currentType = 'Singly';
+        let currentStep = 0;
+
+        const rawCodes = {
+            'Singly': [
+                "public bool HasCycle()",
+                "{",
+                "    if (Head == null) return false;",
+                "    Node slow = Head;",
+                "    Node fast = Head;",
+                "    while (fast != null && fast.Next != null)",
+                "    {",
+                "        slow = slow.Next;",
+                "        fast = fast.Next.Next;",
+                "        if (slow == fast) return true;",
+                "    }",
+                "    return false;",
+                "}"
+            ],
+            'Doubly': [
+                "public bool HasCycle()",
+                "{",
+                "    Node slow = Head, fast = Head;",
+                "    while (fast != null && fast.Next != null)",
+                "    {",
+                "        slow = slow.Next;",
+                "        fast = fast.Next.Next;",
+                "        if (slow == fast) return true;",
+                "    }",
+                "    slow = Tail; fast = Tail;",
+                "    while (fast != null && fast.Prev != null)",
+                "    {",
+                "        slow = slow.Prev;",
+                "        fast = fast.Prev.Prev;",
+                "        if (slow == fast) return true;",
+                "    }",
+                "    return false;",
+                "}"
+            ]
+        };
+
+        const pos = {
+            n1: {x: 100, y: 160}, n2: {x: 250, y: 160}, n3: {x: 400, y: 160},
+            n4: {x: 550, y: 160}, n5: {x: 700, y: 160}
+        };
+
+        const refs = { n1: '@Node1', n2: '@Node2', n3: '@Node3', n4: '@Node4', n5: '@Node5' };
+        
+        // --- Statische Generierung der State-Machine Schritte ---
+        function getSLLSteps() {
+            let steps = [];
+            const add = (active, desc, sNode, fNode) => {
+                steps.push({ active, desc, sNode, fNode, stack: [ {n:'this', v:'@List'}, {n:'slow', v:sNode?refs[sNode]:'null', css:'bg-slow'}, {n:'fast', v:fNode?refs[fNode]:'null', css:'bg-fast'} ] });
+            };
+            add(-1, "Ausgangssituation: Die Liste hat einen Zyklus. Der Next-Pointer von Node 5 zeigt zurück auf Node 3.", null, null);
+            add(2, "Prüfe, ob die Liste leer ist. (Ist sie nicht).", null, null);
+            add(3, "<code>slow = Head</code>: Setze den langsamen Pointer (Smaragdgrün) auf den Start.", 'n1', null);
+            add(4, "<code>fast = Head</code>: Setze den schnellen Pointer (Fuchsia) ebenfalls auf den Start.", 'n1', 'n1');
+            add(5, "Schleifenbedingung: fast und fast.Next sind nicht null. Wir betreten die Schleife.", 'n1', 'n1');
+            add(7, "<code>slow = slow.Next</code>: Tortoise geht <b>1 Schritt</b> vorwärts auf Node 2.", 'n2', 'n1');
+            add(8, "<code>fast = fast.Next.Next</code>: Hare geht <b>2 Schritte</b> vorwärts auf Node 3.", 'n2', 'n3');
+            add(9, "<code>if (slow == fast)</code>: Node 2 != Node 3. Zyklus noch nicht gefunden.", 'n2', 'n3');
+            add(5, "Schleife iteriert weiter...", 'n2', 'n3');
+            add(7, "<code>slow = slow.Next</code>: Tortoise geht auf Node 3.", 'n3', 'n3');
+            add(8, "<code>fast = fast.Next.Next</code>: Hare springt von Node 3 über Node 4 auf <b>Node 5</b>.", 'n3', 'n5');
+            add(9, "<code>if (slow == fast)</code>: Node 3 != Node 5.", 'n3', 'n5');
+            add(5, "Schleife iteriert weiter...", 'n3', 'n5');
+            add(7, "<code>slow = slow.Next</code>: Tortoise geht auf Node 4.", 'n4', 'n5');
+            add(8, "Achtung Zyklus! <code>fast = fast.Next.Next</code>: Hare springt von Node 5 auf Node 3 (Next) und landet dann auf <b>Node 4</b> (Next.Next).", 'n4', 'n4');
+            add(9, "<code>if (slow == fast)</code>: <b>Treffer!</b> Beide Pointer stehen auf Node 4. Ein Zyklus wurde bewiesen.", 'n4', 'n4');
+            return steps;
+        }
+
+        function getDLLSteps() {
+            let steps = [];
+            const add = (active, desc, sNode, fNode) => {
+                steps.push({ active, desc, sNode, fNode, stack: [ {n:'this', v:'@List'}, {n:'slow', v:sNode?refs[sNode]:'null', css:'bg-slow'}, {n:'fast', v:fNode?refs[fNode]:'null', css:'bg-fast'} ] });
+            };
+            add(-1, "Ausgangssituation: Next-Pointer sind normal. Aber der Prev-Pointer von Node 2 zeigt falsch auf Node 4 (Zyklus im Rückweg!).", null, null);
+            add(2, "Setze beide Pointer an den Anfang (Head).", 'n1', 'n1');
+            add(3, "Wir prüfen zuerst die <b>Vorwärts-Richtung</b> (Next-Pointer).", 'n1', 'n1');
+            add(5, "Tortoise: 1 Schritt vorwärts.", 'n2', 'n1');
+            add(6, "Hare: 2 Schritte vorwärts.", 'n2', 'n3');
+            add(7, "Nicht gleich.", 'n2', 'n3');
+            add(3, "Nächste Iteration...", 'n2', 'n3');
+            add(5, "Tortoise: 1 Schritt.", 'n3', 'n3');
+            add(6, "Hare: 2 Schritte.", 'n3', 'n5');
+            add(7, "Nicht gleich.", 'n3', 'n5');
+            add(3, "<code>fast.Next</code> ist null (Node 5 ist das Ende des Next-Pfads). Schleife bricht ab. Vorwärts gibt es keinen Zyklus.", 'n3', 'n5');
+            add(9, "Wir setzen beide Pointer auf das Ende (Tail), um die <b>Rückwärts-Richtung</b> zu prüfen.", 'n5', 'n5');
+            add(10, "Wir betreten die Prev-Schleife.", 'n5', 'n5');
+            add(12, "<code>slow = slow.Prev</code>: 1 Schritt zurück auf Node 4.", 'n4', 'n5');
+            add(13, "<code>fast = fast.Prev.Prev</code>: 2 Schritte zurück auf Node 3.", 'n4', 'n3');
+            add(14, "Nicht gleich.", 'n4', 'n3');
+            add(10, "Nächste Iteration...", 'n4', 'n3');
+            add(12, "<code>slow = slow.Prev</code>: 1 Schritt zurück auf Node 3.", 'n3', 'n3');
+            add(13, "Achtung! <code>fast = fast.Prev.Prev</code>: Von Node 3 auf Node 2, und dessen Prev zeigt auf <b>Node 4</b>!", 'n3', 'n4');
+            add(14, "Nicht gleich.", 'n3', 'n4');
+            add(10, "Nächste Iteration...", 'n3', 'n4');
+            add(12, "<code>slow = slow.Prev</code>: 1 Schritt zurück auf Node 2.", 'n2', 'n4');
+            add(13, "<code>fast = fast.Prev.Prev</code>: Von Node 4 auf Node 3, und von Node 3 auf <b>Node 2</b>.", 'n2', 'n2');
+            add(14, "<code>if (slow == fast)</code>: <b>Treffer!</b> Beide Pointer treffen sich auf Node 2. Zyklus im Prev-Pfad gefunden!", 'n2', 'n2');
+            return steps;
+        }
+
+        let currentStepsData = [];
+
+        // --- Zeichen-Hilfsfunktionen ---
+        function buildSVGPath(from, to, type) {
+            let p1 = pos[from]; let p2 = pos[to];
+            
+            // Spezielle Zyklus-Pfade
+            if (from === 'n5' && to === 'n3' && type === 'cycle') {
+                return `M ${p1.x} ${p1.y-25} C ${p1.x} 40, ${p2.x} 40, ${p2.x} ${p2.y-25}`;
+            }
+            if (from === 'n2' && to === 'n4' && type === 'cycle') {
+                return `M ${p1.x} ${p1.y+25} C ${p1.x} 280, ${p2.x} 280, ${p2.x} ${p2.y+25}`;
+            }
+
+            let cx = (p1.x + p2.x) / 2; let cy = p1.y + (type==='prev'? 35 : (type==='next'? -35 : 0));
+            if (type === 'next' || type === 'prev') {
+                let dx2 = p2.x - cx; let dy2 = p2.y - cy; let l2 = Math.sqrt(dx2*dx2+dy2*dy2);
+                let ex = p2.x - (dx2/l2)*26; let ey = p2.y - (dy2/l2)*26;
+                let dx1 = cx - p1.x; let dy1 = cy - p1.y; let l1 = Math.sqrt(dx1*dx1+dy1*dy1);
+                let sx = p1.x + (dx1/l1)*24; let sy = p1.y + (dy1/l1)*24;
+                return `M ${sx} ${sy} Q ${cx} ${cy} ${ex} ${ey}`;
+            }
+            return `M ${p1.x+24} ${p1.y} L ${p2.x-24} ${p2.y}`; // Fallback straight
+        }
+
+        // --- Render Logik ---
+        function render() {
+            let st = currentStepsData[currentStep];
+            document.getElementById('btn-prev').disabled = currentStep === 0;
+            document.getElementById('btn-next').disabled = currentStep === currentStepsData.length - 1;
+            document.getElementById('step-current').textContent = currentStep;
+            document.getElementById('step-total').textContent = currentStepsData.length - 1;
+            document.getElementById('explanation-text').innerHTML = st.desc;
+            
+            let isDLL = currentType === 'Doubly';
+            document.getElementById('legend-prev').style.display = isDLL ? 'flex' : 'none';
+
+            // 1. Code rendern
+            let codeC = document.getElementById('code-container'); codeC.innerHTML = '';
+            let raw = rawCodes[currentType];
+            raw.forEach((l, i) => {
+                let active = i === st.active;
+                let div = document.createElement('div');
+                div.className = `flex px-2 py-0.5 rounded ${active ? 'line-active text-sky-50' : 'line-normal text-slate-300'}`;
+                let str = l.replace(/public|bool|return|if|while/g, "<span class='text-pink-400'>$&</span>")
+                           .replace(/Node/g, "<span class='text-emerald-400'>$&</span>")
+                           .replace(/Head|Tail/g, "<span class='text-amber-300'>$&</span>")
+                           .replace(/Next|Prev/g, "<span class='text-orange-300'>$&</span>")
+                           .replace(/slow/g, "<span class='text-slow font-bold'>$&</span>")
+                           .replace(/fast/g, "<span class='text-fast font-bold'>$&</span>");
+                div.innerHTML = `<span class="w-6 shrink-0 text-right text-slate-600 mr-3 text-xs pt-1 border-r border-slate-700/50 pr-2">${i}</span><span class="whitespace-pre">${active ? `<strong>${str}</strong>` : str}</span>`;
+                codeC.appendChild(div);
+            });
+
+            // 2. SVG rendern
+            let svgL = document.getElementById('svg-dynamic-layer'); svgL.innerHTML = '';
+            
+            // Pfeile definieren
+            let paths = [
+                { f:'n1', t:'n2', type:'next', c:'#f97316' }, { f:'n2', t:'n3', type:'next', c:'#f97316' },
+                { f:'n3', t:'n4', type:'next', c:'#f97316' }, { f:'n4', t:'n5', type:'next', c:'#f97316' }
+            ];
+            
+            if (!isDLL) {
+                paths.push({ f:'n5', t:'n3', type:'cycle', c:'#ef4444' }); // SLL Cycle
+            } else {
+                paths.push({ f:'n5', t:'n4', type:'prev', c:'#a855f7' });
+                paths.push({ f:'n4', t:'n3', type:'prev', c:'#a855f7' });
+                paths.push({ f:'n3', t:'n2', type:'prev', c:'#a855f7' });
+                paths.push({ f:'n2', t:'n4', type:'cycle', c:'#ef4444' }); // DLL Cycle
+            }
+
+            paths.forEach(p => {
+                let path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', buildSVGPath(p.f, p.t, p.type));
+                path.setAttribute('fill', 'none'); 
+                path.setAttribute('stroke', p.c);
+                path.setAttribute('stroke-width', p.type==='cycle' ? '4' : '3'); 
+                path.setAttribute('marker-end', `url(#arrow-${p.type})`);
+                if(p.type === 'cycle') path.classList.add('cycle-path');
+                svgL.appendChild(path);
+            });
+
+            // Nodes rendern
+            ['n1','n2','n3','n4','n5'].forEach(nId => {
+                let p = pos[nId];
+                let g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.setAttribute('transform', `translate(${p.x}, ${p.y})`);
+                
+                let isSlow = (st.sNode === nId);
+                let isFast = (st.fNode === nId);
+                let isMatch = (isSlow && isFast && st.sNode !== null);
+
+                if (isSlow) g.classList.add('active-slow');
+                if (isFast) g.classList.add('active-fast');
+
+                // Hilfsringe für Pointer
+                let rings = `
+                    <circle cx="0" cy="0" r="30" class="ring-fast ${isMatch ? 'ring-match' : ''}" />
+                    <circle cx="0" cy="0" r="26" class="ring-slow ${isMatch ? 'ring-match' : ''}" />
+                `;
+
+                // Labels
+                let labels = '';
+                if (isMatch) labels = `<text x="0" y="-38" text-anchor="middle" font-family="Fira Code" font-size="12" fill="#fbbf24" font-weight="bold">slow == fast</text>`;
+                else {
+                    if (isFast) labels += `<text x="0" y="-38" text-anchor="middle" font-family="Fira Code" font-size="12" fill="#e879f9" font-weight="bold">fast</text>`;
+                    if (isSlow) labels += `<text x="0" y="${isFast ? -52 : -38}" text-anchor="middle" font-family="Fira Code" font-size="12" fill="#34d399" font-weight="bold">slow</text>`;
+                }
+
+                g.innerHTML = `
+                    ${rings}
+                    <circle cx="0" cy="0" r="22" fill="#020617" stroke="#64748b" stroke-width="2" />
+                    <text x="0" y="5" text-anchor="middle" font-family="Fira Code" font-size="14" fill="white" font-weight="bold">${nId.replace('n','')}</text>
+                    <text x="0" y="38" text-anchor="middle" font-family="Inter" font-size="10" fill="#38bdf8" font-weight="600">${refs[nId]}</text>
+                    ${labels}
+                `;
+                svgL.appendChild(g);
+            });
+
+            // 3. Stack rendern
+            let stackC = document.getElementById('stack-container'); stackC.innerHTML = '';
+            st.stack.forEach(v => {
+                let badgeClass = v.v === 'null' ? 'null-badge' : (v.css || 'ref-badge');
+                stackC.innerHTML += `<div class="flex justify-between items-center bg-slate-800 px-3 py-2 rounded border border-slate-700"><span class="font-code text-sm text-slate-300 font-bold">${v.n}</span><span class="val-badge ${badgeClass}">${v.v}</span></div>`;
+            });
+
+            // 4. Heap rendern
+            let heapC = document.getElementById('heap-container'); heapC.innerHTML = '';
+            let heapNodes = [
+                { id: 'n1', n: refs.n2, p: isDLL ? 'null' : null },
+                { id: 'n2', n: refs.n3, p: isDLL ? refs.n4 : null, pErr: isDLL }, // n2.Prev is broken!
+                { id: 'n3', n: refs.n4, p: isDLL ? refs.n2 : null },
+                { id: 'n4', n: refs.n5, p: isDLL ? refs.n3 : null },
+                { id: 'n5', n: isDLL ? 'null' : refs.n3, nErr: !isDLL, p: isDLL ? refs.n4 : null } // n5.Next is broken!
+            ];
+
+            heapNodes.forEach(n => {
+                let nStr = n.nErr ? `<span class="val-badge cycle-badge">${n.n}</span>` : `<span class="val-badge ${n.n==='null'?'null-badge':'ref-badge'}">${n.n}</span>`;
+                let pStr = n.pErr ? `<span class="val-badge cycle-badge">${n.p}</span>` : `<span class="val-badge ${n.p==='null'?'null-badge':'ref-badge'}">${n.p}</span>`;
+                
+                let pHTML = isDLL ? `<div class="flex justify-between text-[11px] border-t border-slate-700/50 mt-1 pt-1"><span class="text-slate-500">Prev:</span> ${pStr}</div>` : '';
+
+                heapC.innerHTML += `
+                <div class="bg-slate-800/80 px-3 py-2 rounded border border-slate-700 flex flex-col gap-1 w-full">
+                    <span class="font-code text-[11px] text-emerald-400 font-bold border-b border-slate-700 pb-1">${refs[n.id]}</span>
+                    <div class="flex justify-between text-[11px] mt-1"><span class="text-slate-400">Next:</span> ${nStr}</div>
+                    ${pHTML}
+                </div>`;
+            });
+        }
+
+        // --- Controls ---
+        window.setType = function(type) {
+            currentType = type;
+            currentStepsData = type === 'Singly' ? getSLLSteps() : getDLLSteps();
+            currentStep = 0;
+            
+            document.getElementById('btn-Singly').className = type === 'Singly' ? 'toggle-btn px-4 py-2 rounded-md text-sm font-bold bg-sky-600 text-white' : 'toggle-btn px-4 py-2 rounded-md text-sm font-bold text-slate-400 hover:bg-slate-800';
+            document.getElementById('btn-Doubly').className = type === 'Doubly' ? 'toggle-btn px-4 py-2 rounded-md text-sm font-bold bg-sky-600 text-white' : 'toggle-btn px-4 py-2 rounded-md text-sm font-bold text-slate-400 hover:bg-slate-800';
+            
+            render();
+        }
+
+        document.getElementById('btn-next').onclick = () => { if(currentStep < currentStepsData.length-1) { currentStep++; render(); }};
+        document.getElementById('btn-prev').onclick = () => { if(currentStep > 0) { currentStep--; render(); }};
+        document.addEventListener('keydown', e => { if(e.key === 'ArrowRight') document.getElementById('btn-next').click(); if(e.key === 'ArrowLeft') document.getElementById('btn-prev').click(); });
+
+        // Init
+        setType('Singly');
+    </script>
+</body>
+</html>

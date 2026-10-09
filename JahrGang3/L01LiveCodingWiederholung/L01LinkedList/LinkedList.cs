@@ -9,14 +9,16 @@
         Node node = new Node(value);
 
         // ungewünschter Zustand ❌
-        if (Head == null)
+        if (Head == null && Tail == null)
         {
             Head = node;
+            Tail = node;
         }
-        else 
+         
+        // gewünschter Zustand ✅
         // brauchen wir hier keine Schleife?
         // wenn ja warum wenn nein warum nicht?
-        {
+        if (Tail != null && Head != null) {
             node.Next = Head;
             Head = node;
         }
@@ -25,6 +27,20 @@
     // Zustaendigkeit: Fuegt neuen Node am Ende mit Value in die Liste ein.
     public void AddLast(int value)
     {
+        Node node = new Node(value);
 
+        // ungewünschter Zustand ❌
+        if (Tail == null && Head == null)
+        {
+            Tail = node;
+            Head = node;
+        }
+
+        // gewünschter Zustand ✅
+        if (Tail != null && Head != null)
+        {
+            Tail.Next = node;
+            Tail = node;
+        }
     }
 }

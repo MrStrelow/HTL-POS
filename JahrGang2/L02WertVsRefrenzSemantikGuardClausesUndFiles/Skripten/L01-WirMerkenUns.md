@@ -21,3 +21,31 @@
 >       5. Entferne den ``Block`` des *ungewünschten Zustands ❌* aus der ``verschachtelte Verzweigung``
 >       6. Wiederhole die vorherigen Schritte bis keine *ungewünschten Zustände ❌* mehr in der ``verschachtelte Verzweigung`` vorhanden sind.
 >       7. Kopiere die ``Kontrollstrukturen`` der *gewünschten Zustände ✅* welche nach dem Entfernen der *ungewünschten Zustände ❌* übrig geblieben sind, unterhalb der ``bedingte Anweisungen``. 
+
+
+**Wir merken uns von [ReferenztypUndWerttyp](TODO):**
+> 1. ``Variablen`` haben folgende 4 *Eigenschaften*:
+>       1. ``Typ``: *Was* darf in die ``Variable``?
+>       2. ``Wert``: *Was* liegt in der ``Variable``?
+>       3. ``Name``: *Wie* finde ich meine ``Variable`` im Programm wieder?
+>       4. ``Speicheradresse``: *Wo* liegt meine ``Variable`` im ``Arbeitsspeicher``?
+> 2. Der ``Typ`` einer ``Variable`` kann *konzeptionell* zwischen ``Werttyp`` und ``Referenztyp`` unterschieden werden. 
+> 3. Eine ``Variable`` welche ein ``Werttyp`` ist, hat einen ``Wert`` als ``Wert``.
+> 4. Eine ``Variable`` mit welche ein ``Referenztyp`` ist, hat eine ``Referenz`` als ``Wert``.
+> 5. ``Wert`` als ``Wert`` bedeutet, an der ``Speicheradresse`` einer ``Variable`` wird dessen ``Wert`` gespeichert.
+> 6. ``Referenz`` als ``Wert`` bedeutet, an der ``Speicheradresse`` einer ``Variable`` wird ein *Verweis* an einem anderen *Ort* im ``Arbeitsspeicher`` verwiesen.
+> 7. Der ``Arbeitsspeicher`` wird in ``Call-Stack`` und ``Managed-Heap`` unterteilt.
+> 8. Der ``Call-Stack`` (*Stapel*) steuert den ``Scope`` von ``Variablen`` innerhalb von ``Funktionen``.
+> 9. Ein ``Stackframe`` ist ein *Baustein* auf dem *Stapel* ``Call-Stack`` und beinhaltet ``Variablen`` und dessen ``Werte``.
+> 10. Nur der oberste ``Stackframe`` auf dem *Stapel* und dessen ``Variablen`` sind *in-scope*. Darunterliegende ``Stackframes`` und ``Variablen`` können wir nicht verwenden.  
+> 11. ``Variablen`` mit ``Werttyp`` haben als ``Wert`` einen ``Wert``, welcher im ``Stackframe`` *gespeichert* ist.
+> 12. Wir haben *Tausend* verschiedene ``Variablen`` mit ``Werttyp``. Alle haben den gleichen ``Wert``, jedoch ist dieser für jede ``Variable`` ein *eigener, unabhängiger* ``Wert`` welcher im ``Stackframe`` gespeichert ist. Wenn der *Inhalt* einer ``Variable`` verändert wird, ändert sich nur der *eine* ``Wert`` der *einen* ``Variable``. Alle anderen bleiben unverändert.
+> 12. Der ``Managed-Heap`` hat keine *Struktur* im Gegensatz zu der *Stapellogik* des ``Call-Stack``.
+> 13. ``Variablen`` mit ``Referenztyp`` haben als ``Wert`` eine ``Referenz``, welche auf eine ``Speicheradresse`` im ``Managed-Heap`` *zeigt*. 
+> 14. Wir haben *Tausend* verschiedene ``Variablen`` mit ``Referenztyp``. Alle haben den gleichen ``Wert``, also zeigen *alle auf den gleichen Ort* im ``Managed-Heap``. Wenn der *Inhalt* im ``Manged-Heap`` verändert wird, bleiben zwar alle ``Referenzen`` im ``Wert`` der ``Variable`` gleich, aber der *Inhalt* wurde für alle ``Variablen`` verändert. 
+> 15. ``Zuweisungen`` durch: 
+>       1. den ``Zuweisungsoperator`` *=* und 
+>       2. die ``Zuweisung`` von ``Argumenten`` in ``Eingagns-Parametern`` einer ``Funktion`` 
+> werden bei ``Variablen`` mit ``Wertypen`` als *unabhänige* ``Werte`` *kopiert* und bei ``Variablen`` mit ``Referenztypen`` als *abhänige* ``Referenzen`` *kopiert*.
+> 16. ``Referenztypen`` erlauben uns *speichereffizient* mit *großen* ``Variablen`` im ``Arbeitsspeicher`` umzugehen. Aber wir können unbeabsichtige Fehler machen welche wir ``Seiteneffekte`` nennen.
+> 17. ``Werttypen`` erlauben uns *sicher* (ohne ``Seiteneffekte``) mit *kleinen* ``Variablen`` im ``Arbeitsspeicher`` umzugehen. Aber wir haben durch das kopieren der ``Werte`` langsame *Programme* wo der Inhalt einer Variable *mehrmals* doppelt im speicher liegt.
