@@ -49,3 +49,8 @@
 > werden bei ``Variablen`` mit ``Wertypen`` als *unabhänige* ``Werte`` *kopiert* und bei ``Variablen`` mit ``Referenztypen`` als *abhänige* ``Referenzen`` *kopiert*.
 > 16. ``Referenztypen`` erlauben uns *speichereffizient* mit *großen* ``Variablen`` im ``Arbeitsspeicher`` umzugehen. Aber wir können unbeabsichtige Fehler machen welche wir ``Seiteneffekte`` nennen.
 > 17. ``Werttypen`` erlauben uns *sicher* (ohne ``Seiteneffekte``) mit *kleinen* ``Variablen`` im ``Arbeitsspeicher`` umzugehen. Aber wir haben durch das kopieren der ``Werte`` langsame *Programme* wo der Inhalt einer Variable *mehrmals* doppelt im speicher liegt.
+> 18. Eine ``Variable`` welche eine ``Referenztypsemantik`` besitzt, verwendet bei einer ``Zuweisung`` eine *Kopie* der ``Referenz``.
+> 19. Eine ``Variable`` welche eine ``Werttypsemantik`` besitzt, verwendet bei einer ``Zuweisung`` eine *Kopie* des ``Wertes``.
+> 20. ``Variablen`` des ``Typs`` *string* sind ``Referenztypen`` aber haben automatisch eine ``Werttypsemantik``.
+> 21. Wir können mit dem ``Keyword`` *out*, *in* oder *ref* einen ``Werttyp`` und *string* von der ``Werttypsemantik`` in eine ``Referenztypsemantik`` überführen.
+> 22. Wir verwenden die *try* ``Methoden`` um zwei ``Ausgabeparameter`` zu erzeugen. Einmal einen *bool*, welcher sagt ob der ``Aufruf`` funktioniert hat, und einen der das berechnete *Ergebnis* zurückgibt. Das berechnete *Ergebnis* wird als ``Eingangsparameter``, welcher durch die ``Keywords`` *out*, *in* oder *ref*, in einem ``Ausgangsparameter`` umgewandelt werden. 
