@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C# Memory Visualizer: Reference Types (Arrays)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617;
+            color: #f8fafc;
+            margin: 0;
+            overflow: hidden;
+        }
+        .font-code { font-family: 'Fira Code', monospace; }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        @keyframes pushFrame {
+            0% { opacity: 0; transform: translateY(-20px) scale(0.95); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .frame-push { animation: pushFrame 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .item-enter { animation: fadeIn 0.4s ease-out forwards; }
+
+        .line-active {
+            background-color: rgba(56, 189, 248, 0.15);
+            border-left: 4px solid #38bdf8;
+        }
+        .line-normal { border-left: 4px solid transparent; }
+
+        .ref-badge {
+            background-color: rgba(148, 163, 184, 0.1);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            color: #cbd5e1;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        .ref-badge.A1 { border-color: rgba(16, 185, 129, 0.5); color: #34d399; background-color: rgba(16, 185, 129, 0.1); } /* Emerald */
+        .ref-badge.B1 { border-color: rgba(245, 158, 11, 0.5); color: #fbbf24; background-color: rgba(245, 158, 11, 0.1); } /* Amber */
+        
+        .orphaned {
+            opacity: 0.35;
+            filter: grayscale(100%);
+            transition: all 0.5s ease;
+        }
+
+        /* Pulse Animation for Array Cell Updates */
+        @keyframes pulseCell {
+            0% { background-color: #38bdf8; color: #082f49; transform: scale(1.1); border-color: #0284c7; }
+            100% { background-color: #1e293b; color: #f8fafc; transform: scale(1); border-color: rgba(71, 85, 105, 0.5); }
+        }
+        .cell-updated {
+            animation: pulseCell 1.5s ease-out forwards;
+        }
+
+        #svg-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 100;
+        }
+        
+        .arrow-path {
+            fill: none; stroke-width: 2.5; stroke-linecap: round; opacity: 0.85;
+            transition: d 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col relative">
+    
+    <svg id="svg-layer">
+        <defs>
+            <marker id="arrow-stack" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#38bdf8" />
+            </marker>
+        </defs>
+        <g id="arrows-container"></g>
+    </svg>
+
+    <header class="bg-slate-900 border-b border-slate-800 p-4 shrink-0 shadow-md relative z-20">
+        <div>
+            <h1 class="text-2xl font-bold text-sky-400 tracking-tight">Referenztypen (Reference Types)</h1>
+            <p class="text-sm text-slate-400 mt-1">Arrays auf dem Managed Heap, Referenz-Zuweisung und Aliasing-Seiteneffekte</p>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden p-4 gap-6 bg-slate-950 relative z-10" id="main-area">
+        
+        <!-- Code Section -->
+        <section class="flex-1 lg:flex-[1.1] bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl relative">
+            <div class="bg-slate-950 py-2 px-4 border-b border-slate-800 flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-rose-500"></div>
+                <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+                <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <span class="ml-2 text-xs font-semibold text-slate-500 uppercase tracking-widest">Program.cs</span>
+            </div>
+            <div id="code-container" class="flex-1 overflow-y-auto p-4 font-code text-[14px] sm:text-[15px] leading-8">
+            </div>
+        </section>
+
+        <!-- Memory Section -->
+        <section class="flex-1 lg:flex-[1.9] flex flex-col lg:flex-row gap-6 overflow-hidden">
+            
+            <div class="flex-1 bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+                <div class="bg-slate-950 py-2 px-4 border-b border-slate-800">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                        Call Stack
+                    </span>
+                </div>
+                <div id="stack-container" class="flex-1 overflow-y-auto p-4 flex flex-col-reverse gap-4 bg-slate-900/50">
+                </div>
+            </div>
+
+            <div class="flex-[1.5] bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+                <div class="bg-slate-950 py-2 px-4 border-b border-slate-800">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        Managed Heap
+                    </span>
+                </div>
+                <div id="heap-container" class="flex-1 overflow-y-auto p-4 flex flex-col gap-6 bg-slate-900/50">
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <footer class="bg-slate-900 border-t border-slate-800 shrink-0 relative z-20 p-4">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 max-w-7xl mx-auto items-center">
+            <div class="lg:col-span-2 bg-slate-950 border border-slate-800 rounded-lg p-4 min-h-[90px] flex flex-col justify-center">
+                <h3 class="text-xs uppercase font-bold text-sky-400 mb-1 tracking-wider">Aktion</h3>
+                <p id="explanation-text" class="text-sm text-slate-300 leading-relaxed"></p>
+            </div>
+
+            <div class="flex flex-col items-center justify-center gap-3">
+                <div class="flex items-center gap-3">
+                    <button id="btn-prev" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg shadow disabled:opacity-30 transition-all text-sm font-medium border border-slate-700">&larr; Zurück</button>
+                    <div class="bg-slate-950 px-4 py-2.5 rounded-lg border border-slate-800 font-code text-sm min-w-[90px] text-center">
+                        <span id="step-current" class="text-sky-400 font-bold"></span><span class="text-slate-500">/</span><span id="step-total" class="text-slate-400"></span>
+                    </div>
+                    <button id="btn-next" class="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg shadow-lg disabled:opacity-30 transition-all text-sm font-bold border border-sky-500">Weiter &rarr;</button>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const rawCode = [
+            /* 0*/ "<span class='text-pink-400'>static void</span> <span class='text-sky-300'>Main</span>() {",
+            /* 1*/ "    <span class='text-pink-400'>int</span>[] a = { <span class='text-fuchsia-400'>1</span>, <span class='text-fuchsia-400'>2</span>, <span class='text-fuchsia-400'>3</span> };",
+            /* 2*/ "    <span class='text-pink-400'>int</span>[] b = { <span class='text-fuchsia-400'>10</span>, <span class='text-fuchsia-400'>20</span>, <span class='text-fuchsia-400'>30</span> };",
+            /* 3*/ "",
+            /* 4*/ "    a = b;",
+            /* 5*/ "    b[<span class='text-fuchsia-400'>0</span>] = <span class='text-fuchsia-400'>101</span>;",
+            /* 6*/ "}"
+        ];
+
+        const steps = [
+            { 
+                line: -1, stack: [], heap: {}, arrows: [], 
+                desc: "Programm ist bereit. Drücke auf 'Weiter', um den Start zu simulieren." 
+            },
+            { 
+                line: 0, stack: [ { id: "frame-main", name: "Main()", vars: {} } ], heap: {}, arrows: [], 
+                desc: "<strong>Schritt 1:</strong> <code>Main()</code> startet. Der Stack-Frame ist vorbereitet." 
+            },
+            { 
+                line: 1, 
+                stack: [ { id: "frame-main", name: "Main()", vars: { "a": "0xA1" } } ], 
+                heap: { "0xA1": { id: "heap-0xA1", type: "int[]", isArray: true, cells: ["1", "2", "3"] } }, 
+                arrows: [ { from: "stack-frame-main-a", to: "heap-0xA1", type: "stack" } ], 
+                desc: "<strong>Schritt 2:</strong> <code>int[] a = {1, 2, 3};</code><br>Das Array (ein <strong>Referenztyp</strong>) wird auf dem Managed Heap erzeugt (<span class='ref-badge A1'>0xA1</span>). Die Variable <code>a</code> auf dem Stack speichert nur den <em>Pfeil</em> dorthin." 
+            },
+            { 
+                line: 2, 
+                stack: [ { id: "frame-main", name: "Main()", vars: { "a": "0xA1", "b": "0xB1" } } ], 
+                heap: { 
+                    "0xA1": { id: "heap-0xA1", type: "int[]", isArray: true, cells: ["1", "2", "3"] },
+                    "0xB1": { id: "heap-0xB1", type: "int[]", isArray: true, cells: ["10", "20", "30"] }
+                }, 
+                arrows: [ 
+                    { from: "stack-frame-main-a", to: "heap-0xA1", type: "stack" },
+                    { from: "stack-frame-main-b", to: "heap-0xB1", type: "stack" }
+                ], 
+                desc: "<strong>Schritt 3:</strong> <code>int[] b = {10, 20, 30};</code><br>Ein zweites, völlig separates Array entsteht auf dem Heap (<span class='ref-badge B1'>0xB1</span>)." 
+            },
+            { 
+                line: 4, 
+                stack: [ { id: "frame-main", name: "Main()", vars: { "a": "0xB1", "b": "0xB1" } } ], 
+                heap: { 
+                    "0xA1": { id: "heap-0xA1", type: "int[]", isArray: true, cells: ["1", "2", "3"], orphaned: true },
+                    "0xB1": { id: "heap-0xB1", type: "int[]", isArray: true, cells: ["10", "20", "30"] }
+                }, 
+                arrows: [ 
+                    { from: "stack-frame-main-a", to: "heap-0xB1", type: "stack" },
+                    { from: "stack-frame-main-b", to: "heap-0xB1", type: "stack" }
+                ], 
+                desc: "<strong>Schritt 4: Referenz kopieren!</strong><br><code>a = b;</code> kopiert <em>nicht</em> die Werte, sondern verbiegt den Zeiger! Beide Variablen zeigen nun auf <code>0xB1</code>. Das erste Array (<span class='ref-badge A1'>0xA1</span>) ist unerreichbar geworden und <strong>verwaist (Orphaned)</strong>." 
+            },
+            { 
+                line: 5, 
+                stack: [ { id: "frame-main", name: "Main()", vars: { "a": "0xB1", "b": "0xB1" } } ], 
+                heap: { 
+                    "0xA1": { id: "heap-0xA1", type: "int[]", isArray: true, cells: ["1", "2", "3"], orphaned: true },
+                    "0xB1": { id: "heap-0xB1", type: "int[]", isArray: true, cells: ["101", "20", "30"], updated: 0 }
+                }, 
+                arrows: [ 
+                    { from: "stack-frame-main-a", to: "heap-0xB1", type: "stack" },
+                    { from: "stack-frame-main-b", to: "heap-0xB1", type: "stack" }
+                ], 
+                desc: "<strong>Schritt 5: Der Seiteneffekt (Side Effect)!</strong><br>Wir verändern den Wert über <code>b[0] = 101;</code>. Da <code>a</code> auf dasselbe Objekt (denselben Fernseher) zeigt, würde ein Auslesen von <code>a[0]</code> jetzt ebenfalls 101 liefern." 
+            }
+        ];
+
+        let currentStep = 0;
+        let lastStackSize = 0;
+
+        const uiCode = document.getElementById('code-container');
+        const uiStack = document.getElementById('stack-container');
+        const uiHeap = document.getElementById('heap-container');
+        const uiDesc = document.getElementById('explanation-text');
+        const svgLayer = document.getElementById('arrows-container');
+        
+        function getBadgeClass(val) {
+            if(val === '0xA1') return 'A1';
+            if(val === '0xB1') return 'B1';
+            return '';
+        }
+
+        function formatValue(val) {
+            const badge = getBadgeClass(val);
+            if (badge) return `<span class="ref-badge ${badge}">[${val}]</span>`;
+            return `<span class="text-emerald-400 font-bold">${val}</span>`;
+        }
+
+        function render() {
+            const step = steps[currentStep];
+            
+            document.getElementById('btn-prev').disabled = currentStep === 0;
+            document.getElementById('btn-next').disabled = currentStep === steps.length - 1;
+            document.getElementById('step-current').textContent = currentStep;
+            document.getElementById('step-total').textContent = steps.length - 1;
+            uiDesc.innerHTML = step.desc;
+
+            // Render Code
+            uiCode.innerHTML = '';
+            rawCode.forEach((lineHtml, index) => {
+                const isActive = index === step.line;
+                const lineDiv = document.createElement('div');
+                lineDiv.className = `flex px-2 py-0.5 rounded transition-colors ${isActive ? 'line-active text-sky-50' : 'line-normal text-slate-300'}`;
+                
+                const numSpan = document.createElement('span');
+                numSpan.className = 'w-8 shrink-0 text-right text-slate-600 mr-4 select-none font-code text-xs pt-1 border-r border-slate-700/50 pr-2';
+                numSpan.textContent = index + 1;
+                
+                const codeSpan = document.createElement('span');
+                codeSpan.className = 'whitespace-pre font-code';
+                codeSpan.innerHTML = isActive ? `<strong>${lineHtml}</strong>` : lineHtml;
+
+                lineDiv.appendChild(numSpan);
+                lineDiv.appendChild(codeSpan);
+                uiCode.appendChild(lineDiv);
+            });
+            
+            const activeLineEl = uiCode.querySelector('.line-active');
+            if(activeLineEl) activeLineEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // Render Stack
+            uiStack.innerHTML = '';
+            const isPushing = step.stack.length > lastStackSize;
+
+            if (step.stack.length === 0) {
+                uiStack.innerHTML = `<div class="h-full flex items-center justify-center text-slate-600 text-sm italic">Call Stack leer</div>`;
+            } else {
+                step.stack.forEach((frame, index) => {
+                    const el = document.createElement('div');
+                    
+                    let classes = `border rounded-xl overflow-hidden bg-slate-800 shrink-0 relative `;
+                    classes += `border-sky-500/50 shadow-[0_0_15px_rgba(56,189,248,0.1)] ring-1 ring-sky-500/20 z-10 `;
+                    if (isPushing) classes += `frame-push `;
+                    
+                    el.className = classes;
+                    el.id = `stack-${frame.id}`;
+
+                    let html = `
+                        <div class="bg-sky-500/10 px-4 py-2 border-b border-slate-700/50 flex justify-between items-center">
+                            <span class="font-code font-bold text-sky-300">${frame.name}</span>
+                        </div>
+                        <div class="p-3 flex flex-col gap-2">
+                    `;
+
+                    const varsKeys = Object.keys(frame.vars || {});
+                    if (varsKeys.length > 0) {
+                        varsKeys.forEach(k => {
+                            html += `
+                            <div id="stack-${frame.id}-${k}" class="flex justify-between items-center bg-slate-950/50 px-3 py-2 rounded border border-slate-700/50 relative">
+                                <span class="font-code text-sm text-slate-300">int[] <span class="text-white">${k}</span></span>
+                                <span class="font-code text-sm">${formatValue(frame.vars[k])}</span>
+                            </div>`;
+                        });
+                    } else {
+                        html += `<span class="text-xs text-slate-500 italic">Keine Variablen</span>`;
+                    }
+
+                    html += `</div>`;
+                    el.innerHTML = html;
+                    uiStack.appendChild(el);
+                });
+            }
+            lastStackSize = step.stack.length;
+
+            // Render Heap
+            uiHeap.innerHTML = '';
+            const heapKeys = Object.keys(step.heap);
+            
+            if (heapKeys.length === 0) {
+                uiHeap.innerHTML = `<div class="h-full w-full flex items-center justify-center text-slate-600 text-sm italic">Heap ist leer</div>`;
+            } else {
+                heapKeys.forEach(addr => {
+                    const heapObj = step.heap[addr];
+                    const badgeClass = getBadgeClass(addr);
+                    
+                    const el = document.createElement('div');
+                    el.className = `border border-slate-700 rounded-xl overflow-hidden bg-slate-800 shrink-0 shadow-lg relative min-w-[220px] z-10`;
+                    
+                    if (heapObj.orphaned) el.classList.add('orphaned');
+                    if (addr === "0xA1" && currentStep === 2) el.classList.add('item-enter');
+                    if (addr === "0xB1" && currentStep === 3) el.classList.add('item-enter');
+                    
+                    el.id = heapObj.id;
+                    
+                    let html = `
+                        <div class="bg-slate-950 px-3 py-2 border-b border-slate-800 flex justify-between items-center">
+                            <span class="font-code text-xs text-slate-400">${heapObj.type}</span>
+                            <span class="ref-badge ${badgeClass} text-xs font-code">[${addr}]</span>
+                        </div>
+                        <div class="p-4 flex flex-col gap-2 items-center">
+                    `;
+
+                    if (heapObj.isArray) {
+                        html += `<div class="flex gap-1.5 bg-slate-950 p-2 rounded border border-slate-700/50">`;
+                        heapObj.cells.forEach((cell, idx) => {
+                            const isUpdated = heapObj.updated === idx;
+                            html += `
+                            <div class="border border-slate-600/50 bg-slate-800 w-12 h-12 flex flex-col items-center justify-center rounded relative ${isUpdated ? 'cell-updated' : ''}">
+                                <span class="text-[9px] text-slate-500 absolute top-0.5">${idx}</span>
+                                <span class="font-code text-sm font-bold mt-2">${cell}</span>
+                            </div>`;
+                        });
+                        html += `</div>`;
+                    }
+
+                    html += `</div>`;
+                    el.innerHTML = html;
+                    uiHeap.appendChild(el);
+                });
+            }
+
+            requestAnimationFrame(() => drawArrows(step.arrows));
+        }
+
+        function drawArrows(arrows) {
+            svgLayer.innerHTML = ''; 
+            if (!arrows || arrows.length === 0) return;
+
+            arrows.forEach(arrow => {
+                const elFrom = document.getElementById(arrow.from);
+                const elTo = document.getElementById(arrow.to);
+
+                if (!elFrom || !elTo) return;
+
+                const rectFrom = elFrom.getBoundingClientRect();
+                const rectTo = elTo.getBoundingClientRect();
+                
+                let startX = rectFrom.right - 5;
+                let startY = rectFrom.top + (rectFrom.height / 2);
+                let endX = rectTo.left - 2;
+                let endY = rectTo.top + 25; 
+                
+                // Optische Anpassung: Wenn zwei Pfeile auf das selbe Objekt zeigen, den Zielpunkt leicht vertikal versetzen
+                if (arrow.from.includes('-a')) endY -= 8;
+                if (arrow.from.includes('-b')) endY += 8;
+
+                const dx = Math.abs(endX - startX);
+                let cp1x = startX + (dx * 0.4); 
+                let cp1y = startY;
+                let cp2x = endX - (dx * 0.4); 
+                let cp2y = endY;
+
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d", `M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${endX} ${endY}`);
+                path.setAttribute("class", "arrow-path");
+                path.setAttribute("stroke", "#38bdf8"); // Sky
+                path.setAttribute("marker-end", `url(#arrow-stack)`);
+                
+                svgLayer.appendChild(path);
+            });
+        }
+
+        document.getElementById('btn-next').addEventListener('click', () => {
+            if (currentStep < steps.length - 1) { currentStep++; render(); }
+        });
+        document.getElementById('btn-prev').addEventListener('click', () => {
+            if (currentStep > 0) { currentStep--; render(); }
+        });
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'ArrowRight') document.getElementById('btn-next').click();
+            if(e.key === 'ArrowLeft') document.getElementById('btn-prev').click();
+        });
+
+        window.addEventListener('resize', () => requestAnimationFrame(() => drawArrows(steps[currentStep].arrows)));
+        document.getElementById('stack-container').addEventListener('scroll', () => requestAnimationFrame(() => drawArrows(steps[currentStep].arrows)));
+        document.getElementById('heap-container').addEventListener('scroll', () => requestAnimationFrame(() => drawArrows(steps[currentStep].arrows)));
+
+        render();
+    </script>
+</body>
+</html>

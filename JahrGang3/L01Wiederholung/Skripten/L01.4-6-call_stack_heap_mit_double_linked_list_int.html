@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C# Memory Visualizer: Circular Doubly Linked List</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617;
+            color: #f8fafc;
+            margin: 0;
+            overflow: hidden;
+        }
+        .font-code { font-family: 'Fira Code', monospace; }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        @keyframes pushFrame {
+            0% { opacity: 0; transform: translateY(-20px) scale(0.95); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .frame-push { animation: pushFrame 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .item-enter { animation: fadeIn 0.4s ease-out forwards; }
+
+        .line-active {
+            background-color: rgba(56, 189, 248, 0.15);
+            border-left: 4px solid #38bdf8;
+        }
+        .line-normal { border-left: 4px solid transparent; }
+
+        .ref-badge {
+            background-color: rgba(148, 163, 184, 0.1);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            color: #cbd5e1;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        .ref-badge.H1 { border-color: rgba(236, 72, 153, 0.5); color: #f472b6; background-color: rgba(236, 72, 153, 0.1); } 
+        .ref-badge.N1 { border-color: rgba(16, 185, 129, 0.5); color: #34d399; background-color: rgba(16, 185, 129, 0.1); } 
+        .ref-badge.N2 { border-color: rgba(245, 158, 11, 0.5); color: #fbbf24; background-color: rgba(245, 158, 11, 0.1); } 
+        .ref-badge.N3 { border-color: rgba(99, 102, 241, 0.5); color: #818cf8; background-color: rgba(99, 102, 241, 0.1); } 
+        .ref-badge.N4 { border-color: rgba(244, 63, 94, 0.5); color: #fb7185; background-color: rgba(244, 63, 94, 0.1); } 
+        .ref-badge.null { border-color: rgba(71, 85, 105, 0.5); color: #94a3b8; border-style: dashed; }
+
+        #svg-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 100;
+        }
+        
+        .arrow-path {
+            fill: none; stroke-width: 2.2; stroke-linecap: round; opacity: 0.85;
+            transition: d 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col relative">
+    
+    <svg id="svg-layer">
+        <defs>
+            <marker id="arrow-stack" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#38bdf8" />
+            </marker>
+            <marker id="arrow-H1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#f472b6" />
+            </marker>
+            <!-- Alle NEXT-Pfeile: Kräftiges Blau (#3b82f6) -->
+            <marker id="arrow-next" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" />
+            </marker>
+            <!-- Alle PREV-Pfeile: Kräftiges Orange/Amber (#f59e0b) -->
+            <marker id="arrow-prev" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b" />
+            </marker>
+        </defs>
+        <g id="arrows-container"></g>
+    </svg>
+
+    <header class="bg-slate-900 border-b border-slate-800 p-4 shrink-0 shadow-md relative z-20">
+        <div>
+            <h1 class="text-2xl font-bold text-sky-400 tracking-tight">Echte C# Implementierung: Circular Doubly Linked List</h1>
+            <p class="text-sm text-slate-400 mt-1">Farbcodes: <span class="text-blue-500 font-bold">Next (Blau)</span> & <span class="text-amber-500 font-bold">Prev (Orange)</span></p>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden p-4 gap-6 bg-slate-950 relative z-10" id="main-area">
+        
+        <section class="flex-1 lg:flex-[1.2] bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl relative">
+            <div class="bg-slate-950 py-2 px-4 border-b border-slate-800 flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-rose-500"></div>
+                <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+                <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <span class="ml-2 text-xs font-semibold text-slate-500 uppercase tracking-widest">Program.cs</span>
+            </div>
+            <div id="code-container" class="flex-1 overflow-y-auto p-4 font-code text-[12px] sm:text-[13px] leading-6">
+            </div>
+        </section>
+
+        <section class="flex-1 lg:flex-[1.8] flex flex-col lg:flex-row gap-6 overflow-hidden">
+            
+            <div class="flex-1 bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+                <div class="bg-slate-950 py-2 px-4 border-b border-slate-800">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                        Call Stack (Top = Aktiv)
+                    </span>
+                </div>
+                <div id="stack-container" class="flex-1 overflow-y-auto p-4 flex flex-col-reverse gap-4 bg-slate-900/50">
+                </div>
+            </div>
+
+            <div class="flex-[1.5] bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+                <div class="bg-slate-950 py-2 px-4 border-b border-slate-800">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        Managed Heap
+                    </span>
+                </div>
+                <div id="heap-container" class="flex-1 overflow-y-auto p-4 flex flex-col gap-6 bg-slate-900/50">
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <footer class="bg-slate-900 border-t border-slate-800 shrink-0 relative z-20 p-4">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 max-w-7xl mx-auto items-center">
+            <div class="lg:col-span-2 bg-slate-950 border border-slate-800 rounded-lg p-4 min-h-[90px] flex flex-col justify-center">
+                <h3 class="text-xs uppercase font-bold text-sky-400 mb-1 tracking-wider">Aktion</h3>
+                <p id="explanation-text" class="text-sm text-slate-300 leading-relaxed"></p>
+            </div>
+
+            <div class="flex flex-col items-center justify-center gap-3">
+                <div class="flex items-center gap-3">
+                    <button id="btn-prev" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg shadow disabled:opacity-30 transition-all text-sm font-medium border border-slate-700">&larr; Zurück</button>
+                    <div class="bg-slate-950 px-4 py-2.5 rounded-lg border border-slate-800 font-code text-sm min-w-[90px] text-center">
+                        <span id="step-current" class="text-sky-400 font-bold"></span><span class="text-slate-500">/</span><span id="step-total" class="text-slate-400"></span>
+                    </div>
+                    <button id="btn-next" class="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg shadow-lg disabled:opacity-30 transition-all text-sm font-bold border border-sky-500">Weiter &rarr;</button>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const rawCode = [
+            /* 0*/ "<span class='text-pink-400'>class</span> <span class='text-emerald-300'>Node</span> {",
+            /* 1*/ "    <span class='text-pink-400'>public int</span> Value;",
+            /* 2*/ "    <span class='text-pink-400'>public</span> Node Next;",
+            /* 3*/ "    <span class='text-pink-400'>public</span> Node Prev;",
+            /* 4*/ "}",
+            /* 5*/ "<span class='text-pink-400'>class</span> <span class='text-emerald-300'>CircularList</span> {",
+            /* 6*/ "    <span class='text-pink-400'>public</span> Node Head;",
+            /* 7*/ "    <span class='text-pink-400'>public void</span> <span class='text-sky-300'>AddFirst</span>(<span class='text-pink-400'>int</span> val) {",
+            /* 8*/ "        Node newNode = <span class='text-pink-400'>new</span> Node { Value = val };",
+            /* 9*/ "        <span class='text-pink-400'>if</span> (Head == <span class='text-pink-400'>null</span>) {",
+            /*10*/ "            Head = newNode;",
+            /*11*/ "            Head.Next = Head;",
+            /*12*/ "            Head.Prev = Head;",
+            /*13*/ "        } <span class='text-pink-400'>else</span> {",
+            /*14*/ "            Node tail = Head.Prev;",
+            /*15*/ "            newNode.Next = Head;",
+            /*16*/ "            newNode.Prev = tail;",
+            /*17*/ "            Head.Prev = newNode;",
+            /*18*/ "            tail.Next = newNode;",
+            /*19*/ "            Head = newNode;",
+            /*20*/ "        }",
+            /*21*/ "    }",
+            /*22*/ "    <span class='text-pink-400'>public void</span> <span class='text-sky-300'>AddLast</span>(<span class='text-pink-400'>int</span> val) {",
+            /*23*/ "        Node newNode = <span class='text-pink-400'>new</span> Node { Value = val };",
+            /*24*/ "        <span class='text-pink-400'>if</span> (Head == <span class='text-pink-400'>null</span>) {",
+            /*25*/ "            Head = newNode;",
+            /*26*/ "            Head.Next = Head;",
+            /*27*/ "            Head.Prev = Head;",
+            /*28*/ "        } <span class='text-pink-400'>else</span> {",
+            /*29*/ "            Node tail = Head.Prev;",
+            /*30*/ "            tail.Next = newNode;",
+            /*31*/ "            newNode.Prev = tail;",
+            /*32*/ "            newNode.Next = Head;",
+            /*33*/ "            Head.Prev = newNode;",
+            /*34*/ "        }",
+            /*35*/ "    }",
+            /*36*/ "}",
+            /*37*/ "<span class='text-pink-400'>static void</span> <span class='text-sky-300'>Main</span>() {",
+            /*38*/ "    CircularList list = <span class='text-pink-400'>new</span> CircularList();",
+            /*39*/ "    list.AddFirst(<span class='text-fuchsia-400'>10</span>);",
+            /*40*/ "    list.AddFirst(<span class='text-fuchsia-400'>5</span>);",
+            /*41*/ "    list.AddLast(<span class='text-fuchsia-400'>20</span>);",
+            /*42*/ "}"
+        ];
+
+        const steps = [
+            { line: -1, stack: [], heap: {}, arrows: [], desc: "Programm ist bereit. Drücke auf 'Weiter'." },
+            
+            // --- MAIN START ---
+            { line: 37, stack: [ { id: "frame-main", name: "Main()", vars: {} } ], heap: {}, arrows: [], desc: "<code>Main()</code> startet." },
+            { line: 38, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "CircularList", props: { "Head": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" } ], desc: "<code>new CircularList()</code> erzeugt die Liste <span class='ref-badge H1'>0xL1</span>." },
+            
+            // --- ADDFIRST(10) ---
+            { line: 39, stack: [ { id: "frame-af1", name: "AddFirst(10)", vars: { "this": "0xL1", "val": "10" } }, { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "CircularList", props: { "Head": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-af1-this", to: "heap-0xL1", type: "stack" } ], desc: "<strong>AddFirst(10):</strong> Frame liegt oben auf dem Stack." },
+            { line: 8, stack: [ { id: "frame-af1", name: "AddFirst(10)", vars: { "this": "0xL1", "val": "10", "newNode": "0xN1" } }, { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "CircularList", props: { "Head": "null" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Value": "10", "Next": "null", "Prev": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-af1-this", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-af1-newNode", to: "heap-0xN1", type: "stack" } ], desc: "Node <span class='ref-badge N1'>0xN1</span> (10) wird auf dem Heap instanziiert." },
+            { line: 9, stack: [ { id: "frame-af1", name: "AddFirst(10)", vars: { "this": "0xL1", "val": "10", "newNode": "0xN1" } }, { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "CircularList", props: { "Head": "null" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Value": "10", "Next": "null", "Prev": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-af1-newNode", to: "heap-0xN1", type: "stack" } ], desc: "Prüfung: <code>Head == null</code> ist true (Liste ist leer)." },
+            { line: 10, stack: [ { id: "frame-af1", name: "AddFirst(10)", vars: { "this": "0xL1", "val": "10", "newNode": "0xN1" } }, { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "CircularList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Value": "10", "Next": "null", "Prev": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-af1-newNode", to: "heap-0xN1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" } ], desc: "<code>Head = newNode;</code> setzt den Head auf den neuen Node." },
+            { line: 11, stack: [ { id: "frame-af1", name: "AddFirst(10)", vars: { "this": "0xL1", "val": "10", "newNode": "0xN1" } }, { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "CircularList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Value": "10", "Next": "0xN1", "Prev": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-af1-newNode", to: "heap-0xN1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" }, { from: "prop-0xN1-Next", to: "heap-0xN1", type: "next" } ], desc: "<code>Head.Next = Head;</code> (Blauer Next-Pfeil schließt den Kreis zu sich selbst)." },
+            { line: 12, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "CircularList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Value": "10", "Next": "0xN1", "Prev": "0xN1" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" }, { from: "prop-0xN1-Next", to: "heap-0xN1", type: "next" }, { from: "prop-0xN1-Prev", to: "heap-0xN1", type: "prev" } ], desc: "<code>Head.Prev = Head;</code> (Oranger Prev-Pfeil schließt den Kreis zurück). Erster Node fertig." },
+
+            // --- ADDFIRST(5) ---
+            { line: 40, stack: [ { id: "frame-af2", name: "AddFirst(5)", vars: { "this": "0xL1", "val": "5" } }, { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "CircularList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Value": "10", "Next": "0xN1", "Prev": "0xN1" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-af2-this", to: "heap-0xL1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" } ], desc: "<strong>AddFirst(5):</strong> Nächster Aufruf." },
+            { line: 8, stack: [ { id: "frame-af2", name: "AddFirst(5)", vars: { "this": "0xL1", "val": "5", "newNode": "0xN2" } }, { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "CircularList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Value": "10", "Next": "0xN1", "Prev": "0xN1" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Value": "5", "Next": "null", "Prev": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-af2-n", to: "heap-0xN2", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" } ], desc: "Node <span class='ref-badge N2'>0xN2</span> (5) entsteht." },
+            { line: 9, stack: [ { id: "frame-af2", name: "AddFirst(5)", vars: { "this": "0xL1", "val": "5", "newNode": "0xN2" } }, { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "CircularList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Value": "10", "Next": "0xN1", "Prev": "0xN1" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Value": "5", "Next": "null", "Prev": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" } ], desc: "<code>Head == null</code> ist false. Wir gehen in den <code>else</code>-Zweig." },
+            { line: 14, stack: [ { id: "frame-af2", name: "AddFirst(5)", vars: { "this": "0xL1", "val": "5", "newNode": "0xN2", "tail": "0xN1" } }, { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "CircularList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Value": "10", "Next": "0xN1", "Prev": "0xN1" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Value": "5", "Next": "null", "Prev": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-af2-tail", to: "heap-0xN1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" } ], desc: "<code>Node tail = Head.Prev;</code> ermittelt das letzte Element (0xN1)." },
+            { line: 15, stack: [ { id: "frame-af2", name: "AddFirst(5)", vars: { "this": "0xL1", "val": "5", "newNode": "0xN2", "tail": "0xN1" } }, { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "CircularList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Value": "10", "Next": "0xN1", "Prev": "0xN1" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Value": "5", "Next": "0xN1", "Prev": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" }, { from: "prop-0xN2-Next", to: "heap-0xN1", type: "next" } ], desc: "<code>newNode.Next = Head;</code> (5 zeigt vorwärts auf 10)." },
+            { line: 16, stack: [ { id: "frame-af2", name: "AddFirst(5)", vars: { "this": "0xL1", "val": "5", "newNode": "0xN2", "tail": "0xN1" } }, { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "CircularList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Value": "10", "Next": "0xN1", "Prev": "0xN1" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Value": "5", "Next": "0xN1", "Prev": "0xN1" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" }, { from: "prop-0xN2-Next", to: "heap-0xN1", type: "next" }, { from: "prop-0xN2-Prev", to: "heap-0xN1", type: "prev" } ], desc: "<code>newNode.Prev = tail;</code> (5 zeigt rückwärts auf das Ende)." },
+            { line: 17, stack: [ { id: "frame-af2", name: "AddFirst(5)", vars: { "this": "0xL1", "val": "5", "newNode": "0xN2", "tail": "0xN1" } }, { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "CircularList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Value": "10", "Next": "0xN1", "Prev": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Value": "5", "Next": "0xN1", "Prev": "0xN1" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" }, { from: "prop-0xN2-Next", to: "heap-0xN1", type: "next" }, { from: "prop-0xN2-Prev", to: "heap-0xN1", type: "prev" }, { from: "prop-0xN1-Prev", to: "heap-0xN2", type: "prev" } ], desc: "<code>Head.Prev = newNode;</code> (10 zeigt rückwärts auf die neue 5)." },
+            { line: 18, stack: [ { id: "frame-af2", name: "AddFirst(5)", vars: { "this": "0xL1", "val": "5", "newNode": "0xN2", "tail": "0xN1" } }, { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "CircularList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Value": "10", "Next": "0xN2", "Prev": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Value": "5", "Next": "0xN1", "Prev": "0xN1" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" }, { from: "prop-0xN2-Next", to: "heap-0xN1", type: "next" }, { from: "prop-0xN2-Prev", to: "heap-0xN1", type: "prev" }, { from: "prop-0xN1-Prev", to: "heap-0xN2", type: "prev" }, { from: "prop-0xN1-Next", to: "heap-0xN2", type: "next" } ], desc: "<code>tail.Next = newNode;</code> (10 zeigt vorwärts auf die neue 5)." },
+            { line: 19, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "CircularList", props: { "Head": "0xN2" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Value": "10", "Next": "0xN2", "Prev": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Value": "5", "Next": "0xN1", "Prev": "0xN1" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN2", type: "H1" }, { from: "prop-0xN2-Next", to: "heap-0xN1", type: "next" }, { from: "prop-0xN2-Prev", to: "heap-0xN1", type: "prev" }, { from: "prop-0xN1-Next", to: "heap-0xN2", type: "next" }, { from: "prop-0xN1-Prev", to: "heap-0xN2", type: "prev" } ], desc: "<code>Head = newNode;</code> (5 wird zum neuen Head. Kette: 5 <-> 10)." },
+
+            // --- ADDLAST(20) ---
+            { line: 41, stack: [ { id: "frame-al1", name: "AddLast(20)", vars: { "this": "0xL1", "val": "20" } }, { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "CircularList", props: { "Head": "0xN2" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Value": "10", "Next": "0xN2", "Prev": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Value": "5", "Next": "0xN1", "Prev": "0xN1" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-al1-this", to: "heap-0xL1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN2", type: "H1" } ], desc: "<strong>AddLast(20):</strong> Nächster Aufruf." },
+            { line: 23, stack: [ { id: "frame-al1", name: "AddLast(20)", vars: { "this": "0xL1", "val": "20", "newNode": "0xN3" } }, { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "CircularList", props: { "Head": "0xN2" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Value": "10", "Next": "0xN2", "Prev": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Value": "5", "Next": "0xN1", "Prev": "0xN1" } }, "0xN3": { id: "heap-0xN3", type: "Node", props: { "Value": "20", "Next": "null", "Prev": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-al1-n", to: "heap-0xN3", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN2", type: "H1" } ], desc: "Node <span class='ref-badge N3'>0xN3</span> (20) entsteht." },
+            { line: 29, stack: [ { id: "frame-al1", name: "AddLast(20)", vars: { "this": "0xL1", "val": "20", "newNode": "0xN3", "tail": "0xN1" } }, { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "CircularList", props: { "Head": "0xN2" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Value": "10", "Next": "0xN2", "Prev": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Value": "5", "Next": "0xN1", "Prev": "0xN1" } }, "0xN3": { id: "heap-0xN3", type: "Node", props: { "Value": "20", "Next": "null", "Prev": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-al1-tail", to: "heap-0xN1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN2", type: "H1" } ], desc: "<code>Node tail = Head.Prev;</code> ermittelt das aktuelle Ende (0xN1 / Wert 10)." },
+            { line: 30, stack: [ { id: "frame-al1", name: "AddLast(20)", vars: { "this": "0xL1", "val": "20", "newNode": "0xN3", "tail": "0xN1" } }, { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "CircularList", props: { "Head": "0xN2" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Value": "10", "Next": "0xN3", "Prev": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Value": "5", "Next": "0xN1", "Prev": "0xN1" } }, "0xN3": { id: "heap-0xN3", type: "Node", props: { "Value": "20", "Next": "null", "Prev": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN2", type: "H1" }, { from: "prop-0xN1-Next", to: "heap-0xN3", type: "next" } ], desc: "<code>tail.Next = newNode;</code> (10 zeigt vorwärts auf 20)." },
+            { line: 31, stack: [ { id: "frame-al1", name: "AddLast(20)", vars: { "this": "0xL1", "val": "20", "newNode": "0xN3", "tail": "0xN1" } }, { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "CircularList", props: { "Head": "0xN2" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Value": "10", "Next": "0xN3", "Prev": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Value": "5", "Next": "0xN1", "Prev": "0xN1" } }, "0xN3": { id: "heap-0xN3", type: "Node", props: { "Value": "20", "Next": "null", "Prev": "0xN1" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN2", type: "H1" }, { from: "prop-0xN1-Next", to: "heap-0xN3", type: "next" }, { from: "prop-0xN3-Prev", to: "heap-0xN1", type: "prev" } ], desc: "<code>newNode.Prev = tail;</code> (20 zeigt rückwärts auf 10)." },
+            { line: 32, stack: [ { id: "frame-al1", name: "AddLast(20)", vars: { "this": "0xL1", "val": "20", "newNode": "0xN3", "tail": "0xN1" } }, { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "CircularList", props: { "Head": "0xN2" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Value": "10", "Next": "0xN3", "Prev": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Value": "5", "Next": "0xN1", "Prev": "0xN3" } }, "0xN3": { id: "heap-0xN3", type: "Node", props: { "Value": "20", "Next": "0xN2", "Prev": "0xN1" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN2", type: "H1" }, { from: "prop-0xN1-Next", to: "heap-0xN3", type: "next" }, { from: "prop-0xN3-Prev", to: "heap-0xN1", type: "prev" }, { from: "prop-0xN3-Next", to: "heap-0xN2", type: "next" }, { from: "prop-0xN2-Prev", to: "heap-0xN3", type: "prev" } ], desc: "<code>newNode.Next = Head;</code> (20 zeigt vorwärts auf den Head 5, womit der Kreis sich schließt)." },
+            { line: 33, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "CircularList", props: { "Head": "0xN2" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Value": "10", "Next": "0xN3", "Prev": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Value": "5", "Next": "0xN1", "Prev": "0xN3" } }, "0xN3": { id: "heap-0xN3", type: "Node", props: { "Value": "20", "Next": "0xN2", "Prev": "0xN1" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN2", type: "H1" }, { from: "prop-0xN2-Next", to: "heap-0xN1", type: "next" }, { from: "prop-0xN2-Prev", to: "heap-0xN3", type: "prev" }, { from: "prop-0xN1-Next", to: "heap-0xN3", type: "next" }, { from: "prop-0xN1-Prev", to: "heap-0xN2", type: "prev" }, { from: "prop-0xN3-Next", to: "heap-0xN2", type: "next" }, { from: "prop-0xN3-Prev", to: "heap-0xN1", type: "prev" } ], desc: "<code>Head.Prev = newNode;</code> (Der Head 5 schließt den Kreis zurück zur neuen 20). <strong>Fertig!</strong>" }
+        ];
+
+        let currentStep = 0;
+        let lastStackSize = 0;
+
+        const uiCode = document.getElementById('code-container');
+        const uiStack = document.getElementById('stack-container');
+        const uiHeap = document.getElementById('heap-container');
+        const uiDesc = document.getElementById('explanation-text');
+        const svgLayer = document.getElementById('arrows-container');
+        
+        function getBadgeClass(val) {
+            if(val === '0xL1') return 'H1';
+            if(val === '0xN1') return 'N1';
+            if(val === '0xN2') return 'N2';
+            if(val === '0xN3') return 'N3';
+            if(val === 'null') return 'null';
+            return '';
+        }
+
+        function formatValue(val) {
+            const badge = getBadgeClass(val);
+            if (badge) return `<span class="ref-badge ${badge}">[${val}]</span>`;
+            return `<span class="text-emerald-400 font-bold">${val}</span>`;
+        }
+
+        function render() {
+            const step = steps[currentStep];
+            
+            document.getElementById('btn-prev').disabled = currentStep === 0;
+            document.getElementById('btn-next').disabled = currentStep === steps.length - 1;
+            document.getElementById('step-current').textContent = currentStep;
+            document.getElementById('step-total').textContent = steps.length - 1;
+            uiDesc.innerHTML = step.desc;
+
+            // Render Code
+            uiCode.innerHTML = '';
+            rawCode.forEach((lineHtml, index) => {
+                const isActive = index === step.line;
+                const lineDiv = document.createElement('div');
+                lineDiv.className = `flex px-2 py-0.5 rounded transition-colors ${isActive ? 'line-active text-sky-50' : 'line-normal text-slate-300'}`;
+                
+                const numSpan = document.createElement('span');
+                numSpan.className = 'w-8 shrink-0 text-right text-slate-600 mr-4 select-none font-code text-xs pt-1 border-r border-slate-700/50 pr-2';
+                numSpan.textContent = index;
+                
+                const codeSpan = document.createElement('span');
+                codeSpan.className = 'whitespace-pre font-code';
+                codeSpan.innerHTML = isActive ? `<strong>${lineHtml}</strong>` : lineHtml;
+
+                lineDiv.appendChild(numSpan);
+                lineDiv.appendChild(codeSpan);
+                uiCode.appendChild(lineDiv);
+            });
+            
+            const activeLineEl = uiCode.querySelector('.line-active');
+            if(activeLineEl) activeLineEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // Render Stack
+            uiStack.innerHTML = '';
+            const isPushing = step.stack.length > lastStackSize;
+
+            if (step.stack.length === 0) {
+                uiStack.innerHTML = `<div class="h-full flex items-center justify-center text-slate-600 text-sm italic">Call Stack leer</div>`;
+            } else {
+                step.stack.forEach((frame, index) => {
+                    const isTop = index === 0;
+                    const el = document.createElement('div');
+                    
+                    let classes = `border rounded-xl overflow-hidden bg-slate-800 shrink-0 relative `;
+                    if (isTop) {
+                        classes += `border-sky-500/50 shadow-[0_0_15px_rgba(56,189,248,0.1)] ring-1 ring-sky-500/20 z-10 `;
+                        if (isPushing) classes += `frame-push `;
+                    } else {
+                        classes += `border-slate-700/50 opacity-70 scale-[0.98] `;
+                    }
+                    el.className = classes;
+                    el.id = `stack-${frame.id}`;
+
+                    let html = `
+                        <div class="${isTop ? 'bg-sky-500/10' : 'bg-slate-900'} px-4 py-2 border-b border-slate-700/50 flex justify-between items-center">
+                            <span class="font-code font-bold ${isTop ? 'text-sky-300' : 'text-slate-400'}">${frame.name}</span>
+                        </div>
+                        <div class="p-3 flex flex-col gap-2">
+                    `;
+
+                    const varsKeys = Object.keys(frame.vars || {});
+                    if (varsKeys.length > 0) {
+                        varsKeys.forEach(k => {
+                            html += `
+                            <div id="stack-${frame.id}-${k}" class="flex justify-between items-center bg-slate-950/50 px-3 py-2 rounded border border-slate-700/50 relative">
+                                <span class="font-code text-sm text-slate-300">${k}</span>
+                                <span class="font-code text-sm">${formatValue(frame.vars[k])}</span>
+                            </div>`;
+                        });
+                    } else {
+                        html += `<span class="text-xs text-slate-500 italic">Keine Variablen</span>`;
+                    }
+
+                    html += `</div>`;
+                    el.innerHTML = html;
+                    uiStack.appendChild(el);
+                });
+            }
+            lastStackSize = step.stack.length;
+
+            // Render Heap
+            uiHeap.innerHTML = '';
+            const heapKeys = Object.keys(step.heap);
+            
+            if (heapKeys.length === 0) {
+                uiHeap.innerHTML = `<div class="h-full w-full flex items-center justify-center text-slate-600 text-sm italic">Heap ist leer</div>`;
+            } else {
+                heapKeys.forEach(addr => {
+                    const heapObj = step.heap[addr];
+                    const badgeClass = getBadgeClass(addr);
+                    
+                    const el = document.createElement('div');
+                    el.className = `border border-slate-700 rounded-xl overflow-hidden bg-slate-800 shrink-0 shadow-lg relative min-w-[200px] z-10`;
+
+                    if(addr === "0xL1" && currentStep === 2) el.classList.add('item-enter');
+                    if(addr === "0xN1" && currentStep === 4) el.classList.add('item-enter');
+                    if(addr === "0xN2" && currentStep === 14) el.classList.add('item-enter');
+                    if(addr === "0xN3" && currentStep === 24) el.classList.add('item-enter');
+                    
+                    el.id = heapObj.id;
+                    
+                    let html = `
+                        <div class="bg-slate-950 px-3 py-2 border-b border-slate-800 flex justify-between items-center">
+                            <span class="font-code text-xs text-slate-400">${heapObj.type}</span>
+                            <span class="ref-badge ${badgeClass} text-xs font-code">[${addr}]</span>
+                        </div>
+                        <div class="p-3 flex flex-col gap-2">
+                    `;
+
+                    const propKeys = Object.keys(heapObj.props);
+                    propKeys.forEach(k => {
+                        html += `
+                        <div id="prop-${addr}-${k}" class="flex justify-between items-center bg-slate-950/30 px-3 py-1.5 rounded border border-slate-700/30 relative">
+                            <span class="font-code text-[13px] text-slate-300">${k}</span>
+                            <span class="font-code text-[13px]">${formatValue(heapObj.props[k])}</span>
+                        </div>`;
+                    });
+
+                    html += `</div>`;
+                    el.innerHTML = html;
+                    uiHeap.appendChild(el);
+                });
+            }
+
+            requestAnimationFrame(() => drawArrows(step.arrows));
+        }
+
+        function drawArrows(arrows) {
+            svgLayer.innerHTML = ''; 
+            if (!arrows || arrows.length === 0) return;
+
+            arrows.forEach(arrow => {
+                const elFrom = document.getElementById(arrow.from);
+                const elTo = document.getElementById(arrow.to);
+
+                if (!elFrom || !elTo) return;
+
+                const rectFrom = elFrom.getBoundingClientRect();
+                const rectTo = elTo.getBoundingClientRect();
+                
+                let color = "#38bdf8"; 
+                let markerId = "arrow-stack";
+                
+                // Exakte Farbzuteilung nach Typ
+                if (arrow.type === 'H1') { 
+                    color = "#f472b6"; 
+                    markerId = "arrow-H1"; 
+                } else if (arrow.type === 'next') { 
+                    color = "#3b82f6"; // Blau für Next
+                    markerId = "arrow-next"; 
+                } else if (arrow.type === 'prev') { 
+                    color = "#f59e0b"; // Orange für Prev
+                    markerId = "arrow-prev"; 
+                }
+
+                let startX, startY, endX, endY, cp1x, cp1y, cp2x, cp2y;
+
+                if (arrow.type === 'stack') {
+                    startX = rectFrom.right - 5;
+                    startY = rectFrom.top + (rectFrom.height / 2);
+                    endX = rectTo.left - 2;
+                    endY = rectTo.top + 20; 
+                    
+                    const dx = Math.abs(endX - startX);
+                    cp1x = startX + (dx * 0.5); cp1y = startY;
+                    cp2x = endX - (dx * 0.5); cp2y = endY;
+                } else {
+                    // Heap-zu-Heap Kurvenführung
+                    startX = rectFrom.right - 5;
+                    startY = rectFrom.top + (rectFrom.height / 2);
+                    endX = rectTo.left - 5; 
+                    endY = rectTo.top + 20;
+                    
+                    // Unterscheidung ob Hin- oder Rückweg für saubere Kurven
+                    if (arrow.type === 'prev') {
+                        cp1x = startX + 60; cp1y = startY + 40;
+                        cp2x = endX - 60; cp2y = endY + 40;
+                    } else {
+                        cp1x = startX + 40; cp1y = startY;
+                        cp2x = endX - 40; cp2y = endY;
+                    }
+                }
+
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d", `M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${endX} ${endY}`);
+                path.setAttribute("class", "arrow-path");
+                path.setAttribute("stroke", color);
+                path.setAttribute("marker-end", `url(#${markerId})`);
+                
+                svgLayer.appendChild(path);
+            });
+        }
+
+        document.getElementById('btn-next').addEventListener('click', () => {
+            if (currentStep < steps.length - 1) { currentStep++; render(); }
+        });
+        document.getElementById('btn-prev').addEventListener('click', () => {
+            if (currentStep > 0) { currentStep--; render(); }
+        });
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'ArrowRight') document.getElementById('btn-next').click();
+            if(e.key === 'ArrowLeft') document.getElementById('btn-prev').click();
+        });
+
+        window.addEventListener('resize', () => requestAnimationFrame(() => drawArrows(steps[currentStep].arrows)));
+        document.getElementById('stack-container').addEventListener('scroll', () => requestAnimationFrame(() => drawArrows(steps[currentStep].arrows)));
+        document.getElementById('heap-container').addEventListener('scroll', () => requestAnimationFrame(() => drawArrows(steps[currentStep].arrows)));
+
+        render();
+    </script>
+</body>
+</html>

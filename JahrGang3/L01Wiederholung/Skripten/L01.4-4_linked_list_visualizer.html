@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linked List Visualizer: 4-Node Start & Curr-Highlight</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; overflow: hidden; }
+        .font-code { font-family: 'Fira Code', monospace; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        .line-active { background-color: rgba(56, 189, 248, 0.15); border-left: 4px solid #38bdf8; }
+        .line-normal { border-left: 4px solid transparent; }
+
+        .val-badge {
+            background-color: rgba(217, 70, 239, 0.1); border: 1px solid rgba(217, 70, 239, 0.3); color: #d946ef;
+            padding: 2px 8px; border-radius: 4px; font-size: 13px; font-weight: bold;
+            display: inline-flex; align-items: center; transition: all 0.3s ease;
+        }
+        .val-badge.ref-badge { background-color: rgba(14, 165, 233, 0.1); border-color: rgba(14, 165, 233, 0.3); color: #38bdf8; }
+        .val-badge.null-badge { background-color: rgba(100, 116, 139, 0.1); border-color: rgba(100, 116, 139, 0.3); color: #94a3b8; font-style: italic; }
+        
+        .fade-in { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .path-draw { stroke-dasharray: 1000; stroke-dashoffset: 1000; animation: dash 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        @keyframes dash { to { stroke-dashoffset: 0; } }
+
+        .node-circle { transition: all 0.3s ease; }
+        
+        /* Highlight für den 'curr' Pointer */
+        .curr-node circle {
+            stroke: #eab308 !important;
+            stroke-width: 4px !important;
+            filter: drop-shadow(0 0 10px rgba(234, 179, 8, 0.8));
+        }
+        .curr-label { display: none; fill: #fde047; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+        .curr-node .curr-label { display: block; animation: bounce 1s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+
+    </style>
+</head>
+
+<body class="h-screen flex flex-col relative">
+
+    <header class="bg-slate-900 border-b border-slate-800 p-4 shrink-0 shadow-md relative z-20 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-sky-400 tracking-tight">Linked Lists Visualizer</h1>
+            <p class="text-sm text-slate-400 mt-1">Singly/Doubly, Code-Flow & Speicher-Referenzen</p>
+        </div>
+        
+        <div class="flex flex-col md:flex-row items-end md:items-center gap-3">
+            <div class="flex gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                <button id="btn-Singly" class="toggle-btn px-3 py-1 rounded-md text-sm font-bold bg-sky-600 text-white" onclick="setParam('Type', 'Singly')">Singly</button>
+                <button id="btn-Doubly" class="toggle-btn px-3 py-1 rounded-md text-sm font-bold text-slate-400 hover:bg-slate-800" onclick="setParam('Type', 'Doubly')">Doubly</button>
+            </div>
+            <div class="flex gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                <button id="btn-AddFirst" class="toggle-btn px-3 py-1 rounded-md text-sm font-bold text-slate-400 hover:bg-slate-800" onclick="setParam('Method', 'AddFirst')">AddFirst</button>
+                <button id="btn-AddLast" class="toggle-btn px-3 py-1 rounded-md text-sm font-bold text-slate-400 hover:bg-slate-800" onclick="setParam('Method', 'AddLast')">AddLast</button>
+                <button id="btn-Insert" class="toggle-btn px-3 py-1 rounded-md text-sm font-bold bg-emerald-600 text-white" onclick="setParam('Method', 'Insert')">Insert(2, 99)</button>
+            </div>
+            <div class="flex gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                <button id="btn-Empty" class="toggle-btn px-3 py-1 rounded-md text-sm font-bold text-slate-400 hover:bg-slate-800" onclick="setParam('Initial', 'Empty')">Empty List</button>
+                <button id="btn-4Elems" class="toggle-btn px-3 py-1 rounded-md text-sm font-bold bg-indigo-600 text-white" onclick="setParam('Initial', '4Elems')">4 Elements</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_1.5fr_1fr] overflow-hidden p-4 gap-4 bg-slate-950 relative z-10">
+        
+        <!-- Code Section -->
+        <section class="bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl relative">
+            <div class="bg-slate-950 py-2 px-4 border-b border-slate-800 flex items-center gap-2">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-widest" id="code-title">LinkedList.cs</span>
+            </div>
+            <div id="code-container" class="flex-1 overflow-y-auto p-4 font-code text-[13px] leading-6"></div>
+        </section>
+
+        <!-- SVG Visualisierung -->
+        <section class="bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl relative">
+            <div class="bg-slate-950 py-2 px-4 border-b border-slate-800 flex justify-between">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest">SVG Grafik</span>
+            </div>
+            <div class="flex-1 relative bg-slate-950 flex items-center justify-center p-2">
+                <!-- Vergrößerte ViewBox um 5 Knoten aufzunehmen -->
+                <svg id="svg-canvas" class="w-full h-full" viewBox="0 0 800 320" preserveAspectRatio="xMidYMid meet">
+                    <defs>
+                        <marker id="arrow-head" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#ef4444" /></marker>
+                        <marker id="arrow-tail" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#22c55e" /></marker>
+                        <marker id="arrow-next" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#f97316" /></marker>
+                        <marker id="arrow-prev" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#a855f7" /></marker>
+                    </defs>
+                    
+                    <rect x="25" y="40" width="750" height="260" stroke="#334155" stroke-width="2" fill="none" rx="8" stroke-dasharray="4 4"/>
+                    <text x="35" y="60" fill="#64748b" font-family="Inter" font-weight="bold" font-size="12">Linked List Area</text>
+                    <text x="45" y="30" fill="#ef4444" font-family="Inter" font-weight="bold" font-size="14" text-anchor="middle">Head</text>
+                    <text x="755" y="30" fill="#22c55e" font-family="Inter" font-weight="bold" font-size="14" text-anchor="middle">Tail</text>
+
+                    <g id="svg-dynamic-layer"></g>
+                </svg>
+                
+                <div class="absolute bottom-4 left-4 flex gap-3 text-[10px] font-bold uppercase tracking-wider bg-slate-900/80 p-2 rounded border border-slate-800">
+                    <span class="text-red-500 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500"></span>Head</span>
+                    <span class="text-green-500 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500"></span>Tail</span>
+                    <span class="text-orange-500 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-orange-500"></span>Next</span>
+                    <span id="legend-prev" class="text-purple-500 flex items-center gap-1 hidden"><span class="w-2 h-2 rounded-full bg-purple-500"></span>Prev</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Memory Area (Stack/Heap) -->
+        <section class="flex flex-col gap-4 overflow-hidden">
+            <div class="flex-1 bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+                <div class="bg-slate-950 py-2 px-4 border-b border-slate-800"><span class="text-xs font-semibold text-sky-400 uppercase tracking-widest">Call Stack (Locals)</span></div>
+                <div id="stack-container" class="flex-1 overflow-y-auto p-3 flex flex-col gap-2 bg-slate-900/50"></div>
+            </div>
+            <div class="flex-[1.5] bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+                <div class="bg-slate-950 py-2 px-4 border-b border-slate-800"><span class="text-xs font-semibold text-amber-400 uppercase tracking-widest">Heap (Objects)</span></div>
+                <div id="heap-container" class="flex-1 overflow-y-auto p-3 flex flex-col gap-2 bg-slate-900/50"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-slate-900 border-t border-slate-800 shrink-0 relative z-20 p-3">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mx-auto items-center">
+            <div class="lg:col-span-2 bg-slate-950 border border-slate-800 rounded-lg p-3 min-h-[70px] flex flex-col justify-center">
+                <p id="explanation-text" class="text-sm text-slate-300 leading-relaxed"></p>
+            </div>
+            <div class="flex items-center justify-center gap-3">
+                <button id="btn-prev" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded shadow disabled:opacity-30 transition-all text-sm font-medium border border-slate-700">&larr; Zurück</button>
+                <div class="bg-slate-950 px-4 py-2 rounded border border-slate-800 font-code text-sm text-center">
+                    <span id="step-current" class="text-sky-400 font-bold">0</span><span class="text-slate-500">/</span><span id="step-total" class="text-slate-400">0</span>
+                </div>
+                <button id="btn-next" class="px-5 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded shadow disabled:opacity-30 transition-all text-sm font-bold border border-sky-500">Weiter &rarr;</button>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        let currentType = 'Singly'; let currentMethod = 'Insert'; let currentInitial = '4Elems';
+        let currentStep = 0;
+
+        const nodeVals = { 'n1': 10, 'n2': 20, 'n3': 30, 'n4': 40, 'n5': 99 };
+        const refs = { 'n1': '@Node1', 'n2': '@Node2', 'n3': '@Node3', 'n4': '@Node4', 'n5': '@Node5', 'list': '@List' };
+        
+        // Dynamische Positionen je nach Methode, damit sich die Linien nicht überschneiden
+        const coords = {
+            'Empty':    { n5: {x: 400, y: 160} },
+            'AddFirst': { n5: {x: 100, y: 160}, n1: {x: 250, y: 160}, n2: {x: 400, y: 160}, n3: {x: 550, y: 160}, n4: {x: 700, y: 160} },
+            'AddLast':  { n1: {x: 100, y: 160}, n2: {x: 250, y: 160}, n3: {x: 400, y: 160}, n4: {x: 550, y: 160}, n5: {x: 700, y: 160} },
+            'Insert':   { n1: {x: 100, y: 160}, n2: {x: 250, y: 160}, n5: {x: 400, y: 250}, n3: {x: 550, y: 160}, n4: {x: 700, y: 160} }
+        };
+
+        const codes = {
+            'Singly_AddFirst': [ "public void AddFirst(int value)", "{", "    Node node = new Node(value);", "    if (Head == null)", "    {", "        Head = node;", "        Tail = node;", "    }", "    else", "    {", "        node.Next = Head;", "        Head = node;", "    }", "}" ],
+            'Doubly_AddFirst': [ "public void AddFirst(int value)", "{", "    Node node = new Node(value);", "    if (Head == null)", "    {", "        Head = node;", "        Tail = node;", "    }", "    else", "    {", "        node.Next = Head;", "        Head.Previous = node;", "        Head = node;", "    }", "    Count++;", "}" ],
+            'Singly_AddLast':  [ "public void AddLast(int value)", "{", "    Node node = new Node(value);", "    if (Head == null)", "    {", "        Head = node;", "        Tail = node;", "    }", "    else", "    {", "        Tail.Next = node;", "        Tail = node;", "    }", "}" ],
+            'Doubly_AddLast':  [ "public void AddLast(int value)", "{", "    Node node = new Node(value);", "    if (Head == null)", "    {", "        Head = node;", "        Tail = node;", "    }", "    else", "    {", "        Tail.Next = node;", "        node.Previous = Tail;", "        Tail = node;", "    }", "    Count++;", "}" ],
+            'Singly_Insert': [
+                "public void Insert(int index, int value)", "{",
+                "    Node node = new Node(value);",
+                "    if (Head == null)", "    {",
+                "        Head = node;", "        Tail = node;",
+                "    }", "    else", "    {",
+                "        Node curr = Head;",
+                "        for (int i = 0; i < index - 1; i++)",
+                "        {",
+                "            if (curr == null || curr.Next == null)",
+                "                throw new Exception(\"Out of bounds\");",
+                "            curr = curr.Next;",
+                "        }",
+                "        node.Next = curr.Next;",
+                "        curr.Next = node;",
+                "    }", "}"
+            ],
+            'Doubly_Insert': [
+                "public void Insert(int index, int value)", "{",
+                "    Node node = new Node(value);",
+                "    if (Head == null)", "    {",
+                "        Head = node;", "        Tail = node;",
+                "    }", "    else", "    {",
+                "        Node curr;",
+                "        if (index <= Count / 2)",
+                "        {",
+                "            curr = Head;",
+                "            for (int i = 0; i < index - 1; i++)", "            {",
+                "                if (curr == null || curr.Next == null)", "                    throw new Exception(\"Out of bounds\");",
+                "                curr = curr.Next;",
+                "            }",
+                "        }",
+                "        else", "        {",
+                "            curr = Tail;",
+                "            for (int i = Count - 1; i > index - 1; i--)", "            {",
+                "                if (curr == null || curr.Previous == null)", "                    throw new Exception(\"Out of bounds\");",
+                "                curr = curr.Previous;",
+                "            }",
+                "        }",
+                "        node.Next = curr.Next;",
+                "        node.Previous = curr;",
+                "        if (node.Next != null)", "        {",
+                "            node.Next.Previous = node;",
+                "        }",
+                "        curr.Next = node;",
+                "    }",
+                "    Count++;", "}"
+            ]
+        };
+
+        let stepsData = [];
+
+        function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
+
+        function buildInitial() {
+            let countInit = currentInitial === 'Empty' ? 0 : 4;
+            if (currentInitial === 'Empty') {
+                return {
+                    desc: "Eine komplett leere Liste.", lines: 2, active: -1, revealAll: false,
+                    nodes: [], paths: [], currNode: null,
+                    stack: [{ name: 'this', val: refs.list }, { name: 'value', val: '99' }, ...(currentMethod==='Insert' ? [{name:'index', val:'2'}] : [])],
+                    heapList: { head: 'null', tail: 'null', count: countInit }, heapNodes: []
+                };
+            } else {
+                let s = {
+                    desc: "Liste mit 4 Elementen. Node1 bis Node4 sind verbunden.", lines: 2, active: -1, revealAll: false,
+                    nodes: ['n1', 'n2', 'n3', 'n4'],
+                    paths: [
+                        { id: 'h', from: 'head', to: 'n1', type: 'head' }, { id: 't', from: 'tail', to: 'n4', type: 'tail' },
+                        { id: 'p1', from: 'n1', to: 'n2', type: 'next' }, { id: 'p2', from: 'n2', to: 'n3', type: 'next' }, { id: 'p3', from: 'n3', to: 'n4', type: 'next' }
+                    ],
+                    currNode: null,
+                    stack: [{ name: 'this', val: refs.list }, { name: 'value', val: '99' }, ...(currentMethod==='Insert' ? [{name:'index', val:'2'}] : [])],
+                    heapList: { head: refs.n1, tail: refs.n4, count: countInit },
+                    heapNodes: [
+                        { id: 'n1', ref: refs.n1, val: nodeVals.n1, next: refs.n2 },
+                        { id: 'n2', ref: refs.n2, val: nodeVals.n2, next: refs.n3 },
+                        { id: 'n3', ref: refs.n3, val: nodeVals.n3, next: refs.n4 },
+                        { id: 'n4', ref: refs.n4, val: nodeVals.n4, next: 'null' }
+                    ]
+                };
+                if (currentType === 'Doubly') {
+                    s.paths.push({ id:'d1', from:'n4', to:'n3', type:'prev'}, {id:'d2', from:'n3', to:'n2', type:'prev'}, {id:'d3', from:'n2', to:'n1', type:'prev'});
+                    s.heapNodes[0].prev = 'null'; s.heapNodes[1].prev = refs.n1; s.heapNodes[2].prev = refs.n2; s.heapNodes[3].prev = refs.n3;
+                }
+                return s;
+            }
+        }
+
+        function gen() {
+            let steps = [buildInitial()];
+            let t = currentType; let m = currentMethod; let init = currentInitial;
+            
+            let s1 = clone(steps[0]); s1.lines = 3; s1.active = 2;
+            s1.desc = "<code>Node node = new Node(value);</code><br>Knoten (99) wird erstellt.";
+            s1.nodes.push('n5'); s1.stack.push({ name: 'node', val: refs.n5 });
+            s1.heapNodes.push({ id: 'n5', ref: refs.n5, val: nodeVals.n5, next: 'null', prev: t==='Doubly'?'null':undefined });
+            steps.push(s1);
+
+            let s2 = clone(s1); s2.lines = 4; s2.active = 3;
+            s2.desc = init==='Empty' ? "Liste ist leer, if-Block greift." : "Liste nicht leer, gehe in else.";
+            steps.push(s2);
+
+            if (init === 'Empty') {
+                let s3 = clone(s2); s3.lines = 6; s3.active = 5; s3.paths.push({ id:'h2', from:'head', to:'n5', type:'head', anim:true }); s3.heapList.head = refs.n5; steps.push(s3);
+                let s4 = clone(s3); s4.lines = 7; s4.active = 6; s4.paths.push({ id:'t2', from:'tail', to:'n5', type:'tail', anim:true }); s4.heapList.tail = refs.n5; steps.push(s4);
+            } else {
+                let s3 = clone(s2); s3.lines = 10; s3.active = 8; s3.desc = "Wir sind im <code>else</code>-Block."; steps.push(s3);
+
+                if (m === 'AddFirst') {
+                    let s4 = clone(s3); s4.lines = 11; s4.active = 10; s4.paths.push({ id:'nn', from:'n5', to:'n1', type:'next', anim:true}); s4.heapNodes[4].next = refs.n1; steps.push(s4);
+                    if (t === 'Doubly') {
+                        let sd = clone(s4); sd.lines = 12; sd.active = 11; sd.paths.push({id:'np', from:'n1', to:'n5', type:'prev', anim:true}); sd.heapNodes[0].prev = refs.n5; steps.push(sd);
+                        let s5 = clone(sd); s5.lines = 13; s5.active = 12; s5.paths = s5.paths.filter(p=>p.id!=='h'); s5.paths.push({id:'h2', from:'head', to:'n5', type:'head', anim:true}); s5.heapList.head = refs.n5; steps.push(s5);
+                    } else {
+                        let s5 = clone(s4); s5.lines = 12; s5.active = 11; s5.paths = s5.paths.filter(p=>p.id!=='h'); s5.paths.push({id:'h2', from:'head', to:'n5', type:'head', anim:true}); s5.heapList.head = refs.n5; steps.push(s5);
+                    }
+                } 
+                else if (m === 'AddLast') {
+                    let s4 = clone(s3); s4.lines = 11; s4.active = 10; s4.paths.push({ id:'nn', from:'n4', to:'n5', type:'next', anim:true}); s4.heapNodes[3].next = refs.n5; steps.push(s4);
+                    if (t === 'Doubly') {
+                        let sd = clone(s4); sd.lines = 12; sd.active = 11; sd.paths.push({id:'np', from:'n5', to:'n4', type:'prev', anim:true}); sd.heapNodes[4].prev = refs.n4; steps.push(sd);
+                        let s5 = clone(sd); s5.lines = 13; s5.active = 12; s5.paths = s5.paths.filter(p=>p.id!=='t'); s5.paths.push({id:'t2', from:'tail', to:'n5', type:'tail', anim:true}); s5.heapList.tail = refs.n5; steps.push(s5);
+                    } else {
+                        let s5 = clone(s4); s5.lines = 12; s5.active = 11; s5.paths = s5.paths.filter(p=>p.id!=='t'); s5.paths.push({id:'t2', from:'tail', to:'n5', type:'tail', anim:true}); s5.heapList.tail = refs.n5; steps.push(s5);
+                    }
+                } 
+                else if (m === 'Insert' && t === 'Singly') {
+                    let s4 = clone(s3); s4.lines = 11; s4.active = 10; s4.currNode = 'n1'; s4.stack.push({name:'curr', val:refs.n1}); s4.desc="<code>curr = Head</code>: Setzen des Iterations-Pointers auf den Start."; steps.push(s4);
+                    let s5 = clone(s4); s5.lines = 12; s5.active = 11; s5.stack.push({name:'i', val:'0'}); s5.desc="Schleifen-Bedingung: <code>0 < 2 - 1</code> (True). Wir betreten die Schleife."; steps.push(s5);
+                    let s6 = clone(s5); s6.lines = 16; s6.active = 15; s6.currNode = 'n2'; s6.stack.find(v=>v.name==='curr').val = refs.n2; s6.desc="<code>curr = curr.Next</code>: Pointer rückt einen Knoten vor."; steps.push(s6);
+                    let s7 = clone(s6); s7.lines = 12; s7.active = 11; s7.stack.find(v=>v.name==='i').val = '1'; s7.desc="Schleifen-Bedingung: <code>1 < 1</code> (False). Schleife wird beendet!"; steps.push(s7);
+                    
+                    let s8 = clone(s7); s8.lines = 18; s8.active = 17; s8.paths.push({id:'nn', from:'n5', to:'n3', type:'next', anim:true}); s8.heapNodes[4].next = refs.n3; s8.desc="<code>node.Next = curr.Next</code>: Neuer Knoten zeigt auf Node3."; steps.push(s8);
+                    let s9 = clone(s8); s9.lines = 19; s9.active = 18; s9.paths = s9.paths.filter(p=>p.id!=='p2'); s9.paths.push({id:'nn2', from:'n2', to:'n5', type:'next', anim:true}); s9.heapNodes[1].next = refs.n5; s9.desc="<code>curr.Next = node</code>: Node2 zeigt nun auf neuen Knoten."; steps.push(s9);
+                }
+                else if (m === 'Insert' && t === 'Doubly') {
+                    let s4 = clone(s3); s4.lines = 12; s4.active = 11; s4.desc="<code>if (index <= Count / 2)</code> -> 2 <= 4/2 (True). Wir laufen von vorne los."; steps.push(s4);
+                    let s5 = clone(s4); s5.lines = 14; s5.active = 13; s5.currNode = 'n1'; s5.stack.push({name:'curr', val:refs.n1}); s5.desc="<code>curr = Head</code>"; steps.push(s5);
+                    let s6 = clone(s5); s6.lines = 15; s6.active = 14; s6.stack.push({name:'i', val:'0'}); s6.desc="Schleifen-Bedingung: <code>0 < 1</code> (True)."; steps.push(s6);
+                    let s7 = clone(s6); s7.lines = 19; s7.active = 18; s7.currNode = 'n2'; s7.stack.find(v=>v.name==='curr').val = refs.n2; steps.push(s7);
+                    let s8 = clone(s7); s8.lines = 15; s8.active = 14; s8.stack.find(v=>v.name==='i').val = '1'; s8.desc="Schleifen-Bedingung: <code>1 < 1</code> (False). Ende der Schleife."; steps.push(s8);
+
+                    let s9 = clone(s8); s9.lines = 32; s9.active = 31; s9.paths.push({id:'nn', from:'n5', to:'n3', type:'next', anim:true}); s9.heapNodes[4].next = refs.n3; steps.push(s9);
+                    let s10= clone(s9); s10.lines = 33; s10.active = 32; s10.paths.push({id:'np', from:'n5', to:'n2', type:'prev', anim:true}); s10.heapNodes[4].prev = refs.n2; steps.push(s10);
+                    let s11= clone(s10); s11.lines = 34; s11.active = 33; s11.desc="<code>if (node.Next != null)</code> -> Node3 ist nicht null."; steps.push(s11);
+                    let s12= clone(s11); s12.lines = 36; s12.active = 35; s12.paths = s12.paths.filter(p=>p.id!=='d2'); s12.paths.push({id:'np2', from:'n3', to:'n5', type:'prev', anim:true}); s12.heapNodes[2].prev = refs.n5; steps.push(s12);
+                    let s13= clone(s12); s13.lines = 38; s13.active = 37; s13.paths = s13.paths.filter(p=>p.id!=='p2'); s13.paths.push({id:'nn2', from:'n2', to:'n5', type:'next', anim:true}); s13.heapNodes[1].next = refs.n5; steps.push(s13);
+                }
+            }
+
+            if (t === 'Doubly') {
+                let slast = clone(steps[steps.length-1]);
+                let targetL = m==='Insert'?40:15;
+                slast.lines = targetL; slast.active = targetL-1; slast.heapList.count++; slast.desc = "<code>Count++;</code> Erhöht die Elementanzahl."; steps.push(slast);
+            }
+
+            let sFinal = clone(steps[steps.length-1]); sFinal.active = -1; sFinal.revealAll = true; sFinal.currNode = null; sFinal.desc = "Methode vollständig abgearbeitet."; steps.push(sFinal);
+            stepsData = steps;
+        }
+
+        function getPos(id) {
+            let config = coords[currentInitial === 'Empty' ? 'Empty' : currentMethod];
+            return config[id] || { x:0, y:0 };
+        }
+
+        function buildSVGPath(from, to, type) {
+            if (from === 'head' || from === 'tail') {
+                let p = getPos(to); let sx = from==='head' ? 45 : 755;
+                return `M ${sx} 40 C ${sx} 90, ${p.x-10} 90, ${p.x-5} ${p.y-28}`;
+            }
+            let p1 = getPos(from); let p2 = getPos(to);
+            let cx = (p1.x + p2.x) / 2; let cy = ((p1.y + p2.y) / 2) + (type==='prev'? 35 : -35);
+            
+            let dx2 = p2.x - cx; let dy2 = p2.y - cy; let l2 = Math.sqrt(dx2*dx2+dy2*dy2);
+            let ex = p2.x - (dx2/l2)*26; let ey = p2.y - (dy2/l2)*26;
+            
+            let dx1 = cx - p1.x; let dy1 = cy - p1.y; let l1 = Math.sqrt(dx1*dx1+dy1*dy1);
+            let sx = p1.x + (dx1/l1)*22; let sy = p1.y + (dy1/l1)*22;
+            
+            return `M ${sx} ${sy} Q ${cx} ${cy} ${ex} ${ey}`;
+        }
+
+        function fmt(v) {
+            if(v==='null') return '<span class="val-badge null-badge">null</span>';
+            if(v.startsWith('@')) return `<span class="val-badge ref-badge">${v}</span>`;
+            return `<span class="val-badge border-fuchsia-500/30 text-fuchsia-400 bg-fuchsia-500/10">${v}</span>`;
+        }
+
+        function render() {
+            let st = stepsData[currentStep];
+            document.getElementById('btn-prev').disabled = currentStep === 0;
+            document.getElementById('btn-next').disabled = currentStep === stepsData.length - 1;
+            document.getElementById('step-current').textContent = currentStep;
+            document.getElementById('step-total').textContent = stepsData.length - 1;
+            document.getElementById('explanation-text').innerHTML = st.desc;
+            
+            if(currentType === 'Doubly') document.getElementById('legend-prev').classList.remove('hidden'); 
+            else document.getElementById('legend-prev').classList.add('hidden');
+
+            let codeC = document.getElementById('code-container'); codeC.innerHTML = '';
+            let raw = codes[`${currentType}_${currentMethod}`];
+            let drawCount = st.revealAll ? raw.length : st.lines;
+            raw.forEach((l, i) => {
+                if(i >= drawCount) return;
+                let active = i === st.active;
+                let div = document.createElement('div');
+                div.className = `flex px-2 py-0.5 rounded ${active ? 'line-active text-sky-50' : 'line-normal text-slate-300'}`;
+                let str = l.replace(/public|void|new|if|else|for|throw/g, "<span class='text-pink-400'>$&</span>")
+                           .replace(/Node|Exception/g, "<span class='text-emerald-400'>$&</span>")
+                           .replace(/int/g, "<span class='text-pink-400'>int</span>")
+                           .replace(/Head|Tail|Count/g, "<span class='text-amber-300'>$&</span>")
+                           .replace(/Next|Previous/g, "<span class='text-orange-300'>$&</span>");
+                div.innerHTML = `<span class="w-6 shrink-0 text-right text-slate-600 mr-3 text-xs pt-1 border-r border-slate-700/50 pr-2">${i}</span><span class="whitespace-pre">${active ? `<strong>${str}</strong>` : str}</span>`;
+                codeC.appendChild(div);
+            });
+
+            let svgL = document.getElementById('svg-dynamic-layer'); svgL.innerHTML = '';
+            let cols = { 'head':'#ef4444', 'tail':'#22c55e', 'next':'#f97316', 'prev':'#a855f7' };
+            st.paths.forEach(p => {
+                let path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', buildSVGPath(p.from, p.to, p.type));
+                path.setAttribute('fill', 'none'); path.setAttribute('stroke', cols[p.type]);
+                path.setAttribute('stroke-width', '3'); path.setAttribute('marker-end', `url(#arrow-${p.type})`);
+                if(p.anim) path.classList.add('path-draw');
+                svgL.appendChild(path);
+            });
+
+            st.nodes.forEach(nId => {
+                let p = getPos(nId);
+                let g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.setAttribute('transform', `translate(${p.x}, ${p.y})`);
+                if(nId === st.currNode) g.classList.add('curr-node');
+                
+                g.innerHTML = `
+                    <circle cx="0" cy="0" r="22" fill="#020617" stroke="#64748b" stroke-width="2" class="node-circle" />
+                    <text x="0" y="5" text-anchor="middle" font-family="Fira Code" font-size="14" fill="white" font-weight="bold">${nodeVals[nId]}</text>
+                    <text x="0" y="38" text-anchor="middle" font-family="Inter" font-size="10" fill="#38bdf8" font-weight="600">${refs[nId]}</text>
+                    <text x="0" y="-32" text-anchor="middle" font-family="Fira Code" font-size="11" class="curr-label">curr</text>
+                `;
+                svgL.appendChild(g);
+            });
+
+            let stackC = document.getElementById('stack-container'); stackC.innerHTML = '';
+            st.stack.forEach(v => {
+                stackC.innerHTML += `<div class="flex justify-between items-center bg-slate-800 px-3 py-1.5 rounded border border-slate-700"><span class="font-code text-xs text-slate-300">${v.name}</span>${fmt(v.val)}</div>`;
+            });
+
+            let heapC = document.getElementById('heap-container'); heapC.innerHTML = `
+                <div class="bg-slate-800 px-3 py-1.5 rounded border border-slate-700 flex flex-col gap-1">
+                    <span class="font-code text-[11px] text-amber-500 font-bold border-b border-slate-700 pb-0.5">MyLinkedList</span>
+                    <div class="flex justify-between text-xs"><span class="text-slate-400">Head:</span> ${fmt(st.heapList.head)}</div>
+                    <div class="flex justify-between text-xs"><span class="text-slate-400">Tail:</span> ${fmt(st.heapList.tail)}</div>
+                    ${currentType==='Doubly' ? `<div class="flex justify-between text-xs"><span class="text-slate-400">Count:</span> ${fmt(st.heapList.count.toString())}</div>` : ''}
+                </div>`;
+            
+            st.heapNodes.forEach(n => {
+                heapC.innerHTML += `
+                <div class="bg-slate-800/60 px-3 py-1.5 rounded border border-slate-700 flex flex-col gap-1">
+                    <span class="font-code text-[11px] text-emerald-400 font-bold border-b border-slate-700 pb-0.5">Node (${n.ref})</span>
+                    <div class="grid grid-cols-2 gap-x-2 gap-y-0.5">
+                        <div class="flex justify-between text-[11px]"><span class="text-slate-400">Val:</span> ${fmt(n.val.toString())}</div>
+                        <div class="flex justify-between text-[11px]"><span class="text-slate-400">Next:</span> ${fmt(n.next)}</div>
+                        ${n.prev!==undefined ? `<div class="flex justify-between text-[11px] col-span-2 border-t border-slate-700/50 mt-0.5 pt-0.5"><span class="text-slate-500">Prev:</span> ${fmt(n.prev)}</div>` : ''}
+                    </div>
+                </div>`;
+            });
+        }
+
+        window.setParam = function(grp, val) {
+            if(grp === 'Type') currentType = val;
+            if(grp === 'Method') currentMethod = val;
+            if(grp === 'Initial') currentInitial = val;
+            currentStep = 0; gen();
+            
+            ['Singly','Doubly','AddFirst','AddLast','Insert','Empty','4Elems'].forEach(id => {
+                let b = document.getElementById(`btn-${id}`); if(!b) return;
+                let active = [currentType, currentMethod, currentInitial].includes(id);
+                let col = ['AddFirst','AddLast','Insert'].includes(id) ? 'bg-emerald-600' : (['Empty','4Elems'].includes(id) ? 'bg-indigo-600' : 'bg-sky-600');
+                b.className = active ? `toggle-btn px-3 py-1 rounded-md text-sm font-bold ${col} text-white` : `toggle-btn px-3 py-1 rounded-md text-sm font-bold text-slate-400 hover:bg-slate-800`;
+            });
+            render();
+        }
+
+        document.getElementById('btn-next').onclick = () => { if(currentStep < stepsData.length-1) { currentStep++; render(); }};
+        document.getElementById('btn-prev').onclick = () => { if(currentStep > 0) { currentStep--; render(); }};
+        document.addEventListener('keydown', e => { if(e.key === 'ArrowRight') document.getElementById('btn-next').click(); if(e.key === 'ArrowLeft') document.getElementById('btn-prev').click(); });
+
+        setParam('Type', 'Singly');
+    </script>
+</body>
+</html>

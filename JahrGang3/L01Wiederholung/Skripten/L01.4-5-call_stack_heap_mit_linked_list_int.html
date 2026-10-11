@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C# Memory Visualizer: Linked List Traversal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617;
+            color: #f8fafc;
+            margin: 0;
+            overflow: hidden;
+        }
+        .font-code { font-family: 'Fira Code', monospace; }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        @keyframes pushFrame {
+            0% { opacity: 0; transform: translateY(-20px) scale(0.95); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .frame-push { animation: pushFrame 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .item-enter { animation: fadeIn 0.4s ease-out forwards; }
+
+        .line-active {
+            background-color: rgba(56, 189, 248, 0.15);
+            border-left: 4px solid #38bdf8;
+        }
+        .line-normal { border-left: 4px solid transparent; }
+
+        .ref-badge {
+            background-color: rgba(148, 163, 184, 0.1);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            color: #cbd5e1;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        .ref-badge.H1 { border-color: rgba(236, 72, 153, 0.5); color: #f472b6; background-color: rgba(236, 72, 153, 0.1); } /* List */
+        .ref-badge.P1 { border-color: rgba(16, 185, 129, 0.5); color: #34d399; background-color: rgba(16, 185, 129, 0.1); } /* Node 1 */
+        .ref-badge.A1 { border-color: rgba(245, 158, 11, 0.5); color: #fbbf24; background-color: rgba(245, 158, 11, 0.1); } /* Node 2 */
+        .ref-badge.B1 { border-color: rgba(99, 102, 241, 0.5); color: #818cf8; background-color: rgba(99, 102, 241, 0.1); } /* Node 3 */
+        .ref-badge.R1 { border-color: rgba(244, 63, 94, 0.5); color: #fb7185; background-color: rgba(244, 63, 94, 0.1); } /* Node 4 */
+        .ref-badge.null { border-color: rgba(71, 85, 105, 0.5); color: #94a3b8; border-style: dashed; }
+
+        #svg-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 100;
+        }
+        
+        .arrow-path {
+            fill: none; stroke-width: 2.5; stroke-linecap: round; opacity: 0.8;
+            transition: d 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col relative">
+    
+    <svg id="svg-layer">
+        <defs>
+            <marker id="arrow-stack" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#38bdf8" />
+            </marker>
+            <marker id="arrow-H1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#f472b6" />
+            </marker>
+            <marker id="arrow-P1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#34d399" />
+            </marker>
+            <marker id="arrow-A1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#fbbf24" />
+            </marker>
+            <marker id="arrow-B1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#818cf8" />
+            </marker>
+            <marker id="arrow-R1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#fb7185" />
+            </marker>
+        </defs>
+        <g id="arrows-container"></g>
+    </svg>
+
+    <header class="bg-slate-900 border-b border-slate-800 p-4 shrink-0 shadow-md relative z-20">
+        <div>
+            <h1 class="text-2xl font-bold text-sky-400 tracking-tight">Linked List: 4x Add (Traversion)</h1>
+            <p class="text-sm text-slate-400 mt-1">while-Schleifen & Pointer-Wanderung (c = c.Next)</p>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden p-4 gap-6 bg-slate-950 relative z-10" id="main-area">
+        
+        <section class="flex-1 lg:flex-[1.1] bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl relative">
+            <div class="bg-slate-950 py-2 px-4 border-b border-slate-800 flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-rose-500"></div>
+                <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+                <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <span class="ml-2 text-xs font-semibold text-slate-500 uppercase tracking-widest">Program.cs</span>
+            </div>
+            <div id="code-container" class="flex-1 overflow-y-auto p-4 font-code text-[14px] sm:text-[15px] leading-7">
+            </div>
+        </section>
+
+        <section class="flex-1 lg:flex-[1.9] flex flex-col lg:flex-row gap-6 overflow-hidden">
+            
+            <div class="flex-1 bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+                <div class="bg-slate-950 py-2 px-4 border-b border-slate-800">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                        Call Stack
+                    </span>
+                </div>
+                <div id="stack-container" class="flex-1 overflow-y-auto p-4 flex flex-col-reverse gap-4 bg-slate-900/50">
+                </div>
+            </div>
+
+            <div class="flex-[1.5] bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+                <div class="bg-slate-950 py-2 px-4 border-b border-slate-800">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        Managed Heap
+                    </span>
+                </div>
+                <div id="heap-container" class="flex-1 overflow-y-auto p-4 flex flex-col gap-6 bg-slate-900/50">
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <footer class="bg-slate-900 border-t border-slate-800 shrink-0 relative z-20 p-4">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 max-w-7xl mx-auto items-center">
+            <div class="lg:col-span-2 bg-slate-950 border border-slate-800 rounded-lg p-4 min-h-[90px] flex flex-col justify-center">
+                <h3 class="text-xs uppercase font-bold text-sky-400 mb-1 tracking-wider">Aktion</h3>
+                <p id="explanation-text" class="text-sm text-slate-300 leading-relaxed"></p>
+            </div>
+
+            <div class="flex flex-col items-center justify-center gap-3">
+                <div class="flex items-center gap-3">
+                    <button id="btn-prev" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg shadow disabled:opacity-30 transition-all text-sm font-medium border border-slate-700">&larr; Zurück</button>
+                    <div class="bg-slate-950 px-4 py-2.5 rounded-lg border border-slate-800 font-code text-sm min-w-[90px] text-center">
+                        <span id="step-current" class="text-sky-400 font-bold"></span><span class="text-slate-500">/</span><span id="step-total" class="text-slate-400"></span>
+                    </div>
+                    <button id="btn-next" class="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg shadow-lg disabled:opacity-30 transition-all text-sm font-bold border border-sky-500">Weiter &rarr;</button>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const rawCode = [
+            /* 0*/ "<span class='text-pink-400'>class</span> <span class='text-emerald-300'>Node</span> {",
+            /* 1*/ "    <span class='text-pink-400'>public int</span> Wert;",
+            /* 2*/ "    <span class='text-pink-400'>public</span> <span class='text-emerald-300'>Node</span> Next;",
+            /* 3*/ "}",
+            /* 4*/ "<span class='text-pink-400'>class</span> <span class='text-emerald-300'>LinkedList</span> {",
+            /* 5*/ "    <span class='text-pink-400'>public</span> <span class='text-emerald-300'>Node</span> Head;",
+            /* 6*/ "    <span class='text-pink-400'>public void</span> <span class='text-sky-300'>Add</span>(<span class='text-pink-400'>int</span> w) {",
+            /* 7*/ "        <span class='text-emerald-300'>Node</span> n = <span class='text-pink-400'>new</span> <span class='text-emerald-300'>Node</span> { Wert = w };",
+            /* 8*/ "        <span class='text-pink-400'>if</span> (Head == <span class='text-pink-400'>null</span>) { Head = n; <span class='text-pink-400'>return</span>; }",
+            /* 9*/ "        <span class='text-emerald-300'>Node</span> c = Head;",
+            /*10*/ "        <span class='text-pink-400'>while</span> (c.Next != <span class='text-pink-400'>null</span>) {",
+            /*11*/ "            c = c.Next;",
+            /*12*/ "        }",
+            /*13*/ "        c.Next = n;",
+            /*14*/ "    }",
+            /*15*/ "}",
+            /*16*/ "<span class='text-pink-400'>static void</span> <span class='text-sky-300'>Main</span>() {",
+            /*17*/ "    <span class='text-emerald-300'>LinkedList</span> list = <span class='text-pink-400'>new</span> <span class='text-emerald-300'>LinkedList</span>();",
+            /*18*/ "    list.Add(<span class='text-fuchsia-400'>10</span>);",
+            /*19*/ "    list.Add(<span class='text-fuchsia-400'>20</span>);",
+            /*20*/ "    list.Add(<span class='text-fuchsia-400'>30</span>);",
+            /*21*/ "    list.Add(<span class='text-fuchsia-400'>40</span>);",
+            /*22*/ "}"
+        ];
+
+        // State Machine
+        const steps = [
+            { line: -1, stack: [], heap: {}, arrows: [], desc: "Programm ist bereit. Drücke auf 'Weiter'." },
+            
+            // --- MAIN START ---
+            { line: 16, stack: [ { id: "frame-main", name: "Main()", vars: {} } ], heap: {}, arrows: [], desc: "<strong>Schritt 1:</strong> <code>Main()</code> startet. Ein neuer Stack-Frame wird angelegt." },
+            { line: 17, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "LinkedList", props: { "Head": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" } ], desc: "<strong>Schritt 2:</strong> <code>new LinkedList()</code> instanziiert die Liste auf dem Heap <span class='ref-badge H1'>0xL1</span>." },
+            
+            // --- ADD 10 ---
+            { line: 18, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } }, { id: "frame-add1", name: "Add(10)", vars: { "this": "0xL1", "w": "10" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "LinkedList", props: { "Head": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-add1-this", to: "heap-0xL1", type: "stack" } ], desc: "<strong>1. Aufruf:</strong> <code>list.Add(10)</code>. Wir starten mit einer völlig leeren Liste." },
+            { line: 7, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } }, { id: "frame-add1", name: "Add(10)", vars: { "this": "0xL1", "w": "10", "n": "0xN1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "LinkedList", props: { "Head": "null" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Wert": "10", "Next": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-add1-this", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-add1-n", to: "heap-0xN1", type: "stack" } ], desc: "Ein neuer Node <span class='ref-badge P1'>0xN1</span> entsteht auf dem Heap." },
+            { line: 8, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } }, { id: "frame-add1", name: "Add(10)", vars: { "this": "0xL1", "w": "10", "n": "0xN1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "LinkedList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Wert": "10", "Next": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-add1-n", to: "heap-0xN1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" } ], desc: "Da <code>Head</code> null ist, weisen wir den neuen Node direkt als Head zu. Methode beendet (return)." },
+            
+            // --- ADD 20 ---
+            { line: 19, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } }, { id: "frame-add2", name: "Add(20)", vars: { "this": "0xL1", "w": "20" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "LinkedList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Wert": "10", "Next": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-add2-this", to: "heap-0xL1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" } ], desc: "<strong>2. Aufruf:</strong> <code>list.Add(20)</code>. Die Liste hat bereits einen Head." },
+            { line: 7, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } }, { id: "frame-add2", name: "Add(20)", vars: { "this": "0xL1", "w": "20", "n": "0xN2" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "LinkedList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Wert": "10", "Next": "null" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Wert": "20", "Next": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-add2-n", to: "heap-0xN2", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" } ], desc: "Node <span class='ref-badge A1'>0xN2</span> wird instanziiert. Die if-Bedingung `Head == null` (Zeile 8) ist diesmal falsch!" },
+            { line: 9, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } }, { id: "frame-add2", name: "Add(20)", vars: { "this": "0xL1", "w": "20", "n": "0xN2", "c": "0xN1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "LinkedList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Wert": "10", "Next": "null" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Wert": "20", "Next": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-add2-n", to: "heap-0xN2", type: "stack" }, { from: "stack-frame-add2-c", to: "heap-0xN1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" } ], desc: "<strong>Der Iterator:</strong> Wir legen die lokale Variable <code>c</code> (current) auf dem Stack an. Sie zeigt wie ein Finger auf den Start der Liste (<span class='ref-badge P1'>0xN1</span>)." },
+            { line: 10, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } }, { id: "frame-add2", name: "Add(20)", vars: { "this": "0xL1", "w": "20", "n": "0xN2", "c": "0xN1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "LinkedList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Wert": "10", "Next": "null" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Wert": "20", "Next": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-add2-n", to: "heap-0xN2", type: "stack" }, { from: "stack-frame-add2-c", to: "heap-0xN1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" } ], desc: "<code>while (c.Next != null)</code>: Da 0xN1.Next bereits null ist, wird die Schleife komplett übersprungen. Wir stehen schon am Ende!" },
+            { line: 13, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } }, { id: "frame-add2", name: "Add(20)", vars: { "this": "0xL1", "w": "20", "n": "0xN2", "c": "0xN1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "LinkedList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Wert": "10", "Next": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Wert": "20", "Next": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-add2-n", to: "heap-0xN2", type: "stack" }, { from: "stack-frame-add2-c", to: "heap-0xN1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" }, { from: "prop-0xN1-Next", to: "heap-0xN2", type: "P1" } ], desc: "<code>c.Next = n;</code> verknüpft das Ende der Liste (0xN1) mit dem neuen Element (0xN2). Die Liste wächst." },
+
+            // --- ADD 30 ---
+            { line: 20, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } }, { id: "frame-add3", name: "Add(30)", vars: { "this": "0xL1", "w": "30" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "LinkedList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Wert": "10", "Next": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Wert": "20", "Next": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-add3-this", to: "heap-0xL1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" }, { from: "prop-0xN1-Next", to: "heap-0xN2", type: "P1" } ], desc: "<strong>3. Aufruf:</strong> <code>list.Add(30)</code>." },
+            { line: 7, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } }, { id: "frame-add3", name: "Add(30)", vars: { "this": "0xL1", "w": "30", "n": "0xN3" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "LinkedList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Wert": "10", "Next": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Wert": "20", "Next": "null" } }, "0xN3": { id: "heap-0xN3", type: "Node", props: { "Wert": "30", "Next": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-add3-n", to: "heap-0xN3", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" }, { from: "prop-0xN1-Next", to: "heap-0xN2", type: "P1" } ], desc: "Node <span class='ref-badge B1'>0xN3</span> wird auf dem Heap instanziiert." },
+            { line: 9, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } }, { id: "frame-add3", name: "Add(30)", vars: { "this": "0xL1", "w": "30", "n": "0xN3", "c": "0xN1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "LinkedList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Wert": "10", "Next": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Wert": "20", "Next": "null" } }, "0xN3": { id: "heap-0xN3", type: "Node", props: { "Wert": "30", "Next": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-add3-n", to: "heap-0xN3", type: "stack" }, { from: "stack-frame-add3-c", to: "heap-0xN1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" }, { from: "prop-0xN1-Next", to: "heap-0xN2", type: "P1" } ], desc: "Wir setzen `c` wieder auf den Anfang der Liste (<span class='ref-badge P1'>0xN1</span>)." },
+            { line: 10, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } }, { id: "frame-add3", name: "Add(30)", vars: { "this": "0xL1", "w": "30", "n": "0xN3", "c": "0xN1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "LinkedList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Wert": "10", "Next": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Wert": "20", "Next": "null" } }, "0xN3": { id: "heap-0xN3", type: "Node", props: { "Wert": "30", "Next": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-add3-n", to: "heap-0xN3", type: "stack" }, { from: "stack-frame-add3-c", to: "heap-0xN1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" }, { from: "prop-0xN1-Next", to: "heap-0xN2", type: "P1" } ], desc: "<code>while (c.Next != null)</code>: Diesmal ist 0xN1.Next nicht null (es ist 0xN2). Wir betreten die Schleife!" },
+            { line: 11, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } }, { id: "frame-add3", name: "Add(30)", vars: { "this": "0xL1", "w": "30", "n": "0xN3", "c": "0xN2" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "LinkedList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Wert": "10", "Next": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Wert": "20", "Next": "null" } }, "0xN3": { id: "heap-0xN3", type: "Node", props: { "Wert": "30", "Next": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-add3-n", to: "heap-0xN3", type: "stack" }, { from: "stack-frame-add3-c", to: "heap-0xN2", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" }, { from: "prop-0xN1-Next", to: "heap-0xN2", type: "P1" } ], desc: "<strong>Der Pointer wandert:</strong> <code>c = c.Next;</code> biegt die Variable <code>c</code> auf dem Stack auf das zweite Element (<span class='ref-badge A1'>0xN2</span>) um." },
+            { line: 10, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } }, { id: "frame-add3", name: "Add(30)", vars: { "this": "0xL1", "w": "30", "n": "0xN3", "c": "0xN2" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "LinkedList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Wert": "10", "Next": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Wert": "20", "Next": "null" } }, "0xN3": { id: "heap-0xN3", type: "Node", props: { "Wert": "30", "Next": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-add3-n", to: "heap-0xN3", type: "stack" }, { from: "stack-frame-add3-c", to: "heap-0xN2", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" }, { from: "prop-0xN1-Next", to: "heap-0xN2", type: "P1" } ], desc: "Nächster Durchlauf: 0xN2.Next ist null. Die while-Schleife bricht ab." },
+            { line: 13, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } }, { id: "frame-add3", name: "Add(30)", vars: { "this": "0xL1", "w": "30", "n": "0xN3", "c": "0xN2" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "LinkedList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Wert": "10", "Next": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Wert": "20", "Next": "0xN3" } }, "0xN3": { id: "heap-0xN3", type: "Node", props: { "Wert": "30", "Next": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-add3-n", to: "heap-0xN3", type: "stack" }, { from: "stack-frame-add3-c", to: "heap-0xN2", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" }, { from: "prop-0xN1-Next", to: "heap-0xN2", type: "P1" }, { from: "prop-0xN2-Next", to: "heap-0xN3", type: "A1" } ], desc: "<code>c.Next = n;</code> verknüpft Node 2 mit Node 3." },
+
+            // --- ADD 40 ---
+            { line: 21, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } }, { id: "frame-add4", name: "Add(40)", vars: { "this": "0xL1", "w": "40" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "LinkedList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Wert": "10", "Next": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Wert": "20", "Next": "0xN3" } }, "0xN3": { id: "heap-0xN3", type: "Node", props: { "Wert": "30", "Next": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-add4-this", to: "heap-0xL1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" }, { from: "prop-0xN1-Next", to: "heap-0xN2", type: "P1" }, { from: "prop-0xN2-Next", to: "heap-0xN3", type: "A1" } ], desc: "<strong>4. Aufruf:</strong> <code>list.Add(40)</code>. Schauen wir uns die Pointer-Wanderung am Stück an." },
+            { line: 7, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } }, { id: "frame-add4", name: "Add(40)", vars: { "this": "0xL1", "w": "40", "n": "0xN4" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "LinkedList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Wert": "10", "Next": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Wert": "20", "Next": "0xN3" } }, "0xN3": { id: "heap-0xN3", type: "Node", props: { "Wert": "30", "Next": "null" } }, "0xN4": { id: "heap-0xN4", type: "Node", props: { "Wert": "40", "Next": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-add4-n", to: "heap-0xN4", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" }, { from: "prop-0xN1-Next", to: "heap-0xN2", type: "P1" }, { from: "prop-0xN2-Next", to: "heap-0xN3", type: "A1" } ], desc: "Node <span class='ref-badge R1'>0xN4</span> wird instanziiert." },
+            { line: 9, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } }, { id: "frame-add4", name: "Add(40)", vars: { "this": "0xL1", "w": "40", "n": "0xN4", "c": "0xN1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "LinkedList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Wert": "10", "Next": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Wert": "20", "Next": "0xN3" } }, "0xN3": { id: "heap-0xN3", type: "Node", props: { "Wert": "30", "Next": "null" } }, "0xN4": { id: "heap-0xN4", type: "Node", props: { "Wert": "40", "Next": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-add4-n", to: "heap-0xN4", type: "stack" }, { from: "stack-frame-add4-c", to: "heap-0xN1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" }, { from: "prop-0xN1-Next", to: "heap-0xN2", type: "P1" }, { from: "prop-0xN2-Next", to: "heap-0xN3", type: "A1" } ], desc: "Pointer `c` startet bei Head (0xN1)." },
+            { line: 11, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } }, { id: "frame-add4", name: "Add(40)", vars: { "this": "0xL1", "w": "40", "n": "0xN4", "c": "0xN2" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "LinkedList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Wert": "10", "Next": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Wert": "20", "Next": "0xN3" } }, "0xN3": { id: "heap-0xN3", type: "Node", props: { "Wert": "30", "Next": "null" } }, "0xN4": { id: "heap-0xN4", type: "Node", props: { "Wert": "40", "Next": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-add4-n", to: "heap-0xN4", type: "stack" }, { from: "stack-frame-add4-c", to: "heap-0xN2", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" }, { from: "prop-0xN1-Next", to: "heap-0xN2", type: "P1" }, { from: "prop-0xN2-Next", to: "heap-0xN3", type: "A1" } ], desc: "Schleife 1: `c` rückt vor auf <span class='ref-badge A1'>0xN2</span>." },
+            { line: 11, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } }, { id: "frame-add4", name: "Add(40)", vars: { "this": "0xL1", "w": "40", "n": "0xN4", "c": "0xN3" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "LinkedList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Wert": "10", "Next": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Wert": "20", "Next": "0xN3" } }, "0xN3": { id: "heap-0xN3", type: "Node", props: { "Wert": "30", "Next": "null" } }, "0xN4": { id: "heap-0xN4", type: "Node", props: { "Wert": "40", "Next": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-add4-n", to: "heap-0xN4", type: "stack" }, { from: "stack-frame-add4-c", to: "heap-0xN3", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" }, { from: "prop-0xN1-Next", to: "heap-0xN2", type: "P1" }, { from: "prop-0xN2-Next", to: "heap-0xN3", type: "A1" } ], desc: "Schleife 2: `c` rückt weiter auf <span class='ref-badge B1'>0xN3</span>. Jetzt ist `c.Next` endlich null!" },
+            { line: 13, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } }, { id: "frame-add4", name: "Add(40)", vars: { "this": "0xL1", "w": "40", "n": "0xN4", "c": "0xN3" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "LinkedList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Wert": "10", "Next": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Wert": "20", "Next": "0xN3" } }, "0xN3": { id: "heap-0xN3", type: "Node", props: { "Wert": "30", "Next": "0xN4" } }, "0xN4": { id: "heap-0xN4", type: "Node", props: { "Wert": "40", "Next": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "stack-frame-add4-n", to: "heap-0xN4", type: "stack" }, { from: "stack-frame-add4-c", to: "heap-0xN3", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" }, { from: "prop-0xN1-Next", to: "heap-0xN2", type: "P1" }, { from: "prop-0xN2-Next", to: "heap-0xN3", type: "A1" }, { from: "prop-0xN3-Next", to: "heap-0xN4", type: "B1" } ], desc: "<code>c.Next = n;</code> verbindet Node 3 mit dem neuen Node 4." },
+            { line: 22, stack: [ { id: "frame-main", name: "Main()", vars: { "list": "0xL1" } } ], heap: { "0xL1": { id: "heap-0xL1", type: "LinkedList", props: { "Head": "0xN1" } }, "0xN1": { id: "heap-0xN1", type: "Node", props: { "Wert": "10", "Next": "0xN2" } }, "0xN2": { id: "heap-0xN2", type: "Node", props: { "Wert": "20", "Next": "0xN3" } }, "0xN3": { id: "heap-0xN3", type: "Node", props: { "Wert": "30", "Next": "0xN4" } }, "0xN4": { id: "heap-0xN4", type: "Node", props: { "Wert": "40", "Next": "null" } } }, arrows: [ { from: "stack-frame-main-list", to: "heap-0xL1", type: "stack" }, { from: "prop-0xL1-Head", to: "heap-0xN1", type: "H1" }, { from: "prop-0xN1-Next", to: "heap-0xN2", type: "P1" }, { from: "prop-0xN2-Next", to: "heap-0xN3", type: "A1" }, { from: "prop-0xN3-Next", to: "heap-0xN4", type: "B1" } ], desc: "<strong>Fertig!</strong> Die vollständige Linked List (10 -> 20 -> 30 -> 40) liegt stabil im Managed Heap, und nur eine einzige lokale Variable (list) auf dem Stack hält die Wurzel (Head)." }
+        ];
+
+        let currentStep = 0;
+        let lastStackSize = 0;
+
+        const uiCode = document.getElementById('code-container');
+        const uiStack = document.getElementById('stack-container');
+        const uiHeap = document.getElementById('heap-container');
+        const uiDesc = document.getElementById('explanation-text');
+        const svgLayer = document.getElementById('arrows-container');
+        
+        function getBadgeClass(val) {
+            if(val === '0xL1') return 'H1';
+            if(val === '0xN1') return 'P1';
+            if(val === '0xN2') return 'A1';
+            if(val === '0xN3') return 'B1';
+            if(val === '0xN4') return 'R1';
+            if(val === 'null') return 'null';
+            return '';
+        }
+
+        function formatValue(val) {
+            const badge = getBadgeClass(val);
+            if (badge) return `<span class="ref-badge ${badge}">[${val}]</span>`;
+            return `<span class="text-emerald-400 font-bold">${val}</span>`;
+        }
+
+        function render() {
+            const step = steps[currentStep];
+            
+            document.getElementById('btn-prev').disabled = currentStep === 0;
+            document.getElementById('btn-next').disabled = currentStep === steps.length - 1;
+            document.getElementById('step-current').textContent = currentStep;
+            document.getElementById('step-total').textContent = steps.length - 1;
+            uiDesc.innerHTML = step.desc;
+
+            // Render Code
+            uiCode.innerHTML = '';
+            rawCode.forEach((lineHtml, index) => {
+                const isActive = index === step.line;
+                const lineDiv = document.createElement('div');
+                lineDiv.className = `flex px-2 py-0.5 rounded transition-colors ${isActive ? 'line-active text-sky-50' : 'line-normal text-slate-300'}`;
+                
+                const numSpan = document.createElement('span');
+                numSpan.className = 'w-8 shrink-0 text-right text-slate-600 mr-4 select-none font-code text-xs pt-1 border-r border-slate-700/50 pr-2';
+                numSpan.textContent = index;
+                
+                const codeSpan = document.createElement('span');
+                codeSpan.className = 'whitespace-pre font-code';
+                codeSpan.innerHTML = isActive ? `<strong>${lineHtml}</strong>` : lineHtml;
+
+                lineDiv.appendChild(numSpan);
+                lineDiv.appendChild(codeSpan);
+                uiCode.appendChild(lineDiv);
+            });
+            
+            const activeLineEl = uiCode.querySelector('.line-active');
+            if(activeLineEl) activeLineEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // Render Stack
+            uiStack.innerHTML = '';
+            const isPushing = step.stack.length > lastStackSize;
+
+            if (step.stack.length === 0) {
+                uiStack.innerHTML = `<div class="h-full flex items-center justify-center text-slate-600 text-sm italic">Call Stack leer</div>`;
+            } else {
+                step.stack.forEach((frame, index) => {
+                    const isTop = index === step.stack.length - 1;
+                    const el = document.createElement('div');
+                    
+                    let classes = `border rounded-xl overflow-hidden bg-slate-800 shrink-0 relative `;
+                    if (isTop) {
+                        classes += `border-sky-500/50 shadow-[0_0_15px_rgba(56,189,248,0.1)] ring-1 ring-sky-500/20 z-10 `;
+                        if (isPushing) classes += `frame-push `;
+                    } else {
+                        classes += `border-slate-700/50 opacity-70 scale-[0.98] `;
+                    }
+                    el.className = classes;
+                    el.id = `stack-${frame.id}`;
+
+                    let html = `
+                        <div class="${isTop ? 'bg-sky-500/10' : 'bg-slate-900'} px-4 py-2 border-b border-slate-700/50 flex justify-between items-center">
+                            <span class="font-code font-bold ${isTop ? 'text-sky-300' : 'text-slate-400'}">${frame.name}</span>
+                        </div>
+                        <div class="p-3 flex flex-col gap-2">
+                    `;
+
+                    const varsKeys = Object.keys(frame.vars || {});
+                    if (varsKeys.length > 0) {
+                        varsKeys.forEach(k => {
+                            html += `
+                            <div id="stack-${frame.id}-${k}" class="flex justify-between items-center bg-slate-950/50 px-3 py-2 rounded border border-slate-700/50 relative">
+                                <span class="font-code text-sm text-slate-300">${k}</span>
+                                <span class="font-code text-sm">${formatValue(frame.vars[k])}</span>
+                            </div>`;
+                        });
+                    } else {
+                        html += `<span class="text-xs text-slate-500 italic">Keine Variablen</span>`;
+                    }
+
+                    html += `</div>`;
+                    el.innerHTML = html;
+                    uiStack.appendChild(el);
+                });
+            }
+            lastStackSize = step.stack.length;
+
+            // Render Heap
+            uiHeap.innerHTML = '';
+            const heapKeys = Object.keys(step.heap);
+            
+            if (heapKeys.length === 0) {
+                uiHeap.innerHTML = `<div class="h-full w-full flex items-center justify-center text-slate-600 text-sm italic">Heap ist leer</div>`;
+            } else {
+                heapKeys.forEach(addr => {
+                    const heapObj = step.heap[addr];
+                    const badgeClass = getBadgeClass(addr);
+                    
+                    const el = document.createElement('div');
+                    el.className = `border border-slate-700 rounded-xl overflow-hidden bg-slate-800 shrink-0 shadow-lg relative min-w-[200px] z-10`;
+
+                    if(addr === "0xL1" && currentStep === 2) el.classList.add('item-enter');
+                    if(addr === "0xN1" && currentStep === 4) el.classList.add('item-enter');
+                    if(addr === "0xN2" && currentStep === 7) el.classList.add('item-enter');
+                    if(addr === "0xN3" && currentStep === 12) el.classList.add('item-enter');
+                    if(addr === "0xN4" && currentStep === 19) el.classList.add('item-enter');
+                    
+                    el.id = heapObj.id;
+                    
+                    let html = `
+                        <div class="bg-slate-950 px-3 py-2 border-b border-slate-800 flex justify-between items-center">
+                            <span class="font-code text-xs text-slate-400">${heapObj.type}</span>
+                            <span class="ref-badge ${badgeClass} text-xs font-code">[${addr}]</span>
+                        </div>
+                        <div class="p-3 flex flex-col gap-2">
+                    `;
+
+                    const propKeys = Object.keys(heapObj.props);
+                    propKeys.forEach(k => {
+                        html += `
+                        <div id="prop-${addr}-${k}" class="flex justify-between items-center bg-slate-950/30 px-3 py-1.5 rounded border border-slate-700/30 relative">
+                            <span class="font-code text-[13px] text-slate-300">${k}</span>
+                            <span class="font-code text-[13px]">${formatValue(heapObj.props[k])}</span>
+                        </div>`;
+                    });
+
+                    html += `</div>`;
+                    el.innerHTML = html;
+                    uiHeap.appendChild(el);
+                });
+            }
+
+            requestAnimationFrame(() => drawArrows(step.arrows));
+        }
+
+        function drawArrows(arrows) {
+            svgLayer.innerHTML = ''; 
+            if (!arrows || arrows.length === 0) return;
+
+            arrows.forEach(arrow => {
+                const elFrom = document.getElementById(arrow.from);
+                const elTo = document.getElementById(arrow.to);
+
+                if (!elFrom || !elTo) return;
+
+                const rectFrom = elFrom.getBoundingClientRect();
+                const rectTo = elTo.getBoundingClientRect();
+                
+                let color = "#38bdf8"; 
+                let markerId = "arrow-stack";
+                if(arrow.type === 'H1') { color = "#f472b6"; markerId = "arrow-H1"; } 
+                if(arrow.type === 'P1') { color = "#34d399"; markerId = "arrow-P1"; } 
+                if(arrow.type === 'A1') { color = "#fbbf24"; markerId = "arrow-A1"; }
+                if(arrow.type === 'B1') { color = "#818cf8"; markerId = "arrow-B1"; } 
+                if(arrow.type === 'R1') { color = "#fb7185"; markerId = "arrow-R1"; } 
+
+                let startX, startY, endX, endY, cp1x, cp1y, cp2x, cp2y;
+
+                if (arrow.type === 'stack') {
+                    startX = rectFrom.right - 5;
+                    startY = rectFrom.top + (rectFrom.height / 2);
+                    endX = rectTo.left - 2;
+                    endY = rectTo.top + 20; 
+                    
+                    const dx = Math.abs(endX - startX);
+                    cp1x = startX + (dx * 0.5); cp1y = startY;
+                    cp2x = endX - (dx * 0.5); cp2y = endY;
+                } else {
+                    startX = rectFrom.right - 5;
+                    startY = rectFrom.top + (rectFrom.height / 2);
+                    endX = rectTo.left - 5; 
+                    endY = rectTo.top + 20;
+                    
+                    // Generic curve for ALL inter-heap links to avoid overlapping exactly
+                    cp1x = startX + 40; cp1y = startY; cp2x = endX - 40; cp2y = endY;
+                }
+
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d", `M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${endX} ${endY}`);
+                path.setAttribute("class", "arrow-path");
+                path.setAttribute("stroke", color);
+                path.setAttribute("marker-end", `url(#${markerId})`);
+                
+                svgLayer.appendChild(path);
+            });
+        }
+
+        document.getElementById('btn-next').addEventListener('click', () => {
+            if (currentStep < steps.length - 1) { currentStep++; render(); }
+        });
+        document.getElementById('btn-prev').addEventListener('click', () => {
+            if (currentStep > 0) { currentStep--; render(); }
+        });
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'ArrowRight') document.getElementById('btn-next').click();
+            if(e.key === 'ArrowLeft') document.getElementById('btn-prev').click();
+        });
+
+        window.addEventListener('resize', () => requestAnimationFrame(() => drawArrows(steps[currentStep].arrows)));
+        document.getElementById('stack-container').addEventListener('scroll', () => requestAnimationFrame(() => drawArrows(steps[currentStep].arrows)));
+        document.getElementById('heap-container').addEventListener('scroll', () => requestAnimationFrame(() => drawArrows(steps[currentStep].arrows)));
+
+        render();
+    </script>
+</body>
+</html>

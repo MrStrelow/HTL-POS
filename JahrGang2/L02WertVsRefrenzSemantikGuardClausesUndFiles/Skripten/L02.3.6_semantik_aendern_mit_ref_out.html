@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C# Parameter-Semantik: int vs string (Stack & Heap)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; overflow: hidden; }
+        .font-code { font-family: 'Fira Code', monospace; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+        .line-active { background-color: rgba(56, 189, 248, 0.15); border-left: 4px solid #38bdf8; }
+        .line-normal { border-left: 4px solid transparent; }
+
+        .badge-ref {
+            background-color: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4);
+            color: #fbbf24; padding: 2px 8px; border-radius: 4px; font-size: 13px; font-weight: bold;
+        }
+        .badge-val {
+            background-color: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4);
+            color: #38bdf8; padding: 2px 8px; border-radius: 4px; font-size: 13px; font-weight: bold;
+        }
+        .badge-ptr {
+            background-color: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4);
+            color: #c084fc; padding: 2px 8px; border-radius: 4px; font-size: 13px; font-weight: bold;
+        }
+        .box-highlight { outline: 2px solid #38bdf8; box-shadow: 0 0 12px rgba(56, 189, 248, 0.35); }
+    </style>
+</head>
+<body class="h-screen flex flex-col relative">
+
+    <header class="bg-slate-900 border-b border-slate-800 p-4 shrink-0 shadow-md relative z-20 flex justify-between items-center">
+        <div>
+            <h1 class="text-xl font-bold text-sky-400 tracking-tight">C# Übergabesemantik: Werttyp vs. Referenztyp (Stack & Heap)</h1>
+        </div>
+        <div class="flex gap-2 bg-slate-950 p-1 rounded-lg border border-slate-800">
+            <button onclick="setScenario('int')" id="btn-int" class="px-3 py-2 rounded-md text-sm font-bold bg-sky-600 text-white shadow">ref int</button>
+            <button onclick="setScenario('string_noref')" id="btn-string_noref" class="px-3 py-2 rounded-md text-sm font-bold text-slate-400 hover:text-white">string (ohne ref)</button>
+            <button onclick="setScenario('string_ref')" id="btn-string_ref" class="px-3 py-2 rounded-md text-sm font-bold text-slate-400 hover:text-white">ref string</button>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden p-6 gap-6 bg-slate-950 relative z-10">
+        <!-- Code Column -->
+        <section class="flex-1 bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl max-w-xl">
+            <div class="bg-slate-950 py-2.5 px-4 border-b border-slate-800 flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-rose-500"></div>
+                <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+                <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <span class="ml-2 text-xs font-semibold text-slate-500 uppercase tracking-widest">C# Code</span>
+            </div>
+            <div id="code-container" class="flex-1 overflow-y-auto p-4 font-code text-[14px] leading-7"></div>
+        </section>
+
+        <!-- Memory Column: Stack & Heap -->
+        <section class="flex-1 bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl p-4 gap-4">
+            <!-- Call Stack Section -->
+            <div class="flex-1 flex flex-col bg-slate-950/70 rounded-lg border border-slate-800 p-3 overflow-hidden">
+                <div class="text-xs font-semibold text-slate-400 uppercase tracking-widest pb-2 border-b border-slate-800">
+                    Call Stack (Speicheradressen & Frames)
+                </div>
+                <div id="stack-container" class="flex-1 overflow-y-auto pt-3 flex flex-col gap-3"></div>
+            </div>
+
+            <!-- Heap Section -->
+            <div class="h-44 flex flex-col bg-slate-950/70 rounded-lg border border-slate-800 p-3 overflow-hidden">
+                <div class="text-xs font-semibold text-purple-400 uppercase tracking-widest pb-2 border-b border-slate-800">
+                    Managed Heap (Objektspeicher)
+                </div>
+                <div id="heap-container" class="flex-1 overflow-y-auto pt-3 flex flex-wrap gap-3 content-start"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-slate-900 border-t border-slate-800 shrink-0 relative z-20 p-4">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 max-w-7xl mx-auto items-center">
+            <div class="lg:col-span-2 bg-slate-950 border border-slate-800 rounded-lg p-4 min-h-[85px] flex flex-col justify-center">
+                <h3 class="text-xs uppercase font-bold text-sky-400 mb-1 tracking-wider">Erklärung</h3>
+                <p id="explanation-text" class="text-sm text-slate-300 leading-relaxed"></p>
+            </div>
+            <div class="flex items-center justify-center gap-3">
+                <button id="btn-prev" class="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg disabled:opacity-30 border border-slate-700">&larr; Zurück</button>
+                <div class="bg-slate-950 px-4 py-3 rounded-lg border border-slate-800 font-code text-sm">
+                    <span id="step-current" class="text-sky-400 font-bold">1</span><span class="text-slate-500">/</span><span id="step-total" class="text-slate-400">1</span>
+                </div>
+                <button id="btn-next" class="px-5 py-3 bg-sky-600 hover:bg-sky-500 text-white rounded-lg disabled:opacity-30 font-bold border border-sky-500">Weiter &rarr;</button>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const scenarios = {
+            'int': {
+                code: [
+                    "<span class='text-pink-400'>int</span> zahl = <span class='text-amber-300'>42</span>;",
+                    "<span class='text-sky-300'>AendereZahl</span>(<span class='text-pink-400'>ref</span> zahl);",
+                    "Console.<span class='text-yellow-300'>WriteLine</span>(zahl);",
+                    "",
+                    "<span class='text-pink-400'>void</span> <span class='text-sky-300'>AendereZahl</span>(<span class='text-pink-400'>ref</span> <span class='text-pink-400'>int</span> x)",
+                    "{",
+                    "    x = <span class='text-amber-300'>99</span>;",
+                    "}"
+                ],
+                steps: [
+                    {
+                        line: 0,
+                        desc: "Im Caller-Frame (Main) wird die <code>int</code>-Variable <code>zahl</code> angelegt und mit <code>42</code> auf dem Stack belegt.",
+                        stack: [
+                            { frame: "Main (Top-Level)", vars: [{ name: "zahl", addr: "0x1004", val: "42", type: "badge-val" }] }
+                        ],
+                        heap: []
+                    },
+                    {
+                        line: 1,
+                        desc: "<code>AendereZahl(ref zahl)</code> wird vorbereitet. Die Speicheradresse von <code>zahl</code> (0x1004) wird als Referenz übergeben.",
+                        stack: [
+                            { frame: "Main (Top-Level)", vars: [{ name: "zahl", addr: "0x1004", val: "42", type: "badge-val" }] }
+                        ],
+                        heap: []
+                    },
+                    {
+                        line: 4,
+                        desc: "Der Stackframe von <code>AendereZahl</code> entsteht. Parameter <code>x</code> ist <b>keine Kopie</b> von 42, sondern hält als Referenz die Adresse <code>&zahl (0x1004)</code>.",
+                        stack: [
+                            { frame: "AendereZahl(ref int x)", vars: [{ name: "x", addr: "0x2008", val: "ref &zahl (0x1004)", type: "badge-ref" }] },
+                            { frame: "Main (Top-Level)", vars: [{ name: "zahl", addr: "0x1004", val: "42", type: "badge-val" }] }
+                        ],
+                        heap: []
+                    },
+                    {
+                        line: 6,
+                        desc: "Zuweisung <code>x = 99;</code>: Die Methode dereferenziert <code>x</code> und überschreibt den Speicherplatz <code>0x1004</code> direkt im Caller-Frame! Auf dem Heap passiert nichts.",
+                        stack: [
+                            { frame: "AendereZahl(ref int x)", vars: [{ name: "x", addr: "0x2008", val: "ref &zahl (0x1004)", type: "badge-ref" }] },
+                            { frame: "Main (Top-Level)", vars: [{ name: "zahl", addr: "0x1004", val: "99", type: "badge-val", highlight: true }] }
+                        ],
+                        heap: []
+                    },
+                    {
+                        line: 7,
+                        desc: "<code>AendereZahl</code> kehrt zurück. Der Stackframe wird abgeräumt. Der Wert von <code>zahl</code> im Caller bleibt dauerhaft auf 99 geändert.",
+                        stack: [
+                            { frame: "Main (Top-Level)", vars: [{ name: "zahl", addr: "0x1004", val: "99", type: "badge-val" }] }
+                        ],
+                        heap: []
+                    },
+                    {
+                        line: 2,
+                        desc: "<code>Console.WriteLine(zahl)</code> liest direkt den modifizierten Wert <code>99</code> von Stackadresse 0x1004 aus.",
+                        stack: [
+                            { frame: "Main (Top-Level)", vars: [{ name: "zahl", addr: "0x1004", val: "99", type: "badge-val" }] }
+                        ],
+                        heap: []
+                    }
+                ]
+            },
+            'string_noref': {
+                code: [
+                    "<span class='text-pink-400'>string</span> text = <span class='text-emerald-300'>\"Hallo\"</span>;",
+                    "<span class='text-sky-300'>VersucheAenderung</span>(text);",
+                    "Console.<span class='text-yellow-300'>WriteLine</span>(text);",
+                    "",
+                    "<span class='text-pink-400'>void</span> <span class='text-sky-300'>VersucheAenderung</span>(<span class='text-pink-400'>string</span> s)",
+                    "{",
+                    "    s = <span class='text-emerald-300'>\"Welt\"</span>;",
+                    "}"
+                ],
+                steps: [
+                    {
+                        line: 0,
+                        desc: "Das String-Literal <code>\"Hallo\"</code> liegt auf dem Heap (0xH01). Auf dem Stack speichert die Variable <code>text</code> die Heap-Adresse <code>0xH01</code>.",
+                        stack: [
+                            { frame: "Main (Top-Level)", vars: [{ name: "text", addr: "0x1008", val: "ptr -> 0xH01", type: "badge-ptr" }] }
+                        ],
+                        heap: [
+                            { addr: "0xH01", val: "\"Hallo\"", status: "active" }
+                        ]
+                    },
+                    {
+                        line: 1,
+                        desc: "Aufruf <code>VersucheAenderung(text)</code> <b>ohne ref</b> (Pass-by-Value). Der Inhalt der Variable <code>text</code> (die Adresse 0xH01) wird kopiert.",
+                        stack: [
+                            { frame: "Main (Top-Level)", vars: [{ name: "text", addr: "0x1008", val: "ptr -> 0xH01", type: "badge-ptr" }] }
+                        ],
+                        heap: [
+                            { addr: "0xH01", val: "\"Hallo\"", status: "active" }
+                        ]
+                    },
+                    {
+                        line: 4,
+                        desc: "Neuer Stackframe für <code>VersucheAenderung</code>: Parameter <code>s</code> erhält eine eigene Stackadresse (0x2010), in die die <b>Kopie des Zeigers</b> (0xH01) geschrieben wird. Beide Variablen zeigen nun auf denselben Heap-String.",
+                        stack: [
+                            { frame: "VersucheAenderung(string s)", vars: [{ name: "s", addr: "0x2010", val: "ptr -> 0xH01", type: "badge-ptr" }] },
+                            { frame: "Main (Top-Level)", vars: [{ name: "text", addr: "0x1008", val: "ptr -> 0xH01", type: "badge-ptr" }] }
+                        ],
+                        heap: [
+                            { addr: "0xH01", val: "\"Hallo\"", status: "active" }
+                        ]
+                    },
+                    {
+                        line: 6,
+                        desc: "Zuweisung <code>s = \"Welt\";</code>: Ein neues Objekt <code>\"Welt\"</code> entsteht auf dem Heap (0xH02). <b>Wichtig:</b> Nur der lokale Parameter <code>s</code> wird auf 0xH02 umgebogen! Die Variable <code>text</code> im Main-Frame bleibt unberührt auf 0xH01.",
+                        stack: [
+                            { frame: "VersucheAenderung(string s)", vars: [{ name: "s", addr: "0x2010", val: "ptr -> 0xH02", type: "badge-ptr", highlight: true }] },
+                            { frame: "Main (Top-Level)", vars: [{ name: "text", addr: "0x1008", val: "ptr -> 0xH01", type: "badge-ptr" }] }
+                        ],
+                        heap: [
+                            { addr: "0xH01", val: "\"Hallo\"", status: "active" },
+                            { addr: "0xH02", val: "\"Welt\"", status: "active" }
+                        ]
+                    },
+                    {
+                        line: 7,
+                        desc: "Methodenende: Der Frame von <code>VersucheAenderung</code> wird abgeräumt. Der lokale Zeiger <code>s</code> verschwindet. <code>\"Welt\"</code> auf 0xH02 hat keine Referenz mehr und ist verwaist.",
+                        stack: [
+                            { frame: "Main (Top-Level)", vars: [{ name: "text", addr: "0x1008", val: "ptr -> 0xH01", type: "badge-ptr" }] }
+                        ],
+                        heap: [
+                            { addr: "0xH01", val: "\"Hallo\"", status: "active" },
+                            { addr: "0xH02", val: "\"Welt\"", status: "orphan" }
+                        ]
+                    },
+                    {
+                        line: 2,
+                        desc: "<code>Console.WriteLine(text)</code> folgt weiterhin <code>0xH01</code> und gibt unverändert <code>\"Hallo\"</code> aus. Die Änderung in der Methode verpuffte!",
+                        stack: [
+                            { frame: "Main (Top-Level)", vars: [{ name: "text", addr: "0x1008", val: "ptr -> 0xH01", type: "badge-ptr" }] }
+                        ],
+                        heap: [
+                            { addr: "0xH01", val: "\"Hallo\"", status: "active" },
+                            { addr: "0xH02", val: "\"Welt\"", status: "orphan" }
+                        ]
+                    }
+                ]
+            },
+            'string_ref': {
+                code: [
+                    "<span class='text-pink-400'>string</span> text = <span class='text-emerald-300'>\"Hallo\"</span>;",
+                    "<span class='text-sky-300'>AendereString</span>(<span class='text-pink-400'>ref</span> text);",
+                    "Console.<span class='text-yellow-300'>WriteLine</span>(text);",
+                    "",
+                    "<span class='text-pink-400'>void</span> <span class='text-sky-300'>AendereString</span>(<span class='text-pink-400'>ref</span> <span class='text-pink-400'>string</span> s)",
+                    "{",
+                    "    s = <span class='text-emerald-300'>\"Welt\"</span>;",
+                    "}"
+                ],
+                steps: [
+                    {
+                        line: 0,
+                        desc: "Das String-Objekt <code>\"Hallo\"</code> liegt auf dem Heap (0xH01). Auf dem Stack speichert <code>text</code> die Heap-Adresse <code>0xH01</code>.",
+                        stack: [
+                            { frame: "Main (Top-Level)", vars: [{ name: "text", addr: "0x1008", val: "ptr -> 0xH01", type: "badge-ptr" }] }
+                        ],
+                        heap: [
+                            { addr: "0xH01", val: "\"Hallo\"", status: "active" }
+                        ]
+                    },
+                    {
+                        line: 1,
+                        desc: "Aufruf <code>AendereString(ref text)</code>: Übergeben wird die Stack-Adresse der Variable <code>text</code> selbst (0x1008).",
+                        stack: [
+                            { frame: "Main (Top-Level)", vars: [{ name: "text", addr: "0x1008", val: "ptr -> 0xH01", type: "badge-ptr" }] }
+                        ],
+                        heap: [
+                            { addr: "0xH01", val: "\"Hallo\"", status: "active" }
+                        ]
+                    },
+                    {
+                        line: 4,
+                        desc: "Stackframe <code>AendereString</code>: Parameter <code>s</code> erhält keine Kopie der Heap-Adresse, sondern verweist als Alias direkt auf die Speicherzelle <code>&text (0x1008)</code> des Callers.",
+                        stack: [
+                            { frame: "AendereString(ref string s)", vars: [{ name: "s", addr: "0x2010", val: "ref &text (0x1008)", type: "badge-ref" }] },
+                            { frame: "Main (Top-Level)", vars: [{ name: "text", addr: "0x1008", val: "ptr -> 0xH01", type: "badge-ptr" }] }
+                        ],
+                        heap: [
+                            { addr: "0xH01", val: "\"Hallo\"", status: "active" }
+                        ]
+                    },
+                    {
+                        line: 6,
+                        desc: "Zuweisung <code>s = \"Welt\";</code>: <code>\"Welt\"</code> wird auf 0xH02 angelegt. Da <code>s</code> eine Referenz auf <code>text</code> ist, wird der Zeiger im Caller-Frame direkt auf <code>0xH02</code> überschrieben!",
+                        stack: [
+                            { frame: "AendereString(ref string s)", vars: [{ name: "s", addr: "0x2010", val: "ref &text (0x1008)", type: "badge-ref" }] },
+                            { frame: "Main (Top-Level)", vars: [{ name: "text", addr: "0x1008", val: "ptr -> 0xH02", type: "badge-ptr", highlight: true }] }
+                        ],
+                        heap: [
+                            { addr: "0xH01", val: "\"Hallo\"", status: "orphan" },
+                            { addr: "0xH02", val: "\"Welt\"", status: "active", highlight: true }
+                        ]
+                    },
+                    {
+                        line: 7,
+                        desc: "Methodenende: Der Frame wird abgeräumt. Die Variable <code>text</code> im Main zeigt weiterhin dauerhaft auf <code>0xH02</code>.",
+                        stack: [
+                            { frame: "Main (Top-Level)", vars: [{ name: "text", addr: "0x1008", val: "ptr -> 0xH02", type: "badge-ptr" }] }
+                        ],
+                        heap: [
+                            { addr: "0xH01", val: "\"Hallo\"", status: "orphan" },
+                            { addr: "0xH02", val: "\"Welt\"", status: "active" }
+                        ]
+                    },
+                    {
+                        line: 2,
+                        desc: "<code>Console.WriteLine(text)</code> folgt dem neuen Zeiger auf <code>0xH02</code> und gibt <code>\"Welt\"</code> aus.",
+                        stack: [
+                            { frame: "Main (Top-Level)", vars: [{ name: "text", addr: "0x1008", val: "ptr -> 0xH02", type: "badge-ptr" }] }
+                        ],
+                        heap: [
+                            { addr: "0xH01", val: "\"Hallo\"", status: "orphan" },
+                            { addr: "0xH02", val: "\"Welt\"", status: "active" }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        let currentScenario = 'int';
+        let currentStep = 0;
+
+        function setScenario(sc) {
+            currentScenario = sc;
+            currentStep = 0;
+
+            const buttons = ['int', 'string_noref', 'string_ref'];
+            buttons.forEach(b => {
+                const el = document.getElementById(`btn-${b}`);
+                if (b === sc) {
+                    el.className = "px-3 py-2 rounded-md text-sm font-bold bg-sky-600 text-white shadow";
+                } else {
+                    el.className = "px-3 py-2 rounded-md text-sm font-bold text-slate-400 hover:text-white";
+                }
+            });
+
+            render();
+        }
+
+        function render() {
+            const data = scenarios[currentScenario];
+            const step = data.steps[currentStep];
+
+            document.getElementById('btn-prev').disabled = currentStep === 0;
+            document.getElementById('btn-next').disabled = currentStep === data.steps.length - 1;
+            document.getElementById('step-current').textContent = currentStep + 1;
+            document.getElementById('step-total').textContent = data.steps.length;
+            document.getElementById('explanation-text').innerHTML = step.desc;
+
+            // Render Code
+            const codeHtml = data.code.map((line, idx) => {
+                const active = idx === step.line ? 'line-active text-sky-50' : 'line-normal text-slate-300';
+                const boldStart = idx === step.line ? '<strong>' : '';
+                const boldEnd = idx === step.line ? '</strong>' : '';
+                return `<div class="flex px-2 py-1 rounded ${active}">
+                    <span class="w-6 shrink-0 text-right text-slate-600 mr-3 text-xs pt-1 border-r border-slate-700/50 pr-2">${idx + 1}</span>
+                    <span class="whitespace-pre">${boldStart}${line}${boldEnd}</span>
+                </div>`;
+            }).join('');
+            document.getElementById('code-container').innerHTML = codeHtml;
+
+            // Render Stack
+            let stackHtml = '';
+            step.stack.forEach(frame => {
+                let varsHtml = frame.vars.map(v => {
+                    const highlightClass = v.highlight ? 'box-highlight' : '';
+                    return `
+                        <div class="flex justify-between items-center bg-slate-900 px-3 py-2 rounded border border-slate-800 ${highlightClass}">
+                            <div class="flex items-center gap-2">
+                                <span class="font-code text-slate-200 text-sm font-semibold">${v.name}</span>
+                                <span class="text-xs text-slate-500 font-code font-mono">[${v.addr}]</span>
+                            </div>
+                            <span class="${v.type}">${v.val}</span>
+                        </div>
+                    `;
+                }).join('');
+
+                stackHtml += `
+                    <div class="bg-slate-900/60 border border-slate-800 rounded-lg p-3">
+                        <div class="text-[11px] font-bold text-sky-400 font-code uppercase tracking-wider mb-2">${frame.frame}</div>
+                        <div class="flex flex-col gap-2">${varsHtml}</div>
+                    </div>
+                `;
+            });
+            document.getElementById('stack-container').innerHTML = stackHtml;
+
+            // Render Heap
+            if (step.heap.length === 0) {
+                document.getElementById('heap-container').innerHTML = '<div class="text-slate-500 text-xs italic p-2">Keine dynamischen Objekte alloziert (reine Stack-Operationen).</div>';
+            } else {
+                let heapHtml = step.heap.map(obj => {
+                    const isOrphan = obj.status === 'orphan';
+                    const bg = isOrphan ? 'bg-slate-900/40 border-slate-800/80 opacity-40' : 'bg-purple-950/30 border-purple-800/60';
+                    const textCol = isOrphan ? 'text-slate-500 line-through' : 'text-purple-300 font-bold';
+                    const highlightClass = obj.highlight ? 'box-highlight' : '';
+                    return `
+                        <div class="border rounded px-4 py-2.5 flex flex-col gap-1 min-w-[140px] ${bg} ${highlightClass}">
+                            <div class="flex justify-between items-center text-[10px] text-purple-400 font-mono">
+                                <span>${obj.addr}</span>
+                                <span>${isOrphan ? 'Verwaist' : 'String'}</span>
+                            </div>
+                            <div class="font-code text-base ${textCol}">${obj.val}</div>
+                        </div>
+                    `;
+                }).join('');
+                document.getElementById('heap-container').innerHTML = heapHtml;
+            }
+        }
+
+        document.getElementById('btn-next').addEventListener('click', () => {
+            if (currentStep < scenarios[currentScenario].steps.length - 1) { currentStep++; render(); }
+        });
+        document.getElementById('btn-prev').addEventListener('click', () => {
+            if (currentStep > 0) { currentStep--; render(); }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') document.getElementById('btn-next').click();
+            if (e.key === 'ArrowLeft') document.getElementById('btn-prev').click();
+        });
+
+        render();
+    </script>
+</body>
+</html>

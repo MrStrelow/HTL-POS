@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C# Call Stack & Managed Heap Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617; /* Slate 950 */
+            color: #f8fafc;
+        }
+        .font-code { font-family: 'Fira Code', monospace; }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        @keyframes pushFrame {
+            0% { opacity: 0; transform: translateY(-30px) scale(0.95); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .frame-push { animation: pushFrame 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        @keyframes popFrame {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-30px) scale(0.95); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .item-enter { animation: fadeIn 0.4s ease-out forwards; }
+
+        @keyframes valueChange {
+            0% { background-color: rgba(239, 68, 68, 0.8); transform: scale(1.1); color: white; border-color: #ef4444; }
+            100% { background-color: #0f172a; transform: scale(1); border-color: #334155; }
+        }
+        .value-changed { animation: valueChange 1s ease-out forwards; }
+
+        .line-active {
+            background-color: rgba(56, 189, 248, 0.15);
+            border-left: 4px solid #38bdf8;
+        }
+        .line-normal { border-left: 4px solid transparent; }
+
+        /* Badge Colors for References */
+        .ref-A10 { background-color: rgba(217, 70, 239, 0.2); color: #f0abfc; border: 1px solid rgba(217, 70, 239, 0.5); }
+        .ref-B20 { background-color: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.5); }
+        .ref-null { background-color: rgba(71, 85, 105, 0.3); color: #94a3b8; border: 1px dashed rgba(71, 85, 105, 0.6); }
+
+        /* Orphaned Heap Item Styling */
+        .heap-orphaned {
+            opacity: 0.5;
+            border: 2px dashed #ef4444 !important;
+            filter: grayscale(0.8);
+            transition: all 0.5s ease;
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col overflow-hidden">
+    <header class="bg-slate-900 border-b border-slate-800 p-4 shrink-0 flex items-center justify-between shadow-md z-20">
+        <div>
+            <h1 class="text-2xl font-bold text-sky-400 tracking-tight">C# Memory Visualizer</h1>
+            <p class="text-sm text-slate-400 mt-1">Return-Werte, Null-Referenzen & Garbage Collection</p>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden p-4 gap-6 bg-slate-950">
+        
+        <!-- Left: Code Section -->
+        <section class="flex-1 lg:flex-[1.2] bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl relative">
+            <div class="bg-slate-950 py-2 px-4 border-b border-slate-800 flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-rose-500"></div>
+                <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+                <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <span class="ml-2 text-xs font-semibold text-slate-500 uppercase tracking-widest">Program.cs</span>
+            </div>
+            <div id="code-container" class="flex-1 overflow-y-auto p-4 font-code text-[14px] sm:text-[15px] leading-7">
+                <!-- Code injected via JS -->
+            </div>
+        </section>
+
+        <!-- Right: Memory Section -->
+        <section class="flex-1 lg:flex-[1.8] flex flex-col gap-6 overflow-hidden">
+            
+            <!-- Call Stack -->
+            <div class="flex-1 bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+                <div class="bg-slate-950 py-2.5 px-4 border-b border-slate-800 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Call Stack (Lokale Variablen)</span>
+                </div>
+                <div id="stack-container" class="flex-1 overflow-y-auto p-4 flex flex-col-reverse gap-4 bg-slate-900/50">
+                    <!-- Stack Frames -->
+                </div>
+            </div>
+
+            <!-- Managed Heap -->
+            <div class="flex-1 bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+                <div class="bg-slate-950 py-2.5 px-4 border-b border-slate-800 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Managed Heap (Objekte)</span>
+                    </div>
+                </div>
+                <div id="heap-container" class="flex-1 overflow-y-auto p-4 flex flex-wrap content-start gap-4 bg-slate-900/50">
+                    <!-- Heap Objects -->
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <footer class="bg-slate-900 border-t border-slate-800 shrink-0 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.3)] z-10 p-4">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 max-w-[1600px] mx-auto items-center">
+            <div class="lg:col-span-2 bg-slate-950 border border-slate-800 rounded-lg p-4 shadow-inner min-h-[90px] flex flex-col justify-center">
+                <h3 class="text-xs uppercase font-bold text-sky-400 mb-1 tracking-wider">Aktion</h3>
+                <p id="explanation-text" class="text-sm text-slate-300 leading-relaxed"></p>
+            </div>
+
+            <div class="flex flex-col items-center justify-center gap-3 lg:col-span-1">
+                <div class="flex items-center gap-3 w-full justify-center">
+                    <button id="btn-prev" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg shadow disabled:opacity-30 transition-all text-sm font-medium border border-slate-700">&larr; Zurück</button>
+                    <div class="bg-slate-950 px-4 py-2.5 rounded-lg border border-slate-800 font-code text-sm shadow-inner min-w-[90px] text-center">
+                        <span id="step-current" class="text-sky-400 font-bold"></span><span class="text-slate-500">/</span><span id="step-total" class="text-slate-400"></span>
+                    </div>
+                    <button id="btn-next" class="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg shadow-lg disabled:opacity-30 transition-all text-sm font-bold border border-sky-500">Weiter &rarr;</button>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // C# Code pre-escaped and styled safely
+        const rawCode = [
+            /* 0*/ "<span class='text-pink-400'>static</span> <span class='text-pink-400'>void</span> <span class='text-sky-300'>Main</span>()",
+            /* 1*/ "{",
+            /* 2*/ "    <span class='text-pink-400'>int</span>[] original = { <span class='text-emerald-400'>1</span>, <span class='text-emerald-400'>2</span> };",
+            /* 3*/ "    ",
+            /* 4*/ "    <span class='text-pink-400'>int</span>[] ref1 = <span class='text-sky-300'>ZeigeSeiteneffekt</span>(original);",
+            /* 5*/ "    ",
+            /* 6*/ "    <span class='text-pink-400'>int</span>[] ref2 = <span class='text-sky-300'>ArbeiteMitKopie</span>(original);",
+            /* 7*/ "    ",
+            /* 8*/ "    ref2 = <span class='text-pink-400'>null</span>; <span class='text-slate-500'>// Referenz kappen</span>",
+            /* 9*/ "    ",
+            /*10*/ "    <span class='text-slate-500'>// GC sammelt ein...</span>",
+            /*11*/ "}",
+            /*12*/ "",
+            /*13*/ "<span class='text-pink-400'>static</span> <span class='text-pink-400'>int</span>[] <span class='text-sky-300'>ZeigeSeiteneffekt</span>(<span class='text-pink-400'>int</span>[] arr)",
+            /*14*/ "{",
+            /*15*/ "    arr[<span class='text-emerald-400'>0</span>] = <span class='text-emerald-400'>99</span>;",
+            /*16*/ "    <span class='text-pink-400'>return</span> arr;",
+            /*17*/ "}",
+            /*18*/ "",
+            /*19*/ "<span class='text-pink-400'>static</span> <span class='text-pink-400'>int</span>[] <span class='text-sky-300'>ArbeiteMitKopie</span>(<span class='text-pink-400'>int</span>[] arr)",
+            /*20*/ "{",
+            /*21*/ "    <span class='text-pink-400'>int</span>[] kopie = (<span class='text-pink-400'>int</span>[])arr.<span class='text-sky-300'>Clone</span>();",
+            /*22*/ "    kopie[<span class='text-emerald-400'>0</span>] = <span class='text-emerald-400'>42</span>;",
+            /*23*/ "    <span class='text-pink-400'>return</span> kopie;",
+            /*24*/ "}"
+        ];
+
+        // Setup strictly timed steps
+        const steps = [
+            {
+                line: -1, stack: [], heap: {},
+                desc: "Programm ist bereit. Nutze 'Weiter', um die Ausführung Schritt für Schritt zu verfolgen."
+            },
+            {
+                line: 2, 
+                stack: [ { name: 'Main()', vars: { 'original': '0xA10' } } ], 
+                heap: { '0xA10': { val: [1, 2], orphaned: false } },
+                desc: "<strong>Schritt 1:</strong> <code>Main</code> startet. Das Array wird auf dem Heap angelegt. Die lokale Variable <code>original</code> speichert die Referenz <span class='ref-A10 px-1 rounded text-[11px] font-code'>[0xA10]</span>."
+            },
+            {
+                line: 13, 
+                stack: [ 
+                    { name: 'Main()', vars: { 'original': '0xA10' } },
+                    { name: 'ZeigeSeiteneffekt(arr)', vars: { 'arr': '0xA10' } }
+                ], 
+                heap: { '0xA10': { val: [1, 2], orphaned: false } },
+                desc: "<strong>Schritt 2:</strong> Aufruf von <code>ZeigeSeiteneffekt</code>. Ein neuer Frame liegt auf dem Stack. <code>arr</code> erhält die gleiche Referenz <span class='ref-A10 px-1 rounded text-[11px] font-code'>[0xA10]</span> wie <code>original</code>."
+            },
+            {
+                line: 15, 
+                stack: [ 
+                    { name: 'Main()', vars: { 'original': '0xA10' } },
+                    { name: 'ZeigeSeiteneffekt(arr)', vars: { 'arr': '0xA10' } }
+                ], 
+                heap: { '0xA10': { val: [99, 2], orphaned: false } },
+                desc: "<strong>Schritt 3:</strong> <code>arr[0] = 99;</code> verändert die Daten auf dem Heap direkt. Da beide Frames auf denselben Heap-Block zeigen, ist dies ein Seiteneffekt."
+            },
+            {
+                line: 4, 
+                stack: [ 
+                    { name: 'Main()', vars: { 'original': '0xA10', 'ref1': '0xA10' } }
+                ], 
+                heap: { '0xA10': { val: [99, 2], orphaned: false } },
+                desc: "<strong>Schritt 4:</strong> <code>return arr;</code>. Der obere Frame poppt vom Stack. Zurück in Main wird das Ergebnis in <code>ref1</code> gespeichert. Nun zeigen zwei Variablen in Main auf dasselbe Objekt."
+            },
+            {
+                line: 19, 
+                stack: [ 
+                    { name: 'Main()', vars: { 'original': '0xA10', 'ref1': '0xA10' } },
+                    { name: 'ArbeiteMitKopie(arr)', vars: { 'arr': '0xA10' } }
+                ], 
+                heap: { '0xA10': { val: [99, 2], orphaned: false } },
+                desc: "<strong>Schritt 5:</strong> Aufruf von <code>ArbeiteMitKopie</code>. Neuer Frame. <code>arr</code> referenziert wieder <span class='ref-A10 px-1 rounded text-[11px] font-code'>[0xA10]</span>."
+            },
+            {
+                line: 21, 
+                stack: [ 
+                    { name: 'Main()', vars: { 'original': '0xA10', 'ref1': '0xA10' } },
+                    { name: 'ArbeiteMitKopie(arr)', vars: { 'arr': '0xA10', 'kopie': '0xB20' } }
+                ], 
+                heap: { '0xA10': { val: [99, 2], orphaned: false }, '0xB20': { val: [99, 2], orphaned: false } },
+                desc: "<strong>Schritt 6:</strong> <code>.Clone()</code> erzeugt eine Kopie. Auf dem Heap entsteht ein <strong>neuer</strong> Block <span class='ref-B20 px-1 rounded text-[11px] font-code'>[0xB20]</span>. <code>kopie</code> referenziert diesen neuen Block."
+            },
+            {
+                line: 22, 
+                stack: [ 
+                    { name: 'Main()', vars: { 'original': '0xA10', 'ref1': '0xA10' } },
+                    { name: 'ArbeiteMitKopie(arr)', vars: { 'arr': '0xA10', 'kopie': '0xB20' } }
+                ], 
+                heap: { '0xA10': { val: [99, 2], orphaned: false }, '0xB20': { val: [42, 2], orphaned: false } },
+                desc: "<strong>Schritt 7:</strong> <code>kopie[0] = 42;</code> modifiziert <strong>nur</strong> den neuen Heap-Block <span class='ref-B20 px-1 rounded text-[11px] font-code'>[0xB20]</span>. Das Original bleibt unangetastet."
+            },
+            {
+                line: 6, 
+                stack: [ 
+                    { name: 'Main()', vars: { 'original': '0xA10', 'ref1': '0xA10', 'ref2': '0xB20' } }
+                ], 
+                heap: { '0xA10': { val: [99, 2], orphaned: false }, '0xB20': { val: [42, 2], orphaned: false } },
+                desc: "<strong>Schritt 8:</strong> <code>return kopie;</code>. Frame wird entfernt. In Main wird das zurückgegebene Array (Referenz <span class='ref-B20 px-1 rounded text-[11px] font-code'>[0xB20]</span>) in <code>ref2</code> gespeichert."
+            },
+            {
+                line: 8, 
+                stack: [ 
+                    { name: 'Main()', vars: { 'original': '0xA10', 'ref1': '0xA10', 'ref2': 'null' } }
+                ], 
+                heap: { '0xA10': { val: [99, 2], orphaned: false }, '0xB20': { val: [42, 2], orphaned: false } },
+                desc: "<strong>Schritt 9:</strong> <code>ref2 = null;</code>. Die Verbindung zum Heap-Block wird gekappt. Auf dem Stack steht nun <code>null</code>."
+            },
+            {
+                line: 10, 
+                stack: [ 
+                    { name: 'Main()', vars: { 'original': '0xA10', 'ref1': '0xA10', 'ref2': 'null' } }
+                ], 
+                heap: { '0xA10': { val: [99, 2], orphaned: false }, '0xB20': { val: [42, 2], orphaned: true } },
+                desc: "<strong>Schritt 10 (Orphan Phase):</strong> Niemand zeigt mehr auf <span class='ref-B20 px-1 rounded text-[11px] font-code'>[0xB20]</span>. Es ist verwaist (unreachable). Der Speicher ist noch belegt, aber markiert."
+            },
+            {
+                line: 11, 
+                stack: [ 
+                    { name: 'Main()', vars: { 'original': '0xA10', 'ref1': '0xA10', 'ref2': 'null' } }
+                ], 
+                heap: { '0xA10': { val: [99, 2], orphaned: false } },
+                desc: "<strong>Schritt 11 (GC-Lauf):</strong> Die Garbage Collection räumt den Heap auf und löscht Block <span class='ref-B20 px-1 rounded text-[11px] font-code'>[0xB20]</span> endgültig, da keine Referenzen mehr dorthin existieren."
+            }
+        ];
+
+        let currentStep = 0;
+        let lastStackSize = 0;
+        let lastHeapState = {}; 
+
+        const uiCode = document.getElementById('code-container');
+        const uiStack = document.getElementById('stack-container');
+        const uiHeap = document.getElementById('heap-container');
+        const uiDesc = document.getElementById('explanation-text');
+        
+        function getBadgeClass(val) {
+            if (val === '0xA10') return 'ref-A10';
+            if (val === '0xB20') return 'ref-B20';
+            if (val === 'null') return 'ref-null';
+            return '';
+        }
+
+        function formatValue(val) {
+            if (val === 'null') {
+                return `<span class="ref-null px-1.5 py-0.5 rounded text-xs tracking-wider shadow-sm font-bold">null</span>`;
+            }
+            const badgeClass = getBadgeClass(val);
+            if (badgeClass) {
+                return `<span class="${badgeClass} px-1.5 py-0.5 rounded text-xs tracking-wider shadow-sm flex items-center gap-1 font-bold">
+                            <svg class="w-3 h-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                            [${val}]
+                        </span>`;
+            }
+            return `<span class="text-emerald-400 font-bold">${val}</span>`;
+        }
+
+        function render() {
+            const step = steps[currentStep];
+            
+            // Buttons
+            document.getElementById('btn-prev').disabled = currentStep === 0;
+            document.getElementById('btn-next').disabled = currentStep === steps.length - 1;
+            document.getElementById('step-current').textContent = currentStep;
+            document.getElementById('step-total').textContent = steps.length - 1;
+            uiDesc.innerHTML = step.desc;
+
+            // Code Map
+            uiCode.innerHTML = '';
+            rawCode.forEach((lineHtml, index) => {
+                const isActive = index === step.line;
+                const lineDiv = document.createElement('div');
+                lineDiv.className = `flex px-2 py-0.5 rounded transition-colors ${isActive ? 'line-active text-sky-50' : 'line-normal text-slate-300'}`;
+                
+                const numSpan = document.createElement('span');
+                numSpan.className = 'w-8 shrink-0 text-right text-slate-600 mr-4 select-none font-code text-xs pt-1 border-r border-slate-700/50 pr-2';
+                numSpan.textContent = index + 1;
+                
+                const codeSpan = document.createElement('span');
+                codeSpan.className = 'whitespace-pre font-code';
+                codeSpan.innerHTML = isActive ? `<strong>${lineHtml}</strong>` : lineHtml;
+
+                lineDiv.appendChild(numSpan);
+                lineDiv.appendChild(codeSpan);
+                uiCode.appendChild(lineDiv);
+            });
+            
+            const activeLineEl = uiCode.querySelector('.line-active');
+            if(activeLineEl) activeLineEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // Render Call Stack
+            uiStack.innerHTML = '';
+            const isPushing = step.stack.length > lastStackSize;
+
+            if (step.stack.length === 0) {
+                uiStack.innerHTML = `<div class="h-full flex items-center justify-center text-slate-600 text-sm italic">Call Stack leer</div>`;
+            } else {
+                step.stack.forEach((frame, index) => {
+                    const isTop = index === step.stack.length - 1;
+                    const el = document.createElement('div');
+                    
+                    let classes = `border rounded-xl overflow-hidden bg-slate-800 transition-all shrink-0 `;
+                    if (isTop) {
+                        classes += `border-sky-500/50 shadow-[0_0_15px_rgba(56,189,248,0.1)] ring-1 ring-sky-500/20 z-10 relative `;
+                        if (isPushing) classes += `frame-push `;
+                    } else {
+                        classes += `border-slate-700/50 opacity-50 scale-[0.98] `;
+                    }
+                    el.className = classes;
+
+                    let html = `
+                        <div class="${isTop ? 'bg-sky-500/10' : 'bg-slate-900'} px-4 py-2 border-b border-slate-700/50 flex justify-between items-center">
+                            <span class="font-code font-bold ${isTop ? 'text-sky-300' : 'text-slate-400'}">${frame.name}</span>
+                        </div>
+                        <div class="p-3 flex flex-col gap-2">
+                    `;
+
+                    const varsKeys = Object.keys(frame.vars || {});
+                    if (varsKeys.length > 0) {
+                        varsKeys.forEach(k => {
+                            html += `
+                            <div class="flex justify-between items-center bg-slate-950/50 px-3 py-2 rounded border border-slate-700/50">
+                                <span class="font-code text-sm text-slate-300">${k}</span>
+                                <span class="font-code text-sm">${formatValue(frame.vars[k])}</span>
+                            </div>`;
+                        });
+                    } else {
+                        html += `<span class="text-xs text-slate-500 italic">Keine lokalen Variablen</span>`;
+                    }
+
+                    html += `</div>`;
+                    el.innerHTML = html;
+                    uiStack.appendChild(el);
+                });
+            }
+            lastStackSize = step.stack.length;
+
+            // Render Managed Heap
+            uiHeap.innerHTML = '';
+            const heapKeys = Object.keys(step.heap);
+            
+            if (heapKeys.length === 0) {
+                uiHeap.innerHTML = `<div class="h-full w-full flex items-center justify-center text-slate-600 text-sm italic">Keine Objekte im Heap</div>`;
+            } else {
+                heapKeys.forEach(addr => {
+                    const heapObj = step.heap[addr];
+                    const arr = heapObj.val;
+                    const prevArr = lastHeapState[addr]?.val || [];
+                    const isNew = !lastHeapState[addr];
+                    
+                    const badgeClass = getBadgeClass(addr);
+                    const orphanedClass = heapObj.orphaned ? 'heap-orphaned' : '';
+                    
+                    const el = document.createElement('div');
+                    el.className = `flex flex-col border border-slate-700 rounded-xl overflow-hidden bg-slate-800 shrink-0 min-w-[180px] shadow-lg ${isNew ? 'item-enter' : ''} ${orphanedClass} relative`;
+                    
+                    let html = `
+                        <div class="bg-slate-950 px-3 py-2 border-b border-slate-800 flex justify-between items-center relative z-10">
+                            <span class="font-code text-xs text-slate-400">int[]</span>
+                            <span class="font-code font-bold ${badgeClass} px-2 py-0.5 rounded text-xs tracking-wider shadow flex items-center gap-1">
+                                <svg class="w-3 h-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                                [${addr}]
+                            </span>
+                        </div>
+                    `;
+
+                    if(heapObj.orphaned) {
+                        html += `
+                        <div class="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                            <div class="bg-red-900/90 text-red-100 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded shadow-lg transform -rotate-12 border border-red-500">Unreachable</div>
+                        </div>`;
+                    }
+
+                    html += `<div class="p-3 flex gap-2 justify-center relative z-10">`;
+                    
+                    arr.forEach((val, idx) => {
+                        const hasChanged = !isNew && prevArr[idx] !== undefined && prevArr[idx] !== val;
+                        html += `
+                            <div class="flex flex-col items-center">
+                                <span class="text-[10px] text-slate-500 mb-1 font-code">idx ${idx}</span>
+                                <div class="w-10 h-10 flex items-center justify-center bg-slate-950 border border-slate-700 rounded text-slate-200 font-code font-bold transition-colors ${hasChanged ? 'value-changed' : ''}">
+                                    ${val}
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    html += `</div>`;
+                    el.innerHTML = html;
+                    uiHeap.appendChild(el);
+                });
+            }
+            
+            lastHeapState = JSON.parse(JSON.stringify(step.heap));
+        }
+
+        document.getElementById('btn-next').addEventListener('click', () => {
+            if (currentStep < steps.length - 1) { currentStep++; render(); }
+        });
+        document.getElementById('btn-prev').addEventListener('click', () => {
+            if (currentStep > 0) { currentStep--; render(); }
+        });
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'ArrowRight') document.getElementById('btn-next').click();
+            if(e.key === 'ArrowLeft') document.getElementById('btn-prev').click();
+        });
+
+        // Bootstrap App
+        render();
+    </script>
+</body>
+</html>
