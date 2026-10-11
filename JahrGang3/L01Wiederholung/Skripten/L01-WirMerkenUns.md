@@ -82,8 +82,8 @@
 > 10. Nur der oberste ``Stackframe`` auf dem *Stapel* und dessen ``Variablen`` sind *in-scope*. Darunterliegende ``Stackframes`` und ``Variablen`` können wir nicht verwenden.  
 > 11. ``Variablen`` mit ``Werttyp`` haben als ``Wert`` einen ``Wert``, welcher im ``Stackframe`` *gespeichert* ist.
 > 12. Wir haben *Tausend* verschiedene ``Variablen`` mit ``Werttyp``. Alle haben den gleichen ``Wert``, jedoch ist dieser für jede ``Variable`` ein *eigener, unabhängiger* ``Wert`` welcher im ``Stackframe`` gespeichert ist. Wenn der *Inhalt* einer ``Variable`` verändert wird, ändert sich nur der *eine* ``Wert`` der *einen* ``Variable``. Alle anderen bleiben unverändert.
-> 12. Der ``Managed-Heap`` hat keine *Struktur* im Gegensatz zu der *Stapellogik* des ``Call-Stack``.
-> 13. ``Variablen`` mit ``Referenztyp`` haben als ``Wert`` eine ``Referenz``, welche auf eine ``Speicheradresse`` im ``Managed-Heap`` *zeigt*. 
+> 13. Der ``Managed-Heap`` hat keine *Struktur* im Gegensatz zu der *Stapellogik* des ``Call-Stack``.
+> 14. ``Variablen`` mit ``Referenztyp`` haben als ``Wert`` eine ``Referenz``, welche auf eine ``Speicheradresse`` im ``Managed-Heap`` *zeigt*. 
 <!-- > 14. Wir haben *Tausend* verschiedene ``Variablen`` mit ``Referenztyp``. Alle haben den gleichen ``Wert``, also zeigen *alle auf den gleichen Ort* im ``Managed-Heap``. Wenn der *Inhalt* im ``Manged-Heap`` verändert wird, bleiben zwar alle ``Referenzen`` im ``Wert`` der ``Variable`` gleich, aber der *Inhalt* wurde für alle ``Variablen`` verändert. 
 > 15. ``Zuweisungen`` durch: 
 >       1. den ``Zuweisungsoperator`` *=* und 
