@@ -1,4 +1,4 @@
->**Wir merken uns von [Operatoren](L02.1Operatoren.md):** 
+#### Wir merken uns von [Operatoren](L02.1Operatoren.md):
 >1. [``Logische Operatoren``](../../../05_Glossar.md#logische-operatoren) haben als [``Eingangsparameter``](../../../05_Glossar.md#parameter) den [``Typ``](../../../05_Glossar.md#typ) *bool* und als [``Ausgangsparameter``](../../../05_Glossar.md#parameter) ebenso. 
 >2. [``Vergleichs-Operatoren``](../../../05_Glossar.md#vergleichsoperatoren) haben als [``Eingangsparameter``](../../../05_Glossar.md#parameter) vergleichbare [``Typen``](../../../05_Glossar.md#typ) wie z.B. *int*, *double*, ... und als [``Ausgangsparameter``](../../../05_Glossar.md#parameter) den [``Typ``](../../../05_Glossar.md#typ) *bool*.  
 >3. Das [``logische UND``](../../../05_Glossar.md#logische-operatoren) *&&* ergibt *true*, wenn **alle** [``Eingangsparameter``](../../../05_Glossar.md#parameter) gleichzeitig zutreffen (*true* sind). 
@@ -8,7 +8,7 @@
 >7. Wenn keine [``logische Formel``](../../../05_Glossar.md#logische-formel) für eine *Problemstellung* gefunden werden kann, versuchen wir einfachere [``Teilprobleme``](../../../05_Glossar.md#teilprobleme) zu lösen. Wir fügen diese später zusammen um die *Problemstellung* zu lösen.
 >8. Das [``logische NICHT``](../../../05_Glossar.md#logische-operatoren) *!* ergibt *true*, wenn der vorherige [``Eingangsparameter``](../../../05_Glossar.md#parameter) *false* ist. Wir [``negieren``](../../../05_Glossar.md#negieren) damit eine [``Aussage``](../../../05_Glossar.md#aussage) bzw. [``logische Formel``](../../../05_Glossar.md#logische-formel) bzw. einen [``booleschen Ausdruck``](../../../05_Glossar.md#ausdruck). 
 
->**Wir merken uns von [Verzweigungen](L02.3Verzweigungen.md):**
+#### Wir merken uns von [Verzweigungen](L02.3Verzweigungen.md):
 >1. [``Variablen``](../../../05_Glossar.md#variable) befinden sich in einem [``Block``](../../../05_Glossar.md#block), welcher mit *geschwungenen Klammern* ausgezeichnet wird.
 >2. [``Variablen``](../../../05_Glossar.md#variable) welche innerhalb eines [``Blocks``](../../../05_Glossar.md#block)[``deklariert``](../../../05_Glossar.md#block) werden sind in *diesem* und allen darin *geschachtelten* [``Blöcke``](../../../05_Glossar.md#block) verwendbar. Diese [``Variablen``](../../../05_Glossar.md#variable) sind *in-[``scope``](../../../05_Glossar.md#block)*.
 >3. [``Variablen``](../../../05_Glossar.md#variable) welche innerhalb eines [``Blocks``](../../../05_Glossar.md#block)[``deklariert``](../../../05_Glossar.md#block) werden und in[``Blöcken``](../../../05_Glossar.md#block) außerhalb angesprochen werden. Diese [``Variablen``](../../../05_Glossar.md#variable) sind *out-of-[``scope``](../../../05_Glossar.md#scope)*.
@@ -24,7 +24,7 @@
 >13. Ein **switch** als [``Anweisung``](../../../05_Glossar.md#anweisung) ist in neuen Sprachen begrenzt nützlich.
 >14. Ein **switch** als [``Ausdruck``](../../../05_Glossar.md#ausdruck) ist in neuen Sprachen nützlich und wird als [``Pattern-Matching``](../../../05_Glossar.md#pattern-matching) bezeichnet. -->
 
-**Wir merken uns von [Schleifen](L02.2Schleifen.md):**
+#### Wir merken uns von [Schleifen](L02.2Schleifen.md):
 >1. Bei einer [``Zählschleife``](../../../05_Glossar.md#zählschleife) *wissen wir wie oft* diese sich wiederholt und setzen es mit **for** um. 
 >2. Bei einer [``While-Schleife``](../../../05_Glossar.md#while-schleife) *wissen wir **nicht** wie oft* diese sich wiederholt und setzen es mit **while** um.
 >3. Die *runden Klammern* bei einer [``Schleife``](../../../05_Glossar.md#schleife) nennen wir den [``Schleifenkopf``](../../../05_Glossar.md#schleifenkopf).
@@ -36,7 +36,7 @@
 >9. Dem [``Befehl``](../../../05_Glossar.md#befehl) *dotnet run* können wir in beliebigen den [``Terminals``](../../../05_Glossar.md#console) unabhängig von einer [``IDE``](../../../05_Glossar.md#befehl) eingeben.
 >10. Wir verwenden den [``Befehl``](../../../05_Glossar.md#befehl) *dotnet run* um [``Emojis``](../../../05_Glossar.md#emojis) konsistenter in einem [``Terminal``](../../../05_Glossar.md#console) darstellen zu können.
 
-**Wir merken uns von [Funktionen](L01.5Funktionen.md):**
+#### Wir merken uns von [Funktionen](L01.5Funktionen.md):
 >1. [``Funktionen``](../../../05_Glossar.md#funktion) sind Werkzeuge, um unseren Code zu *strukturieren*, Aufgaben zu [``delegieren``](../../../05_Glossar.md#delegieren) und Logik *wiederverwendbar* zu machen.
 >2. Die [``Deklaration``](../../../05_Glossar.md#deklaration) einer [``Funktion``](../../../05_Glossar.md#funktion) bezeichnen wir als [``Methodenkopf``](../../../05_Glossar.md#methodenkopf). Diese macht den [``Typ``](../../../05_Glossar.md#typ) des [``Ausgangsparameters``](../../../05_Glossar.md#ausgangsparameter), sowie den *Namen* und [``Typ``](../../../05_Glossar.md#typ) der [``Eingangsparameter``](../../../05_Glossar.md#eingangsparameter) dem Compiler bekannt.
 >3. Die [``Definition``](../../../05_Glossar.md#definition) einer [``Funktion``](../../../05_Glossar.md#funktion) bezeichnen wir als [``Methodenkörper``](../../../05_Glossar.md#methodenkörper). Dies ist der [``Block``](../../../05_Glossar.md#block) `{...}`, welcher die auszuführende *Logik* inklusive Reservierung im ``Arbeitsspeicher`` enthält.

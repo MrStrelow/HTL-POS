@@ -1,4 +1,4 @@
->**Wir merken uns von [Arrays](L01.1-Arrays.md):** 
+#### Wir merken uns von [Arrays](L01.1-Arrays.md):
 >1. Ein [``Array``](../../../05_Glossar.md#array) ist eine Ansammlung von [``Werten``](../../../05_Glossar.md#wert) welche logisch zusammengehören. 
 >2. Ein einzelner [``Wert``](../../../05_Glossar.md#wert) welcher sich in einem [``Array``](../../../05_Glossar.md#array) befindet, wird [``Element``](../../../05_Glossar.md#element) genannt. 
 >3. Ein [``Array``](../../../05_Glossar.md#array) besitzt mehrere [``Indices``](../../../05_Glossar.md#index), welche uns erlauben auf eine Position zuzugreifen. 
@@ -9,7 +9,6 @@
 >8. Die y-Achse zählt von oben nach unten mit positiven Zahlen und die x-Achse mit positiven Zahlen von links nach rechts. 
 >9. Um ein [``2d-Array``](../../../05_Glossar.md#2d-array) abzuarbeiten, benötigen wir für jede [``Dimension``](../../../05_Glossar.md#dimension) eine eigene Schleife. Zusammen sind diese [``verschachtelte Schleifen``](../../../05_Glossar.md#verschachtelte-schleifen).
 >10. Wir können das [``Array``](../../../05_Glossar.md#array) mit der [``Methode``](../../../05_Glossar.md#methode) *brett.GetLength(0)* fragen wie viele [``Elemente``](../../../05_Glossar.md#element) dieses in der [``Dimension``](../../../05_Glossar.md#dimension) *0* hat. Gleiches gilt für [``Dimension``](../../../05_Glossar.md#dimension) *1* und *brett.GetLength(1)*.
-
 <!-- 
 >6. Wir greifen auf ein [``Element``](../../../05_Glossar.md#element) des [``Arrays``](../../../05_Glossar.md#array) zu indem wir eine *eckige Klammer* nach dem *Namen* der [``Variable``](../../../05_Glossar.md#variable) schreiben. >2. Wir legen ein [``Array``](../../../05_Glossar.md#array) an indem wir nach dem [``Typ``](../../../05_Glossar.md#typ) eine *eckige Klammer* schreiben.
 >3. Wenn wir wissen welche [``Werte``](../../../05_Glossar.md#wert) in ein [``Array``](../../../05_Glossar.md#array) kommen, schreiben wir nach dem [``Zuweisungsoperator``](../../../05_Glossar.md#zuweisungsoperator) *{ "Anna", "Ben" };*.
@@ -18,7 +17,7 @@
 >16. Ein [``Seiteneffekt``](../../../05_Glossar.md#seiteneffekt) beschreibt eine nicht direkt Sichtbare Änderung von [``Variablen``](../../../05_Glossar.md#variable).
  -->
 
->**Wir merken uns von [Klassen und Objekte modellieren](L01.2-KlassenUndObjekte-modellieren.md):**
+#### Wir merken uns von [Klassen und Objekte modellieren](L01.2-KlassenUndObjekte-modellieren.md):
 >1. [``UML``](../../../05_Glossar.md#uml) ist eine standardisierte grafische Sprache zur Planung und Dokumentation von Softwarestrukturen. Wir schauen uns aber **NICHT** diese Standardisierung an, sondern jene, wie [``Visual Studio``](../../../05_Glossar.md#visual-studio) ein [``Klassendiagramm``](../../../05_Glossar.md#klassendiagramm) darstellt.
 >2. Ein [``Klassendiagramm``](../../../05_Glossar.md#klassendiagramm) stellt dar, welche [``Klassen``](../../../05_Glossar.md#klasse) in unserer [``Domäne``](../../../05_Glossar.md#domäne) existieren und wie diese miteinander in *Verbindung* stehen. Weiters werden die [``Mitglieder``](../../../05_Glossar.md#mitglied) einer [``Klasse``](../../../05_Glossar.md#klasse) sichtbar gemacht.
 >3. Eine [``Klasse``](../../../05_Glossar.md#klasse) ist der Bauplan für ein [``Objekt``](../../../05_Glossar.md#objekt) und beschreibt den [``Zustand``](../../../05_Glossar.md#zustand) und das [``Verhalten``](../../../05_Glossar.md#verhalten) eines [``Objektes``](../../../05_Glossar.md#objekt).
@@ -46,14 +45,12 @@
 >24. Eine [``Klasse``](../../../05_Glossar.md#klasse) darf nur von *einer* [``Basisklasse``](../../../05_Glossar.md#basisklasse) erben, aber *beliebig viele* [``Interfaces``](../../../05_Glossar.md#interface) [``implementieren``](../../../05_Glossar.md#implementierung). -->
 
 
->**Wir merken uns von [Objekte und Klasse schreiben](L01.3-KlassenUndObjekte-programmieren.md):** 
+#### Wir merken uns von [Objekte und Klasse schreiben](L01.3-KlassenUndObjekte-programmieren.md):
 >1. Wir nutzen [``Konstruktoren``](../../../05_Glossar.md#konstruktor), um beim Erstellen mit *new* den Startzustand des [``Objekts``](../../../05_Glossar.md#objekt) festzulegen.
 >2. Wir steuern die [``Sichtbarkeit``](../../../05_Glossar.md#sichtbarkeitsmodifizierer) von [``Mitgliedern``](../../../05_Glossar.md#mitglied) mit `public`, `private` und `protected`.
 >3. Wir verstecken ``Felder`` **immer** mit `private` vor Zugriffen von außen und setzen damit *sinnvolles* [``Data Hiding``](../../../05_Glossar.md#data-hiding) um.
 >4. Wir öffnen ``Methoden`` **meistens** mit `public` und erlauben damit Zugriffe von außen.
 >5. Eine [``Eigenschaft``](../../../05_Glossar.md#eigenschaft) ist ein *Hybrid* aus [``Feld``](../../../05_Glossar.md#feld) und [``Methode``](../../../05_Glossar.md#methode).
-
-
 <!-- 
 >6. Wir greifen bei [``Eigenschaften``](../../../05_Glossar.md#eigenschaft) mit *get* und *set* auf das *autoamtisch generierte* ``backing Field`` *kontrolliert* zu, um ungültige Zustände zu verhindern und setzen damit *sinnvolles* [``Data Hiding``](../../../05_Glossar.md#data-hiding) um.
 >7. Das Zusammenfügen von zusammengehörigen Daten ([``Feldern``](../../../05_Glossar.md#feld)) und dem darauf operierenden Verhalten ([``Methoden``](../../../05_Glossar.md#methode)) zu einer logischen Einheit nennen wir [``Kapselung``](../../../05_Glossar.md#kapselung).
@@ -65,7 +62,7 @@
 >10. Der ``Zusammenhalt`` einer ``Klasse`` beschreibt, wie gut die ``Mitglieder`` innerhalb einer ``Klasse`` "logisch" bei der Erfüllung *einer einzigen Aufgabe* zusammenpassen. ``Zusammenhalt`` hoch: Eine Klasse kümmer sich *nur* um das Bewegugnsverhalten eines *Hamsters*. ``Zusammenhalt`` niedrig: Eine Klasse kümmert sich um Bewegugnsverhalten, UI, Datenbank und Logik eines *Hamsters* gleichzeitig.  
 >11. Die ``Kopplung`` eines ``Objektes`` beschreibt, wie stark verschiedene ``Objekte`` voneinander abhängen. Der *Hamser* muss umprogrammiert werden sobald sich der code der ``Plane`` ändert. Z.B. wir verwenden image 2D-Array, statt einem string 2D-Array. Beide sind gekoppelt und sind wartungsintensiver. Eine gute ``Kapselung`` verringert die ``Kopplung``. -->
 
-**Wir merken uns von [ReferenztypUndWerttyp](TODO):**
+#### Wir merken uns von [ReferenztypUndWerttyp](L01.4-Referenzen.md):
 > 1. ``Variablen`` haben folgende 4 *Eigenschaften*:
 >       1. ``Typ``: *Was* darf in die ``Variable``?
 >       2. ``Wert``: *Was* liegt in der ``Variable``?
@@ -97,5 +94,5 @@
 > 21. Wir können mit dem ``Keyword`` *out*, *in* oder *ref* einen ``Werttyp`` und *string* von der ``Werttypsemantik`` in eine ``Referenztypsemantik`` überführen.
 > 22. Wir verwenden die *try* ``Methoden`` um zwei ``Ausgabeparameter`` zu erzeugen. Einmal einen *bool*, welcher sagt ob der ``Aufruf`` funktioniert hat, und einen der das berechnete *Ergebnis* zurückgibt. Das berechnete *Ergebnis* wird als ``Eingangsparameter``, welcher durch die ``Keywords`` *out*, *in* oder *ref*, in einem ``Ausgangsparameter`` umgewandelt werden.  -->
 
->**Wir merken uns von [Eigene Datenstrukturen programmieren](L01.7-EigeneDatenstrukturen.md):** 
+#### Wir merken uns von [Eigene Datenstrukturen programmieren](L01.7-EigeneDatenstrukturen.md):
 >1. 
