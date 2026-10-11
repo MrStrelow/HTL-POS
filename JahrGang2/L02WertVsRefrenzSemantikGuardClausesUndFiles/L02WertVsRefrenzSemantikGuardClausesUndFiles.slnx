@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="Aufgabe01-GuardClause/Aufgabe01-GuardClause.csproj" />
+  <Project Path="Aufgabe02-Frachtschiff/Aufgabe02-Frachtschiff.csproj" Id="cf9efb19-b091-4cd5-9fde-58abcd41387e" />
   <Project Path="Skripten/Skripten.csproj" />
   <Project Path="SMUe/SMUe.csproj" />
   <Project Path="ZettelUebungen/ZettelUebungen.csproj" />

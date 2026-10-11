@@ -485,3 +485,21 @@ Der Vorgang, bei dem einer [``Variablen``](#variable) oder einem Speicherplatz i
 
 ### Zuweisungsoperator
 Das Gleichheitszeichen (`=`) in C#. Es nimmt den [``Wert``](#wert) auf der rechten Seite und speichert ihn in der [``Variablen``](#variable) auf der linken Seite.
+
+### Arbeitsspeicher
+Der Speicherplatz, an dem Variablen und Objekte zur Laufzeit des Programms Platz belegen. Er unterteilt sich in den schnellen Stack (Call-Stack) und den großen, flexiblen Heap (Managed-Heap).
+
+### Referenztyp
+Ein Datentyp (oft synonym zu Verweistyp), bei dem die Variable nicht den eigentlichen Wert speichert, sondern eine Speicheradresse (Referenz), die auf den physischen Speicherort der Daten im Managed-Heap verweist. 
+
+### Referenztypsemantik
+Ein Verhalten bei einer Zuweisung, bei dem lediglich die Speicheradresse (die Referenz) kopiert wird. Nach der Zuweisung verweisen beide Variablen auf denselben Ort im Arbeitsspeicher, was zu Seiteneffekten führen kann, wenn der Inhalt verändert wird.
+
+### Stackframe
+Ein Baustein auf dem Call-Stack, der für einen einzelnen Methodenaufruf reserviert wird. Er enthält die in diesem Scope gültigen Variablen und deren Werte und wird nach Beendigung des Aufrufs wieder freigegeben.
+
+### Werttyp
+Ein Datentyp, bei dem die Variable den eigentlichen Wert direkt in ihrem eigenen Speicherbereich speichert.
+
+### Werttypsemantik
+Ein Verhalten bei einer Zuweisung, bei dem der tatsächliche Inhalt (der Wert) kopiert wird. Nach der Zuweisung besitzen die Variablen völlig unabhängige Kopien der Daten.
