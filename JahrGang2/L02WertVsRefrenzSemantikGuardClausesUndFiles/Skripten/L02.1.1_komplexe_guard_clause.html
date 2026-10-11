@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C# Guard Clause Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+            color: #f8fafc;
+        }
+        .font-code {
+            font-family: 'Fira Code', monospace;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        .line-active {
+            background-color: rgba(56, 189, 248, 0.15);
+            border-left: 4px solid #38bdf8;
+        }
+        .line-remove {
+            background-color: rgba(244, 63, 94, 0.15);
+            border-left: 4px solid #f43f5e;
+        }
+        .line-add {
+            background-color: rgba(16, 185, 129, 0.15);
+            border-left: 4px solid #10b981;
+        }
+        .line-normal {
+            border-left: 4px solid transparent;
+        }
+
+        .code-container {
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <header class="bg-slate-900 border-b border-slate-800 p-4 shrink-0 flex items-center justify-between shadow-md z-20">
+        <div>
+            <h1 class="text-2xl font-bold text-sky-400 tracking-tight">Refactoring: Guard Clauses</h1>
+            <p class="text-sm text-slate-400 mt-1">Interaktive Schritt-für-Schritt Umwandlung von verschachtelten If-Anweisungen</p>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden p-4 gap-6 bg-slate-950">
+        
+        <!-- Left Panel: Verschachtelung -->
+        <section class="flex-1 bg-slate-900 rounded-xl border border-slate-700 flex flex-col overflow-hidden shadow-2xl relative">
+            <div class="bg-slate-800 py-2 px-4 border-b border-slate-700 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-rose-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+                    <span class="ml-2 text-xs font-semibold text-slate-400 uppercase tracking-widest">Ursprung: Verschachtelung</span>
+                </div>
+            </div>
+            <div id="left-code" class="code-container flex-1 overflow-y-auto p-4 font-code text-[13px] sm:text-sm leading-6">
+                <!-- Injected via JS -->
+            </div>
+        </section>
+
+        <!-- Right Panel: Guard Clauses -->
+        <section class="flex-1 bg-slate-900 rounded-xl border border-slate-700 flex flex-col overflow-hidden shadow-2xl relative">
+            <div class="bg-slate-800 py-2 px-4 border-b border-slate-700 flex justify-between items-center">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Ziel: Guard Clauses
+                </span>
+            </div>
+            <div id="right-code" class="code-container flex-1 overflow-y-auto p-4 font-code text-[13px] sm:text-sm leading-6">
+                <!-- Injected via JS -->
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-slate-900 border-t border-slate-800 shrink-0 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.3)] z-10 p-4">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 max-w-[1600px] mx-auto items-center">
+            
+            <div class="lg:col-span-3 bg-slate-800 border border-slate-700 rounded-lg p-4 shadow-inner min-h-[80px] flex flex-col justify-center">
+                <h3 class="text-xs uppercase font-bold text-sky-400 mb-1 tracking-wider">Erklärung</h3>
+                <p id="explanation-text" class="text-sm text-slate-300 leading-relaxed"></p>
+            </div>
+
+            <div class="flex flex-col items-center justify-center gap-3 lg:col-span-1">
+                <div class="flex items-center gap-3">
+                    <button id="btn-prev" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded shadow disabled:opacity-30 transition-all text-sm font-medium">
+                        &larr; Zurück
+                    </button>
+                    <div class="bg-slate-950 px-3 py-2 rounded border border-slate-700 font-code text-sm shadow-inner min-w-[70px] text-center">
+                        <span id="step-current" class="text-sky-400 font-bold"></span> / <span id="step-total" class="text-slate-400"></span>
+                    </div>
+                    <button id="btn-next" class="px-3 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded shadow-lg disabled:opacity-30 transition-all text-sm font-bold">
+                        Weiter &rarr;
+                    </button>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Syntax Highlighting Utility
+        function sh(text) {
+            let res = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            res = res.replace(/\b(if|else|return)\b/g, "<span class='text-pink-400 font-bold'>$1</span>");
+            res = res.replace(/Console\.WriteLine/g, "<span class='text-sky-300'>Console.WriteLine</span>");
+            res = res.replace(/("[^"]*")/g, "<span class='text-amber-300'>$1</span>");
+            res = res.replace(/(\/\/.*)/g, "<span class='text-slate-500 italic'>$1</span>");
+            return res;
+        }
+
+        // --- RAW CODE BLOCKS --- //
+        const L_FULL = [
+            "if (requestIsValid) {",
+            "    if (isAdmin) {",
+            "        if (18 <= age && age < 35) {",
+            "            Console.WriteLine(\"✅ Admin is processed.\");",
+            "        } else {",
+            "            Console.WriteLine(\"❌ Admin is not valid.\");",
+            "        }",
+            "    } else {",
+            "        if (registrationDate <= currentMonth) {",
+            "            Console.WriteLine(\"✅ Users is valid.\");",
+            "        } else {",
+            "            Console.WriteLine(\"❌ User is not valid.\");",
+            "        }",
+            "    }",
+            "} else {",
+            "    Console.WriteLine(\"❌ Request is not valid.\");",
+            "}"
+        ];
+
+        const L_NO_OUTER = L_FULL.slice(0, 14);
+        L_NO_OUTER.push("}");
+
+        const L_NO_USER = L_NO_OUTER.slice();
+        L_NO_USER[10] = "        }";
+        L_NO_USER.splice(11, 2);
+
+        const L_NO_ADMIN = L_NO_USER.slice();
+        L_NO_ADMIN[4] = "        }";
+        L_NO_ADMIN.splice(5, 2);
+
+        const L_MOVED = [
+            "// Block nach rechts verschoben ✅"
+        ];
+
+        // --- RIGHT CODE BLOCKS --- //
+        const R_EMPTY = [
+            "// Guards",
+            "// ❌ ungewünschte Zustände abfangen",
+            "",
+            "",
+            "// ✅ gewünschte Zustände ausführen"
+        ];
+
+        const R_GUARD1_EMPTY = [
+            "// Guards",
+            "// ❌ ungewünschte Zustände abfangen",
+            "if () {",
+            "    ",
+            "    return;",
+            "}",
+            "",
+            "// ✅ gewünschte Zustände ausführen"
+        ];
+
+        const R_GUARD1 = [
+            "// Guards",
+            "// ❌ ungewünschte Zustände abfangen",
+            "if (!requestIsValid) {",
+            "    Console.WriteLine(\"❌ Request is not valid.\");",
+            "    return;",
+            "}",
+            "",
+            "// ✅ gewünschte Zustände ausführen"
+        ];
+
+        const R_GUARD2_EMPTY = [
+            ...R_GUARD1.slice(0, 6),
+            "if () {",
+            "    ",
+            "    return;",
+            "}",
+            "",
+            "// ✅ gewünschte Zustände ausführen"
+        ];
+
+        const R_GUARD2 = [
+            ...R_GUARD1.slice(0, 6),
+            "if (!isAdmin && registrationDate > currentMonth) {",
+            "    Console.WriteLine(\"❌ User is not valid.\");",
+            "    return;",
+            "}",
+            "",
+            "// ✅ gewünschte Zustände ausführen"
+        ];
+
+        const R_GUARD3_EMPTY = [
+            ...R_GUARD2.slice(0, 10),
+            "if () {",
+            "    ",
+            "    return;",
+            "}",
+            "",
+            "// ✅ gewünschte Zustände ausführen"
+        ];
+
+        const R_GUARD3 = [
+            ...R_GUARD2.slice(0, 10),
+            "if (isAdmin && !(18 <= age && age < 35)) {",
+            "    Console.WriteLine(\"❌ Admin is not valid.\");",
+            "    return;",
+            "}",
+            "",
+            "// ✅ gewünschte Zustände ausführen"
+        ];
+
+        const R_GUARD3_NESTED = [
+            ...R_GUARD3.slice(0, 15),
+            "// ✅ gewünschte Zustände ausführen",
+            "if (requestIsValid) {",
+            "    if (isAdmin) {",
+            "        if (18 <= age && age < 35) {",
+            "            Console.WriteLine(\"✅ Admin is processed.\");",
+            "        }",
+            "    } else {",
+            "        if (registrationDate <= currentMonth) {",
+            "            Console.WriteLine(\"✅ Users is valid.\");",
+            "        }",
+            "    }",
+            "}"
+        ];
+
+        const R_FINAL = [
+            ...R_GUARD3.slice(0, 15),
+            "// ✅ gewünschte Zustände ausführen",
+            "if (isAdmin) {",
+            "    Console.WriteLine(\"✅ Admin is processed.\");",
+            "} else {",
+            "    Console.WriteLine(\"✅ Users is valid.\");",
+            "}"
+        ];
+
+        // --- ANIMATION STEPS --- //
+        const steps = [
+            { // 0
+                left: L_FULL, leftFocus: [], leftStyle: '',
+                right: R_EMPTY, rightFocus: [], rightStyle: '',
+                desc: "<strong>Ausgangszustand:</strong> Eine komplexe, verschachtelte Verzweigung. Die fehlerhaften Pfade (❌) sind tief im Code vergraben."
+            },
+            { // 1
+                left: L_FULL, leftFocus: [0, 14, 15, 16], leftStyle: 'line-remove',
+                right: R_EMPTY, rightFocus: [], rightStyle: '',
+                desc: "<strong>Schritt 1:</strong> Wir identifizieren den äußersten ❌-Zustand und markieren ihn gedanklich zur Entfernung."
+            },
+            { // 2
+                left: L_NO_OUTER, leftFocus: [], leftStyle: '',
+                right: R_GUARD1_EMPTY, rightFocus: [2, 3, 4, 5], rightStyle: 'line-add',
+                desc: "<strong>Schritt 2:</strong> Der ❌-Block wird links entfernt. Rechts bereiten wir das leere Guard-Skelett mit Early Exit (<code class='text-pink-400'>return</code>) vor."
+            },
+            { // 3
+                left: L_NO_OUTER, leftFocus: [], leftStyle: '',
+                right: R_GUARD1, rightFocus: [2, 3, 4, 5], rightStyle: 'line-active',
+                desc: "Wir negieren die Bedingung (<code class='font-code text-slate-300'>!requestIsValid</code>) und füllen den Guard mit dem Code aus der Verzweigung. Fehler 1 ist gesichert!"
+            },
+            { // 4
+                left: L_NO_OUTER, leftFocus: [8, 9, 11, 12, 13], leftStyle: 'line-remove',
+                right: R_GUARD1, rightFocus: [], rightStyle: '',
+                desc: "<strong>Schritt 3:</strong> Wir arbeiten uns in der nächsten Ebene von unten nach oben vor und markieren den ❌-Zustand des normalen Users."
+            },
+            { // 5
+                left: L_NO_USER, leftFocus: [], leftStyle: '',
+                right: R_GUARD2_EMPTY, rightFocus: [6, 7, 8, 9], rightStyle: 'line-add',
+                desc: "Der Block verschwindet links und wir bereiten rechts den nächsten Guard vor."
+            },
+            { // 6
+                left: L_NO_USER, leftFocus: [], leftStyle: '',
+                right: R_GUARD2, rightFocus: [6, 7, 8, 9], rightStyle: 'line-active',
+                desc: "Da wir im <code class='text-pink-400'>else</code> von <code class='font-code text-slate-300'>isAdmin</code> waren, müssen wir die Bedingungen verknüpfen: <code class='font-code text-slate-300'>!isAdmin && registrationDate > currentMonth</code>."
+            },
+            { // 7
+                left: L_NO_USER, leftFocus: [2, 3, 5, 6, 7], leftStyle: 'line-remove',
+                right: R_GUARD2, rightFocus: [], rightStyle: '',
+                desc: "<strong>Schritt 4:</strong> Nun identifizieren wir den letzten ❌-Zustand (Admin ist zu jung/alt)."
+            },
+            { // 8
+                left: L_NO_ADMIN, leftFocus: [], leftStyle: '',
+                right: R_GUARD3_EMPTY, rightFocus: [10, 11, 12, 13], rightStyle: 'line-add',
+                desc: "Wir entfernen ihn links. Es verbleiben links <strong>ausschließlich</strong> ✅-Zustände! Wir bereiten den finalen Guard vor."
+            },
+            { // 9
+                left: L_NO_ADMIN, leftFocus: [], leftStyle: '',
+                right: R_GUARD3, rightFocus: [10, 11, 12, 13], rightStyle: 'line-active',
+                desc: "Wir formulieren die finale Negierung: <code class='font-code text-slate-300'>isAdmin && !(18 <= age && age < 35)</code>."
+            },
+            { // 10
+                left: L_NO_ADMIN, leftFocus: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], leftStyle: 'line-active',
+                right: R_GUARD3, rightFocus: [], rightStyle: '',
+                desc: "<strong>Schritt 5:</strong> Die übrig gebliebene Struktur der gewünschten Zustände wird nun komplett markiert..."
+            },
+            { // 11
+                left: L_MOVED, leftFocus: [0], leftStyle: 'line-add',
+                right: R_GUARD3_NESTED, rightFocus: [15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25], rightStyle: 'line-add',
+                desc: "...und unverschachtelt direkt unter unsere Guards auf die rechte Seite kopiert."
+            },
+            { // 12
+                left: L_MOVED, leftFocus: [], leftStyle: '',
+                right: R_FINAL, rightFocus: [15, 16, 17, 18, 19], rightStyle: 'line-active',
+                desc: "<strong>Schritt 6:</strong> Da unsere Guards alle fehlerhaften Zustände vorab filtern, entfällt der äußere <code class='font-code text-slate-300'>requestIsValid</code>-Check völlig. Wir können den Code radikal vereinfachen. <strong>Fertig!</strong>"
+            }
+        ];
+
+        let currentStep = 0;
+
+        function renderLines(containerId, codeArray, focusArray, focusStyle) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            codeArray.forEach((lineText, index) => {
+                const isFocused = focusArray.includes(index);
+                
+                const lineDiv = document.createElement('div');
+                lineDiv.className = `flex px-2 py-0.5 rounded transition-colors duration-300 ${isFocused ? (focusStyle + ' text-slate-100') : 'line-normal text-slate-300'}`;
+                
+                const numSpan = document.createElement('span');
+                numSpan.className = 'w-8 shrink-0 text-right text-slate-600 mr-4 select-none font-code text-xs pt-1 border-r border-slate-700 pr-2';
+                numSpan.textContent = index + 1;
+                
+                const codeSpan = document.createElement('span');
+                codeSpan.className = 'whitespace-pre font-code';
+                codeSpan.innerHTML = sh(lineText);
+
+                lineDiv.appendChild(numSpan);
+                lineDiv.appendChild(codeSpan);
+                container.appendChild(lineDiv);
+            });
+        }
+
+        function render() {
+            const step = steps[currentStep];
+            
+            // Buttons und Text
+            document.getElementById('btn-prev').disabled = currentStep === 0;
+            document.getElementById('btn-next').disabled = currentStep === steps.length - 1;
+            document.getElementById('step-current').textContent = currentStep;
+            document.getElementById('step-total').textContent = steps.length - 1;
+            document.getElementById('explanation-text').innerHTML = step.desc;
+
+            // Render Code
+            renderLines('left-code', step.left, step.leftFocus, step.leftStyle);
+            renderLines('right-code', step.right, step.rightFocus, step.rightStyle);
+
+            // Sanftes Scrollen zu geänderten Bereichen
+            setTimeout(() => {
+                const activeLeft = document.querySelector('#left-code .line-active, #left-code .line-remove, #left-code .line-add');
+                if(activeLeft) activeLeft.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                const activeRight = document.querySelector('#right-code .line-active, #right-code .line-add');
+                if(activeRight) activeRight.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 50);
+        }
+
+        // Steuerung
+        document.getElementById('btn-next').addEventListener('click', () => {
+            if (currentStep < steps.length - 1) { currentStep++; render(); }
+        });
+        document.getElementById('btn-prev').addEventListener('click', () => {
+            if (currentStep > 0) { currentStep--; render(); }
+        });
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'ArrowRight') document.getElementById('btn-next').click();
+            if(e.key === 'ArrowLeft') document.getElementById('btn-prev').click();
+        });
+
+        // Init
+        render();
+    </script>
+</body>
+</html>
