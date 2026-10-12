@@ -78,9 +78,10 @@ void BeladeSchiff(string[] schiff, string prioLadung, int anzahlPrio, string sta
     throw new NotImplementedException();
 }
 
-void BehebeFehler(string[] schiff, int start, int ziel)
+void BehebeFehler(string[] schiff, int start, int ziel, int zweiterStart, int zweitesZiel)
 {
-    throw new NotImplementedException();
+    ContainerTauschen(schiff, start, ziel);
+    ContainerTauschen(schiff, zweiterStart, zweitesZiel);
 }
 ```
 
