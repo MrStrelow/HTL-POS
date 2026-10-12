@@ -3,66 +3,84 @@
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 // Ein Schiff mit 10 leeren Stellplätzen
-string[] everGiven = new string[] { "Leer", "Leer", "Leer", "Leer", "Leer", "Leer", "Leer", "Leer", "Leer", "Leer" };
+string[] frachter = new string[] { "Leer", "Leer", "Leer", "Leer", "Leer", "Leer", "Leer", "Leer", "Leer", "Leer" };
 
 Console.WriteLine("🚢 Willkommen im Ocean Array Terminal 🚢\n");
 
 // Benutzereingaben absichern
 int anzahlVorne = LeseZahlSicherEin("Wie viele Elektronik-Container sollen vorne geladen werden? ");
 int anzahlHinten = LeseZahlSicherEin("Wie viele Textil-Container sollen hinten geladen werden? ");
-int tauschA = LeseZahlSicherEin("Sicherheits-Check: Welchen Index möchtest du tauschen (A)? ");
-int tauschB = LeseZahlSicherEin("Sicherheits-Check: Welchen Index möchtest du tauschen (B)? ");
+int startIndex = LeseZahlSicherEin("A: Welcher Container soll getauscht werden (Index 0-9)? ");
+int zielIndex = LeseZahlSicherEin("A: Mit welchem Platz soll er getauscht werden (Index 0-9)? ");
+int weitererStartIndex = LeseZahlSicherEin("B: Welcher Container soll getauscht werden (Index 0-9)? ");
+int weitererZielIndex = LeseZahlSicherEin("B: Mit welchem Platz soll er getauscht werden (Index 0-9)? ");
 
 Console.WriteLine("\nLadevorgang wird berechnet...\n");
 
-// 1. Backup erstellen
-string[] backup = ErstelleBackupPlan(everGiven);
+// 1. Kopiere den Frachter, falls wir beim Beladen diesen zerstören.
+string[] backup = KopiereFrachter(frachter);
 
-// 2. Logistik-Prozess starten (Delegiert die Arbeit)
-BeladeSchiffKomplett(everGiven, "Elektronik ⚡", anzahlVorne, "Textilien 👕", anzahlHinten, tauschA, tauschB);
+// 2. Belade das Schiff für die angegebenen Gueter.
+BeladeSchiff(frachter, "⚡", anzahlVorne, "👕", anzahlHinten);
+BehebeFehler(frachter, startIndex, zielIndex, weitererStartIndex, weitererZielIndex);
 
 // 3. Kontroll-Ausgabe
-Console.WriteLine("Aktueller Ladeplan:");
-for (int i = 0; i < everGiven.Length; i++)
+Console.WriteLine("--- AKTUELLER FRACHTER-STATUS ---");
+for (int i = 0; i < frachter.Length; i++)
 {
-    Console.WriteLine($"Platz {i}: {everGiven[i]}");
+    Console.WriteLine($"Stellplatz [{i}]: {frachter[i]}");
 }
 
+// 4. Lege Frachter zusammen
+Console.WriteLine("\n--- VERBINDE SCHIFFSLADUNG TEST ---");
+VerbindeSchiffsladung(frachter, backup);
 
-// --- LOKALE FUNKTIONEN ---
+Console.WriteLine("Zweiter Frachter sieht nun so aus:");
+for (int i = 0; i < backup.Length; i++)
+{
+    Console.WriteLine($"Frachter 2 [{i}]: {backup[i]}");
+}
+
+// --- FUNKTIONEN ---
 
 int LeseZahlSicherEin(string nachricht)
 {
-    int zahl;
+    int ergebnis;
     Console.Write(nachricht);
 
-    // Die Bedingung liest die Eingabe, versucht zu parsen und negiert das Ergebnis (!).
-    // Wenn TryParse 'false' liefert (also keine gültige Zahl), läuft die Schleife.
-    while (!int.TryParse(Console.ReadLine(), out zahl))
+    // ungewuenschter Zustand: ❌ Usereingabe ist keine POSITIVE Zahl
+    while (!int.TryParse(Console.ReadLine(), out ergebnis) || ergebnis < 0)
     {
         Console.Clear();
-        Console.WriteLine("❌ Ungültige Eingabe! Bitte tippe eine ganze Zahl ein.\n");
+        Console.WriteLine("❌ Ungültige Eingabe. Bitte gib eine positive ganze Zahl ein.\n");
         Console.Write(nachricht);
     }
 
-    return zahl;
+    return ergebnis;
 }
 
-string[] ErstelleBackupPlan(string[] schiff)
+string[] KopiereFrachter(string[] schiff)
 {
     string[] kopie = new string[schiff.Length];
+
     for (int i = 0; i < schiff.Length; i++)
     {
         kopie[i] = schiff[i];
     }
-    return kopie;
 
-    // Alternativ in einer Zeile: 
-    // return (string[])schiff.Clone();
+    return kopie;
 }
 
 void ContainerTauschen(string[] schiff, int positionA, int positionB)
 {
+    // ungewuenschter Zustand: ❌ Index außerhalb des Arrays
+    if (positionA < 0 || positionA >= schiff.Length || positionB < 0 || positionB >= schiff.Length)
+    {
+        Console.WriteLine("❌ Fehler beim Tauschen: Index außerhalb des Frachters.");
+        return;
+    }
+
+    // gewuenschter Zustand: ✅
     string temp = schiff[positionA];
     schiff[positionA] = schiff[positionB];
     schiff[positionB] = temp;
@@ -70,36 +88,130 @@ void ContainerTauschen(string[] schiff, int positionA, int positionB)
 
 void AuffuellenVonVorne(string[] schiff, string ladung, int anzahl)
 {
+    // ungewuenschter Zustand: ❌ Index außerhalb des Arrays
+    if (schiff.Length < anzahl)
+    {
+        Console.WriteLine("❌ Anzahl der Container zu gross.");
+        return;
+    }
+
     for (int i = 0; i < anzahl; i++)
     {
-        if (i < schiff.Length) // Sicherheitscheck, damit wir nicht aus dem Array fallen
+        // ungewuenschter Zustand: ❌ Wir überschreiben einen bereits belegten Stellplatz!
+        if (schiff[i] != "Leer")
         {
-            schiff[i] = ladung;
+            Console.WriteLine($"❌ Abbruch: Stellplatz [{i}] darf nicht überschrieben werden! Dort befindet sich {schiff[i]}");
+            return;
         }
+        schiff[i] = ladung;
     }
 }
 
 void AuffuellenVonHinten(string[] schiff, string ladung, int anzahl)
 {
-    for (int i = 0; i < anzahl; i++)
+    // ungewuenschter Zustand: ❌ Index außerhalb des Arrays
+    if (schiff.Length < anzahl)
     {
-        int index = schiff.Length - 1 - i;
-        if (index >= 0) // Sicherheitscheck
+        Console.WriteLine("❌ Anzahl der Container zu gross.");
+        return;
+    }
+
+    for (int i = schiff.Length - 1; i >= 0; i--)
+    {
+        // ungewuenschter Zustand: ❌ Wir überschreiben einen bereits belegten Stellplatz!
+        if (schiff[i] != "Leer")
         {
-            schiff[index] = ladung;
+            Console.WriteLine($"❌ Abbruch: Stellplatz [{i}] darf nicht überschrieben werden! Dort befindet sich {schiff[i]}");
+            return;
         }
+
+        schiff[i] = ladung;
     }
 }
 
-void BeladeSchiffKomplett(string[] schiff, string prioLadung, int anzahlPrio, string standardLadung, int anzahlStandard, int tauschA, int tauschB)
+void BeladeSchiff(string[] schiff, string ladungVorne, int anzahlVorne, string ladungHinten, int anzahlHinten)
 {
-    // Die Methoden werden aufgerufen und das Original-Array 'schiff' wird jeweils übergeben und manipuliert.
-    AuffuellenVonVorne(schiff, prioLadung, anzahlPrio);
-    AuffuellenVonHinten(schiff, standardLadung, anzahlStandard);
+    AuffuellenVonVorne(schiff, ladungVorne, anzahlVorne);
+    AuffuellenVonHinten(schiff, ladungHinten, anzahlHinten);
+}
 
-    // Sicherheitscheck vor dem Tauschen
-    if (tauschA >= 0 && tauschA < schiff.Length && tauschB >= 0 && tauschB < schiff.Length)
+void BehebeFehler(string[] schiff, int start, int ziel, int zweiterStart, int zweitesZiel)
+{
+    ContainerTauschen(schiff, start, ziel);
+    ContainerTauschen(schiff, zweiterStart, zweitesZiel);
+}
+
+(int Belegt, int Frei) BerechnePlaetzeTuple(string[] schiff)
+{
+    int belegt = 0;
+    int frei = 0;
+
+    for (int i = 0; i < schiff.Length; i++)
     {
-        ContainerTauschen(schiff, tauschA, tauschB);
+        if (schiff[i] == "Leer")
+        {
+            frei++;
+        }
+        else
+        {
+            belegt++;
+        }
     }
+
+    return (belegt, frei);
+}
+
+int BerechnePlaetzeOut(string[] schiff, out int frei)
+{
+    int belegt = 0;
+    frei = 0;
+
+    for (int i = 0; i < schiff.Length; i++)
+    {
+        if (schiff[i] == "Leer")
+        {
+            frei++;
+        }
+        else
+        {
+            belegt++;
+        }
+    }
+
+    return belegt;
+}
+
+void VerbindeSchiffsladung(string[] ursprungsSchiff, string[] zielSchiff)
+{
+    //(int belegtUrsprung, int freiUrsprung) = BerechnePlaetzeTuple(ursprungsSchiff);
+    //(int belegtZiel, int freiZiel)       = BerechnePlaetzeTuple(zielSchiff);
+
+    int belegtUrsprung = BerechnePlaetzeOut(ursprungsSchiff, out int freiUrsprung);
+    int belegtZiel = BerechnePlaetzeOut(zielSchiff, out int freiZiel);
+
+    // ungewuenschter Zustand: ❌ Mehr Container auf dem Ursprünglichen Schiff als im Zielschiff frei sind.
+    if (belegtUrsprung > freiZiel)
+    {
+        Console.WriteLine($"❌ Abbruch: Das Zielschiff hat nur {freiZiel} freie Plätze, " +
+                          $"aber es sollen {belegtUrsprung} Container verladen werden.");
+        return;
+    }
+
+    // gewuenschter Zustand: ✅
+    for (int i = 0; i < ursprungsSchiff.Length; i++)
+    {
+        if (ursprungsSchiff[i] != "Leer")
+        {
+            for (int j = 0; j < zielSchiff.Length; j++)
+            {
+                if (zielSchiff[j] == "Leer")
+                {
+                    zielSchiff[j] = ursprungsSchiff[i];
+                    break; 
+                }
+            }
+        }
+    }
+
+    Console.WriteLine("✅ Schiffsladung erfolgreich kopiert!");
 }

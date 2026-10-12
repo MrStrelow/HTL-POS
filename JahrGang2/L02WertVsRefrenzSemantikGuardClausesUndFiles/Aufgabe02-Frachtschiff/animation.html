@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MS Ocean Array - Array Visualisierung (ohne Code)</title>
+    <title>MS Ocean Array - Komplett-Visualisierung</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
@@ -19,7 +19,6 @@
             color: #38bdf8; padding: 2px 8px; border-radius: 4px; font-size: 13px; font-weight: bold;
         }
         
-        /* Container Animations */
         .container-box { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .container-empty { border: 2px dashed #334155; background: transparent; }
         .container-elektronik { border: 2px solid #3b82f6; background: rgba(59, 130, 246, 0.2); box-shadow: 0 0 15px rgba(59, 130, 246, 0.4); }
@@ -28,48 +27,54 @@
         
         .ship-hull { border: 4px solid #475569; border-top: none; border-radius: 0 0 20px 20px; position: relative; }
         .ship-water { border-bottom: 2px solid #0ea5e9; position: absolute; bottom: -10px; left: -20px; right: -20px; opacity: 0.5; }
+        
+        .menu-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+        .menu-scroll::-webkit-scrollbar { display: none; }
     </style>
 </head>
 
 <body class="h-screen flex flex-col relative">
 
-    <header class="bg-slate-900 border-b border-slate-800 p-4 shrink-0 shadow-md relative z-20 flex justify-between items-center">
+    <header class="bg-slate-900 border-b border-slate-800 p-4 shrink-0 shadow-md relative z-20 flex flex-col gap-3">
         <div>
-            <h1 class="text-2xl font-bold text-sky-400 tracking-tight">MS Ocean Array (Ablauf-Visualisierung)</h1>
+            <h1 class="text-2xl font-bold text-sky-400 tracking-tight">MS Ocean Array <span class="text-slate-500 text-lg font-normal">| Alle Funktionen</span></h1>
         </div>
-        <div class="flex gap-2 bg-slate-950 p-1 rounded-lg border border-slate-800">
-            <button onclick="setMode('vorne')" id="btn-vorne" class="px-4 py-2 rounded-md text-sm font-bold bg-sky-600 text-white shadow">AuffuellenVonVorne()</button>
-            <button onclick="setMode('hinten')" id="btn-hinten" class="px-4 py-2 rounded-md text-sm font-bold text-slate-400 hover:text-white">AuffuellenVonHinten()</button>
-            <button onclick="setMode('tauschen')" id="btn-tauschen" class="px-4 py-2 rounded-md text-sm font-bold text-slate-400 hover:text-white">ContainerTauschen()</button>
+        <div class="flex gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800 overflow-x-auto menu-scroll whitespace-nowrap">
+            <button onclick="setMode('lesezahl')" id="btn-lesezahl" class="px-3 py-1.5 rounded-md text-sm font-bold text-slate-400 hover:text-white">LeseZahlSicherEin()</button>
+            <button onclick="setMode('kopieren')" id="btn-kopieren" class="px-3 py-1.5 rounded-md text-sm font-bold text-slate-400 hover:text-white">KopiereFrachter()</button>
+            <button onclick="setMode('berechnen')" id="btn-berechnen" class="px-3 py-1.5 rounded-md text-sm font-bold text-slate-400 hover:text-white">BerechnePlaetze()</button>
+            <div class="w-px bg-slate-700 mx-1"></div>
+            <button onclick="setMode('vorne')" id="btn-vorne" class="px-3 py-1.5 rounded-md text-sm font-bold bg-sky-600 text-white shadow">AuffuellenVonVorne()</button>
+            <button onclick="setMode('hinten')" id="btn-hinten" class="px-3 py-1.5 rounded-md text-sm font-bold text-slate-400 hover:text-white">AuffuellenVonHinten()</button>
+            <button onclick="setMode('beladen')" id="btn-beladen" class="px-3 py-1.5 rounded-md text-sm font-bold text-slate-400 hover:text-white">BeladeSchiff()</button>
+            <div class="w-px bg-slate-700 mx-1"></div>
+            <button onclick="setMode('tauschen')" id="btn-tauschen" class="px-3 py-1.5 rounded-md text-sm font-bold text-slate-400 hover:text-white">ContainerTauschen()</button>
+            <button onclick="setMode('beheben')" id="btn-beheben" class="px-3 py-1.5 rounded-md text-sm font-bold text-slate-400 hover:text-white">BehebeFehler()</button>
+            <div class="w-px bg-slate-700 mx-1"></div>
+            <button onclick="setMode('verbinden')" id="btn-verbinden" class="px-3 py-1.5 rounded-md text-sm font-bold text-slate-400 hover:text-white border border-sky-500/30">VerbindeSchiffsladung()</button>
         </div>
     </header>
 
     <main class="flex-1 flex flex-col lg:flex-row overflow-hidden p-6 gap-6 bg-slate-950 relative z-10 justify-center">
-        
-        <!-- Visualization Column (Centered and larger now) -->
-        <section class="flex-[2] bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl relative items-center justify-center p-8 max-w-5xl">
-            <div class="absolute top-4 left-4 text-xs font-semibold text-slate-500 uppercase tracking-widest">Visuelle Darstellung (Heap)</div>
+        <!-- Visualization Column -->
+        <section class="flex-[2] bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-y-auto shadow-2xl relative items-center justify-start p-8 max-w-5xl">
+            <div class="sticky top-0 left-0 text-xs font-semibold text-slate-500 uppercase tracking-widest bg-slate-900 w-full pb-4 z-20" id="vis-title">Visuelle Darstellung (Heap)</div>
             
-            <div class="w-full max-w-4xl mt-12">
-                <div class="flex justify-between mb-2 px-2 text-slate-500 font-code text-sm">
-                    <span>Index 0</span><span>Index 9</span>
-                </div>
-                
-                <!-- The Ship -->
-                <div class="ship-hull flex p-2 gap-2 h-40 items-end bg-slate-800/30" id="ship-container">
-                    <!-- Containers injected by JS -->
-                    <div class="ship-water"></div>
-                </div>
-                
-                <!-- Arrow Indicators -->
-                <div id="pointer-container" class="relative h-12 mt-2 w-full"></div>
+            <div id="ships-wrapper" class="w-full max-w-4xl flex flex-col gap-6 mt-4 pb-10">
+                <!-- Ships injected by JS -->
+            </div>
+            
+            <!-- Fallback for non-array functions like LeseZahl -->
+            <div id="console-wrapper" class="hidden w-full max-w-2xl bg-black rounded-lg border border-slate-700 p-4 font-code text-sm text-green-400 mt-10">
+                <div class="text-slate-400 mb-2 border-b border-slate-800 pb-2">Terminal / Konsole</div>
+                <div id="console-output" class="whitespace-pre-line leading-relaxed"></div>
             </div>
         </section>
 
         <!-- Memory Column -->
-        <section class="flex-1 bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl max-w-[400px]">
+        <section class="flex-1 bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl max-w-[400px] shrink-0">
             <div class="bg-slate-950 py-3 px-4 border-b border-slate-800">
-                <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Call Stack (Lokale Variablen)</span>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Call Stack (Variablen)</span>
             </div>
             <div id="stack-container" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3"></div>
         </section>
@@ -78,7 +83,7 @@
     <footer class="bg-slate-900 border-t border-slate-800 shrink-0 relative z-20 p-4">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 max-w-7xl mx-auto items-center">
             <div class="lg:col-span-2 bg-slate-950 border border-slate-800 rounded-lg p-4 min-h-[90px] flex flex-col justify-center">
-                <h3 class="text-xs uppercase font-bold text-sky-400 mb-1 tracking-wider">Erklärung</h3>
+                <h3 class="text-xs uppercase font-bold text-sky-400 mb-1 tracking-wider" id="step-title">Erklärung</h3>
                 <p id="explanation-text" class="text-base text-slate-300 leading-relaxed"></p>
             </div>
             <div class="flex items-center justify-center gap-3">
@@ -92,51 +97,143 @@
     </footer>
 
     <script>
-        const ARRAY_SIZE = 10;
         const VAL_E = "Elektronik";
         const VAL_T = "Textilien";
         const VAL_L = "Leer";
 
-        // Szenarien ohne Code-Referenzen
         const scenarios = {
+            'lesezahl': {
+                showConsole: true,
+                steps: [
+                    { console: "Warte auf Benutzereingabe...", stack: { "nachricht": "Wie viele?", "ergebnis": "0 (default)", "input": "???" }, desc: "Das Programm betritt die Endlosschleife und wartet auf eine Eingabe des Benutzers via <code>Console.ReadLine()</code>." },
+                    { console: "Eingabe: 'Hallo Welt'", stack: { "nachricht": "Wie viele?", "ergebnis": "0", "input": "\"Hallo Welt\"" }, desc: "Der User gibt Text ein. <code>int.TryParse</code> schlägt fehl (gibt false zurück)." },
+                    { console: "❌ Ungültige Eingabe. Bitte gib eine positive ganze Zahl ein.\n\nWarte auf Benutzereingabe...", stack: { "nachricht": "Wie viele?", "ergebnis": "0", "input": "???" }, desc: "Die Bedingung der while-Schleife ist erfüllt. Die Fehlermeldung wird gedruckt und die Schleife startet von vorn." },
+                    { console: "Eingabe: '-5'", stack: { "nachricht": "Wie viele?", "ergebnis": "-5", "input": "\"-5\"" }, desc: "Der User gibt eine negative Zahl ein. <code>int.TryParse</code> klappt zwar, aber die ODER-Bedingung <code>ergebnis < 0</code> greift!" },
+                    { console: "❌ Ungültige Eingabe. Bitte gib eine positive ganze Zahl ein.\n\nWarte auf Benutzereingabe...", stack: { "nachricht": "Wie viele?", "ergebnis": "-5", "input": "???" }, desc: "Wieder greift unsere Absicherung. Die Schleife läuft erneut." },
+                    { console: "Eingabe: '3'", stack: { "nachricht": "Wie viele?", "ergebnis": "3", "input": "\"3\"" }, desc: "Gültige Eingabe! <code>TryParse</code> ist true UND <code>ergebnis < 0</code> ist false. Die while-Schleife wird beendet und 3 zurückgegeben!" }
+                ]
+            },
+            'kopieren': {
+                steps: [
+                    { arr: [VAL_E, VAL_T, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], stack: {}, pointer: -1, desc: "Die Methode <code>KopiereFrachter</code> wird aufgerufen. Ziel ist ein komplett eigenständiges Backup des Arrays." },
+                    { arr: [VAL_E, VAL_T, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], arr2: [VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L], stack: { "kopie": "new string[10]" }, pointer: -1, pointerArr2: -1, desc: "Mit dem <code>new</code> Keyword wird ein brandneues, leeres Array im Speicher (Heap) reserviert." },
+                    { arr: [VAL_E, VAL_T, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], arr2: [VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L], stack: { "i": 0 }, pointer: 0, pointerArr2: 0, desc: "Schleife i=0: <code>kopie[0] = schiff[0]</code>. Die Elektronik wird kopiert." },
+                    { arr: [VAL_E, VAL_T, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], arr2: [VAL_E,VAL_T,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L], stack: { "i": 1 }, pointer: 1, pointerArr2: 1, desc: "Schleife i=1: <code>kopie[1] = schiff[1]</code>. Die Textilien werden kopiert." },
+                    { arr: [VAL_E, VAL_T, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], arr2: [VAL_E,VAL_T,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L], stack: { "i": "..." }, pointer: -1, pointerArr2: -1, desc: "Das geht so weiter für alle 10 Plätze. Am Ende wird die Referenz auf das neue <code>kopie</code>-Array zurückgegeben." }
+                ]
+            },
+            'berechnen': {
+                steps: [
+                    { arr: [VAL_E, VAL_L, VAL_T, VAL_T, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], stack: { "belegt": 0, "frei": 0 }, pointer: -1, desc: "Wir wollen die Anzahl der belegten und freien Plätze berechnen, z.B. für ein <code>out</code>-Parameter oder <code>Tuple</code>." },
+                    { arr: [VAL_E, VAL_L, VAL_T, VAL_T, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], stack: { "i": 0, "belegt": 1, "frei": 0 }, pointer: 0, desc: "Index 0 ist 'Elektronik' (nicht 'Leer'). <code>belegt</code> wird um 1 erhöht." },
+                    { arr: [VAL_E, VAL_L, VAL_T, VAL_T, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], stack: { "i": 1, "belegt": 1, "frei": 1 }, pointer: 1, desc: "Index 1 ist 'Leer'. <code>frei</code> wird um 1 erhöht." },
+                    { arr: [VAL_E, VAL_L, VAL_T, VAL_T, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], stack: { "i": 2, "belegt": 2, "frei": 1 }, pointer: 2, desc: "Index 2 ist 'Textilien'. <code>belegt</code> wird um 1 erhöht." },
+                    { arr: [VAL_E, VAL_L, VAL_T, VAL_T, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], stack: { "i": 9, "belegt": 3, "frei": 7 }, pointer: 9, desc: "Nachdem die Schleife das ganze Array abgelaufen ist, haben wir das exakte Ergebnis: 3 belegt, 7 frei." }
+                ]
+            },
             'vorne': {
                 steps: [
-                    { arr: [VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L], stack: { "ladung": VAL_E, "anzahl": 3 }, pointer: -1, desc: "Die Methode wird aufgerufen. Wir wollen 3 Elektronik-Container von vorne einladen." },
-                    { arr: [VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L], stack: { "ladung": VAL_E, "anzahl": 3, "i": 0 }, pointer: 0, desc: "Die Schleife startet. Laufvariable <code>i = 0</code>. Prüfung: Ist 0 < 3? Ja." },
-                    { arr: [VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L], stack: { "ladung": VAL_E, "anzahl": 3, "i": 0 }, pointer: 0, desc: "Der erste Container wird an Index 0 platziert." },
-                    { arr: [VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L], stack: { "ladung": VAL_E, "anzahl": 3, "i": 1 }, pointer: 1, desc: "Laufvariable <code>i</code> wird um 1 erhöht (i++). Prüfung: Ist 1 < 3? Ja." },
-                    { arr: [VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L], stack: { "ladung": VAL_E, "anzahl": 3, "i": 1 }, pointer: 1, desc: "Der zweite Container wird an Index 1 platziert." },
-                    { arr: [VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L], stack: { "ladung": VAL_E, "anzahl": 3, "i": 2 }, pointer: 2, desc: "Laufvariable <code>i</code> wird auf 2 erhöht. Prüfung: Ist 2 < 3? Ja." },
-                    { arr: [VAL_E,VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L], stack: { "ladung": VAL_E, "anzahl": 3, "i": 2 }, pointer: 2, desc: "Der dritte Container wird an Index 2 verladen." },
-                    { arr: [VAL_E,VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L], stack: { "ladung": VAL_E, "anzahl": 3, "i": 3 }, pointer: -1, desc: "Laufvariable <code>i</code> wird auf 3 erhöht. Prüfung: Ist 3 < 3? Nein. Die Schleife bricht ab." },
-                    { arr: [VAL_E,VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L], stack: {}, pointer: -1, desc: "Methode beendet. Das Array im Heap wurde erfolgreich verändert!" }
+                    { arr: [VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L], stack: { "ladung": VAL_E, "anzahl": 2 }, pointer: -1, desc: "Aufruf von <code>AuffuellenVonVorne</code> mit 2 Elektronik-Containern." },
+                    { arr: [VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L], stack: { "ladung": VAL_E, "anzahl": 2, "i": 0 }, pointer: 0, desc: "Schleife platziert ersten Container an Index 0." },
+                    { arr: [VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L], stack: { "ladung": VAL_E, "anzahl": 2, "i": 1 }, pointer: 1, desc: "Schleife platziert zweiten Container an Index 1. Fertig." }
                 ]
             },
             'hinten': {
                 steps: [
-                    { arr: [VAL_E,VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L], stack: { "ladung": VAL_T, "anzahl": 2 }, pointer: -1, desc: "Wir laden 2 Textil-Container von hinten ein. Das Array hat bereits Inhalt." },
-                    { arr: [VAL_E,VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L], stack: { "ladung": VAL_T, "anzahl": 2, "i": 0 }, pointer: -1, desc: "Schleife startet mit <code>i = 0</code>." },
-                    { arr: [VAL_E,VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L], stack: { "ladung": VAL_T, "anzahl": 2, "i": 0, "index": 9 }, pointer: 9, desc: "Berechnung: Länge (10) - 1 - i (0) = Index 9. Zeiger springt ganz nach hinten." },
-                    { arr: [VAL_E,VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_T], stack: { "ladung": VAL_T, "anzahl": 2, "i": 0, "index": 9 }, pointer: 9, desc: "Zuweisung des Textil-Containers an Index 9." },
-                    { arr: [VAL_E,VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_T], stack: { "ladung": VAL_T, "anzahl": 2, "i": 1 }, pointer: -1, desc: "<code>i</code> wird 1. 1 < 2 ist wahr." },
-                    { arr: [VAL_E,VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_T], stack: { "ladung": VAL_T, "anzahl": 2, "i": 1, "index": 8 }, pointer: 8, desc: "Berechnung: Länge (10) - 1 - i (1) = Index 8." },
-                    { arr: [VAL_E,VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_T,VAL_T], stack: { "ladung": VAL_T, "anzahl": 2, "i": 1, "index": 8 }, pointer: 8, desc: "Zuweisung des Textil-Containers an Index 8." },
-                    { arr: [VAL_E,VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_T,VAL_T], stack: { "ladung": VAL_T, "anzahl": 2, "i": 2 }, pointer: -1, desc: "<code>i</code> wird 2. 2 < 2 ist falsch. Abbruch." },
-                    { arr: [VAL_E,VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_T,VAL_T], stack: {}, pointer: -1, desc: "Methode beendet." }
+                    { arr: [VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L], stack: { "ladung": VAL_T, "anzahl": 2 }, pointer: -1, desc: "Aufruf von <code>AuffuellenVonHinten</code>. Wir fangen ganz hinten an." },
+                    { arr: [VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_T], stack: { "ladung": VAL_T, "anzahl": 2, "i": "9 (Length-1)" }, pointer: 9, desc: "Rückwärts-Schleife: Platz 9 bekommt Textilien." },
+                    { arr: [VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_T,VAL_T], stack: { "ladung": VAL_T, "anzahl": 2, "i": 8 }, pointer: 8, desc: "Platz 8 bekommt Textilien. Fertig." }
+                ]
+            },
+            'beladen': {
+                steps: [
+                    { arr: [VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L], stack: {}, pointer: -1, desc: "Die Komfort-Funktion <code>BeladeSchiff</code> delegiert die Arbeit einfach an unsere anderen Funktionen." },
+                    { arr: [VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L], stack: { "Call": "AuffuellenVonVorne" }, pointer: -1, desc: "Zuerst wird <code>AuffuellenVonVorne(2)</code> ausgeführt..." },
+                    { arr: [VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_T], stack: { "Call": "AuffuellenVonHinten" }, pointer: -1, desc: "...und direkt danach <code>AuffuellenVonHinten(1)</code>. Der Code bleibt extrem übersichtlich!" }
                 ]
             },
             'tauschen': {
                 steps: [
-                    { arr: [VAL_E,VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_T,VAL_T], stack: { "posA": 0, "posB": 8 }, pointer: -1, p2: -1, desc: "Wir wollen den Container an Index 0 mit Index 8 tauschen." },
-                    { arr: [VAL_E,VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_T,VAL_T], stack: { "posA": 0, "posB": 8, "temp": VAL_E }, pointer: 0, p2: -1, desc: "WICHTIG: Wir speichern den Wert von Index 0 zuerst in einer temporären Variable <code>temp</code>, sonst geht er beim Überschreiben verloren!" },
-                    { arr: [VAL_T,VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_T,VAL_T], stack: { "posA": 0, "posB": 8, "temp": VAL_E }, pointer: 0, p2: 8, desc: "Jetzt überschreiben wir Index 0 mit dem Wert von Index 8. Pos 0 ist nun Textilien." },
-                    { arr: [VAL_T,VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_E,VAL_T], stack: { "posA": 0, "posB": 8, "temp": VAL_E }, pointer: 8, p2: -1, desc: "Zum Schluss holen wir den geretteten Wert aus <code>temp</code> und schreiben ihn in Index 8. Tausch vollendet!" },
-                    { arr: [VAL_T,VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_E,VAL_T], stack: {}, pointer: -1, p2: -1, desc: "Methode beendet." }
+                    { arr: [VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_T], stack: { "posA": 0, "posB": 9 }, pointer: -1, p2: -1, desc: "Wir wollen den Container an Index 0 mit Index 9 tauschen." },
+                    { arr: [VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_T], stack: { "posA": 0, "posB": 9, "temp": VAL_E }, pointer: 0, p2: -1, desc: "Wir speichern den Wert von Index 0 zuerst in der temporären Variable <code>temp</code>." },
+                    { arr: [VAL_T,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_T], stack: { "posA": 0, "posB": 9, "temp": VAL_E }, pointer: 0, p2: 9, desc: "Jetzt überschreiben wir Index 0 mit dem Wert von Index 9." },
+                    { arr: [VAL_T,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_E], stack: { "posA": 0, "posB": 9, "temp": VAL_E }, pointer: 9, p2: -1, desc: "Zuletzt schreiben wir das gerettete <code>temp</code> in Index 9. Tausch vollendet!" }
+                ]
+            },
+            'beheben': {
+                steps: [
+                    { arr: [VAL_E,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_T,VAL_T], stack: { "start": 0, "ziel": 9, "start2": 1, "ziel2": 8 }, pointer: -1, desc: "<code>BehebeFehler</code> ruft einfach zweimal <code>ContainerTauschen</code> hintereinander auf." },
+                    { arr: [VAL_T,VAL_E,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_T,VAL_E], stack: { "Call 1": "ContainerTauschen(0, 9)" }, pointer: 0, p2: 9, desc: "Erster Tausch: Index 0 und 9." },
+                    { arr: [VAL_T,VAL_T,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_L,VAL_E,VAL_E], stack: { "Call 2": "ContainerTauschen(1, 8)" }, pointer: 1, p2: 8, desc: "Zweiter Tausch: Index 1 und 8. Alles behoben!" }
+                ]
+            },
+            'verbinden': {
+                steps: [
+                    { 
+                        arr: [VAL_E, VAL_L, VAL_T, VAL_L, VAL_E, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], 
+                        arr2: [VAL_T, VAL_L, VAL_E, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], 
+                        stack: {}, pointer: -1, pointerArr2: -1, 
+                        desc: "Hier ist unser <b>komplexes Schiff mit Lücken</b>! Das Quell-Schiff (oben) hat Fracht verstreut. Das Ziel-Schiff (unten) ist teilweise belegt." 
+                    },
+                    { 
+                        arr: [VAL_E, VAL_L, VAL_T, VAL_L, VAL_E, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], 
+                        arr2: [VAL_T, VAL_L, VAL_E, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], 
+                        stack: { "i": 0 }, pointer: 0, pointerArr2: -1, 
+                        desc: "Die äußere Schleife (i) startet. <code>quellSchiff[0]</code> enthält Elektronik. Wir suchen einen Platz." 
+                    },
+                    { 
+                        arr: [VAL_E, VAL_L, VAL_T, VAL_L, VAL_E, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], 
+                        arr2: [VAL_T, VAL_L, VAL_E, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], 
+                        stack: { "i": 0, "j": 0 }, pointer: 0, pointerArr2: 0, 
+                        desc: "Innere Schleife (j). <code>zielSchiff[0]</code> ist leider belegt (Textilien)." 
+                    },
+                    { 
+                        arr: [VAL_E, VAL_L, VAL_T, VAL_L, VAL_E, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], 
+                        arr2: [VAL_T, VAL_E, VAL_E, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], 
+                        stack: { "i": 0, "j": 1 }, pointer: 0, pointerArr2: 1, 
+                        desc: "<code>zielSchiff[1]</code> ist 'Leer'! Wir kopieren die Elektronik rüber und feuern das <code>break</code> Keyword, um die innere Schleife (j) sofort zu beenden." 
+                    },
+                    { 
+                        arr: [VAL_E, VAL_L, VAL_T, VAL_L, VAL_E, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], 
+                        arr2: [VAL_T, VAL_E, VAL_E, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], 
+                        stack: { "i": 1 }, pointer: 1, pointerArr2: -1, 
+                        desc: "Die äußere Schleife rückt vor auf i=1. Hier ist eine <b>Lücke</b> im Quell-Schiff ('Leer'). Das if-Statement ignoriert diesen Platz. Die innere Schleife startet gar nicht erst!" 
+                    },
+                    { 
+                        arr: [VAL_E, VAL_L, VAL_T, VAL_L, VAL_E, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], 
+                        arr2: [VAL_T, VAL_E, VAL_E, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], 
+                        stack: { "i": 2, "j": 0 }, pointer: 2, pointerArr2: 0, 
+                        desc: "i=2 ist Textilien. Innere Schleife sucht... j=0 ist belegt..." 
+                    },
+                    { 
+                        arr: [VAL_E, VAL_L, VAL_T, VAL_L, VAL_E, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], 
+                        arr2: [VAL_T, VAL_E, VAL_E, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], 
+                        stack: { "i": 2, "j": 2 }, pointer: 2, pointerArr2: 2, 
+                        desc: "j=1 ist belegt... j=2 ist belegt..." 
+                    },
+                    { 
+                        arr: [VAL_E, VAL_L, VAL_T, VAL_L, VAL_E, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], 
+                        arr2: [VAL_T, VAL_E, VAL_E, VAL_T, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], 
+                        stack: { "i": 2, "j": 3 }, pointer: 2, pointerArr2: 3, 
+                        desc: "j=3 ist 'Leer'! Wir kopieren die Textilien auf Platz 3 und lösen <code>break</code> aus." 
+                    },
+                    { 
+                        arr: [VAL_E, VAL_L, VAL_T, VAL_L, VAL_E, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], 
+                        arr2: [VAL_T, VAL_E, VAL_E, VAL_T, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], 
+                        stack: { "i": 3 }, pointer: 3, pointerArr2: -1, 
+                        desc: "i=3 ist wieder eine Lücke. Wird übersprungen." 
+                    },
+                    { 
+                        arr: [VAL_E, VAL_L, VAL_T, VAL_L, VAL_E, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], 
+                        arr2: [VAL_T, VAL_E, VAL_E, VAL_T, VAL_E, VAL_L, VAL_L, VAL_L, VAL_L, VAL_L], 
+                        stack: { "i": 4, "j": 4 }, pointer: 4, pointerArr2: 4, 
+                        desc: "i=4 ist Elektronik. Die innere Schleife sucht ab j=0 und findet schließlich bei j=4 den ersten freien Platz. Kopiert! Break!" 
+                    }
                 ]
             }
         };
 
-        let currentMode = 'vorne';
+        let currentMode = 'verbinden';
         let currentStep = 0;
 
         function setMode(mode) {
@@ -144,63 +241,96 @@
             currentStep = 0;
             
             document.querySelectorAll('header button').forEach(b => {
-                b.className = "px-4 py-2 rounded-md text-sm font-bold text-slate-400 hover:text-white";
+                b.className = "px-3 py-1.5 rounded-md text-sm font-bold text-slate-400 hover:text-white";
+                if(b.id === 'btn-verbinden') b.className += " border border-sky-500/30";
             });
-            document.getElementById(`btn-${mode}`).className = "px-4 py-2 rounded-md text-sm font-bold bg-sky-600 text-white shadow";
+            let activeBtn = document.getElementById(`btn-${mode}`);
+            activeBtn.className = "px-3 py-1.5 rounded-md text-sm font-bold bg-sky-600 text-white shadow";
             
             render();
+        }
+
+        function buildShipHTML(arr, ptr1, ptr2, title) {
+            if(!arr) return '';
+            let shipHtml = `<div class="relative w-full mt-4">
+                <div class="absolute -top-6 left-1 text-xs font-bold text-sky-300 uppercase tracking-widest bg-slate-900 px-2 rounded-t-md border-b border-sky-500/30">${title}</div>
+                <div class="flex justify-between mb-1 px-2 text-slate-500 font-code text-[10px]">
+                    <span>Index 0</span><span>Index 9</span>
+                </div>
+                <div class="ship-hull flex p-2 gap-2 h-28 items-end bg-slate-800/30">`;
+                
+            let ptrHtml = `<div class="relative h-12 mt-1 w-full">`;
+            
+            arr.forEach((val, idx) => {
+                let boxClass = 'container-empty';
+                let content = '';
+                if(val === VAL_E) { boxClass = 'container-elektronik'; content = '⚡'; }
+                if(val === VAL_T) { boxClass = 'container-textil'; content = '👕'; }
+                
+                let highlight = (ptr1 === idx || ptr2 === idx) ? 'ring-2 ring-sky-400 transform -translate-y-2' : '';
+                
+                shipHtml += `<div class="flex-1 flex flex-col justify-end h-full relative">
+                    <div class="w-full aspect-square rounded-sm container-box ${boxClass} ${highlight} flex items-center justify-center text-xl sm:text-2xl relative z-10">
+                        ${content}
+                    </div>
+                </div>`;
+                
+                if (ptr1 === idx || ptr2 === idx) {
+                    const leftPercent = (idx / 10) * 100 + 5;
+                    ptrHtml += `<div class="absolute text-sky-400 font-bold flex flex-col items-center" style="left: calc(${leftPercent}% - 14px); width: 28px;">
+                        <svg class="w-5 h-5 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+                        <span class="text-[10px] bg-slate-900 px-1 rounded border border-sky-400 font-code">Idx ${idx}</span>
+                    </div>`;
+                }
+            });
+            
+            shipHtml += `<div class="ship-water"></div></div>`;
+            ptrHtml += `</div></div>`;
+            
+            return shipHtml + ptrHtml;
         }
 
         function render() {
             const sc = scenarios[currentMode];
             const step = sc.steps[currentStep];
             
-            // UI States
             document.getElementById('btn-prev').disabled = currentStep === 0;
             document.getElementById('btn-next').disabled = currentStep === sc.steps.length - 1;
             document.getElementById('step-current').textContent = currentStep + 1;
             document.getElementById('step-total').textContent = sc.steps.length;
             document.getElementById('explanation-text').innerHTML = step.desc;
 
-            // Stack (Memory)
+            // Stack
             const stackHtml = Object.keys(step.stack).map(k => {
                 return `<div class="flex justify-between items-center bg-slate-800/80 px-4 py-3 rounded border border-slate-700">
                     <span class="font-code text-slate-300">${k}</span>
                     <span class="val-badge">${step.stack[k]}</span>
                 </div>`;
             }).join('') || '<div class="text-slate-500 text-sm italic p-2">Keine lokalen Variablen</div>';
-            document.getElementById('stack-container').innerHTML = `<div class="font-bold text-sky-300 mb-2">schiff <span class="text-slate-500 font-normal text-sm">&rarr; [Array auf Heap]</span></div>` + stackHtml;
+            
+            document.getElementById('stack-container').innerHTML = `<div class="font-bold text-sky-300 mb-2">Lokale Variablen / Heap</div>` + stackHtml;
 
-            // Array Visuals (Ship)
-            let shipHtml = '';
-            let pointersHtml = '';
+            // Handle Console vs Array UI
+            const wrapper = document.getElementById('ships-wrapper');
+            const consoleWrapper = document.getElementById('console-wrapper');
             
-            step.arr.forEach((val, idx) => {
-                let boxClass = 'container-empty';
-                let content = '';
-                if(val === VAL_E) { boxClass = 'container-elektronik'; content = '⚡'; }
-                if(val === VAL_T) { boxClass = 'container-textil'; content = '👕'; }
+            if (sc.showConsole) {
+                wrapper.classList.add('hidden');
+                consoleWrapper.classList.remove('hidden');
+                document.getElementById('vis-title').textContent = "Konsolen-Simulation";
+                document.getElementById('console-output').textContent = step.console;
+            } else {
+                consoleWrapper.classList.add('hidden');
+                wrapper.classList.remove('hidden');
+                document.getElementById('vis-title').textContent = "Visuelle Darstellung (Heap)";
                 
-                let highlight = (step.pointer === idx || step.p2 === idx) ? 'ring-2 ring-sky-400 transform -translate-y-2' : '';
-                
-                shipHtml += `
-                    <div class="flex-1 flex flex-col justify-end h-full relative">
-                        <div class="w-full aspect-square rounded-sm container-box ${boxClass} ${highlight} flex items-center justify-center text-2xl relative z-10">
-                            ${content}
-                        </div>
-                    </div>`;
-                    
-                if (step.pointer === idx || step.p2 === idx) {
-                    const leftPercent = (idx / 10) * 100 + 5;
-                    pointersHtml += `<div class="absolute text-sky-400 font-bold flex flex-col items-center" style="left: calc(${leftPercent}% - 10px);">
-                        <svg class="w-6 h-6 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
-                        <span class="text-xs bg-slate-900 px-1 rounded border border-sky-400 font-code">Index ${idx}</span>
-                    </div>`;
+                let wrapperHtml = buildShipHTML(step.arr, step.pointer, step.p2, step.arr2 ? "Quell-Schiff (quellSchiff)" : "Frachter (schiff)");
+                if (step.arr2) {
+                    wrapperHtml += `<div class="w-full flex justify-center py-2"><svg class="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg></div>`;
+                    wrapperHtml += buildShipHTML(step.arr2, step.pointerArr2, -1, "Ziel-Schiff (zielSchiff)");
                 }
-            });
-            
-            document.getElementById('ship-container').innerHTML = shipHtml + '<div class="ship-water"></div>';
-            document.getElementById('pointer-container').innerHTML = pointersHtml;
+                wrapper.innerHTML = wrapperHtml;
+            }
         }
 
         document.getElementById('btn-next').addEventListener('click', () => {
@@ -214,8 +344,8 @@
             if(e.key === 'ArrowLeft') document.getElementById('btn-prev').click();
         });
 
-        // Initialize
-        render();
+        // Initialize with Verbinden (most complex)
+        setMode('verbinden');
     </script>
 </body>
 </html>
