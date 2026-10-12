@@ -1,113 +1,185 @@
 ﻿public class SinglyLinkedList
 {
-    public Node Head { get; private set; }
-    public Node Tail { get; private set; }
+    public Node? Head { get; private set; }
+    public Node? Tail { get; private set; }
+    public int Count { get; private set; }
+
+    public void AddFirst(int value)
+    {
+        Node node = new Node(value);
+
+        // ungewuenschter Zustand ❌
+        if (Head == null && Tail == null)
+        {
+            Head = node;
+            Tail = node;
+        }
+         
+        // gewuenschter Zustand ✅
+        if (Tail != null && Head != null) 
+        {
+            node.Next = Head;
+            Head = node;
+        }
+
+        Count++;
+    }
+
+    public void AddLast(int value)
+    {
+        Node node = new Node(value);
+
+        // ungewuenschter Zustand ❌
+        if (Tail == null && Head == null)
+        {
+            Tail = node;
+            Head = node;
+        }
+
+        // gewuenschter Zustand ✅
+        if (Tail != null && Head != null)
+        {
+            Tail.Next = node;
+            Tail = node;
+        }
+
+        Count++;
+    }
+
+    public void Insert(int position, int value)
+    {
+        // Guard: ungewuenschter Zustand ❌ 
+        if (position < 0 || position > Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(position), "Ungültige Position zum Einfügen.");
+        }
+
+
+        // Regulärer gewünschter Zustand ✅
+        if (position == 0)
+        {
+            AddFirst(value);
+            return;
+        }
+
+        if (position == Count)
+        {
+            AddLast(value);
+            return;
+        }
+
+        Node prev = GetNodeAt(position - 1);
+
+        Node newNode = new Node(value);
+        newNode.Next = prev.Next;
+        prev.Next = newNode;
+
+        Count++;
+    }
 
     public int RemoveFirst()
     {
-        if (Head == null) throw new InvalidOperationException("Liste ist leer.");
+        // ungewuenschter Zustand ❌
+        if (Head == null) 
+        {
+            throw new InvalidOperationException("Liste ist leer.");
+        }
         
+        // gewuenschter Zustand ✅
         int value = Head.Value;
         Head = Head.Next;
         
-        if (Head == null) Tail = null; // Liste ist nun leer
+        if (Head == null) 
+        {
+            Tail = null; 
+        }
         
+        Count--;
         return value;
     }
 
     public int RemoveLast()
     {
-        if (Head == null) throw new InvalidOperationException("Liste ist leer.");
+        // ungewuenschter Zustand ❌
+        if (Head == null || Tail == null) 
+        {
+            throw new InvalidOperationException("Liste ist leer.");
+        }
         
+        // gewuenschter Zustand ✅ (Sonderfall: nur ein Element)
         int value = Tail.Value;
         
         if (Head == Tail) 
         {
             Head = null;
             Tail = null;
+            Count--;
             return value;
         }
 
+        // Regulärer gewuenschter Zustand ✅
         Node curr = Head;
         while (curr.Next != Tail)
         {
-            curr = curr.Next;
+            curr = curr.Next!;
         }
         
         curr.Next = null;
         Tail = curr;
         
+        Count--;
         return value;
     }
 
     public int Remove(int position)
     {
-        if (position < 0 || Head == null) throw new ArgumentOutOfRangeException();
-        if (position == 0) return RemoveFirst();
-
-        Node curr = Head;
-        for (int i = 0; i < position - 1; i++)
+        if (position == 0) 
         {
-            if (curr.Next == null) throw new ArgumentOutOfRangeException();
-            curr = curr.Next;
+            return RemoveFirst();
         }
 
-        if (curr.Next == null) throw new ArgumentOutOfRangeException();
+        if (position == Count - 1) 
+        {
+            return RemoveLast();
+        }
 
-        int value = curr.Next.Value;
-        curr.Next = curr.Next.Next;
+        // Bei einer SinglyLinkedList brauchen wir für Remove den KNOTEN DAVOR
+        Node prev = GetNodeAt(position - 1);
 
-        if (curr.Next == null) Tail = curr; // Tail updaten, falls letztes Element gelöscht wurde
+        // ungewuenschter Zustand ❌
+        var curr = prev.Next ?? throw new InvalidOperationException("Knoten ist null.");
+        
+        // gewuenschter Zustand ✅
+        int value = curr.Value;
+        prev.Next = curr.Next;
 
+        Count--;
         return value;
     }
 
     public int Find(int value)
     {
-        Node curr = Head;
-        int index = 0;
-        
-        while (curr != null)
+        if (TryFind(value, out int index))
         {
-            if (curr.Value == value) return index;
-            curr = curr.Next;
-            index++;
+            return index;
         }
-        
-        return -1;
+    
+        throw new InvalidOperationException("Wert nicht gefunden.");
     }
 
     public int Get(int position)
     {
-        if (position < 0 || Head == null) throw new ArgumentOutOfRangeException();
-        
-        Node curr = Head;
-        for (int i = 0; i < position; i++)
-        {
-            curr = curr.Next;
-            if (curr == null) throw new ArgumentOutOfRangeException();
-        }
-        
-        return curr.Value;
+        return GetNodeAt(position).Value;
     }
 
     public bool Contains(int value)
     {
-        return Find(value) != -1;
+        return TryFind(value, out _);
     }
 
-    // Hinweis: Ein neuer Wert (newValue) muss übergeben werden, um upzudaten.
     public int Update(int position, int newValue)
     {
-        if (position < 0 || Head == null) throw new ArgumentOutOfRangeException();
-        
-        Node curr = Head;
-        for (int i = 0; i < position; i++)
-        {
-            curr = curr.Next;
-            if (curr == null) throw new ArgumentOutOfRangeException();
-        }
-        
+        Node curr = GetNodeAt(position);
         int oldValue = curr.Value;
         curr.Value = newValue;
         return oldValue;
@@ -117,18 +189,58 @@
     {
         if (Head == null || Head.Next == null) return false;
 
-        Node slow = Head;
-        Node fast = Head;
+        Node? slow = Head;
+        Node? fast = Head;
 
-        // Prüft ausschließlich die Vorwärtsrichtung (Next)
-        while (fast != null && fast.Next != null)
+        while (fast != null && fast.Next != null && slow != null && slow.Next != null)
         {
             slow = slow.Next;
             fast = fast.Next.Next;
 
-            if (slow == fast) return true;
+            if (slow == fast) 
+            {
+                return true;
+            }
         }
 
+        return false;
+    }
+
+    // private Hilfsmethode
+    private Node GetNodeAt(int position)
+    {
+        // Guard: ungewuenschter Zustand ❌
+        if (position < 0 || position >= Count) 
+        {
+            throw new ArgumentOutOfRangeException();
+        }
+
+        // gewuenschter Zustand ✅
+        Node? curr = Head;
+        for (int i = 0; i < position; i++)
+        {
+            curr = curr?.Next;
+        }
+        
+        return curr ?? throw new InvalidOperationException("Knoten konnte nicht gefunden werden.");
+    }
+
+    private bool TryFind(int value, out int index)
+    {
+        Node? curr = Head;
+        index = 0;
+        
+        while (curr != null)
+        {
+            if (curr.Value == value) 
+            {
+                return true; 
+            }
+            curr = curr.Next;
+            index++;
+        }
+        
+        index = -1;
         return false;
     }
 }

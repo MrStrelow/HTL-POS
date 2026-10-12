@@ -1,37 +1,102 @@
 ﻿public class DoublyLinkedList
 {
-    public DoubleNode Head { get; private set; }
-    public DoubleNode Tail { get; private set; }
+    public DoubleNode? Head { get; private set; }
+    public DoubleNode? Tail { get; private set; }
     public int Count { get; private set; }
 
-    // Hilfsmethode zur Optimierung der Wegstrecke
-    private DoubleNode GetNodeAt(int position)
+    public void AddFirst(int value)
     {
-        if (position < 0 || position >= Count) throw new ArgumentOutOfRangeException();
+        DoubleNode node = new DoubleNode(value);
 
-        DoubleNode curr;
-        if (position <= Count / 2)
+        if (Head == null)
         {
-            curr = Head;
-            for (int i = 0; i < position; i++) curr = curr.Next;
+            Head = Tail = node;
         }
-        else
+
+        if (Tail != null && Head != null)
         {
-            curr = Tail;
-            for (int i = Count - 1; i > position; i--) curr = curr.Prev;
+            node.Next = Head;
+            Head.Prev = node;
+            Head = node;
         }
-        return curr;
+
+        Count++;
+    }
+
+    // Zustaendigkeit: Fuegt neuen Node am Ende mit Value in die Liste ein.
+    public void AddLast(int value)
+    {
+        DoubleNode node = new DoubleNode(value);
+
+        if (Tail == null)
+        {
+            Head = Tail = node;
+        }
+
+        if (Tail != null && Head != null)
+        {
+            Tail.Next = node;
+            node.Prev = Tail;
+            Tail = node;
+        }
+
+        Count++;
+    }
+
+    public void Insert(int position, int value)
+    {
+        // Guard: ungewuenschter Zustand ❌
+        if (position < 0 || position > Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(position), "Ungültige Position zum Einfügen.");
+        }
+
+        // Sonderfälle delegieren ✅
+        if (position == 0)
+        {
+            AddFirst(value);
+            return;
+        }
+
+        if (position == Count)
+        {
+            AddLast(value);
+            return;
+        }
+
+        DoubleNode curr = GetNodeAt(position);
+        DoubleNode prev = curr.Prev ?? throw new InvalidOperationException("Vorheriger Knoten ist null.");
+
+        DoubleNode newNode = new DoubleNode(value);
+        newNode.Prev = prev;
+        newNode.Next = curr;
+
+        prev.Next = newNode;
+        curr.Prev = newNode;
+
+        Count++;
     }
 
     public int RemoveFirst()
     {
-        if (Head == null) throw new InvalidOperationException("Liste ist leer.");
-        
+        // ungewuenschter Zustand ❌
+        if (Head == null) 
+        {
+            throw new InvalidOperationException("Liste ist leer.");
+        }
+
+        // gewuenschter Zustand ✅
         int value = Head.Value;
         Head = Head.Next;
         
-        if (Head != null) Head.Prev = null;
-        else Tail = null;
+        if (Head != null) 
+        { 
+            Head.Prev = null;
+        }
+        else 
+        {
+            Tail = null;
+        }
         
         Count--;
         return value;
@@ -39,13 +104,24 @@
 
     public int RemoveLast()
     {
-        if (Tail == null) throw new InvalidOperationException("Liste ist leer.");
-        
+        // ungewuenschter Zustand ❌
+        if (Tail == null) 
+        {
+            throw new InvalidOperationException("Liste ist leer.");
+        }
+
+        // gewuenschter Zustand ✅
         int value = Tail.Value;
         Tail = Tail.Prev;
         
-        if (Tail != null) Tail.Next = null;
-        else Head = null;
+        if (Tail != null) 
+        { 
+            Tail.Next = null;
+        }
+        else 
+        {
+            Head = null;
+        }
         
         Count--;
         return value;
@@ -53,32 +129,39 @@
 
     public int Remove(int position)
     {
-        if (position == 0) return RemoveFirst();
-        if (position == Count - 1) return RemoveLast();
+        if (position == 0) 
+        {
+            return RemoveFirst();
+        }
+
+        if (position == Count - 1) 
+        {
+            return RemoveLast();
+        }
 
         DoubleNode curr = GetNodeAt(position);
-        
         int value = curr.Value;
-        curr.Prev.Next = curr.Next;
-        curr.Next.Prev = curr.Prev;
+
+        // ungewuenschter Zustand ❌
+        var next = curr.Next ?? throw new InvalidOperationException("Nächster Knoten ist null.");
+        var prev = curr.Prev ?? throw new InvalidOperationException("Vorheriger Knoten ist null.");
         
+        // gewuenschter Zustand ✅
+        prev.Next = curr.Next;
+        next.Prev = curr.Prev;
+
         Count--;
         return value;
     }
 
     public int Find(int value)
     {
-        DoubleNode curr = Head;
-        int index = 0;
-        
-        while (curr != null)
+        if (TryFind(value, out int index))
         {
-            if (curr.Value == value) return index;
-            curr = curr.Next;
-            index++;
+            return index;
         }
-        
-        return -1;
+    
+        throw new InvalidOperationException("Wert nicht gefunden.");
     }
 
     public int Get(int position)
@@ -88,7 +171,7 @@
 
     public bool Contains(int value)
     {
-        return Find(value) != -1;
+        return TryFind(value, out _);
     }
 
     public int Update(int position, int newValue)
@@ -101,41 +184,94 @@
 
     public bool HasCycle()
     {
-        // 1. Phase: Prüfung der Vorwärtsrichtung (Next-Pfeile)
-        bool hasForwardCycle = false;
-        DoubleNode slowForward = Head;
-        DoubleNode fastForward = Head;
+        return CheckForwardCycle() || CheckBackwardCycle();
+    }
 
-        while (fastForward != null && fastForward.Next != null)
+    // private Hilfsmethode
+    private DoubleNode GetNodeAt(int position)
+    {
+        // Guard: ungewuenschter Zustand ❌
+        if (position < 0 || position >= Count) 
+        {
+            throw new ArgumentOutOfRangeException();
+        }
+
+        // gewuenschter Zustand ✅
+        DoubleNode? curr;
+        if (position <= Count / 2)
+        {
+            curr = Head;
+            for (int i = 0; i < position; i++)
+            {
+                curr = curr?.Next;
+            }
+        }
+        else
+        {
+            curr = Tail;
+            for (int i = Count - 1; i > position; i--) 
+            {
+                curr = curr?.Prev;
+            }
+        }
+
+        return curr ?? throw new InvalidOperationException("Knoten konnte nicht gefunden werden.");
+    }
+
+    private bool CheckForwardCycle()
+    {
+        DoubleNode? slowForward = Head;
+        DoubleNode? fastForward = Head;
+
+        while (fastForward != null && fastForward.Next != null && slowForward != null && slowForward.Next != null)
         {
             slowForward = slowForward.Next;
             fastForward = fastForward.Next.Next;
 
             if (slowForward == fastForward) 
             {
-                hasForwardCycle = true;
-                break;
+                return true;
             }
         }
 
-        // 2. Phase: Prüfung der Rückwärtsrichtung (Prev-Pfeile)
-        bool hasBackwardCycle = false;
-        DoubleNode slowBackward = Tail;
-        DoubleNode fastBackward = Tail;
+        return false;
+    }
 
-        while (fastBackward != null && fastBackward.Prev != null)
+    private bool CheckBackwardCycle()
+    {
+        DoubleNode? slowBackward = Tail;
+        DoubleNode? fastBackward = Tail;
+
+        while (fastBackward != null && fastBackward.Prev != null && slowBackward != null && slowBackward.Prev != null)
         {
             slowBackward = slowBackward.Prev;
             fastBackward = fastBackward.Prev.Prev;
 
             if (slowBackward == fastBackward)
             {
-                hasBackwardCycle = true;
-                break;
+                return true;
             }
         }
 
-        // Liefert true, sobald in mindestens einer der beiden Richtungen ein Zyklus existiert
-        return hasForwardCycle || hasBackwardCycle;
+        return false;
+    }
+
+    private bool TryFind(int value, out int index)
+    {
+        DoubleNode? curr = Head;
+        index = 0;
+        
+        while (curr != null)
+        {
+            if (curr.Value == value) 
+            {
+                return true; 
+            }
+            curr = curr.Next;
+            index++;
+        }
+        
+        index = -1;
+        return false;
     }
 }
