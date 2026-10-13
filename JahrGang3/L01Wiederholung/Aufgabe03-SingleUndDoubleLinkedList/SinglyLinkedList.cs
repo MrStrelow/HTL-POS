@@ -206,7 +206,7 @@
         return false;
     }
 
-    // private Hilfsmethode
+    // private Hilfsmethoden
     private Node GetNodeAt(int position)
     {
         // Guard: ungewuenschter Zustand ❌

@@ -187,7 +187,7 @@
         return CheckForwardCycle() || CheckBackwardCycle();
     }
 
-    // private Hilfsmethode
+    // private Hilfsmethoden
     private DoubleNode GetNodeAt(int position)
     {
         // Guard: ungewuenschter Zustand ❌

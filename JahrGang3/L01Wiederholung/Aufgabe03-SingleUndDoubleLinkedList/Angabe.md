@@ -143,6 +143,17 @@ public class SinglyLinkedList
     {
         throw new NotImplementedException("TODO: Implementiere Update");
     }
+
+    // private Hilfsmethoden
+    private Node GetNodeAt(int position)
+    {
+        throw new NotImplementedException("TODO"); 
+    }
+
+    private bool TryFind(int value, out int index)
+    {
+        throw new NotImplementedException("TODO"); 
+    }
 }
 ```
 
@@ -263,23 +274,23 @@ public class DoublyLinkedList
     { 
         throw new NotImplementedException("TODO"); 
     }
+
+    // private Hilfsmethoden
+    private DoubleNode GetNodeAt(int position)
+    {   
+        throw new NotImplementedException("TODO"); 
+    }
+
+    private bool TryFind(int value, out int index)
+    {
+        throw new NotImplementedException("TODO"); 
+    }
 }
 ```
 
 ### Aufgabe 3 - level: 😵‍💫 - Cycle Detection (Floyd's Algorithm)
 Eine fehlerhaft programmierte verkettete Liste kann versehentlich in einer Endlosschleife enden (einem Zyklus). 
 Implementiere die Methode zur Zykluserkennung. Öffne das zweite HTML-Dokument, um den Ablauf des "Tortoise and Hare" Algorithmus grafisch nachzuvollziehen.
-
-```csharp
-public class DoublyLinkedList
-{
-    public bool HasCycle()
-    {
-        throw new NotImplementedException("TODO: Implementiere HasCycle");
-    }
-}
-```
-
 ```csharp
 public class SinglyLinkedList
 {
@@ -289,6 +300,27 @@ public class SinglyLinkedList
     }
 }
 ```
+
+```csharp
+public class DoublyLinkedList
+{
+    public bool HasCycle()
+    {
+        throw new NotImplementedException("TODO: Implementiere HasCycle");
+    }
+
+    private bool CheckForwardCycle()
+    {
+        throw new NotImplementedException("TODO"); 
+    }
+
+    private bool CheckBackwardCycle()
+    {
+        throw new NotImplementedException("TODO"); 
+    }
+}
+```
+
 
 ### Main
 Führe deine Implementierungen über dieses Top-Level Statement in der `Program.cs` aus, um die grundlegende Funktionalität (und das Nullable-Verhalten) zu testen:
