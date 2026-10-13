@@ -3,7 +3,7 @@
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 // Ein Schiff mit 10 leeren Stellplätzen
-string[] frachter = new string[] { "Leer", "Leer", "Leer", "Leer", "Leer", "Leer", "Leer", "Leer", "Leer", "Leer" };
+string[] frachter = new string[] { "⬜", "⬜", "⬜", "⬜", "⬜", "⬜", "⬜", "⬜", "⬜", "⬜" };
 
 Console.WriteLine("🚢 Willkommen im Ocean Array Terminal 🚢\n");
 
@@ -98,7 +98,7 @@ void AuffuellenVonVorne(string[] schiff, string ladung, int anzahl)
     for (int i = 0; i < anzahl; i++)
     {
         // ungewuenschter Zustand: ❌ Wir überschreiben einen bereits belegten Stellplatz!
-        if (schiff[i] != "Leer")
+        if (schiff[i] != "⬜")
         {
             Console.WriteLine($"❌ Abbruch: Stellplatz [{i}] darf nicht überschrieben werden! Dort befindet sich {schiff[i]}");
             return;
@@ -119,7 +119,7 @@ void AuffuellenVonHinten(string[] schiff, string ladung, int anzahl)
     for (int i = schiff.Length - 1; i >= 0; i--)
     {
         // ungewuenschter Zustand: ❌ Wir überschreiben einen bereits belegten Stellplatz!
-        if (schiff[i] != "Leer")
+        if (schiff[i] != "⬜")
         {
             Console.WriteLine($"❌ Abbruch: Stellplatz [{i}] darf nicht überschrieben werden! Dort befindet sich {schiff[i]}");
             return;
@@ -148,7 +148,7 @@ void BehebeFehler(string[] schiff, int start, int ziel, int zweiterStart, int zw
 
     for (int i = 0; i < schiff.Length; i++)
     {
-        if (schiff[i] == "Leer")
+        if (schiff[i] == "⬜")
         {
             frei++;
         }
@@ -168,7 +168,7 @@ int BerechnePlaetzeOut(string[] schiff, out int frei)
 
     for (int i = 0; i < schiff.Length; i++)
     {
-        if (schiff[i] == "Leer")
+        if (schiff[i] == "⬜")
         {
             frei++;
         }
@@ -200,11 +200,11 @@ void VerbindeSchiffsladung(string[] ursprungsSchiff, string[] zielSchiff)
     // gewuenschter Zustand: ✅
     for (int i = 0; i < ursprungsSchiff.Length; i++)
     {
-        if (ursprungsSchiff[i] != "Leer")
+        if (ursprungsSchiff[i] != "⬜")
         {
             for (int j = 0; j < zielSchiff.Length; j++)
             {
-                if (zielSchiff[j] == "Leer")
+                if (zielSchiff[j] == "⬜")
                 {
                     zielSchiff[j] = ursprungsSchiff[i];
                     break; 

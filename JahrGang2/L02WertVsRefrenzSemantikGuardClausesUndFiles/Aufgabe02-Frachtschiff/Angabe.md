@@ -9,7 +9,7 @@ Welche ``Denkweisen`` üben wir hier?
 
 ## Frachschiff-Terminal
 Der automatische Lade-Algorithmus für die Beladung der Container ist ausgefallen. Unsere Frachschiffe müssen nun über ein manuelles Terminal-Interface beladen werden.
-Die Funktionen zum Beladen müssen implementiert werden. Zusätzlich ist eine flexible Usereingaben notwenidg. Frage die Anwender des Programmes in einer Schleife so lange, bis wirklich eine gültige Zahl eingegeben wird.
+Einige ``Funktionen`` müssen implementiert werden. **Mehr Informationen in TODOs im Code**. Ersetze die *throw new NotImplementedException();* *schrittweise*. Das bedeutet wenn die ``Funktion`` *LeseZahlSicherEin* implementiert wird, läsche **nur dort** *throw new NotImplementedException();*. Zusätzlich ist eine flexible Usereingaben notwenidg. Frage die Anwender des Programmes in einer Schleife so lange, bis wirklich eine gültige Zahl eingegeben wird.
 
 ### Aufgabe 1 - level: 🙂 - Logistik-System und sichere Eingaben implementieren
 Implementiere die fehlenden lokalen Funktionen am Ende der Datei `Program.cs`. 
@@ -21,26 +21,28 @@ using System.Text;
 Console.OutputEncoding = Encoding.UTF8;
 
 // Ein Schiff mit 10 leeren Stellplätzen
-string[] frachter = new string[] { "Leer", "Leer", "Leer", "Leer", "Leer", "Leer", "Leer", "Leer", "Leer", "Leer" };
+string[] frachter = new string[] { "⬜", "⬜", "⬜", "⬜", "⬜", "⬜", "⬜", "⬜", "⬜", "⬜" };
 
 Console.WriteLine("🚢 Willkommen im Ocean Array Terminal 🚢\n");
 
-// Benutzereingaben absichern
-int anzahlVorne = 0;   // Frage wie viele Elektronik-Container vorne geladen werden sollen
-int anzahlHinten = 0;   // Frage wie viele Textil-Container hinten geladen werden sollen
-int startIndex = 0;   // Erster Fehler: Frage nach welche Container getauscht werden sollen: hier ist der erste Index. 
-int zielIndex = 0;   // Erster Fehler: Frage nach welche Container getauscht werden sollen: hier ist der zweite Index. 
-int weitererStartIndex = //Zweiter Fehler: Frage nach welche Container getauscht werden sollen: hier ist der erste Index. 
-int weitererZielIndex = // Zweiter Fehler: Frage nach welche Container getauscht werden sollen: hier ist der zweite Index. 
+// Benutzereingaben absichern - Rufe hier die Funktion auf, welche die Usereingabe sicher ausließt.
+// Rufe diese hier auf, bevor diese implementiert wird.
+int anzahlVorne = ___(___);         // Belege Frage wie viele Elektronik-Container vorne geladen werden sollen
+int anzahlHinten = ___(___);        // Frage wie viele Textil-Container hinten geladen werden sollen
+int startIndex = ___(___);          // Erster ContainerTauschen:   Frage nach welche Container getauscht werden sollen: hier ist der erste Index. 
+int zielIndex = ___(___);           // Erster ContainerTauschen:   Frage nach welche Container getauscht werden sollen: hier ist der zweite Index. 
+int weitererStartIndex = ___(___);  // Zweiter ContaTausch:  Frage nach welche Container getauscht werden sollen: hier ist der erste Index. 
+int weitererZielIndex = ___(___);   // Zweiter Tausch:  Frage nach welche Container getauscht werden sollen: hier ist der zweite Index. 
 
 Console.WriteLine("\nLadevorgang wird berechnet...\n");
 
 // 1. Kopiere den Frachter, falls wir was beim Beladen diesen zerstören.
-string[] backup = { "?" }; // kopiere einen bestehenden Frachter mit einer Funktion.
+// Rufe diese hier auf, bevor diese implementiert wird.
+string[] backup = ___(___); // kopiere einen bestehenden Frachter mit einer Funktion.
 
 // 2. Belade das Schiff für die angegebenen Gueter.
 BeladeSchiff(frachter, "⚡", anzahlVorne, "👕", anzahlHinten);
-BehebeFehler(frachter, startIndex, zielIndex, weitererStartIndex, weitererZielIndex);
+BehebeFehlerhafteLadereihenfolge(frachter, startIndex, zielIndex, weitererStartIndex, weitererZielIndex);
 
 // 3. Kontroll-Ausgabe
 // Gib den Inhalt des gesamten Frachters aus. 
@@ -73,12 +75,13 @@ void AuffuellenVonHinten(string[] schiff, string ladung, int anzahl)
     throw new NotImplementedException();
 }
 
-void BeladeSchiff(string[] schiff, string prioLadung, int anzahlPrio, string standardLadung, int anzahlStandard)
+void BeladeSchiff(string[] schiff, string ladungVorne, int anzahlVorne, string ladungHinten, int anzahlHinten)
 {
-    throw new NotImplementedException();
+    // TODO: Rufe die Funktion AuffuellenVonVorne auf.
+    // TODO: Rufe die Funktion AuffuellenVonHinten auf.
 }
 
-void BehebeFehler(string[] schiff, int start, int ziel, int zweiterStart, int zweitesZiel)
+void BehebeFehlerhafteLadereihenfolge(string[] schiff, int start, int ziel, int zweiterStart, int zweitesZiel)
 {
     ContainerTauschen(schiff, start, ziel);
     ContainerTauschen(schiff, zweiterStart, zweitesZiel);
@@ -171,16 +174,16 @@ Was passiert, wenn man Container tauschen will, die nicht auf dem Schiff sind?
 Hier kannst du prüfen, ob das Umladen auf einen anderen Frachter funktioniert.
 
 - **Normaler Kopiervorgang (Genug Platz):**
-  - `quell1`: `[ "Elektronik ⚡", "Textilien 👕", "Leer", "Leer" ]`
-  - `ziel1`: `[ "Leer", "Textilien 👕", "Leer", "Leer" ]`
-  - **Erwartetes Ergebnis:** `ziel1` hat nun `[ "Elektronik ⚡", "Textilien 👕", "Textilien 👕", "Leer" ]`
+  - `quell1`: `[ "Elektronik ⚡", "Textilien 👕", "⬜", "⬜" ]`
+  - `ziel1`: `[ "⬜", "Textilien 👕", "⬜", "⬜" ]`
+  - **Erwartetes Ergebnis:** `ziel1` hat nun `[ "Elektronik ⚡", "Textilien 👕", "Textilien 👕", "⬜" ]`
 
 - **Zielschiff hat zu wenig Platz:**
-  - `quell2`: `[ "Elektronik ⚡", "Elektronik ⚡", "Textilien 👕", "Leer" ]`
-  - `ziel2`: `[ "Textilien 👕", "Textilien 👕", "Leer", "Leer" ]`
+  - `quell2`: `[ "Elektronik ⚡", "Elektronik ⚡", "Textilien 👕", "⬜" ]`
+  - `ziel2`: `[ "Textilien 👕", "Textilien 👕", "⬜", "⬜" ]`
   - **Erwartetes Ergebnis:** Eine Abbruch-Meldung in der Konsole. Das Zielschiff darf NICHT verändert werden!
 
 - **Quellschiff ist komplett leer:**
-  - `quell3`: `[ "Leer", "Leer" ]`
-  - `ziel3`: `[ "Elektronik ⚡", "Leer" ]`
-  - **Erwartetes Ergebnis:** `ziel3` bleibt unberührt bei `[ "Elektronik ⚡", "Leer" ]`.
+  - `quell3`: `[ "⬜", "⬜" ]`
+  - `ziel3`: `[ "Elektronik ⚡", "⬜" ]`
+  - **Erwartetes Ergebnis:** `ziel3` bleibt unberührt bei `[ "Elektronik ⚡", "⬜" ]`.
