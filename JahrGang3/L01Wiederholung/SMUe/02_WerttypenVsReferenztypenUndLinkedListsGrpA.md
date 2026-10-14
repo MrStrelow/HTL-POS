@@ -25,7 +25,7 @@ $\\$
 * Vervollständige die folgende bereits aufgerufene ``Funktion`` einer ``Double Linked List``.
 
 ```csharp
-public void AddLast(int value){
+public void AddFirst(int value){
     ________________ = ______________________________;
     if (              ) {
         
@@ -46,4 +46,4 @@ public void AddLast(int value){
 }
 ```
 
-<img src="images/DoubleLinkedListGrpB.png" alt="drawing" />
+<img src="images/DoubleLinkedListGrpA.png" alt="drawing" />
