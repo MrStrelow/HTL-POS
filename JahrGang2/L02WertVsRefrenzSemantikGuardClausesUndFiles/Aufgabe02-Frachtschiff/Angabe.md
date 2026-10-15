@@ -89,7 +89,7 @@ void BehebeFehlerhafteLadereihenfolge(string[] schiff, int start, int ziel, int 
 ```
 
 ### Aufgabe 2 - level: 🤔 - Frachter zusammenlegen.
-Verwende die Kopie des Frachters und lege diese zusammen in das ursprüngliche Schiff. 
+Lege den Inhalt eines Frachters in einen anderen. 
 Schreibe dazu folgende Funktionen. Die Funktion *BerechnePlaetze* ist eine Hilfsfunktion welche für eine ``Guard Clause``
 in *VerbindeSchiffsladung* verwendet werden soll. In *BerechnePlaetze* sollen die freien und bereits belegten Plätze berechnet werden.
 
@@ -172,18 +172,28 @@ Was passiert, wenn man Container tauschen will, die nicht auf dem Schiff sind?
 #### Verbinde Schiffsladung
 
 Hier kannst du prüfen, ob das Umladen auf einen anderen Frachter funktioniert.
+Erstelle dazu ***zwei neue*** *string* ``Arrays`` und befülle diese ***händisch***. Es muss nicht über die ``Aufrufe`` der ``Funktionen`` aus *Schritt 1* erfolgen. Überschreibe für jeden Testfall die vorhandenen Variablen des ``Typs`` *string-Array*. Gib mit folgender ``Funktion`` die ``Arrays`` auf der Cosole aus:
+```csharp
+public static void Print(string[] schiff)
+{
+    string ausgabe = $"[ \"{string.Join("\", \"", schiff)}\" ]";
+    
+    Console.WriteLine(ausgabe);
+}
+``` 
 
 - **Normaler Kopiervorgang (Genug Platz):**
-  - `quell1`: `[ "Elektronik ⚡", "Textilien 👕", "⬜", "⬜" ]`
-  - `ziel1`: `[ "⬜", "Textilien 👕", "⬜", "⬜" ]`
-  - **Erwartetes Ergebnis:** `ziel1` hat nun `[ "Elektronik ⚡", "Textilien 👕", "Textilien 👕", "⬜" ]`
+  - `ladeVonSchiff`: `[ "⚡", "⚡", "⬜", "⬜", "⬜", "⬜", "⬜", "👕", "👕", "👕"]`
+  - `ladeInSchiff`: `[ "👕", "⬜", "👕", "⬜", "⬜", "⬜", "⬜", "⬜", "⬜", "⬜"]`
+  - **Erwartetes Ergebnis:** 
+    - `ladeInSchiff` hat nun `[ "👕", "⚡", "👕", "⚡", "⬜", "⬜", "⬜", "👕", "👕", "👕"]`
 
 - **Zielschiff hat zu wenig Platz:**
-  - `quell2`: `[ "Elektronik ⚡", "Elektronik ⚡", "Textilien 👕", "⬜" ]`
-  - `ziel2`: `[ "Textilien 👕", "Textilien 👕", "⬜", "⬜" ]`
+  - `ladeVonSchiff`: `[ "⚡", "⚡", "👕", "⬜" ]`
+  - `ladeInSchiff`: `[ "👕", "👕", "⬜", "⬜" ]`
   - **Erwartetes Ergebnis:** Eine Abbruch-Meldung in der Konsole. Das Zielschiff darf NICHT verändert werden!
 
 - **Quellschiff ist komplett leer:**
-  - `quell3`: `[ "⬜", "⬜" ]`
-  - `ziel3`: `[ "Elektronik ⚡", "⬜" ]`
-  - **Erwartetes Ergebnis:** `ziel3` bleibt unberührt bei `[ "Elektronik ⚡", "⬜" ]`.
+  - `ladeVonSchiff`: `[ "⬜", "⬜" ]`
+  - `ladeInSchiff`: `[ "Elektronik ⚡", "⬜" ]`
+  - **Erwartetes Ergebnis:** `ladeInSchiff` bleibt unberührt bei `[ "⚡", "⬜" ]`.
