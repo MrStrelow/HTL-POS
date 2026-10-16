@@ -1,0 +1,1741 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C# OOP & 2D-Array: Baugrube & Bagger (Detail-Schritte)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; overflow: hidden; }
+        .font-code { font-family: 'Fira Code', monospace; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+        .line-active { background-color: rgba(56, 189, 248, 0.2); border-left: 4px solid #38bdf8; }
+        .line-normal { border-left: 4px solid transparent; }
+
+        /* Visual Studio Class Diagram Styling */
+        .vs-card {
+            background: #ffffff;
+            border: 1.5px solid #475569;
+            border-radius: 10px;
+            box-shadow: 4px 4px 0px #000000;
+            color: #1e293b;
+            font-family: 'Segoe UI', 'Inter', sans-serif;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .vs-card-highlight {
+            outline: 3px solid #38bdf8;
+            box-shadow: 0 0 18px rgba(56, 189, 248, 0.6), 4px 4px 0px #000000;
+        }
+        .vs-header {
+            background: linear-gradient(180deg, #ede4cb 0%, #f9f6ec 100%);
+            padding: 8px 12px;
+            border-bottom: 1px solid #d6cbb5;
+        }
+        .vs-section {
+            background-color: #dfd4b8;
+            padding: 3px 10px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #334155;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .vs-item {
+            padding: 3px 12px 3px 22px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #0f172a;
+            background: #ffffff;
+            transition: all 0.25s ease;
+        }
+        .vs-item-new {
+            background-color: #fef08a;
+            font-weight: 700;
+        }
+        .grid-cell {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            border-radius: 3px;
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+        .grid-cell-highlight {
+            border-color: #38bdf8;
+            background: rgba(56, 189, 248, 0.28);
+            transform: scale(1.12);
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col relative select-none">
+
+    <!-- Header -->
+    <header class="bg-slate-900 border-b border-slate-800 py-3 px-6 shrink-0 shadow-md relative z-20 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <span class="text-2xl">🏗️</span>
+            <div>
+                <h1 class="text-lg font-bold text-sky-400 tracking-tight">C# OOP &amp; 2D-Array: Baugrube &amp; Bagger</h1>
+                <p class="text-xs text-slate-400">Detaillierter Einzelschritt-Aufbau aller Methoden, Klassendiagramm &amp; 2D-Array</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <span id="phase-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-sky-950 text-sky-300 border border-sky-700">1. Grundgerüst</span>
+            <div class="flex items-center gap-2 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                <button id="btn-prev" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded disabled:opacity-30 border border-slate-700 transition">&larr; Zurück</button>
+                <div class="px-3 py-1 font-code text-xs">
+                    <span id="step-current" class="text-sky-400 font-bold">1</span><span class="text-slate-500">/</span><span id="step-total" class="text-slate-400">32</span>
+                </div>
+                <button id="btn-next" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded disabled:opacity-30 border border-sky-500 transition">Weiter &rarr;</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden p-4 gap-4 bg-slate-950 relative z-10">
+        
+        <!-- LEFT COLUMN: Code Editor (7 cols) -->
+        <section class="lg:col-span-7 bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+            <!-- File Tabs -->
+            <div class="bg-slate-950 px-4 pt-2 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-1">
+                    <button onclick="switchTab('Baugrube.cs')" id="tab-Baugrube.cs" class="px-4 py-2 text-xs font-code font-bold rounded-t-lg border-t border-x flex items-center gap-2 transition">Baugrube.cs</button>
+                    <button onclick="switchTab('Bagger.cs')" id="tab-Bagger.cs" class="px-4 py-2 text-xs font-code font-bold rounded-t-lg border-t border-x flex items-center gap-2 transition">Bagger.cs</button>
+                    <button onclick="switchTab('Program.cs')" id="tab-Program.cs" class="px-4 py-2 text-xs font-code font-bold rounded-t-lg border-t border-x flex items-center gap-2 transition">Program.cs</button>
+                </div>
+                <div class="flex items-center gap-1.5 pb-2">
+                    <div class="w-2.5 h-2.5 rounded-full bg-rose-500"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+                </div>
+            </div>
+            <!-- Code Container -->
+            <div id="code-container" class="flex-1 overflow-y-auto p-4 font-code text-[12.5px] leading-6 scroll-smooth"></div>
+        </section>
+
+        <!-- RIGHT COLUMN: Top (Explanation + 2D Array Print) & Bottom (Class Diagram) (5 cols) -->
+        <section class="lg:col-span-5 flex flex-col gap-4 overflow-hidden">
+            
+            <!-- RIGHT TOP: Explanation & 2D Array State / Console Print -->
+            <div class="flex-1 bg-slate-900 rounded-xl border border-slate-800 p-4 flex flex-col gap-3 overflow-hidden shadow-2xl">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-2 shrink-0">
+                    <span class="text-xs font-bold uppercase tracking-wider text-sky-400 flex items-center gap-2">
+                        <span>💡 Schritt-Erklärung &amp; Zustand</span>
+                    </span>
+                    <span id="step-title" class="text-xs font-semibold text-amber-300 text-right"></span>
+                </div>
+
+                <!-- Explanation Text -->
+                <div id="explanation-text" class="text-xs sm:text-[13px] text-slate-200 leading-relaxed bg-slate-950/80 p-3 rounded-lg border border-slate-800 shrink-0"></div>
+
+                <!-- 2D Array Live Print Container -->
+                <div id="grid-panel" class="flex-1 bg-slate-950 rounded-lg border border-slate-800 p-3 flex flex-col items-center justify-center overflow-auto relative">
+                    <!-- Dynamic Grid or Info Placeholder -->
+                </div>
+            </div>
+
+            <!-- RIGHT BOTTOM: Visual Studio Class Diagram -->
+            <div class="h-[270px] shrink-0 bg-slate-900 rounded-xl border border-slate-800 p-3 flex flex-col overflow-hidden shadow-2xl">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-1.5 mb-2 shrink-0">
+                    <span class="text-xs font-bold uppercase tracking-wider text-purple-400">📐 Klassendiagramm (ClassDiagram.cd)</span>
+                    <span class="text-[11px] text-slate-400 font-code">Bagger &harr; Baugrube</span>
+                </div>
+
+                <!-- Diagram Canvas -->
+                <div class="flex-1 bg-slate-100 rounded-lg p-3 flex items-center justify-between relative overflow-hidden border border-slate-700">
+                    
+                    <!-- Bagger Class Card -->
+                    <div id="cd-bagger" class="vs-card w-[170px] z-10">
+                        <div class="vs-header flex justify-between items-start">
+                            <div>
+                                <div class="font-bold text-xs text-black">Bagger</div>
+                                <div class="text-[10px] text-slate-600">Class</div>
+                            </div>
+                            <span class="text-slate-500 text-xs font-bold">&laquo;</span>
+                        </div>
+                        <div id="cd-bagger-body"></div>
+                    </div>
+
+                    <!-- Association Arrows (Center SVG) -->
+                    <div class="flex-1 h-full flex flex-col justify-center items-center relative px-1">
+                        <!-- Top Arrow: Baugrube -> Bagger (Bagger[]) -->
+                        <div id="arrow-bagger-arr" class="w-full flex flex-col items-center mb-5 transition-opacity duration-300 opacity-0">
+                            <div class="flex items-center gap-1 text-[11px] text-[#c26d43] font-semibold mb-0.5">
+                                <span>🔧</span><span>Bagger</span>
+                            </div>
+                            <svg class="w-full h-4 overflow-visible" viewBox="0 0 120 16">
+                                <line x1="120" y1="8" x2="2" y2="8" stroke="#d98254" stroke-width="1.5" />
+                                <polyline points="10,3 2,8 10,13" fill="none" stroke="#d98254" stroke-width="1.5" />
+                                <polyline points="17,3 9,8 17,13" fill="none" stroke="#d98254" stroke-width="1.5" />
+                            </svg>
+                        </div>
+
+                        <!-- Bottom Arrow: Bagger -> Baugrube -->
+                        <div id="arrow-baugrube-ref" class="w-full flex flex-col items-center transition-opacity duration-300 opacity-0">
+                            <div class="flex items-center gap-1 text-[11px] text-[#c26d43] font-semibold mb-0.5">
+                                <span>🔧</span><span>Baugrube</span>
+                            </div>
+                            <svg class="w-full h-4 overflow-visible" viewBox="0 0 120 16">
+                                <line x1="0" y1="8" x2="118" y2="8" stroke="#d98254" stroke-width="1.5" />
+                                <polyline points="110,3 118,8 110,13" fill="none" stroke="#d98254" stroke-width="1.5" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Baugrube Class Card -->
+                    <div id="cd-baugrube" class="vs-card w-[170px] z-10">
+                        <div class="vs-header flex justify-between items-start">
+                            <div>
+                                <div class="font-bold text-xs text-black">Baugrube</div>
+                                <div class="text-[10px] text-slate-600">Class</div>
+                            </div>
+                            <span class="text-slate-500 text-xs font-bold">&laquo;</span>
+                        </div>
+                        <div id="cd-baugrube-body"></div>
+                    </div>
+
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <script>
+        function createGrid(fillChar) {
+            const g = [];
+            for (let y = 0; y < 10; y++) {
+                const row = [];
+                for (let x = 0; x < 10; x++) row.push(fillChar);
+                g.push(row);
+            }
+            return g;
+        }
+
+        const gridNull = createGrid("null");
+        const gridEarth = createGrid("🟫");
+        
+        // Grid with only first row filled (to illustrate outer/inner loop mechanics)
+        const gridFirstRowEarth = createGrid("null");
+        for (let x = 0; x < 10; x++) gridFirstRowEarth[0][x] = "🟫";
+
+        const gridWithBaggers = createGrid("🟫");
+        const baggerCoords = [[1, 2], [4, 7], [8, 3]];
+        baggerCoords.forEach(([y, x]) => { gridWithBaggers[y][x] = "🏗️"; });
+
+        const gridWithWater = JSON.parse(JSON.stringify(gridWithBaggers));
+        const waterCoords = [
+            [0,1],[0,6],[1,8],[2,3],[2,9],[3,0],[3,5],[4,2],[5,6],[5,9],
+            [6,1],[6,4],[7,7],[8,0],[8,8],[9,2],[9,5]
+        ];
+        waterCoords.forEach(([y, x]) => { gridWithWater[y][x] = "💧"; });
+
+        const gridFinal = JSON.parse(JSON.stringify(gridWithWater));
+        const stoneCoords = [
+            [0,4],[1,5],[2,0],[2,6],[3,8],[4,4],[5,1],[5,3],[6,7],[7,2],
+            [7,9],[8,5],[9,1],[9,8]
+        ];
+        stoneCoords.forEach(([y, x]) => { gridFinal[y][x] = "🗿"; });
+
+        function kw(t) { return `<span class="text-pink-400 font-semibold">${t}</span>`; }
+        function tp(t) { return `<span class="text-emerald-300 font-semibold">${t}</span>`; }
+        function fn(t) { return `<span class="text-sky-300">${t}</span>`; }
+        function st(t) { return `<span class="text-amber-300">${t}</span>`; }
+        function cm(t) { return `<span class="text-slate-500 italic">${t}</span>`; }
+        function nm(t) { return `<span class="text-purple-300">${t}</span>`; }
+
+        // Reusable file templates for completed files
+        const baggerEmpty = [
+            `${kw('public class')}${tp('Bagger')}`,
+            `{`,
+            `}`
+        ];
+
+        const baggerComplete = [
+            `${kw('public class')}${tp('Bagger')}`,
+            `{`,
+            `    ${kw('public')}${tp('Baugrube')} Baugrube { ${kw('get')};${kw('private set')}; }`,
+            `    ${kw('public')} (${kw('int')} x,${kw('int')} y) Position { ${kw('get')};${kw('private set')}; }`,
+            ``,
+            `    ${kw('public')} ${fn('Bagger')}(${tp('Baugrube')} baugrube)`,
+            `    {`,
+            `        Baugrube = baugrube;`,
+            `        ${fn('Platzieren')}();`,
+            `    }`,
+            ``,
+            `    ${kw('public void')}${fn('Platzieren')}()`,
+            `    {`,
+            `        ${tp('Random')} random = ${kw('new')}${tp('Random')}();`,
+            ``,
+            `        ${kw('do')}`,
+            `        {`,
+            `            Position = (random.${fn('Next')}(${nm('0')}, Baugrube.Size), random.${fn('Next')}(${nm('0')}, Baugrube.Size));`,
+            `        } ${kw('while')} (!Baugrube.${fn('Anfrage')}(${kw('this')}, Position));`,
+            `    }`,
+            `}`
+        ];
+
+        const programEmpty = [
+            `${cm('// Top-Level Statements (noch leer)')}`
+        ];
+
+        const steps = [
+            // =========================================================================
+            // PHASE 1: GRUNDGERÜST (Step 1)
+            // =========================================================================
+            {
+                phase: "1. Grundgerüst",
+                title: "Startzustand: 2 leere Klassen & leeres Program.cs",
+                activeTab: "Baugrube.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerEmpty,
+                    "Program.cs": programEmpty
+                },
+                activeLines: [0, 1, 2],
+                desc: "Wir starten mit zwei komplett leeren Klassen (<code>Baugrube</code> und <code>Bagger</code>) sowie einer leeren <code>Program.cs</code>. Rechts unten im Klassendiagramm siehst du die beiden noch leeren Klassenkästen.",
+                diagram: {
+                    baggerProps: [], baggerMethods: [],
+                    baugrubeProps: [], baugrubeMethods: [],
+                    arrowBaggerArr: false, arrowBaugrubeRef: false,
+                    highlightCard: "both"
+                },
+                gridState: null
+            },
+
+            // =========================================================================
+            // PHASE 2: BAUGRUBE PROPERTIES (Steps 2 - 4)
+            // =========================================================================
+            {
+                phase: "2. Baugrube Properties",
+                title: "Property Size: Seitenlänge der Grube",
+                activeTab: "Baugrube.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerEmpty,
+                    "Program.cs": programEmpty
+                },
+                activeLines: [2],
+                desc: "Zuerst legen wir in <code>Baugrube</code> das Property <code>Size</code> (Typ <code>int</code>) an. Es speichert die Seitenlänge der quadratischen Grube. Mit <code>get; private set;</code> darf jeder den Wert lesen, aber nur die Klasse <code>Baugrube</code> selbst darf ihn setzen.",
+                diagram: {
+                    baggerProps: [], baggerMethods: [],
+                    baugrubeProps: [{ name: "Size", isNew: true }],
+                    baugrubeMethods: [],
+                    arrowBaggerArr: false, arrowBaugrubeRef: false,
+                    highlightCard: "baugrube"
+                },
+                gridState: null
+            },
+            {
+                phase: "2. Baugrube Properties",
+                title: "Property Grube: Das 2D-Array deklarieren",
+                activeTab: "Baugrube.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerEmpty,
+                    "Program.cs": programEmpty
+                },
+                activeLines: [2],
+                desc: "Als Nächstes deklarieren wir <code>public string[,] Grube</code>. Das Komma in den eckigen Klammern <code>[,]</code> definiert ein echtes <b>zweidimensionales Array</b> (Zeilen und Spalten), in dem wir die Emojis speichern werden.",
+                diagram: {
+                    baggerProps: [], baggerMethods: [],
+                    baugrubeProps: [{ name: "Grube", isNew: true }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [],
+                    arrowBaggerArr: false, arrowBaugrubeRef: false,
+                    highlightCard: "baugrube"
+                },
+                gridState: null
+            },
+            {
+                phase: "2. Baugrube Properties",
+                title: "Property Bagger[]: 1D-Array für Bagger-Objekte",
+                activeTab: "Baugrube.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Bagger')}[] Bagger { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerEmpty,
+                    "Program.cs": programEmpty
+                },
+                activeLines: [2],
+                desc: "Die Baugrube verwaltet außerdem alle Bagger-Objekte in einem Array: <code>public Bagger[] Bagger</code>. <b>Beachte das Klassendiagramm unten:</b> Da <code>Bagger</code> eine eigene Klasse ist, zeichnet Visual Studio statt eines Text-Eintrags einen <b>Assoziationspfeil</b> (mit Doppelspitze für das Array) rüber zu <code>Bagger</code>!",
+                diagram: {
+                    baggerProps: [], baggerMethods: [],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [],
+                    arrowBaggerArr: true, arrowBaugrubeRef: false,
+                    highlightCard: "baugrube"
+                },
+                gridState: null
+            },
+
+            // =========================================================================
+            // PHASE 3: BAGGER PROPERTIES (Steps 5 - 6)
+            // =========================================================================
+            {
+                phase: "3. Bagger Properties",
+                title: "Property Baugrube in der Klasse Bagger",
+                activeTab: "Bagger.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Bagger')}[] Bagger { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        `}`
+                    ],
+                    "Bagger.cs": [
+                        `${kw('public class')}${tp('Bagger')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Baugrube')} Baugrube { ${kw('get')};${kw('private set')}; }`,
+                        `}`
+                    ],
+                    "Program.cs": programEmpty
+                },
+                activeLines: [2],
+                desc: "Wir wechseln in <code>Bagger.cs</code>. Jeder Bagger muss wissen, in welcher Baugrube er arbeitet. Dafür legen wir die Referenz <code>public Baugrube Baugrube</code> an. Im Klassendiagramm entsteht dadurch der zweite Pfeil von <code>Bagger</code> zurück zu <code>Baugrube</code>!",
+                diagram: {
+                    baggerProps: [], baggerMethods: [],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "bagger"
+                },
+                gridState: null
+            },
+            {
+                phase: "3. Bagger Properties",
+                title: "Property Position: Koordinaten-Tupel (int x, int y)",
+                activeTab: "Bagger.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Bagger')}[] Bagger { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        `}`
+                    ],
+                    "Bagger.cs": [
+                        `${kw('public class')}${tp('Bagger')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Baugrube')} Baugrube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')} (${kw('int')} x,${kw('int')} y) Position { ${kw('get')};${kw('private set')}; }`,
+                        `}`
+                    ],
+                    "Program.cs": programEmpty
+                },
+                activeLines: [3],
+                desc: "Mit <code>public (int x, int y) Position</code> nutzen wir ein C# <b>ValueTuple</b>. Damit können wir X- und Y-Koordinate kompakt in einer einzigen Property speichern und später bequem über <code>Position.x</code> und <code>Position.y</code> darauf zugreifen.",
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: true }],
+                    baggerMethods: [],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "bagger"
+                },
+                gridState: null
+            },
+
+            // =========================================================================
+            // PHASE 4: BAGGER KONSTRUKTOR & PLATZIEREN() EINZELSCHRITTE (Steps 7 - 13)
+            // =========================================================================
+            {
+                phase: "4. Bagger-Methoden im Detail",
+                title: "Bagger-Konstruktor: Signatur anlegen",
+                activeTab: "Bagger.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Bagger')}[] Bagger { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        `}`
+                    ],
+                    "Bagger.cs": [
+                        `${kw('public class')}${tp('Bagger')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Baugrube')} Baugrube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')} (${kw('int')} x,${kw('int')} y) Position { ${kw('get')};${kw('private set')}; }`,
+                        ``,
+                        `    ${kw('public')} ${fn('Bagger')}(${tp('Baugrube')} baugrube)`,
+                        `    {`,
+                        `    }`,
+                        `}`
+                    ],
+                    "Program.cs": programEmpty
+                },
+                activeLines: [5, 6, 7],
+                desc: "Wir erstellen den Konstruktor <code>public Bagger(Baugrube baugrube)</code>. Durch den Parameter erzwingen wir: Ein Bagger-Objekt kann nur dann erzeugt werden, wenn man ihm beim Erstellen eine <code>Baugrube</code> übergibt.",
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: true }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "bagger"
+                },
+                gridState: null
+            },
+            {
+                phase: "4. Bagger-Methoden im Detail",
+                title: "Bagger-Konstruktor: Schritt 1 – Referenz speichern",
+                activeTab: "Bagger.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Bagger')}[] Bagger { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        `}`
+                    ],
+                    "Bagger.cs": [
+                        `${kw('public class')}${tp('Bagger')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Baugrube')} Baugrube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')} (${kw('int')} x,${kw('int')} y) Position { ${kw('get')};${kw('private set')}; }`,
+                        ``,
+                        `    ${kw('public')} ${fn('Bagger')}(${tp('Baugrube')} baugrube)`,
+                        `    {`,
+                        `        Baugrube = baugrube;`,
+                        `    }`,
+                        `}`
+                    ],
+                    "Program.cs": programEmpty
+                },
+                activeLines: [7],
+                desc: "Im ersten Schritt des Konstruktors weisen wir den übergebenen Parameter <code>baugrube</code> (kleingeschrieben) unserer Klassen-Property <code>Baugrube</code> (großgeschrieben) zu. Ab jetzt kennt der Bagger seine Grube.",
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "bagger"
+                },
+                gridState: null
+            },
+            {
+                phase: "4. Bagger-Methoden im Detail",
+                title: "Bagger-Konstruktor: Schritt 2 – Platzieren() aufrufen",
+                activeTab: "Bagger.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Bagger')}[] Bagger { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        `}`
+                    ],
+                    "Bagger.cs": [
+                        `${kw('public class')}${tp('Bagger')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Baugrube')} Baugrube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')} (${kw('int')} x,${kw('int')} y) Position { ${kw('get')};${kw('private set')}; }`,
+                        ``,
+                        `    ${kw('public')} ${fn('Bagger')}(${tp('Baugrube')} baugrube)`,
+                        `    {`,
+                        `        Baugrube = baugrube;`,
+                        `        ${fn('Platzieren')}();`,
+                        `    }`,
+                        `}`
+                    ],
+                    "Program.cs": programEmpty
+                },
+                activeLines: [8],
+                desc: "Direkt danach ruft der Konstruktor die eigene Methode <code>Platzieren()</code> auf, damit sich jeder neu erzeugte Bagger sofort selbstständig einen gültigen Startplatz in der Baugrube sucht.",
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "bagger"
+                },
+                gridState: null
+            },
+            {
+                phase: "4. Bagger-Methoden im Detail",
+                title: "Methode Platzieren(): Methodengerüst anlegen",
+                activeTab: "Bagger.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Bagger')}[] Bagger { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        `}`
+                    ],
+                    "Bagger.cs": [
+                        `${kw('public class')}${tp('Bagger')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Baugrube')} Baugrube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')} (${kw('int')} x,${kw('int')} y) Position { ${kw('get')};${kw('private set')}; }`,
+                        ``,
+                        `    ${kw('public')} ${fn('Bagger')}(${tp('Baugrube')} baugrube)`,
+                        `    {`,
+                        `        Baugrube = baugrube;`,
+                        `        ${fn('Platzieren')}();`,
+                        `    }`,
+                        ``,
+                        `    ${kw('public void')}${fn('Platzieren')}()`,
+                        `    {`,
+                        `    }`,
+                        `}`
+                    ],
+                    "Program.cs": programEmpty
+                },
+                activeLines: [11, 12, 13],
+                desc: "Wir legen die Signatur <code>public void Platzieren()</code> an. Sie hat keinen Rückgabewert (<code>void</code>), da sie direkt die Property <code>Position</code> des Baggers aktualisiert. Im Klassendiagramm erscheint nun <code>Platzieren</code> unter Methods.",
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }, { name: "Platzieren", isNew: true }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "bagger"
+                },
+                gridState: null
+            },
+            {
+                phase: "4. Bagger-Methoden im Detail",
+                title: "Platzieren() Schritt 1: Zufallsgenerator erstellen",
+                activeTab: "Bagger.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Bagger')}[] Bagger { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        `}`
+                    ],
+                    "Bagger.cs": [
+                        `${kw('public class')}${tp('Bagger')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Baugrube')} Baugrube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')} (${kw('int')} x,${kw('int')} y) Position { ${kw('get')};${kw('private set')}; }`,
+                        ``,
+                        `    ${kw('public')} ${fn('Bagger')}(${tp('Baugrube')} baugrube)`,
+                        `    {`,
+                        `        Baugrube = baugrube;`,
+                        `        ${fn('Platzieren')}();`,
+                        `    }`,
+                        ``,
+                        `    ${kw('public void')}${fn('Platzieren')}()`,
+                        `    {`,
+                        `        ${tp('Random')} random = ${kw('new')}${tp('Random')}();`,
+                        `    }`,
+                        `}`
+                    ],
+                    "Program.cs": programEmpty
+                },
+                activeLines: [13],
+                desc: "Innerhalb von <code>Platzieren()</code> erzeugen wir zuerst ein <code>Random</code>-Objekt: <code>Random random = new Random();</code>. Damit können wir gleich zufällige X- und Y-Koordinaten würfeln.",
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }, { name: "Platzieren", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "bagger"
+                },
+                gridState: null
+            },
+            {
+                phase: "4. Bagger-Methoden im Detail",
+                title: "Platzieren() Schritt 2: Zufällige Position im do-Block würfeln",
+                activeTab: "Bagger.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Bagger')}[] Bagger { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        `}`
+                    ],
+                    "Bagger.cs": [
+                        `${kw('public class')}${tp('Bagger')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Baugrube')} Baugrube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')} (${kw('int')} x,${kw('int')} y) Position { ${kw('get')};${kw('private set')}; }`,
+                        ``,
+                        `    ${kw('public')} ${fn('Bagger')}(${tp('Baugrube')} baugrube)`,
+                        `    {`,
+                        `        Baugrube = baugrube;`,
+                        `        ${fn('Platzieren')}();`,
+                        `    }`,
+                        ``,
+                        `    ${kw('public void')}${fn('Platzieren')}()`,
+                        `    {`,
+                        `        ${tp('Random')} random = ${kw('new')}${tp('Random')}();`,
+                        ``,
+                        `        ${kw('do')}`,
+                        `        {`,
+                        `            Position = (random.${fn('Next')}(${nm('0')}, Baugrube.Size), random.${fn('Next')}(${nm('0')}, Baugrube.Size));`,
+                        `        }`,
+                        `    }`,
+                        `}`
+                    ],
+                    "Program.cs": programEmpty
+                },
+                activeLines: [15, 16, 17, 18],
+                desc: "Wir starten eine fußgesteuerte <code>do-while</code>-Schleife (da wir <i>mindestens einmal</i> würfeln müssen). <code>random.Next(0, Baugrube.Size)</code> liefert eine Zahl von <code>0</code> bis <code>Size - 1</code>. Beide Zufallszahlen werden als Tupel in <code>Position</code> gespeichert.",
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }, { name: "Platzieren", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "bagger"
+                },
+                gridState: null
+            },
+            {
+                phase: "4. Bagger-Methoden im Detail",
+                title: "Platzieren() Schritt 3: Schleifenbedingung mit !Baugrube.Anfrage(...)",
+                activeTab: "Bagger.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Bagger')}[] Bagger { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerComplete,
+                    "Program.cs": programEmpty
+                },
+                activeLines: [18],
+                desc: "In der <code>while</code>-Bedingung fragt der Bagger bei seiner Baugrube an: <code>Baugrube.Anfrage(this, Position)</code>. Mit <code>this</code> übergibt er sich selbst. Gibt <code>Anfrage</code> <code>false</code> zurück (Platz belegt!), macht das <code>!</code> (NOT) daraus <code>true</code> &rarr; die Schleife würfelt erneut!",
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }, { name: "Platzieren", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "bagger"
+                },
+                gridState: null
+            },
+
+            // =========================================================================
+            // PHASE 5: BAUGRUBE.ANFRAGE() EINZELSCHRITTE (Steps 14 - 18)
+            // =========================================================================
+            {
+                phase: "5. Methode Anfrage() im Detail",
+                title: "Methode Anfrage(): Signatur & Parameter",
+                activeTab: "Baugrube.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Bagger')}[] Bagger { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        ``,
+                        `    ${kw('public bool')} ${fn('Anfrage')}(${tp('Bagger')} bagger, (${kw('int')} x,${kw('int')} y) position)`,
+                        `    {`,
+                        `    }`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerComplete,
+                    "Program.cs": programEmpty
+                },
+                activeLines: [6, 7, 8],
+                desc: "Jetzt implementieren wir <code>Anfrage</code> in <code>Baugrube.cs</code>. Sie nimmt den anfragenden <code>Bagger</code> und dessen Wunsch-<code>position</code> entgegen und gibt einen <code>bool</code> zurück (<code>true</code> = Platzierung erlaubt, <code>false</code> = abgelehnt).",
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }, { name: "Platzieren", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [{ name: "Anfrage", isNew: true }],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "baugrube"
+                },
+                gridState: null
+            },
+            {
+                phase: "5. Methode Anfrage() im Detail",
+                title: "Anfrage() Schritt 1: X-Koordinate prüfen (GetLength(1))",
+                activeTab: "Baugrube.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Bagger')}[] Bagger { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        ``,
+                        `    ${kw('public bool')} ${fn('Anfrage')}(${tp('Bagger')} bagger, (${kw('int')} x,${kw('int')} y) position)`,
+                        `    {`,
+                        `        ${cm('// ❌ Ungewünschter Zustand: Position außerhalb der Grube')}`,
+                        `        ${kw('if')} (`,
+                        `            position.x < ${nm('0')} || position.x >= Grube.${fn('GetLength')}(${nm('1')})`,
+                        `        )`,
+                        `    }`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerComplete,
+                    "Program.cs": programEmpty
+                },
+                activeLines: [8, 9, 10, 11],
+                desc: "1. Guard-Clause (Teil A): Wir prüfen zuerst, ob <code>position.x</code> links außerhalb (<code>&lt; 0</code>) oder rechts außerhalb des 2D-Arrays liegt. <code>Grube.GetLength(1)</code> gibt die Länge der <b>2. Dimension (Spalten / X-Achse)</b> zurück.",
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }, { name: "Platzieren", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [{ name: "Anfrage", isNew: false }],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "baugrube"
+                },
+                gridState: null
+            },
+            {
+                phase: "5. Methode Anfrage() im Detail",
+                title: "Anfrage() Schritt 2: Y-Koordinate prüfen (GetLength(0)) & return false",
+                activeTab: "Baugrube.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Bagger')}[] Bagger { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        ``,
+                        `    ${kw('public bool')} ${fn('Anfrage')}(${tp('Bagger')} bagger, (${kw('int')} x,${kw('int')} y) position)`,
+                        `    {`,
+                        `        ${cm('// ❌ Ungewünschter Zustand: Position außerhalb der Grube')}`,
+                        `        ${kw('if')} (`,
+                        `            position.x < ${nm('0')} || position.x >= Grube.${fn('GetLength')}(${nm('1')}) ||`,
+                        `            position.y < ${nm('0')} || position.y >= Grube.${fn('GetLength')}(${nm('0')})`,
+                        `        )`,
+                        `        {`,
+                        `            ${kw('return false')};`,
+                        `        }`,
+                        `    }`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerComplete,
+                    "Program.cs": programEmpty
+                },
+                activeLines: [10, 11, 12, 13, 14, 15],
+                desc: "1. Guard-Clause (Teil B): Mit <code>||</code> (ODER) prüfen wir genauso <code>position.y</code> gegen <code>Grube.GetLength(0)</code> (die <b>1. Dimension = Zeilen / Y-Achse</b>). Ist eine der 4 Bedingungen verletzt, brechen wir sofort mit <code>return false;</code> ab.",
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }, { name: "Platzieren", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [{ name: "Anfrage", isNew: false }],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "baugrube"
+                },
+                gridState: null
+            },
+            {
+                phase: "5. Methode Anfrage() im Detail",
+                title: "Anfrage() Schritt 3: Prüfen auf Hindernisse (💧 oder 🗿)",
+                activeTab: "Baugrube.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Bagger')}[] Bagger { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        ``,
+                        `    ${kw('public bool')} ${fn('Anfrage')}(${tp('Bagger')} bagger, (${kw('int')} x,${kw('int')} y) position)`,
+                        `    {`,
+                        `        ${cm('// ❌ Ungewünschter Zustand: Position außerhalb der Grube')}`,
+                        `        ${kw('if')} (`,
+                        `            position.x < ${nm('0')} || position.x >= Grube.${fn('GetLength')}(${nm('1')}) ||`,
+                        `            position.y < ${nm('0')} || position.y >= Grube.${fn('GetLength')}(${nm('0')})`,
+                        `        )`,
+                        `        {`,
+                        `            ${kw('return false')};`,
+                        `        }`,
+                        ``,
+                        `        ${cm('// ❌ Ungewünschter Zustand: Position ist mit Wasser besetzt oder ist ein Loch')}`,
+                        `        ${kw('if')} (Grube[position.y, position.x] == ${st('"💧"')} \vert{}\vert{} Grube[position.y, position.x] == ${st('"🗿"')})`,
+                        `        {`,
+                        `            ${kw('return false')};`,
+                        `        }`,
+                        `    }`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerComplete,
+                    "Program.cs": programEmpty
+                },
+                activeLines: [17, 18, 19, 20, 21],
+                desc: '2. Guard-Clause: Liegt die Koordinate innerhalb der Grube, prüfen wir den Inhalt an <code>Grube[position.y, position.x]</code>. Steht dort bereits Wasser <code>"💧"</code> oder ein Stein <code>"🗿"</code>, darf der Bagger dort nicht hin &rarr; <code>return false;</code>.',
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }, { name: "Platzieren", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [{ name: "Anfrage", isNew: false }],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "baugrube"
+                },
+                gridState: null
+            },
+            {
+                phase: "5. Methode Anfrage() im Detail",
+                title: "Anfrage() Schritt 4: Bagger eintragen (🏗️) & return true",
+                activeTab: "Baugrube.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Bagger')}[] Bagger { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        ``,
+                        `    ${kw('public bool')} ${fn('Anfrage')}(${tp('Bagger')} bagger, (${kw('int')} x,${kw('int')} y) position)`,
+                        `    {`,
+                        `        ${cm('// ❌ Ungewünschter Zustand: Position außerhalb der Grube')}`,
+                        `        ${kw('if')} (`,
+                        `            position.x < ${nm('0')} || position.x >= Grube.${fn('GetLength')}(${nm('1')}) ||`,
+                        `            position.y < ${nm('0')} || position.y >= Grube.${fn('GetLength')}(${nm('0')})`,
+                        `        )`,
+                        `        {`,
+                        `            ${kw('return false')};`,
+                        `        }`,
+                        ``,
+                        `        ${cm('// ❌ Ungewünschter Zustand: Position ist mit Wasser besetzt oder ist ein Loch')}`,
+                        `        ${kw('if')} (Grube[position.y, position.x] == ${st('"💧"')} \vert{}\vert{} Grube[position.y, position.x] == ${st('"🗿"')})`,
+                        `        {`,
+                        `            ${kw('return false')};`,
+                        `        }`,
+                        ``,
+                        `        ${cm('// ✅ Gewünschter Zustand: Position ist frei')}`,
+                        `        Grube[position.y, position.x] = ${st('"🏗️"')};`,
+                        ``,
+                        `        ${kw('return true')};`,
+                        `    }`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerComplete,
+                    "Program.cs": programEmpty
+                },
+                activeLines: [23, 24, 26],
+                desc: 'Sind beide Prüfungen bestanden, ist das Feld gültig! Wir tragen das Bagger-Symbol <code>"🏗️"</code> in <code>Grube[position.y, position.x]</code> ein und melden mit <code>return true;</code> Erfolg an die <code>do-while</code>-Schleife des Baggers zurück.',
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }, { name: "Platzieren", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [{ name: "Anfrage", isNew: false }],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "baugrube"
+                },
+                gridState: null
+            },
+
+            // =========================================================================
+            // PHASE 6: BAUGRUBE KONSTRUKTOR IM DETAIL & 2D-ARRAY LIVE AUFBAU (Steps 19 - 26)
+            // =========================================================================
+            {
+                phase: "6. Baugrube-Konstruktor im Detail",
+                title: "Baugrube-Konstruktor: Signatur & Size speichern",
+                activeTab: "Baugrube.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Bagger')}[] Bagger { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        ``,
+                        `    ${kw('public')}${fn('Baugrube')}(${kw('int')} size,${kw('int')} numberOfBagger)`,
+                        `    {`,
+                        `        Size = size;`,
+                        `    }`,
+                        ``,
+                        `    ${kw('public bool')} ${fn('Anfrage')}(${tp('Bagger')} bagger, (${kw('int')} x,${kw('int')} y) position) { ... }`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerComplete,
+                    "Program.cs": programEmpty
+                },
+                activeLines: [6, 7, 8, 9],
+                desc: "Nun bauen wir den Konstruktor <code>public Baugrube(int size, int numberOfBagger)</code> Schritt für Schritt auf. Als Erstes speichern wir die übergebene Größe in der Property: <code>Size = size;</code>. Im Klassendiagramm erscheint die Methode <code>Baugrube</code>.",
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }, { name: "Platzieren", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [{ name: "Anfrage", isNew: false }, { name: "Baugrube", isNew: true }],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "baugrube"
+                },
+                gridState: null
+            },
+            {
+                phase: "6. Baugrube-Konstruktor im Detail",
+                title: "Konstruktor Schritt 2: 2D-Array mit new string[size, size] anlegen",
+                activeTab: "Baugrube.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Bagger')}[] Bagger { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        ``,
+                        `    ${kw('public')}${fn('Baugrube')}(${kw('int')} size,${kw('int')} numberOfBagger)`,
+                        `    {`,
+                        `        Size = size;`,
+                        `        Grube = ${kw('new')}${kw('string')}[size, size];`,
+                        `    }`,
+                        ``,
+                        `    ${kw('public bool')} ${fn('Anfrage')}(${tp('Bagger')} bagger, (${kw('int')} x,${kw('int')} y) position) { ... }`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerComplete,
+                    "Program.cs": programEmpty
+                },
+                activeLines: [9],
+                desc: "Mit <code>Grube = new string[size, size];</code> reservieren wir den Speicher für das 2D-Array (bei <code>size = 10</code> genau 10&times;10 = 100 Plätze). <b>Ab jetzt siehst du rechts oben den Zustand des 2D-Arrays:</b> Direkt nach <code>new</code> sind alle Zellen noch leer (<code>null</code>).",
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }, { name: "Platzieren", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [{ name: "Anfrage", isNew: false }, { name: "Baugrube", isNew: false }],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "baugrube"
+                },
+                gridState: {
+                    label: "2D-Array Grube[10, 10] nach new string[size, size] (alle Zellen null):",
+                    grid: gridNull,
+                    isNullGrid: true
+                }
+            },
+            {
+                phase: "6. Baugrube-Konstruktor im Detail",
+                title: "Konstruktor Schritt 3: Äußere for-Schleife über alle Zeilen (y)",
+                activeTab: "Baugrube.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Bagger')}[] Bagger { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        ``,
+                        `    ${kw('public')}${fn('Baugrube')}(${kw('int')} size,${kw('int')} numberOfBagger)`,
+                        `    {`,
+                        `        Size = size;`,
+                        `        Grube = ${kw('new')}${kw('string')}[size, size];`,
+                        ``,
+                        `        ${cm('// Initialisierung der Grube mit Erde')}`,
+                        `        ${kw('for')} (${kw('int')} y =${nm('0')}; y < Size; y++)`,
+                        `        {`,
+                        `        }`,
+                        `    }`,
+                        ``,
+                        `    ${kw('public bool')} ${fn('Anfrage')}(${tp('Bagger')} bagger, (${kw('int')} x,${kw('int')} y) position) { ... }`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerComplete,
+                    "Program.cs": programEmpty
+                },
+                activeLines: [11, 12, 13, 14],
+                desc: "Um das 2D-Array mit Erde zu füllen, starten wir mit der <b>äußeren Schleife</b>: <code>for (int y = 0; y &lt; Size; y++)</code>. Die Laufvariable <code>y</code> wandert Zeile für Zeile von oben (Zeile 0) nach unten (Zeile 9).",
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }, { name: "Platzieren", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [{ name: "Anfrage", isNew: false }, { name: "Baugrube", isNew: false }],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "none"
+                },
+                gridState: {
+                    label: "Äußere Schleife wählt Zeile y (z.B. Zeile y = 0):",
+                    grid: gridFirstRowEarth,
+                    isNullGrid: false,
+                    highlightCoords: [[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[0,9]]
+                }
+            },
+            {
+                phase: "6. Baugrube-Konstruktor im Detail",
+                title: "Konstruktor Schritt 4: Innere for-Schleife (x) füllt Erde (🟫)",
+                activeTab: "Baugrube.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Bagger')}[] Bagger { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        ``,
+                        `    ${kw('public')}${fn('Baugrube')}(${kw('int')} size,${kw('int')} numberOfBagger)`,
+                        `    {`,
+                        `        Size = size;`,
+                        `        Grube = ${kw('new')}${kw('string')}[size, size];`,
+                        ``,
+                        `        ${cm('// Initialisierung der Grube mit Erde')}`,
+                        `        ${kw('for')} (${kw('int')} y =${nm('0')}; y < Size; y++)`,
+                        `        {`,
+                        `            ${kw('for')} (${kw('int')} x =${nm('0')}; x < Size; x++)`,
+                        `            {`,
+                        `                Grube[y, x] = ${st('"🟫"')};`,
+                        `            }`,
+                        `        }`,
+                        `    }`,
+                        ``,
+                        `    ${kw('public bool')} ${fn('Anfrage')}(${tp('Bagger')} bagger, (${kw('int')} x,${kw('int')} y) position) { ... }`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerComplete,
+                    "Program.cs": programEmpty
+                },
+                activeLines: [14, 15, 16, 17],
+                desc: 'Die <b>innere Schleife</b> <code>for (int x = 0; x &lt; Size; x++)</code> läuft für jede Zeile <code>y</code> von links nach rechts durch alle Spalten <code>x</code> und setzt <code>Grube[y, x] = "🟫";</code>. Danach ist die gesamte Grube mit Erde gefüllt!',
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }, { name: "Platzieren", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [{ name: "Anfrage", isNew: false }, { name: "Baugrube", isNew: false }],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "none"
+                },
+                gridState: {
+                    label: "Zustand von Grube[,] nach Abschluss beider Erde-Schleifen:",
+                    grid: gridEarth
+                }
+            },
+            {
+                phase: "6. Baugrube-Konstruktor im Detail",
+                title: "Konstruktor Schritt 5: 1D-Array für die Bagger reservieren",
+                activeTab: "Baugrube.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Bagger')}[] Bagger { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        ``,
+                        `    ${kw('public')}${fn('Baugrube')}(${kw('int')} size,${kw('int')} numberOfBagger)`,
+                        `    {`,
+                        `        Size = size;`,
+                        `        Grube = ${kw('new')}${kw('string')}[size, size];`,
+                        ``,
+                        `        ${cm('// Initialisierung der Grube mit Erde')}`,
+                        `        ${kw('for')} (${kw('int')} y =${nm('0')}; y < Size; y++)`,
+                        `        {`,
+                        `            ${kw('for')} (${kw('int')} x =${nm('0')}; x < Size; x++)`,
+                        `            {`,
+                        `                Grube[y, x] = ${st('"🟫"')};`,
+                        `            }`,
+                        `        }`,
+                        ``,
+                        `        ${cm('// Bagger platzieren')}`,
+                        `        Bagger = ${kw('new')}${tp('Bagger')}[numberOfBagger];`,
+                        `    }`,
+                        ``,
+                        `    ${kw('public bool')} ${fn('Anfrage')}(${tp('Bagger')} bagger, (${kw('int')} x,${kw('int')} y) position) { ... }`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerComplete,
+                    "Program.cs": programEmpty
+                },
+                activeLines: [20, 21],
+                desc: "Jetzt legen wir das Array für die Bagger-Objekte in der gewünschten Größe an: <code>Bagger = new Bagger[numberOfBagger];</code> (bei <code>numberOfBagger = 3</code> hat das Array 3 Plätze, die anfangs noch <code>null</code> sind).",
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }, { name: "Platzieren", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [{ name: "Anfrage", isNew: false }, { name: "Baugrube", isNew: false }],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "baugrube"
+                },
+                gridState: {
+                    label: "Zustand von Grube[,] (noch keine Bagger instanziiert):",
+                    grid: gridEarth
+                }
+            },
+            {
+                phase: "6. Baugrube-Konstruktor im Detail",
+                title: "Konstruktor Schritt 6: Bagger-Objekte mit new Bagger(this) erzeugen",
+                activeTab: "Baugrube.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Bagger')}[] Bagger { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        ``,
+                        `    ${kw('public')}${fn('Baugrube')}(${kw('int')} size,${kw('int')} numberOfBagger)`,
+                        `    {`,
+                        `        Size = size;`,
+                        `        Grube = ${kw('new')}${kw('string')}[size, size];`,
+                        ``,
+                        `        ${cm('// Initialisierung der Grube mit Erde')}`,
+                        `        ${kw('for')} (${kw('int')} y =${nm('0')}; y < Size; y++)`,
+                        `        {`,
+                        `            ${kw('for')} (${kw('int')} x =${nm('0')}; x < Size; x++)`,
+                        `            {`,
+                        `                Grube[y, x] = ${st('"🟫"')};`,
+                        `            }`,
+                        `        }`,
+                        ``,
+                        `        ${cm('// Bagger platzieren')}`,
+                        `        Bagger = ${kw('new')}${tp('Bagger')}[numberOfBagger];`,
+                        ``,
+                        `        ${kw('for')} (${kw('int')} i =${nm('0')}; i < numberOfBagger; i++)`,
+                        `        {`,
+                        `            Bagger[i] = ${kw('new')} ${tp('Bagger')}(${kw('this')});`,
+                        `        }`,
+                        `    }`,
+                        ``,
+                        `    ${kw('public bool')} ${fn('Anfrage')}(${tp('Bagger')} bagger, (${kw('int')} x,${kw('int')} y) position) { ... }`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerComplete,
+                    "Program.cs": programEmpty
+                },
+                activeLines: [23, 24, 25, 26],
+                desc: 'In der Schleife erstellen wir jeden Bagger mit <code>Bagger[i] = new Bagger(this);</code>. <b>Was passiert dabei?</b> Der Bagger-Konstruktor startet &rarr; ruft <code>Platzieren()</code> auf &rarr; würfelt Koordinaten &rarr; ruft <code>Anfrage()</code> auf &rarr; trägt <code>"🏗️"</code> in <code>Grube[y, x]</code> ein!',
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }, { name: "Platzieren", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [{ name: "Anfrage", isNew: false }, { name: "Baugrube", isNew: false }],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "both"
+                },
+                gridState: {
+                    label: "Zustand von Grube[,] nach Platzierung der 3 Bagger (🏗️):",
+                    grid: gridWithBaggers,
+                    highlightCoords: baggerCoords
+                }
+            },
+            {
+                phase: "6. Baugrube-Konstruktor im Detail",
+                title: "Konstruktor Schritt 7: Zufälliges Wasser (💧) eintragen",
+                activeTab: "Baugrube.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Bagger')}[] Bagger { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        ``,
+                        `    ${kw('public')}${fn('Baugrube')}(${kw('int')} size,${kw('int')} numberOfBagger)`,
+                        `    {`,
+                        `        ${cm('// ... Erde & Bagger initialisiert ...')}`,
+                        ``,
+                        `        ${cm('// Wasser und Steine zufällig platzieren')}`,
+                        `        ${tp('Random')} random = ${kw('new')}${tp('Random')}();`,
+                        `        ${kw('for')} (${kw('int')} i = ${nm('0')}; i < (Size*Size) /${nm('4')}; i++)`,
+                        `        {`,
+                        `            ${kw('int')} x = random.${fn('Next')}(${nm('0')}, Size);`,
+                        `            ${kw('int')} y = random.${fn('Next')}(${nm('0')}, Size);`,
+                        `            Grube[y, x] = ${st('"💧"')};`,
+                        `        }`,
+                        `    }`,
+                        ``,
+                        `    ${kw('public bool')} ${fn('Anfrage')}(${tp('Bagger')} bagger, (${kw('int')} x,${kw('int')} y) position) { ... }`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerComplete,
+                    "Program.cs": programEmpty
+                },
+                activeLines: [10, 11, 12, 13, 14, 15, 16],
+                desc: 'Jetzt legen wir ein <code>Random</code>-Objekt an und starten eine Schleife, die <code>(Size*Size) / 4</code> Mal läuft (bei 10&times;10 also <code>100 / 4 = 25</code> Durchläufe). Im ersten Teil jedes Durchlaufs wird eine zufällige Koordinate <code>(x, y)</code> gezogen und auf Wasser <code>"💧"</code> gesetzt.',
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }, { name: "Platzieren", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [{ name: "Anfrage", isNew: false }, { name: "Baugrube", isNew: false }],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "none"
+                },
+                gridState: {
+                    label: "Zustand von Grube[,] mit zufälligen Wasser-Feldern (💧):",
+                    grid: gridWithWater,
+                    highlightCoords: waterCoords
+                }
+            },
+            {
+                phase: "6. Baugrube-Konstruktor im Detail",
+                title: "Konstruktor Schritt 8: Zufällige Steine (🗿) eintragen",
+                activeTab: "Baugrube.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${kw('public')}${tp('Bagger')}[] Bagger { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('string')}[,] Grube { ${kw('get')};${kw('private set')}; }`,
+                        `    ${kw('public')}${kw('int')} Size { ${kw('get')};${kw('private set')}; }`,
+                        ``,
+                        `    ${kw('public')}${fn('Baugrube')}(${kw('int')} size,${kw('int')} numberOfBagger)`,
+                        `    {`,
+                        `        ${cm('// ... Erde & Bagger initialisiert ...')}`,
+                        ``,
+                        `        ${cm('// Wasser und Steine zufällig platzieren')}`,
+                        `        ${tp('Random')} random = ${kw('new')}${tp('Random')}();`,
+                        `        ${kw('for')} (${kw('int')} i = ${nm('0')}; i < (Size*Size) /${nm('4')}; i++)`,
+                        `        {`,
+                        `            ${kw('int')} x = random.${fn('Next')}(${nm('0')}, Size);`,
+                        `            ${kw('int')} y = random.${fn('Next')}(${nm('0')}, Size);`,
+                        `            Grube[y, x] = ${st('"💧"')};`,
+                        ``,
+                        `            x = random.${fn('Next')}(${nm('0')}, Size);`,
+                        `            y = random.${fn('Next')}(${nm('0')}, Size);`,
+                        `            Grube[y, x] = ${st('"🗿"')};`,
+                        `        }`,
+                        `    }`,
+                        ``,
+                        `    ${kw('public bool')} ${fn('Anfrage')}(${tp('Bagger')} bagger, (${kw('int')} x,${kw('int')} y) position) { ... }`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerComplete,
+                    "Program.cs": programEmpty
+                },
+                activeLines: [18, 19, 20],
+                desc: 'Im zweiten Teil derselben Schleife würfeln wir direkt neue Koordinaten für <code>x</code> und <code>y</code> und setzen dort einen Stein: <code>Grube[y, x] = "🗿";</code>. Damit ist der Konstruktor von <code>Baugrube</code> komplett abgeschlossen!',
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }, { name: "Platzieren", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [{ name: "Anfrage", isNew: false }, { name: "Baugrube", isNew: false }],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "none"
+                },
+                gridState: {
+                    label: "Zustand von Grube[,] nach Platzierung von Wasser (💧) & Steinen (🗿):",
+                    grid: gridFinal,
+                    highlightCoords: stoneCoords
+                }
+            },
+
+            // =========================================================================
+            // PHASE 7: METHODE PRINT() IM DETAIL (Steps 27 - 29)
+            // =========================================================================
+            {
+                phase: "7. Methode Print() im Detail",
+                title: "Print() Schritt 1: Signatur & äußere Zeilen-Schleife (y)",
+                activeTab: "Baugrube.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${cm('// ... Properties, Konstruktor & Anfrage() ...')}`,
+                        ``,
+                        `    ${kw('public void')}${fn('Print')}()`,
+                        `    {`,
+                        `        ${kw('for')} (${kw('int')} y =${nm('0')}; y < Size; y++)`,
+                        `        {`,
+                        `        }`,
+                        `    }`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerComplete,
+                    "Program.cs": programEmpty
+                },
+                activeLines: [4, 5, 6, 7, 8],
+                desc: "Nun fügen wir die Methode <code>public void Print()</code> in <code>Baugrube</code> hinzu (sie erscheint nun auch unten im Klassendiagramm). Genau wie beim Befüllen starten wir mit der äußeren Schleife <code>for (int y = 0; y &lt; Size; y++)</code> für die Zeilen.",
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }, { name: "Platzieren", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [{ name: "Anfrage", isNew: false }, { name: "Baugrube", isNew: false }, { name: "Print", isNew: true }],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "baugrube"
+                },
+                gridState: {
+                    label: "Aktueller Zustand von Grube[,]:",
+                    grid: gridFinal
+                }
+            },
+            {
+                phase: "7. Methode Print() im Detail",
+                title: "Print() Schritt 2: Innere Spalten-Schleife (x) mit Console.Write",
+                activeTab: "Baugrube.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${cm('// ... Properties, Konstruktor & Anfrage() ...')}`,
+                        ``,
+                        `    ${kw('public void')}${fn('Print')}()`,
+                        `    {`,
+                        `        ${kw('for')} (${kw('int')} y =${nm('0')}; y < Size; y++)`,
+                        `        {`,
+                        `            ${kw('for')} (${kw('int')} x =${nm('0')}; x < Size; x++)`,
+                        `            {`,
+                        `                Console.${fn('Write')}(Grube[y, x]);`,
+                        `            }`,
+                        `        }`,
+                        `    }`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerComplete,
+                    "Program.cs": programEmpty
+                },
+                activeLines: [8, 9, 10, 11],
+                desc: "In der inneren Schleife laufen wir über alle Spalten <code>x</code> einer Zeile und geben jedes Element mit <code>Console.Write(Grube[y, x]);</code> aus. <b>Wichtig:</b> <code>Write</code> (ohne <code>Line</code>) schreibt alle 10 Symbole einer Zeile direkt nebeneinander!",
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }, { name: "Platzieren", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [{ name: "Anfrage", isNew: false }, { name: "Baugrube", isNew: false }, { name: "Print", isNew: false }],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "baugrube"
+                },
+                gridState: {
+                    label: "Console.Write(Grube[y, x]) gibt Zeile für Zeile horizontal aus:",
+                    grid: gridFinal,
+                    highlightCoords: [[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[0,9]]
+                }
+            },
+            {
+                phase: "7. Methode Print() im Detail",
+                title: "Print() Schritt 3: Zeilenumbruch mit Console.WriteLine()",
+                activeTab: "Baugrube.cs",
+                files: {
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${cm('// ... Properties, Konstruktor & Anfrage() ...')}`,
+                        ``,
+                        `    ${kw('public void')}${fn('Print')}()`,
+                        `    {`,
+                        `        ${kw('for')} (${kw('int')} y =${nm('0')}; y < Size; y++)`,
+                        `        {`,
+                        `            ${kw('for')} (${kw('int')} x =${nm('0')}; x < Size; x++)`,
+                        `            {`,
+                        `                Console.${fn('Write')}(Grube[y, x]);`,
+                        `            }`,
+                        `            Console.${fn('WriteLine')}();`,
+                        `        }`,
+                        `    }`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerComplete,
+                    "Program.cs": programEmpty
+                },
+                activeLines: [12],
+                desc: "Sobald die innere Schleife alle 10 Spalten einer Zeile ausgegeben hat, rufen wir <b>einmal pro Zeile</b> <code>Console.WriteLine();</code> auf, um in der Konsole in die nächste Zeile zu springen.",
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }, { name: "Platzieren", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [{ name: "Anfrage", isNew: false }, { name: "Baugrube", isNew: false }, { name: "Print", isNew: false }],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "baugrube"
+                },
+                gridState: {
+                    label: "Vollständige 2D-Matrix-Struktur durch Console.WriteLine():",
+                    grid: gridFinal
+                }
+            },
+
+            // =========================================================================
+            // PHASE 8: PROGRAM.CS TOP-LEVEL STATEMENTS EINZELN (Steps 30 - 32)
+            // =========================================================================
+            {
+                phase: "8. Program.cs im Detail",
+                title: "Program.cs Schritt 1: UTF-8 Encoding für Emojis aktivieren",
+                activeTab: "Program.cs",
+                files: {
+                    "Program.cs": [
+                        `Console.OutputEncoding = System.Text.${tp('Encoding')}.UTF8;`
+                    ],
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${cm('// Vollständig implementiert (Size, Grube, Bagger, Konstruktor, Anfrage, Print)')}`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerComplete
+                },
+                activeLines: [0],
+                desc: "Wir wechseln zum Abschluss in <code>Program.cs</code>. In der ersten Zeile stellen wir mit <code>Console.OutputEncoding = System.Text.Encoding.UTF8;</code> sicher, dass die Windows-/Linux-Konsole Unicode-Emojis wie 🟫, 🏗️, 💧 und 🗿 korrekt darstellen kann (statt <code>??</code>).",
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }, { name: "Platzieren", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [{ name: "Anfrage", isNew: false }, { name: "Baugrube", isNew: false }, { name: "Print", isNew: false }],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "none"
+                },
+                gridState: {
+                    label: "Konsole ist nun bereit für UTF-8 Emojis:",
+                    grid: gridFinal
+                }
+            },
+            {
+                phase: "8. Program.cs im Detail",
+                title: "Program.cs Schritt 2: Baugrube-Objekt instanziieren (10, 3)",
+                activeTab: "Program.cs",
+                files: {
+                    "Program.cs": [
+                        `Console.OutputEncoding = System.Text.${tp('Encoding')}.UTF8;`,
+                        `${tp('Baugrube')} baugrube = ${kw('new')}${tp('Baugrube')}(${nm('10')},${nm('3')});`
+                    ],
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${cm('// Vollständig implementiert (Size, Grube, Bagger, Konstruktor, Anfrage, Print)')}`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerComplete
+                },
+                activeLines: [1],
+                desc: "Mit <code>Baugrube baugrube = new Baugrube(10, 3);</code> erzeugen wir eine konkrete Baugrube mit der Seitenlänge <code>size = 10</code> und <code>numberOfBagger = 3</code>. Dieser eine Aufruf führt den gesamten Konstruktor inklusive Erde, 3 Baggern, Wasser und Steinen aus!",
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }, { name: "Platzieren", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [{ name: "Anfrage", isNew: false }, { name: "Baugrube", isNew: false }, { name: "Print", isNew: false }],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "both"
+                },
+                gridState: {
+                    label: "Objekt 'baugrube' im Speicher nach new Baugrube(10, 3):",
+                    grid: gridFinal,
+                    highlightCoords: baggerCoords
+                }
+            },
+            {
+                phase: "8. Program.cs im Detail",
+                title: "Program.cs Schritt 3: baugrube.Print() aufrufen",
+                activeTab: "Program.cs",
+                files: {
+                    "Program.cs": [
+                        `Console.OutputEncoding = System.Text.${tp('Encoding')}.UTF8;`,
+                        `${tp('Baugrube')} baugrube = ${kw('new')}${tp('Baugrube')}(${nm('10')},${nm('3')});`,
+                        `baugrube.${fn('Print')}();`
+                    ],
+                    "Baugrube.cs": [
+                        `${kw('public class')}${tp('Baugrube')}`,
+                        `{`,
+                        `    ${cm('// Vollständig implementiert (Size, Grube, Bagger, Konstruktor, Anfrage, Print)')}`,
+                        `}`
+                    ],
+                    "Bagger.cs": baggerComplete
+                },
+                activeLines: [2],
+                desc: "In der letzten Zeile rufen wir <code>baugrube.Print();</code> auf. Damit wird das fertig initialisierte 10&times;10 2D-Array zeilenweise auf der Konsole ausgegeben. Alle 3 Dateien und das Klassendiagramm sind nun komplett!",
+                diagram: {
+                    baggerProps: [{ name: "Position", isNew: false }],
+                    baggerMethods: [{ name: "Bagger", isNew: false }, { name: "Platzieren", isNew: false }],
+                    baugrubeProps: [{ name: "Grube", isNew: false }, { name: "Size", isNew: false }],
+                    baugrubeMethods: [{ name: "Anfrage", isNew: false }, { name: "Baugrube", isNew: false }, { name: "Print", isNew: false }],
+                    arrowBaggerArr: true, arrowBaugrubeRef: true,
+                    highlightCard: "both"
+                },
+                gridState: {
+                    label: "Finale Konsolenausgabe von baugrube.Print():",
+                    grid: gridFinal,
+                    highlightCoords: baggerCoords
+                }
+            }
+        ];
+
+        let currentStep = 0;
+        let currentTab = "Baugrube.cs";
+
+        function switchTab(tabName) {
+            currentTab = tabName;
+            renderCode();
+        }
+
+        function renderTabs() {
+            const tabs = ["Baugrube.cs", "Bagger.cs", "Program.cs"];
+            tabs.forEach(tab => {
+                const btn = document.getElementById(`tab-${tab}`);
+                const isCurrent = (tab === currentTab);
+                const isStepPrimary = (tab === steps[currentStep].activeTab);
+                const dot = isStepPrimary ? `<span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>` : ``;
+                if (isCurrent) {
+                    btn.className = "px-4 py-2 text-xs font-code font-bold rounded-t-lg border-t border-x border-slate-700 bg-slate-900 text-sky-400 flex items-center gap-2";
+                } else {
+                    btn.className = "px-4 py-2 text-xs font-code font-semibold rounded-t-lg border-t border-x border-transparent bg-slate-950 text-slate-400 hover:text-slate-200 flex items-center gap-2";
+                }
+                btn.innerHTML = `${dot}<span>${tab}</span>`;
+            });
+        }
+
+        function renderCode() {
+            renderTabs();
+            const step = steps[currentStep];
+            const lines = step.files[currentTab] || [];
+            const isPrimaryTab = (currentTab === step.activeTab);
+
+            const html = lines.map((line, idx) => {
+                const isActive = isPrimaryTab && step.activeLines.includes(idx);
+                const rowClass = isActive ? "line-active text-sky-50" : "line-normal text-slate-300";
+                const idAttr = (isActive && idx === step.activeLines[0]) ? 'id="first-active-line"' : '';
+                return `<div ${idAttr} class="flex px-2 py-0.5 rounded ${rowClass}">
+                    <span class="w-7 shrink-0 text-right text-slate-600 mr-3 text-xs select-none border-r border-slate-800 pr-2">${idx + 1}</span>
+                    <span class="whitespace-pre">${line}</span>
+                </div>`;
+            }).join("");
+
+            const container = document.getElementById("code-container");
+            container.innerHTML = html;
+
+            const activeEl = document.getElementById("first-active-line");
+            if (activeEl) {
+                activeEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            }
+        }
+
+        function renderClassCardBody(props, methods) {
+            if (props.length === 0 && methods.length === 0) {
+                return `<div class="p-3 text-[11px] text-slate-400 italic text-center bg-white">Noch leer</div>`;
+            }
+            let html = "";
+            if (props.length > 0) {
+                html += `<div class="vs-section"><span>◢</span><span>Properties</span></div>`;
+                props.forEach(p => {
+                    const cls = p.isNew ? "vs-item vs-item-new" : "vs-item";
+                    html += `<div class="${cls}"><span class="text-slate-500">🔧</span><span>${p.name}</span></div>`;
+                });
+            }
+            if (methods.length > 0) {
+                html += `<div class="vs-section"><span>◢</span><span>Methods</span></div>`;
+                methods.forEach(m => {
+                    const cls = m.isNew ? "vs-item vs-item-new" : "vs-item";
+                    html += `<div class="${cls}"><span class="text-purple-600 font-bold">&#x2B22;</span><span>${m.name}</span></div>`;
+                });
+            }
+            return html;
+        }
+
+        function renderDiagram() {
+            const d = steps[currentStep].diagram;
+            document.getElementById("cd-bagger-body").innerHTML = renderClassCardBody(d.baggerProps, d.baggerMethods);
+            document.getElementById("cd-baugrube-body").innerHTML = renderClassCardBody(d.baugrubeProps, d.baugrubeMethods);
+
+            const baggerCard = document.getElementById("cd-bagger");
+            const baugrubeCard = document.getElementById("cd-baugrube");
+
+            baggerCard.className = "vs-card w-[170px] z-10 " + ((d.highlightCard === "bagger" || d.highlightCard === "both") ? "vs-card-highlight" : "");
+            baugrubeCard.className = "vs-card w-[170px] z-10 " + ((d.highlightCard === "baugrube" || d.highlightCard === "both") ? "vs-card-highlight" : "");
+
+            document.getElementById("arrow-bagger-arr").style.opacity = d.arrowBaggerArr ? "1" : "0";
+            document.getElementById("arrow-baugrube-ref").style.opacity = d.arrowBaugrubeRef ? "1" : "0";
+        }
+
+        function renderGrid() {
+            const gs = steps[currentStep].gridState;
+            const panel = document.getElementById("grid-panel");
+
+            if (!gs) {
+                panel.innerHTML = `
+                    <div class="text-center p-4 max-w-sm">
+                        <div class="text-2xl mb-2 opacity-60">⏳</div>
+                        <div class="text-xs font-semibold text-slate-400 mb-1">2D-Array <code class="text-sky-400">Grube[,]</code> noch nicht instanziiert</div>
+                        <div class="text-[11px] text-slate-500">Sobald wir im Konstruktor von <code class="text-slate-400">Baugrube</code> die Zeile <code class="text-emerald-400">Grube = new string[size, size];</code> erreichen (ab Schritt 20), siehst du hier live jeden Änderungsschritt des 2D-Arrays!</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const highlightSet = new Set((gs.highlightCoords || []).map(([y, x]) => `${y},${x}`));
+
+            let rowsHtml = "";
+            for (let y = 0; y < 10; y++) {
+                let cellsHtml = `<span class="w-4 text-[10px] text-slate-500 font-code text-right mr-1">${y}</span>`;
+                for (let x = 0; x < 10; x++) {
+                    const val = gs.grid[y][x];
+                    const isHl = highlightSet.has(`${y},${x}`);
+                    const hlClass = isHl ? "grid-cell-highlight" : "";
+                    if (gs.isNullGrid || val === "null") {
+                        cellsHtml += `<div class="grid-cell text-[9px] text-slate-500 font-code ${hlClass}">·</div>`;
+                    } else {
+                        cellsHtml += `<div class="grid-cell ${hlClass}">${val}</div>`;
+                    }
+                }
+                rowsHtml += `<div class="flex items-center gap-0.5">${cellsHtml}</div>`;
+            }
+
+            let colHeader = `<span class="w-4 mr-1"></span>`;
+            for (let x = 0; x < 10; x++) {
+                colHeader += `<span class="w-[24px] text-center text-[10px] text-slate-500 font-code">${x}</span>`;
+            }
+
+            panel.innerHTML = `
+                <div class="w-full flex flex-col items-center">
+                    <div class="text-[11px] font-code text-emerald-400 mb-1.5 font-semibold text-center">${gs.label}</div>
+                    <div class="bg-slate-900/90 p-2 rounded-lg border border-slate-800 flex flex-col gap-0.5">
+                        <div class="flex items-center gap-0.5 mb-0.5">${colHeader}</div>
+                        ${rowsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        function render() {
+            const step = steps[currentStep];
+            currentTab = step.activeTab;
+
+            document.getElementById("btn-prev").disabled = (currentStep === 0);
+            document.getElementById("btn-next").disabled = (currentStep === steps.length - 1);
+            document.getElementById("step-current").textContent = currentStep + 1;
+            document.getElementById("step-total").textContent = steps.length;
+            document.getElementById("phase-badge").textContent = step.phase;
+            document.getElementById("step-title").textContent = step.title;
+            document.getElementById("explanation-text").innerHTML = step.desc;
+
+            renderCode();
+            renderDiagram();
+            renderGrid();
+        }
+
+        document.getElementById("btn-next").addEventListener("click", () => {
+            if (currentStep < steps.length - 1) { currentStep++; render(); }
+        });
+        document.getElementById("btn-prev").addEventListener("click", () => {
+            if (currentStep > 0) { currentStep--; render(); }
+        });
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "ArrowRight") document.getElementById("btn-next").click();
+            if (e.key === "ArrowLeft") document.getElementById("btn-prev").click();
+        });
+
+        render();
+    </script>
+</body>
+</html>
