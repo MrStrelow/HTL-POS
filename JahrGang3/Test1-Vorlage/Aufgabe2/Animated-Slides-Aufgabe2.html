@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Doubly Linked List – Visuelle Operations- & Spezialfall-Angabe</title>
+ <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+<style>
+/* --- Vollständiges Offline-CSS als Ersatz für Tailwind --- */
+*, ::before, ::after { box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; user-select: none; }
+.font-code { font-family: 'Fira Code', monospace; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0f172a; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* Layout Hilfsklassen */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.flex-row { flex-direction: row; }
+.flex-wrap { flex-wrap: wrap; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.justify-center { justify-content: center; }
+.gap-1 { gap: 4px; }
+.gap-2 { gap: 8px; }
+.gap-2\.5 { gap: 10px; }
+.gap-3 { gap: 12px; }
+.gap-4 { gap: 16px; }
+.gap-5 { gap: 20px; }
+.shrink-0 { flex-shrink: 0; }
+.flex-1 { flex: 1 1 0%; }
+.grid { display: grid; }
+.mx-auto { margin-left: auto; margin-right: auto; }
+.relative { position: relative; }
+.overflow-hidden { overflow: hidden; }
+.overflow-y-auto { overflow-y: auto; }
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.max-w-7xl { max-width: 80rem; }
+
+/* Farben & Abstände */
+.bg-slate-950 { background-color: #020617; }
+.bg-slate-900 { background-color: #0f172a; }
+.bg-slate-900\/50 { background-color: rgba(15, 23, 42, 0.5); }
+.bg-slate-800 { background-color: #1e293b; }
+.bg-slate-800\/80 { background-color: rgba(30, 41, 59, 0.8); }
+.bg-sky-950 { background-color: #082f49; }
+.bg-sky-600 { background-color: #0284c7; }
+.bg-sky-600:hover { background-color: #0ea5e9; }
+.bg-slate-800:hover { background-color: #334155; }
+
+.border-b { border-bottom: 1px solid; }
+.border-t { border-top: 1px solid; }
+.border { border: 1px solid; }
+.border-slate-800 { border-color: #1e293b; }
+.border-slate-700 { border-color: #334155; }
+.border-slate-700\/50 { border-color: rgba(51, 65, 85, 0.5); }
+.border-sky-700 { border-color: #0369a1; }
+.border-sky-500 { border-color: #0ea5e9; }
+
+.text-xs { font-size: 0.75rem; line-height: 1rem; }
+.text-\[11px\] { font-size: 11px; }
+.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.font-bold { font-weight: 700; }
+.font-semibold { font-weight: 600; }
+.font-medium { font-weight: 500; }
+
+.text-slate-500 { color: #64748b; }
+.text-slate-400 { color: #94a3b8; }
+.text-slate-200 { color: #e2e8f0; }
+.text-white { color: #ffffff; }
+.text-sky-400 { color: #38bdf8; }
+.text-sky-300 { color: #7dd3fc; }
+.text-amber-400 { color: #fbbf24; }
+.text-amber-300 { color: #fcd34d; }
+.text-emerald-400 { color: #34d399; }
+.text-orange-500 { color: #f97316; }
+.text-purple-400 { color: #a855f7; }
+
+.py-2 { padding-top: 8px; padding-bottom: 8px; }
+.py-2\.5 { padding-top: 10px; padding-bottom: 10px; }
+.py-3 { padding-top: 12px; padding-bottom: 12px; }
+.py-3\.5 { padding-top: 14px; padding-bottom: 14px; }
+.px-3 { padding-left: 12px; padding-right: 12px; }
+.px-3\.5 { padding-left: 14px; padding-right: 14px; }
+.px-5 { padding-left: 20px; padding-right: 20px; }
+.px-6 { padding-left: 24px; padding-right: 24px; }
+.p-1 { padding: 4px; }
+.p-2 { padding: 8px; }
+.p-3 { padding: 12px; }
+.p-3\.5 { padding: 14px; }
+.p-4 { padding: 16px; }
+
+.rounded { border-radius: 0.25rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-md { border-radius: 0.375rem; }
+.shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+.shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
+.shadow-inner { box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06); }
+.shadow { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); }
+
+.outline-none { outline: none; }
+.tracking-tight { letter-spacing: -0.025em; }
+.tracking-wider { letter-spacing: 0.05em; }
+.tracking-widest { letter-spacing: 0.1em; }
+.uppercase { text-transform: uppercase; }
+.leading-relaxed { line-height: 1.625; }
+.disabled\:opacity-30:disabled { opacity: 0.3; }
+
+.transition-all { transition: all 0.2s ease-in-out; }
+
+/* Grid Responsive Anpassungen */
+.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+@media (min-width: 1024px) {
+  .lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .lg\:grid-cols-\[1\.58fr_1fr\] { grid-template-columns: 1.58fr 1fr; }
+  .lg\:flex-row { flex-direction: row; }
+  .lg\:col-span-2 { grid-column: span 2 / span 2; }
+}
+
+.min-h-\[74px\] { min-height: 74px; }
+.min-w-\[90px\] { min-width: 90px; }
+
+/* Spezifische Badges & Animationen */
+.val-badge {
+ background-color: rgba(100, 116, 139, 0.2); border: 1px solid rgba(100, 116, 139, 0.4); color: #e2e8f0;
+ padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;
+ display: inline-flex; align-items: center; transition: all 0.3s ease;
+}
+.val-badge.ref-badge { background-color: rgba(14, 165, 233, 0.12); border-color: rgba(14, 165, 233, 0.35); color: #38bdf8; }
+.val-badge.count-badge { background-color: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #34d399; }
+.val-badge.null-badge { background-color: rgba(100, 116, 139, 0.1); border-color: rgba(100, 116, 139, 0.3); color: #94a3b8; font-style: italic; }
+.val-badge.cycle-badge { background-color: rgba(239, 68, 68, 0.18); border-color: rgba(239, 68, 68, 0.5); color: #f87171; }
+
+/* Pointer Rings */
+.ring-curr { stroke: #fbbf24; stroke-width: 3px; fill: none; transition: all 0.35s ease; }
+.ring-slow { stroke: #34d399; stroke-width: 3px; fill: none; transition: all 0.35s ease; }
+.ring-fast { stroke: #e879f9; stroke-width: 3px; fill: none; transition: all 0.35s ease; }
+.ring-new { stroke: #38bdf8; stroke-width: 3.5px; stroke-dasharray: 5 3; fill: none; }
+.ring-target { stroke: #10b981; stroke-width: 3.5px; stroke-dasharray: 6 3; fill: rgba(16, 185, 129, 0.12); animation: pulseTarget 1.5s infinite; }
+
+@keyframes pulseTarget {
+ 0%, 100% { stroke-opacity: 1; }
+ 50% { stroke-opacity: 0.45; }
+}
+
+path { transition: all 0.35s ease; }
+.cycle-path { stroke-dasharray: 7 4; animation: travel 1s linear infinite; }
+.new-edge-glow { filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.85)); }
+@keyframes travel { to { stroke-dashoffset: -11; } }
+</style>
+</head>
+
+<body>
+
+ <!-- Header -->
+ <header class="bg-slate-900 border-b border-slate-800 py-3 px-6 shrink-0 shadow-md relative z-20 flex flex-col lg:flex-row justify-between items-center gap-3">
+ <div>
+ <div class="flex items-center gap-2.5">
+ <span class="px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider bg-sky-950 text-sky-400 border border-sky-700 rounded-md">Aufgabe 02</span>
+ <h1 class="text-xl font-bold text-sky-400 tracking-tight">Doubly Linked List – Visueller Ablauf &amp; Spezialfälle</h1>
+ </div>
+ <p class="text-xs text-slate-400 mt-0.5">Interaktive Referenz-Visualisierung (ohne Code) &bull; Head/Tail-Pfeile, Zielknoten &amp; schrittweiser Zeigertausch</p>
+ </div>
+  
+<div class="flex flex-wrap items-center gap-3">
+ <!-- Method Select -->
+ <div class="flex items-center gap-2">
+ <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Methode:</span>
+ <select id="op-select" class="bg-slate-950 border border-slate-700 text-sky-300 text-sm rounded-lg px-3 py-2 outline-none font-bold shadow-inner" onchange="setOperation(this.value)">
+ <option value="GetNodeAt">Hilfsmethode: GetNodeAt(index)</option>
+ <option value="AddFirst">1. AddFirst(value)</option>
+ <option value="AddLast">2. AddLast(value)</option>
+ <option value="InsertAt">3. InsertAt(index, value)</option>
+ <option value="SwapNeighbours">4. SwapNeighbours(index)</option>
+ <option value="SwapNodes">⭐ Bonus: SwapNodes(indexA, indexB)</option>
+ </select>
+ </div>
+
+ <!-- Case Buttons Container -->
+ <div id="case-buttons" class="flex bg-slate-950 p-1 rounded-lg border border-slate-800 gap-1"></div>
+ </div>
+ </header>
+
+ <!-- Main Section -->
+ <main class="flex-1 grid grid-cols-1 lg:grid-cols-[1.58fr_1fr] overflow-hidden p-4 gap-5 bg-slate-950 relative z-10">
+  
+<!-- Left: SVG Graph Visualisierung -->
+ <section class="bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl relative">
+ <div class="bg-slate-950 py-2.5 px-5 border-b border-slate-800 flex justify-between items-center">
+ <div class="flex items-center gap-2">
+ <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Doubly Linked List Graph</span>
+ <span id="scenario-subtitle" class="text-xs font-bold text-amber-300 ml-2"></span>
+ </div>
+ <div class="flex gap-4 text-[11px] font-bold uppercase tracking-wider">
+ <span class="text-amber-300 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-300" style="width:10px;height:10px;display:inline-block;border-radius:50%;"></span>Head / Tail Pfeil</span>
+ <span class="text-emerald-400 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400" style="width:10px;height:10px;display:inline-block;border-radius:50%;"></span>Ziel-Node</span>
+ <span class="text-orange-500 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-orange-500" style="width:10px;height:10px;display:inline-block;border-radius:50%;"></span>Next</span>
+ <span class="text-purple-400 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-purple-500" style="width:10px;height:10px;display:inline-block;border-radius:50%;"></span>Previous</span>
+ </div>
+ </div>
+
+ <div class="flex-1 relative bg-slate-950 flex items-center justify-center p-2">
+ <svg id="svg-canvas" class="w-full h-full" viewBox="0 0 920 390" preserveAspectRatio="xMidYMid meet">
+ <defs>
+ <marker id="arrow-next" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#f97316" /></marker>
+ <marker id="arrow-prev" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#a855f7" /></marker>
+ <marker id="arrow-cycle" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#ef4444" /></marker>
+ <marker id="arrow-headtail" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fcd34d" /></marker>
+ </defs>
+ <g id="svg-dynamic-layer"></g>
+ </svg>
+ </div>
+
+ <!-- Conceptual Hint Banner inside Graph Box -->
+ <div class="bg-slate-950 border-t border-slate-800 px-5 py-2.5 flex items-center justify-between text-xs text-slate-400">
+ <span>💡 <strong class="text-slate-200">Merke:</strong> <span class="text-amber-300 font-semibold">Head</span> &amp; <span class="text-amber-300 font-semibold">Tail</span> sind Zeiger auf Knoten &bull; 1. Hälfte (<span class="text-sky-300 font-code">index &lt; Count / 2</span>) startet ab <strong class="text-amber-300">Head</strong>, 2. Hälfte ab <strong class="text-amber-300">Tail</strong>!</span>
+ <span class="font-code text-[11px] text-slate-500">Pfeiltasten &larr; / &rarr; zum Blättern</span>
+ </div>
+ </section>
+
+ <!-- Right: Stack & Heap Memory Area -->
+ <section class="flex flex-col gap-4 overflow-hidden">
+ <!-- Call Stack / Pointer Variables -->
+ <div class="flex-1 bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+ <div class="bg-slate-950 py-2.5 px-5 border-b border-slate-800 flex justify-between items-center">
+ <span class="text-xs font-semibold text-sky-400 uppercase tracking-widest">Listen-Eigenschaften &amp; Hilfszeiger (Stack)</span>
+ </div>
+ <div id="stack-container" class="flex-1 overflow-y-auto p-3.5 flex flex-col gap-2 bg-slate-900/50"></div>
+ </div>
+
+ <!-- Heap Memory (Node Objects) -->
+ <div class="flex-1 bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+ <div class="bg-slate-950 py-2.5 px-5 border-b border-slate-800 flex justify-between items-center">
+ <span class="text-xs font-semibold text-amber-400 uppercase tracking-widest">Knoten-Objekte im Speicher (Heap)</span>
+ <span class="text-[11px] text-slate-500 font-code">Value | Next | Previous</span>
+ </div>
+ <div id="heap-container" class="flex-1 overflow-y-auto p-3.5 grid gap-2.5 bg-slate-900/50" style="grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start;"></div>
+ </div>
+ </section>
+ </main>
+
+ <!-- Footer: Step Explanation & Navigation -->
+ <footer class="bg-slate-900 border-t border-slate-800 shrink-0 relative z-20 p-3.5">
+ <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 max-w-7xl mx-auto items-center">
+ <div class="lg:col-span-2 bg-slate-950 border border-slate-800 rounded-lg p-3.5 min-h-[74px] flex flex-col justify-center">
+ <p id="explanation-text" class="text-sm sm:text-[15px] text-slate-200 leading-relaxed"></p>
+ </div>
+ <div class="flex items-center justify-center gap-3">
+ <button id="btn-prev" class="px-5 py-2.5 bg-slate-800 text-white rounded-lg shadow disabled:opacity-30 transition-all text-sm font-medium border border-slate-700">&larr; Zurück</button>
+ <div class="bg-slate-950 px-5 py-2.5 rounded-lg border border-slate-800 font-code text-sm text-center min-w-[90px]">
+ <span id="step-current" class="text-sky-400 font-bold">1</span><span class="text-slate-500">/</span><span id="step-total" class="text-slate-400">1</span>
+ </div>
+ <button id="btn-next" class="px-5 py-2.5 bg-sky-600 text-white rounded-lg shadow disabled:opacity-30 transition-all text-sm font-bold border border-sky-500">Weiter &rarr;</button>
+ </div>
+ </div>
+ </footer>
+
+ <script>
+ const clone = (obj) => JSON.parse(JSON.stringify(obj));
+
+ const scenarios = {
+ GetNodeAt: {
+ cases: [
+ { id: 'firstHalf', label: '1. Hälfte: Ziel Index 2 ab Head (Count = 7)' },
+ { id: 'secondHalf', label: '2. Hälfte: Ziel Index 4 (n-3) ab Tail (Count = 7)' }
+ ],
+ build: (caseId) => {
+ let steps = [];
+ let baseNodes = {
+ n0: { label: 'Idx 0 (@N0)', val: 10, x: 95, y: 185 },
+ n1: { label: 'Idx 1 (@N1)', val: 20, x: 215, y: 185 },
+ n2: { label: 'Idx 2 (@N2)', val: 30, x: 335, y: 185 },
+ n3: { label: 'Idx 3 (@N3)', val: 40, x: 455, y: 185 },
+ n4: { label: 'Idx 4 (@N4)', val: 50, x: 575, y: 185 },
+ n5: { label: 'Idx 5 (@N5)', val: 60, x: 695, y: 185 },
+ n6: { label: 'Idx 6 (@N6)', val: 70, x: 815, y: 185 }
+ };
+ let baseLinks = {
+ n0: { next: 'n1', prev: null },
+ n1: { next: 'n2', prev: 'n0' },
+ n2: { next: 'n3', prev: 'n1' },
+ n3: { next: 'n4', prev: 'n2' },
+ n4: { next: 'n5', prev: 'n3' },
+ n5: { next: 'n6', prev: 'n4' },
+ n6: { next: null, prev: 'n5' }
+ };
+
+ if (caseId === 'firstHalf') {
+ let s = { head: 'n0', tail: 'n6', count: 7, targetNode: 'n2', vars: {}, nodes: clone(baseNodes), links: clone(baseLinks) };
+ steps.push({ ...clone(s), desc: "<b>GetNodeAt(index: 2) bei Count = 7:</b> Der gesuchte Knoten an <b>Index 2 (@N2, Wert 30)</b> ist im Graphen grün mit <b>🎯 ZIEL (Idx 2)</b> markiert. Wir prüfen: <b>2 &lt; 7 / 2</b> (2 &lt; 3 ist wahr) &rarr; Das Ziel liegt in der <b>1. Hälfte</b>!" });
+
+ s.vars.curr = 'n0';
+ steps.push({ ...clone(s), desc: "<b>Schleifenstart (i = 0):</b> Da der Zielindex in der 1. Hälfte liegt, setzen wir den Hilfszeiger <b>curr = Head</b> (steht auf Index 0, @N0)." });
+
+ s.vars.curr = 'n1';
+ steps.push({ ...clone(s), desc: "<b>1. Schleifendurchlauf (i = 0 &rarr; 1):</b> Noch nicht am Ziel (i &lt; 2). <b>curr = curr.Next</b> bewegt den Zeiger entlang des orangen Next-Pfeils auf <b>Index 1 (@N1)</b>." });
+
+ s.vars.curr = 'n2';
+ steps.push({ ...clone(s), desc: "<b>2. Schleifendurchlauf (i = 1 &rarr; 2):</b> <b>curr = curr.Next</b> wandert weiter auf <b>Index 2 (@N2)</b>. Die Schleife endet, wir haben den grün markierten Zielknoten erreicht und geben <b>curr</b> zurück!" });
+ } else {
+ let s = { head: 'n0', tail: 'n6', count: 7, targetNode: 'n4', vars: {}, nodes: clone(baseNodes), links: clone(baseLinks) };
+ steps.push({ ...clone(s), desc: "<b>GetNodeAt(index: 4) bei Count = 7 (Position n-3):</b> Der gesuchte Knoten an <b>Index 4 (@N4, Wert 50)</b> ist grün mit <b>🎯 ZIEL (Idx 4)</b> markiert. Prüfung: <b>4 &lt; 7 / 2</b> ist falsch (4 &ge; 3) &rarr; Das Ziel liegt in der <b>2. Hälfte</b>!" });
+
+ s.vars.curr = 'n6';
+ steps.push({ ...clone(s), desc: "<b>Schleifenstart hinten (i = Count - 1 = 6):</b> Wir starten direkt am Ende bei <b>curr = Tail</b> (Index 6, @N6) und laufen rückwärts, solange <i>i &gt; 4</i> gilt." });
+
+ s.vars.curr = 'n5';
+ steps.push({ ...clone(s), desc: "<b>1. Schleifendurchlauf rückwärts (i = 6 &rarr; 5):</b> <b>curr = curr.Previous</b> folgt dem violetten Previous-Pfeil nach links auf <b>Index 5 (@N5)</b>." });
+
+ s.vars.curr = 'n4';
+ steps.push({ ...clone(s), desc: "<b>2. Schleifendurchlauf rückwärts (i = 5 &rarr; 4):</b> <b>curr = curr.Previous</b> springt auf <b>Index 4 (@N4)</b>. Die Schleife endet (i == 4) – Zielknoten in nur 2 statt 4 Schritten gefunden!" });
+ }
+ return steps;
+ }
+ },
+
+ AddFirst: {
+ cases: [
+ { id: 'normal', label: 'Normalfall (Liste hat Knoten)' },
+ { id: 'empty', label: 'Spezialfall: Leere Liste (Count == 0)' }
+ ],
+ build: (caseId) => {
+ let steps = [];
+ if (caseId === 'normal') {
+ let s = {
+ head: 'n1', tail: 'n3', count: 3,
+ vars: {},
+ nodes: {
+ n1: { label: 'Idx 0 (@N1)', val: 20, x: 350, y: 185 },
+ n2: { label: 'Idx 1 (@N2)', val: 30, x: 550, y: 185 },
+ n3: { label: 'Idx 2 (@N3)', val: 40, x: 750, y: 185 }
+ },
+ links: {
+ n1: { next: 'n2', prev: null },
+ n2: { next: 'n3', prev: 'n1' },
+ n3: { next: null, prev: 'n2' }
+ }
+ };
+ steps.push({ ...clone(s), desc: "<b>Ausgangslage AddFirst(10):</b> Die Liste enthält <b>Count = 3</b> Knoten. Der gelbe <b>HEAD</b>-Zeiger zeigt mit einem Pfeil auf @N1 (Wert 20), <b>TAIL</b> zeigt auf @N3 (Wert 40)." });
+
+ s.nodes.nNew = { label: '@NewNode', val: 10, x: 150, y: 185, isNew: true };
+ s.links.nNew = { next: null, prev: null };
+ s.vars.newNode = 'nNew';
+ steps.push({ ...clone(s), desc: "<b>Schritt 1:</b> Ein neuer Knoten <b>@NewNode</b> (Wert 10) wird erstellt. Seine Zeiger <i>Next</i> und <i>Previous</i> sind noch <i>null</i>." });
+
+ s.links.nNew.next = 'n1';
+ steps.push({ ...clone(s), desc: "<b>Schritt 2 (Next-Pfeil zeichnen):</b> Der orange <b>Next</b>-Zeiger von @NewNode wird auf den bisherigen <b>Head</b> (@N1) gerichtet." });
+
+ s.links.n1.prev = 'nNew';
+ steps.push({ ...clone(s), desc: "<b>Schritt 3 (Previous-Pfeil zeichnen):</b> Der violette <b>Previous</b>-Zeiger des bisherigen Head (@N1) wird zurück auf <b>@NewNode</b> gebogen." });
+
+ s.head = 'nNew';
+ s.count = 4;
+ s.nodes.nNew.isNew = false;
+ s.nodes.nNew.label = 'Idx 0 (@New)';
+ s.nodes.n1.label = 'Idx 1 (@N1)';
+ s.nodes.n2.label = 'Idx 2 (@N2)';
+ s.nodes.n3.label = 'Idx 3 (@N3)';
+ delete s.vars.newNode;
+ steps.push({ ...clone(s), desc: "<b>Schritt 4 (HEAD-Pfeil umbiegen &amp; Count++):</b> Der <b>HEAD</b>-Zeiger zeigt nun auf <b>@NewNode</b> und <b>Count</b> wird auf <b>4</b> erhöht!" });
+ } else {
+ let s = { head: null, tail: null, count: 0, vars: {}, nodes: {}, links: {} };
+ steps.push({ ...clone(s), desc: "<b>Spezialfall AddFirst(10) bei leerer Liste:</b> <b>HEAD</b> und <b>TAIL</b> zeigen auf <i>null</i>, <b>Count</b> ist <b>0</b>." });
+
+ s.nodes.nNew = { label: 'Idx 0 (@New)', val: 10, x: 460, y: 185, isNew: true };
+ s.links.nNew = { next: null, prev: null };
+ s.vars.newNode = 'nNew';
+ steps.push({ ...clone(s), desc: "<b>Schritt 1:</b> Der neue Knoten <b>@NewNode</b> (Wert 10) wird angelegt." });
+
+ s.head = 'nNew';
+ s.tail = 'nNew';
+ s.count = 1;
+ s.nodes.nNew.isNew = false;
+ delete s.vars.newNode;
+ steps.push({ ...clone(s), desc: "<b>Schritt 2 (HEAD- und TAIL-Pfeil setzen):</b> Da die Liste zuvor leer war, zeigen nun sowohl der <b>HEAD</b>-Pfeil als auch der <b>TAIL</b>-Pfeil auf <b>@NewNode</b>, und <b>Count</b> wird <b>1</b>!" });
+ }
+ return steps;
+ }
+ },
+
+ AddLast: {
+ cases: [
+ { id: 'normal', label: 'Normalfall (Am Ende anhängen)' },
+ { id: 'empty', label: 'Spezialfall: Leere Liste (Count == 0)' }
+ ],
+ build: (caseId) => {
+ let steps = [];
+ if (caseId === 'normal') {
+ let s = {
+ head: 'n1', tail: 'n3', count: 3,
+ vars: {},
+ nodes: {
+ n1: { label: 'Idx 0 (@N1)', val: 10, x: 150, y: 185 },
+ n2: { label: 'Idx 1 (@N2)', val: 20, x: 350, y: 185 },
+ n3: { label: 'Idx 2 (@N3)', val: 30, x: 550, y: 185 }
+ },
+ links: {
+ n1: { next: 'n2', prev: null },
+ n2: { next: 'n3', prev: 'n1' },
+ n3: { next: null, prev: 'n2' }
+ }
+ };
+ steps.push({ ...clone(s), desc: "<b>Ausgangslage AddLast(40):</b> Über den <b>TAIL</b>-Zeiger (@N3) haben wir direkten Zugriff auf das letzte Element, ohne die Liste durchlaufen zu müssen." });
+
+ s.nodes.nNew = { label: '@NewNode', val: 40, x: 750, y: 185, isNew: true };
+ s.links.nNew = { next: null, prev: null };
+ s.vars.newNode = 'nNew';
+ steps.push({ ...clone(s), desc: "<b>Schritt 1:</b> Der neue Knoten <b>@NewNode</b> (Wert 40) wird im Speicher erstellt." });
+
+ s.links.n3.next = 'nNew';
+ steps.push({ ...clone(s), desc: "<b>Schritt 2 (Next-Pfeil von Tail setzen):</b> Der orange <b>Next</b>-Zeiger des bisherigen Tail (@N3) zeigt nun auf @NewNode." });
+
+ s.links.nNew.prev = 'n3';
+ steps.push({ ...clone(s), desc: "<b>Schritt 3 (Previous-Pfeil setzen):</b> Der violette <b>Previous</b>-Zeiger von @NewNode zeigt zurück auf @N3." });
+
+ s.tail = 'nNew';
+ s.count = 4;
+ s.nodes.nNew.isNew = false;
+ s.nodes.nNew.label = 'Idx 3 (@New)';
+ delete s.vars.newNode;
+ steps.push({ ...clone(s), desc: "<b>Schritt 4 (TAIL-Pfeil umbiegen &amp; Count++):</b> Der <b>TAIL</b>-Pfeil wird auf <b>@NewNode</b> verschoben und <b>Count</b> auf <b>4</b> erhöht!" });
+ } else {
+ let s = { head: null, tail: null, count: 0, vars: {}, nodes: {}, links: {} };
+ steps.push({ ...clone(s), desc: "<b>Spezialfall AddLast(40) bei leerer Liste:</b> <b>HEAD</b> und <b>TAIL</b> sind <i>null</i>, <b>Count</b> ist <b>0</b>." });
+
+ s.nodes.nNew = { label: 'Idx 0 (@New)', val: 40, x: 460, y: 185, isNew: true };
+ s.links.nNew = { next: null, prev: null };
+ s.head = 'nNew';
+ s.tail = 'nNew';
+ s.count = 1;
+ steps.push({ ...clone(s), desc: "<b>Ergebnis:</b> Genau wie bei AddFirst zeigen bei einer zuvor leeren Liste sowohl der <b>HEAD</b>-Pfeil als auch der <b>TAIL</b>-Pfeil auf <b>@NewNode</b> (Count = 1)." });
+ }
+ return steps;
+ }
+ },
+
+ InsertAt: {
+ cases: [
+ { id: 'normal', label: 'Normalfall: Index 3 bei Count = 5 (über GetNodeAt)' },
+ { id: 'head', label: 'Spezialfall: index == 0 (ruft AddFirst auf)' },
+ { id: 'tail', label: 'Spezialfall: index == Count (ruft AddLast auf)' }
+ ],
+ build: (caseId) => {
+ let steps = [];
+ if (caseId === 'normal') {
+ let s = {
+ head: 'n0', tail: 'n4', count: 5, targetNode: 'n3',
+ vars: {},
+ nodes: {
+ n0: { label: 'Idx 0 (@N0)', val: 10, x: 110, y: 215 },
+ n1: { label: 'Idx 1 (@N1)', val: 20, x: 260, y: 215 },
+ n2: { label: 'Idx 2 (@N2)', val: 30, x: 410, y: 215 },
+ n3: { label: 'Idx 3 (@N3)', val: 50, x: 640, y: 215 },
+ n4: { label: 'Idx 4 (@N4)', val: 60, x: 800, y: 215 }
+ },
+ links: {
+ n0: { next: 'n1', prev: null },
+ n1: { next: 'n2', prev: 'n0' },
+ n2: { next: 'n3', prev: 'n1' },
+ n3: { next: 'n4', prev: 'n2' },
+ n4: { next: null, prev: 'n3' }
+ }
+ };
+ steps.push({ ...clone(s), desc: "<b>InsertAt(index: 3, value: 40) bei Count = 5:</b> Der neue Knoten soll an <b>Index 3</b> eingefügt werden. Wir rufen <b>GetNodeAt(3)</b> auf, um den bisherigen Knoten an Index 3 (grün markiert: <b>🎯 ZIEL @N3</b>) zu finden." });
+
+ s.vars.curr = 'n4';
+ steps.push({ ...clone(s), desc: "<b>Schritt 1 (GetNodeAt startet bei Tail):</b> Da <b>3 &ge; 5 / 2</b> (3 &ge; 2) gilt, liegt Index 3 in der 2. Hälfte. <b>GetNodeAt</b> startet hinten bei <b>Tail (@N4, Idx 4)</b>..." });
+
+ s.vars.curr = 'n3';
+ steps.push({ ...clone(s), desc: "<b>Schritt 2 (Zielknoten erreicht):</b> ...und wandert über <b>Previous</b> auf <b>target = @N3 (Idx 3)</b>. Dessen Vorgänger ist <b>prevNode = target.Previous</b> (@N2, Idx 2)." });
+
+ delete s.vars.curr;
+ s.vars.prevNode = 'n2';
+ s.vars.target = 'n3';
+ s.nodes.nNew = { label: '@NewNode', val: 40, x: 525, y: 95, isNew: true };
+ s.links.nNew = { next: 'n3', prev: 'n2' };
+ steps.push({ ...clone(s), desc: "<b>Schritt 3 (Neuen Knoten verlinken):</b> <b>@NewNode</b> (40) wird erstellt. Sein <b>Next</b>-Pfeil zeigt auf <i>target</i> (@N3), sein <b>Previous</b>-Pfeil auf <i>prevNode</i> (@N2)." });
+
+ s.links.n2.next = 'nNew';
+ s.links.n3.prev = 'nNew';
+ s.nodes.nNew.y = 215;
+ s.nodes.nNew.isNew = false;
+ s.nodes.nNew.label = 'Idx 3 (@New)';
+ s.nodes.n3.label = 'Idx 4 (@N3)';
+ s.nodes.n4.label = 'Idx 5 (@N4)';
+ s.targetNode = null;
+ s.count = 6;
+ delete s.vars.prevNode;
+ delete s.vars.target;
+ steps.push({ ...clone(s), desc: "<b>Schritt 4 (Nachbarn umbiegen &amp; Count++):</b> Die alten Verbindungen zwischen @N2 und @N3 werden auf @NewNode umgebogen (<i>prevNode.Next = newNode</i>, <i>target.Previous = newNode</i>) und <b>Count</b> wird auf <b>6</b> erhöht!" });
+ } else if (caseId === 'head') {
+ let s = {
+ head: 'n1', tail: 'n3', count: 3,
+ vars: {},
+ nodes: {
+ n1: { label: 'Idx 0 (@N1)', val: 20, x: 360, y: 185 },
+ n2: { label: 'Idx 1 (@N2)', val: 30, x: 560, y: 185 },
+ n3: { label: 'Idx 2 (@N3)', val: 40, x: 750, y: 185 }
+ },
+ links: {
+ n1: { next: 'n2', prev: null },
+ n2: { next: 'n3', prev: 'n1' },
+ n3: { next: null, prev: 'n2' }
+ }
+ };
+ steps.push({ ...clone(s), desc: "<b>Spezialfall InsertAt(index: 0, value: 10):</b> Für <b>index == 0</b> rufen wir direkt unsere Methode <b>AddFirst(10)</b> wieder auf!" });
+
+ s.nodes.nNew = { label: 'Idx 0 (@New)', val: 10, x: 160, y: 185, isNew: true };
+ s.links.nNew = { next: 'n1', prev: null };
+ s.links.n1.prev = 'nNew';
+ s.head = 'nNew';
+ s.count = 4;
+ steps.push({ ...clone(s), desc: "<b>Ergebnis durch AddFirst(10):</b> @NewNode wird vor dem bisherigen Head eingefügt, der <b>HEAD</b>-Pfeil zeigt auf @NewNode und <b>Count</b> wird <b>4</b>." });
+ } else {
+ let s = {
+ head: 'n1', tail: 'n3', count: 3,
+ vars: {},
+ nodes: {
+ n1: { label: 'Idx 0 (@N1)', val: 10, x: 160, y: 185 },
+ n2: { label: 'Idx 1 (@N2)', val: 20, x: 360, y: 185 },
+ n3: { label: 'Idx 2 (@N3)', val: 30, x: 560, y: 185 }
+ },
+ links: {
+ n1: { next: 'n2', prev: null },
+ n2: { next: 'n3', prev: 'n1' },
+ n3: { next: null, prev: 'n2' }
+ }
+ };
+ steps.push({ ...clone(s), desc: "<b>Spezialfall InsertAt(index: 3, value: 40) bei Count = 3:</b> Für <b>index == Count</b> rufen wir direkt unsere Methode <b>AddLast(40)</b> wieder auf!" });
+
+ s.nodes.nNew = { label: 'Idx 3 (@New)', val: 40, x: 750, y: 185, isNew: true };
+ s.links.nNew = { next: null, prev: 'n3' };
+ s.links.n3.next = 'nNew';
+ s.tail = 'nNew';
+ s.count = 4;
+ steps.push({ ...clone(s), desc: "<b>Ergebnis durch AddLast(40):</b> @NewNode wird hinter Tail gehängt, der <b>TAIL</b>-Pfeil zeigt auf @NewNode und <b>Count</b> wird <b>4</b>." });
+ }
+ return steps;
+ }
+ },
+
+ SwapNeighbours: {
+ cases: [
+ { id: 'middle', label: 'Normalfall: Index 1 & 2 tauschen' },
+ { id: 'head', label: 'Spezialfall: Index 0 (Head beteiligt)' },
+ { id: 'tail', label: 'Spezialfall: Index Count-2 (Tail beteiligt)' }
+ ],
+ build: (caseId) => {
+ let steps = [];
+ let baseNodes = {
+ n0: { label: 'Idx 0 (@N0)', val: 10, x: 160, y: 185 },
+ n1: { label: 'Idx 1 (@N1)', val: 20, x: 360, y: 185 },
+ n2: { label: 'Idx 2 (@N2)', val: 30, x: 560, y: 185 },
+ n3: { label: 'Idx 3 (@N3)', val: 40, x: 760, y: 185 }
+ };
+ let baseLinks = {
+ n0: { next: 'n1', prev: null },
+ n1: { next: 'n2', prev: 'n0' },
+ n2: { next: 'n3', prev: 'n1' },
+ n3: { next: null, prev: 'n2' }
+ };
+
+ if (caseId === 'middle') {
+ let s = { head: 'n0', tail: 'n3', count: 4, targetNode: 'n1', vars: {}, nodes: clone(baseNodes), links: clone(baseLinks) };
+ steps.push({ ...clone(s), desc: "<b>Ausgangslage SwapNeighbours(index: 1):</b> Wir wollen den Knoten an <b>Index 1 (@N1, Wert 20)</b> mit seinem rechten Nachbarn an <b>Index 2 (@N2, Wert 30)</b> tauschen." });
+
+ s.vars.prevA = 'n0';
+ s.vars.nodeA = 'n1';
+ s.vars.nodeB = 'n2';
+ s.vars.nextB = 'n3';
+ s.targetNode = null;
+ steps.push({ ...clone(s), desc: "<b>Schritt 1 (Referenzen sichern):</b> Wir holen <b>nodeA = GetNodeAt(1)</b> (@N1) und <b>nodeB = nodeA.Next</b> (@N2). Zudem merken wir uns die äußeren Nachbarn <b>prevA = @N0</b> und <b>nextB = @N3</b>." });
+
+ s.nodes.n1.y = 115;
+ s.nodes.n2.y = 255;
+ s.links.n0.next = null;
+ s.links.n1.prev = null; s.links.n1.next = null;
+ s.links.n2.prev = null; s.links.n2.next = null;
+ s.links.n3.prev = null;
+ steps.push({ ...clone(s), desc: "<b>Schritt 2 (Alte Pfeile lösen):</b> Um den Tausch klar zu sehen, trennen wir die 6 bisherigen Zeigerverbindungen rund um <b>nodeA</b> und <b>nodeB</b> auf." });
+
+ s.links.n0.next = 'n2';
+ s.links.n3.prev = 'n1';
+ steps.push({ ...clone(s), desc: "<b>Schritt 3 (Äußere Nachbarn verbinden):</b> Der linke Nachbar <b>prevA.Next (@N0)</b> zeigt jetzt auf <b>nodeB (@N2)</b>. Der rechte Nachbar <b>nextB.Previous (@N3)</b> zeigt jetzt auf <b>nodeA (@N1)</b>." });
+
+ s.links.n2.prev = 'n0';
+ s.links.n1.next = 'n3';
+ steps.push({ ...clone(s), desc: "<b>Schritt 4 (Äußere Zeiger von nodeB &amp; nodeA):</b> <b>nodeB.Previous</b> zeigt zurück auf <b>prevA (@N0)</b>, und <b>nodeA.Next</b> zeigt nach vorne auf <b>nextB (@N3)</b>." });
+
+ s.links.n2.next = 'n1';
+ s.links.n1.prev = 'n2';
+ steps.push({ ...clone(s), desc: "<b>Schritt 5 (Innere Verbindung umkehren):</b> Nun verknüpfen wir beide Knoten miteinander: <b>nodeB.Next = nodeA</b> und <b>nodeA.Previous = nodeB</b>." });
+
+ s.nodes.n2.x = 360; s.nodes.n2.y = 185; s.nodes.n2.label = 'Idx 1 (@N2)';
+ s.nodes.n1.x = 560; s.nodes.n1.y = 185; s.nodes.n1.label = 'Idx 2 (@N1)';
+ delete s.vars.prevA; delete s.vars.nodeA; delete s.vars.nodeB; delete s.vars.nextB;
+ steps.push({ ...clone(s), desc: "<b>Fertig getauscht:</b> Zieht man die Knoten optisch in eine Reihe, stehen sie nun sauber als <b>[10, 30, 20, 40]</b> in der Liste!" });
+ } else if (caseId === 'head') {
+ let s = { head: 'n0', tail: 'n3', count: 4, vars: { nodeA: 'n0', nodeB: 'n1', nextB: 'n2' }, nodes: clone(baseNodes), links: clone(baseLinks) };
+ steps.push({ ...clone(s), desc: "<b>Spezialfall SwapNeighbours(index: 0):</b> Hier ist <b>nodeA (@N0)</b> der aktuelle <b>HEAD</b>! Es gibt keinen linken Nachbarn (<i>prevA == null</i>)." });
+
+ s.nodes.n0.y = 115; s.nodes.n1.y = 255;
+ s.links.n0.next = null;
+ s.links.n1.prev = null; s.links.n1.next = null;
+ s.links.n2.prev = null;
+ steps.push({ ...clone(s), desc: "<b>Schritt 1 (Alte Pfeile lösen):</b> Wir lösen die Zeiger zwischen @N0, @N1 und @N2." });
+
+ s.head = 'n1';
+ s.links.n1.prev = null;
+ s.links.n2.prev = 'n0';
+ s.links.n0.next = 'n2';
+ steps.push({ ...clone(s), desc: "<b>Schritt 2 (HEAD-Pfeil auf nodeB umbiegen!):</b> Da <i>prevA == null</i> ist, wird <b>Head = nodeB (@N1)</b> gesetzt und <i>nodeB.Previous = null</i>. Rechts werden @N0 und @N2 verbunden." });
+
+ s.links.n1.next = 'n0';
+ s.links.n0.prev = 'n1';
+ s.nodes.n1.x = 160; s.nodes.n1.y = 185; s.nodes.n1.label = 'Idx 0 (@N1)';
+ s.nodes.n0.x = 360; s.nodes.n0.y = 185; s.nodes.n0.label = 'Idx 1 (@N0)';
+ delete s.vars.nodeA; delete s.vars.nodeB; delete s.vars.nextB;
+ steps.push({ ...clone(s), desc: "<b>Schritt 3 (Innenzeiger setzen):</b> <b>nodeB.Next = nodeA</b> und <b>nodeA.Previous = nodeB</b>. @N1 (Wert 20) ist nun der neue <b>HEAD</b>!" });
+ } else {
+ let s = { head: 'n0', tail: 'n3', count: 4, vars: { prevA: 'n1', nodeA: 'n2', nodeB: 'n3' }, nodes: clone(baseNodes), links: clone(baseLinks) };
+ steps.push({ ...clone(s), desc: "<b>Spezialfall SwapNeighbours(index: 2) am Ende:</b> Hier ist der rechte Nachbar <b>nodeB (@N3)</b> der aktuelle <b>TAIL</b> (<i>nextB == null</i>)!" });
+
+ s.nodes.n2.y = 115; s.nodes.n3.y = 255;
+ s.links.n1.next = null;
+ s.links.n2.prev = null; s.links.n2.next = null;
+ s.links.n3.prev = null;
+ steps.push({ ...clone(s), desc: "<b>Schritt 1 (Alte Pfeile lösen):</b> Wir lösen die Zeiger zwischen @N1, @N2 und @N3." });
+
+ s.tail = 'n2';
+ s.links.n1.next = 'n3';
+ s.links.n3.prev = 'n1';
+ s.links.n2.next = null;
+ steps.push({ ...clone(s), desc: "<b>Schritt 2 (TAIL-Pfeil auf nodeA umbiegen!):</b> Da <i>nextB == null</i> ist, wird <b>Tail = nodeA (@N2)</b> gesetzt und <i>nodeA.Next = null</i>." });
+
+ s.links.n3.next = 'n2';
+ s.links.n2.prev = 'n3';
+ s.nodes.n3.x = 560; s.nodes.n3.y = 185; s.nodes.n3.label = 'Idx 2 (@N3)';
+ s.nodes.n2.x = 760; s.nodes.n2.y = 185; s.nodes.n2.label = 'Idx 3 (@N2)';
+ delete s.vars.prevA; delete s.vars.nodeA; delete s.vars.nodeB;
+ steps.push({ ...clone(s), desc: "<b>Schritt 3 (Innenzeiger setzen):</b> <b>nodeB.Next = nodeA</b> und <b>nodeA.Previous = nodeB</b>. @N2 (Wert 30) ist nun der neue <b>TAIL</b>!" });
+ }
+ return steps;
+ }
+ },
+
+ SwapNodes: {
+ cases: [
+ { id: 'nonAdjacent', label: 'Normalfall: Getrennte Knoten (Index 1 & 3)' },
+ { id: 'adjacent', label: 'Spezialfall: Nachbarn (delegiert an SwapNeighbours)' }
+ ],
+ build: (caseId) => {
+ let steps = [];
+ let baseNodes = {
+ n0: { label: 'Idx 0 (@N0)', val: 10, x: 120, y: 185 },
+ n1: { label: 'Idx 1 (@N1)', val: 20, x: 290, y: 185 },
+ n2: { label: 'Idx 2 (@N2)', val: 30, x: 460, y: 185 },
+ n3: { label: 'Idx 3 (@N3)', val: 40, x: 630, y: 185 },
+ n4: { label: 'Idx 4 (@N4)', val: 50, x: 800, y: 185 }
+ };
+ let baseLinks = {
+ n0: { next: 'n1', prev: null },
+ n1: { next: 'n2', prev: 'n0' },
+ n2: { next: 'n3', prev: 'n1' },
+ n3: { next: 'n4', prev: 'n2' },
+ n4: { next: null, prev: 'n3' }
+ };
+
+ if (caseId === 'nonAdjacent') {
+ let s = { head: 'n0', tail: 'n4', count: 5, vars: {}, nodes: clone(baseNodes), links: clone(baseLinks) };
+ steps.push({ ...clone(s), desc: "<b>Bonus SwapNodes(1, 3):</b> Wir tauschen zwei nicht-benachbarte Knoten: <b>Index 1 (@N1, Wert 20)</b> und <b>Index 3 (@N3, Wert 40)</b>." });
+
+ s.vars.nodeA = 'n1';
+ s.vars.nodeB = 'n3';
+ steps.push({ ...clone(s), desc: "<b>Schritt 1 (Knoten &amp; Nachbarn sichern):</b> Wir ermitteln <b>nodeA = GetNodeAt(1)</b> und <b>nodeB = GetNodeAt(3)</b> sowie deren Nachbarn (prevA=@N0, nextA=@N2, prevB=@N2, nextB=@N4)." });
+
+ s.nodes.n1.y = 100;
+ s.nodes.n3.y = 270;
+ s.links.n0.next = null;
+ s.links.n1.prev = null; s.links.n1.next = null;
+ s.links.n2.prev = null; s.links.n2.next = null;
+ s.links.n3.prev = null; s.links.n3.next = null;
+ s.links.n4.prev = null;
+ steps.push({ ...clone(s), desc: "<b>Schritt 2 (Alte Pfeile entfernen):</b> Alle bisherigen Verbindungen zu und von <b>nodeA (@N1)</b> und <b>nodeB (@N3)</b> werden gelöst." });
+
+ s.nodes.n3.x = 290; s.nodes.n3.y = 185;
+ s.nodes.n1.x = 630; s.nodes.n1.y = 185;
+ steps.push({ ...clone(s), desc: "<b>Schritt 3 (Plätze tauschen):</b> Wir stellen uns <b>nodeB (@N3)</b> an der alten Stelle von nodeA und <b>nodeA (@N1)</b> an der alten Stelle von nodeB vor – und zeichnen nun die Pfeile schrittweise neu!" });
+
+ s.links.n0.next = 'n3';
+ s.links.n3.prev = 'n0';
+ s.links.n3.next = 'n2';
+ s.links.n2.prev = 'n3';
+ steps.push({ ...clone(s), desc: "<b>Schritt 4 (nodeB links einbinden):</b> <b>prevA.Next (@N0)</b> und <b>nextA.Previous (@N2)</b> zeigen auf <b>nodeB (@N3)</b>. Umgekehrt zeigt nodeB auf @N0 (Previous) und @N2 (Next)." });
+
+ s.links.n2.next = 'n1';
+ s.links.n1.prev = 'n2';
+ s.links.n1.next = 'n4';
+ s.links.n4.prev = 'n1';
+ s.nodes.n3.label = 'Idx 1 (@N3)';
+ s.nodes.n1.label = 'Idx 3 (@N1)';
+ delete s.vars.nodeA; delete s.vars.nodeB;
+ steps.push({ ...clone(s), desc: "<b>Schritt 5 (nodeA rechts einbinden):</b> <b>prevB.Next (@N2)</b> und <b>nextB.Previous (@N4)</b> zeigen auf <b>nodeA (@N1)</b>, und nodeA zeigt auf @N2 und @N4. Alle 8 Pfeile sind wieder perfekt verbunden!" });
+ } else {
+ let s = { head: 'n0', tail: 'n4', count: 5, vars: { nodeA: 'n1', nodeB: 'n2' }, nodes: clone(baseNodes), links: clone(baseLinks) };
+ steps.push({ ...clone(s), desc: "<b>Spezialfall SwapNodes(1, 2) bei direkten Nachbarn:</b> Da <i>indexB - indexA == 1</i> gilt, rufen wir einfach direkt <b>SwapNeighbours(1)</b> auf und sparen uns doppelten Code!" });
+ }
+ return steps;
+ }
+ }
+ };
+
+ let currentOp = 'GetNodeAt';
+ let currentCase = 'firstHalf';
+ let currentStep = 0;
+ let currentStepsData = [];
+
+ function setOperation(op) {
+ currentOp = op;
+ currentCase = scenarios[op].cases[0].id;
+ renderCaseButtons();
+ rebuildSimulation();
+ }
+
+ function setCase(caseId) {
+ currentCase = caseId;
+ renderCaseButtons();
+ rebuildSimulation();
+ }
+
+ function renderCaseButtons() {
+ const container = document.getElementById('case-buttons');
+ const cases = scenarios[currentOp].cases;
+ container.innerHTML = cases.map(c => {
+ const active = c.id === currentCase;
+ const cls = active
+ ? "px-3 py-1.5 rounded-md text-xs font-bold bg-sky-600 text-white shadow"
+ : "px-3 py-1.5 rounded-md text-xs font-bold text-slate-400 hover:bg-slate-800 hover:text-slate-200";
+ return `<button class="${cls}" onclick="setCase('${c.id}')">${c.label}</button>`;
+ }).join('');
+
+ const activeCaseObj = cases.find(c => c.id === currentCase);
+ document.getElementById('scenario-subtitle').textContent = activeCaseObj ? `— ${activeCaseObj.label}` : '';
+ }
+
+ function rebuildSimulation() {
+ currentStepsData = scenarios[currentOp].build(currentCase);
+ currentStep = 0;
+ render();
+ }
+
+ function buildSVGPath(p1, p2, type, isCycle) {
+ if (isCycle && type === 'next') {
+ return `M ${p1.x} ${p1.y - 26} C ${p1.x} 35, ${p2.x} 35, ${p2.x} ${p2.y - 26}`;
+ }
+ if (isCycle && type === 'prev') {
+ return `M ${p1.x} ${p1.y + 26} C ${p1.x} 345, ${p2.x} 345, ${p2.x} ${p2.y + 26}`;
+ }
+
+ let cx = (p1.x + p2.x) / 2;
+ let cy = (p1.y + p2.y) / 2 + (type === 'prev' ? 32 : -32);
+
+ if (Math.abs(p2.x - p1.x) > 220) {
+ cy += (type === 'prev' ? 38 : -38);
+ }
+
+ let dx2 = p2.x - cx, dy2 = p2.y - cy, l2 = Math.sqrt(dx2 * dx2 + dy2 * dy2) || 1;
+ let ex = p2.x - (dx2 / l2) * 27, ey = p2.y - (dy2 / l2) * 27;
+ let dx1 = cx - p1.x, dy1 = cy - p1.y, l1 = Math.sqrt(dx1 * dx1 + dy1 * dy1) || 1;
+ let sx = p1.x + (dx1 / l1) * 24, sy = p1.y + (dy1 / l1) * 24;
+
+ return `M ${sx} ${sy} Q ${cx} ${cy} ${ex} ${ey}`;
+ }
+
+ function renderHeadTailArrow(svgL, node, label, offsetX, offsetY) {
+ const boxX = node.x + offsetX;
+ const boxY = node.y + offsetY;
+ const dx = node.x - boxX;
+ const dy = node.y - boxY;
+ const len = Math.sqrt(dx * dx + dy * dy) || 1;
+ const startX = boxX + (dx / len) * 16;
+ const startY = boxY + (dy / len) * 14;
+ const endX = node.x - (dx / len) * 27;
+ const endY = node.y - (dy / len) * 27;
+
+ const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+ g.innerHTML = `
+ <line x1="${startX}" y1="${startY}" x2="${endX}" y2="${endY}" stroke="#fcd34d" stroke-width="2.5" marker-end="url(#arrow-headtail)" />
+ <rect x="${boxX - 28}" y="${boxY - 11}" width="56" height="22" rx="5" fill="#422006" stroke="#f59e0b" stroke-width="1.5" />
+ <text x="${boxX}" y="${boxY + 4}" text-anchor="middle" font-family="Fira Code" font-size="11" fill="#fde68a" font-weight="bold">${label}</text>
+ `;
+ svgL.appendChild(g);
+ }
+
+ function render() {
+ const st = currentStepsData[currentStep];
+ document.getElementById('btn-prev').disabled = currentStep === 0;
+ document.getElementById('btn-next').disabled = currentStep === currentStepsData.length - 1;
+ document.getElementById('step-current').textContent = currentStep + 1;
+ document.getElementById('step-total').textContent = currentStepsData.length;
+ document.getElementById('explanation-text').innerHTML = st.desc;
+
+ const svgL = document.getElementById('svg-dynamic-layer');
+ svgL.innerHTML = '';
+
+ const nodeKeys = Object.keys(st.nodes);
+ if (nodeKeys.length === 0) {
+ svgL.innerHTML = `
+ <rect x="310" y="130" width="120" height="32" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1.5" />
+ <text x="370" y="150" text-anchor="middle" font-family="Fira Code" font-size="12" fill="#fcd34d" font-weight="bold">HEAD &rarr; null</text>
+ <rect x="490" y="130" width="120" height="32" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1.5" />
+ <text x="550" y="150" text-anchor="middle" font-family="Fira Code" font-size="12" fill="#fcd34d" font-weight="bold">TAIL &rarr; null</text>
+ <text x="460" y="210" text-anchor="middle" font-family="Inter" font-size="15" fill="#64748b" font-style="italic">Die Liste ist aktuell leer (Count == 0)</text>
+ `;
+ }
+
+ nodeKeys.forEach(nId => {
+ const link = st.links[nId];
+ if (!link) return;
+ const p1 = st.nodes[nId];
+
+ if (link.next && st.nodes[link.next]) {
+ const p2 = st.nodes[link.next];
+ const isCycle = !!link.nextCycle;
+ const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+ path.setAttribute('d', buildSVGPath(p1, p2, 'next', isCycle));
+ path.setAttribute('fill', 'none');
+ path.setAttribute('stroke', isCycle ? '#ef4444' : '#f97316');
+ path.setAttribute('stroke-width', isCycle ? '3.5' : '3');
+ path.setAttribute('marker-end', isCycle ? 'url(#arrow-cycle)' : 'url(#arrow-next)');
+ if (isCycle) path.classList.add('cycle-path');
+ svgL.appendChild(path);
+ }
+
+ if (link.prev && st.nodes[link.prev]) {
+ const p2 = st.nodes[link.prev];
+ const isCycle = !!link.prevCycle;
+ const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+ path.setAttribute('d', buildSVGPath(p1, p2, 'prev', isCycle));
+ path.setAttribute('fill', 'none');
+ path.setAttribute('stroke', isCycle ? '#ef4444' : '#a855f7');
+ path.setAttribute('stroke-width', isCycle ? '3.5' : '3');
+ path.setAttribute('marker-end', isCycle ? 'url(#arrow-cycle)' : 'url(#arrow-prev)');
+ if (isCycle) path.classList.add('cycle-path');
+ svgL.appendChild(path);
+ }
+ });
+
+ if (st.head && st.nodes[st.head]) {
+ const sameAsTail = (st.head === st.tail);
+ renderHeadTailArrow(svgL, st.nodes[st.head], 'HEAD', sameAsTail ? -42 : 0, 82);
+ }
+ if (st.tail && st.nodes[st.tail]) {
+ const sameAsHead = (st.head === st.tail);
+ renderHeadTailArrow(svgL, st.nodes[st.tail], 'TAIL', sameAsHead ? 42 : 0, 82);
+ }
+
+ nodeKeys.forEach(nId => {
+ const nObj = st.nodes[nId];
+ const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+ g.setAttribute('transform', `translate(${nObj.x}, ${nObj.y})`);
+
+ let rings = '';
+ let labels = '';
+ let yOff = -36;
+
+ if (st.targetNode === nId) {
+ rings += `<circle cx="0" cy="0" r="29" class="ring-target" />`;
+ labels += `
+ <rect x="-42" y="${yOff - 14}" width="84" height="18" rx="4" fill="#064e3b" stroke="#10b981" stroke-width="1.2" />
+ <text x="0" y="${yOff - 2}" text-anchor="middle" font-family="Fira Code" font-size="10" fill="#6ee7b7" font-weight="bold">🎯 ZIEL-NODE</text>
+ `;
+ yOff -= 22;
+ }
+
+ if (nObj.isNew) {
+ rings += `<circle cx="0" cy="0" r="30" class="ring-new" />`;
+ }
+
+ Object.keys(st.vars).forEach(vName => {
+ if (st.vars[vName] === nId) {
+ let ringClass = 'ring-curr';
+ let color = '#fbbf24';
+ let radius = 31;
+ if (vName === 'slow') { ringClass = 'ring-slow'; color = '#34d399'; radius = 31; }
+ else if (vName === 'fast' || vName === 'nodeB' || vName === 'target') { ringClass = 'ring-fast'; color = '#e879f9'; radius = 35; }
+ rings += `<circle cx="0" cy="0" r="${radius}" class="${ringClass}" />`;
+ labels += `<text x="0" y="${yOff}" text-anchor="middle" font-family="Fira Code" font-size="12" fill="${color}" font-weight="bold">${vName}</text>`;
+ yOff -= 15;
+ }
+ });
+
+ const strokeCol = (st.targetNode === nId) ? '#10b981' : '#64748b';
+
+ g.innerHTML = `
+ ${rings}
+ <circle class="main-circle" cx="0" cy="0" r="22" fill="#0f172a" stroke="${strokeCol}" stroke-width="2.5" />
+ <text x="0" y="5" text-anchor="middle" font-family="Fira Code" font-size="14" fill="white" font-weight="bold">${nObj.val}</text>
+ <text x="0" y="36" text-anchor="middle" font-family="Inter" font-size="10" fill="#38bdf8" font-weight="600">${nObj.label}</text>
+ ${labels}
+ `;
+ svgL.appendChild(g);
+ });
+
+ const stackC = document.getElementById('stack-container');
+ stackC.innerHTML = '';
+
+ const headStr = st.head ? st.nodes[st.head].label : 'null';
+ const tailStr = st.tail ? st.nodes[st.tail].label : 'null';
+
+ stackC.innerHTML += `
+ <div class="flex justify-between items-center bg-slate-800 px-3.5 py-2 rounded border border-slate-700">
+ <span class="font-code text-xs text-emerald-400 font-bold">List.Count</span>
+ <span class="val-badge count-badge">${st.count}</span>
+ </div>
+ <div class="flex justify-between items-center bg-slate-800 px-3.5 py-2 rounded border border-slate-700">
+ <span class="font-code text-xs text-amber-300 font-bold">List.Head &rarr;</span>
+ <span class="val-badge ${st.head ? 'ref-badge' : 'null-badge'}">${headStr}</span>
+ </div>
+ <div class="flex justify-between items-center bg-slate-800 px-3.5 py-2 rounded border border-slate-700">
+ <span class="font-code text-xs text-amber-300 font-bold">List.Tail &rarr;</span>
+ <span class="val-badge ${st.tail ? 'ref-badge' : 'null-badge'}">${tailStr}</span>
+ </div>
+ `;
+
+ Object.keys(st.vars).forEach(vName => {
+ const targetId = st.vars[vName];
+ const labelStr = (targetId && st.nodes[targetId]) ? st.nodes[targetId].label : 'null';
+ stackC.innerHTML += `
+ <div class="flex justify-between items-center bg-slate-800 px-3.5 py-2 rounded border border-slate-700">
+ <span class="font-code text-xs text-sky-300 font-bold">Zeiger: ${vName} &rarr;</span>
+ <span class="val-badge ${targetId ? 'ref-badge' : 'null-badge'}">${labelStr}</span>
+ </div>
+ `;
+ });
+
+ const heapC = document.getElementById('heap-container');
+ heapC.innerHTML = '';
+
+ nodeKeys.forEach(nId => {
+ const nObj = st.nodes[nId];
+ const link = st.links[nId] || { next: null, prev: null };
+ const nextLabel = (link.next && st.nodes[link.next]) ? st.nodes[link.next].label : 'null';
+ const prevLabel = (link.prev && st.nodes[link.prev]) ? st.nodes[link.prev].label : 'null';
+
+ const nextCls = link.nextCycle ? 'cycle-badge' : (link.next ? 'ref-badge' : 'null-badge');
+ const prevCls = link.prevCycle ? 'cycle-badge' : (link.prev ? 'ref-badge' : 'null-badge');
+ const borderHighlight = (st.targetNode === nId) ? 'border-emerald-500' : 'border-slate-700';
+
+ heapC.innerHTML += `
+ <div class="bg-slate-800 px-3 py-2 rounded border ${borderHighlight} flex flex-col gap-1 w-full">
+ <div class="flex justify-between items-center border-b border-slate-700 pb-1">
+ <span class="font-code text-xs text-emerald-400 font-bold">${nObj.label}</span>
+ <span class="val-badge" style="font-size:11px;padding:0px 6px;">Value: ${nObj.val}</span>
+ </div>
+ <div class="flex justify-between items-center text-[11px] mt-0.5">
+ <span class="text-orange-400 font-semibold">Next:</span>
+ <span class="val-badge ${nextCls}">${nextLabel}</span>
+ </div>
+ <div class="flex justify-between items-center text-[11px] border-t border-slate-700 mt-0.5 pt-1">
+ <span class="text-purple-400 font-semibold">Previous:</span>
+ <span class="val-badge ${prevCls}">${prevLabel}</span>
+ </div>
+ </div>
+ `;
+ });
+ }
+
+ document.getElementById('btn-next').onclick = () => {
+ if (currentStep < currentStepsData.length - 1) { currentStep++; render(); }
+ };
+ document.getElementById('btn-prev').onclick = () => {
+ if (currentStep > 0) { currentStep--; render(); }
+ };
+ document.addEventListener('keydown', e => {
+ if (e.key === 'ArrowRight') document.getElementById('btn-next').click();
+ if (e.key === 'ArrowLeft') document.getElementById('btn-prev').click();
+ });
+
+ setOperation('GetNodeAt');
+ </script>
+</body>
+</html>

@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visuelle Angabe: Katastrophengebiet, Helikopter & Suchroboter</title>
+    <style>
+        /* CSS Reset & Base */
+        *, *::before, *::after { box-sizing: border-box; }
+        body, h1, h2, h3, p, div, span, button, section, header, main { margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #020617;
+            color: #f8fafc;
+            overflow: hidden;
+        }
+        button { font-family: inherit; cursor: pointer; background: none; border: none; color: inherit; }
+        button:disabled { opacity: 0.3 !important; cursor: not-allowed; }
+        .font-mono-code { font-family: 'Fira Code', 'Cascadia Code', Consolas, 'Courier New', monospace; }
+
+        /* Scrollbars */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+        /* Custom Components */
+        .grid-cell {
+            width: 26px;
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            border-radius: 4px;
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            transition: all 0.25s ease;
+            position: relative;
+        }
+        .cell-hotspot {
+            outline: 2px dashed #f59e0b;
+            z-index: 5;
+        }
+        .cell-target-ok {
+            outline: 2.5px solid #10b981;
+            background: rgba(16, 185, 129, 0.25);
+            transform: scale(1.15);
+            z-index: 10;
+        }
+        .cell-target-fail {
+            outline: 2.5px solid #f43f5e;
+            background: rgba(244, 63, 94, 0.3);
+            transform: scale(1.15);
+            z-index: 10;
+        }
+        .obj-card {
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 12px;
+            padding: 12px;
+            transition: all 0.3s ease;
+        }
+        .obj-card-active {
+            border-color: #38bdf8;
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.25);
+        }
+        .pulse-badge { animation: pulseGlow 1.6s infinite; }
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.75; transform: scale(1.03); }
+        }
+
+        /* Layout & Flexbox / Grid Replacement Classes */
+        .h-screen { height: 100vh; }
+        .w-full { width: 100%; }
+        .w-5 { width: 1.25rem; }
+        .w-\[26px\] { width: 26px; }
+        .w-3 { width: 0.75rem; }
+        .h-3 { height: 0.75rem; }
+        .h-\[135px\] { height: 135px; }
+        .flex { display: flex; }
+        .inline-block { display: inline-block; }
+        .grid { display: grid; }
+        .flex-col { flex-direction: column; }
+        .flex-wrap { flex-wrap: wrap; }
+        .flex-1 { flex: 1 1 0%; }
+        .shrink-0 { flex-shrink: 0; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .justify-around { justify-content: space-around; }
+        .select-none { user-select: none; }
+        .overflow-hidden { overflow: hidden; }
+        .overflow-y-auto { overflow-y: auto; }
+        .my-auto { margin-top: auto; margin-bottom: auto; }
+        .mb-0\.5 { margin-bottom: 0.125rem; }
+        .mb-1\.5 { margin-bottom: 0.375rem; }
+
+        .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+        .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        @media (min-width: 1024px) {
+            .lg\:grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+            .lg\:col-span-6 { grid-column: span 6 / span 6; }
+        }
+
+        /* Gaps & Spacing */
+        .gap-0\.5 { gap: 0.125rem; }
+        .gap-1\.5 { gap: 0.375rem; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-3 { gap: 0.75rem; }
+        .gap-4 { gap: 1rem; }
+        .space-y-1 > * + * { margin-top: 0.25rem; }
+
+        .p-1 { padding: 0.25rem; }
+        .p-2 { padding: 0.5rem; }
+        .p-2\.5 { padding: 0.625rem; }
+        .p-3 { padding: 0.75rem; }
+        .p-4 { padding: 1rem; }
+        .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+        .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+        .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+        .py-0\.5 { padding-top: 0.125rem; padding-bottom: 0.125rem; }
+        .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+        .py-1\.5 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+        .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+        .pb-1 { padding-bottom: 0.25rem; }
+        .pb-1\.5 { padding-bottom: 0.375rem; }
+        .pb-2 { padding-bottom: 0.5rem; }
+        .pr-1 { padding-right: 0.25rem; }
+
+        /* Typography */
+        .text-\[10px\] { font-size: 10px; }
+        .text-\[11px\] { font-size: 11px; }
+        .text-xs { font-size: 0.75rem; line-height: 1rem; }
+        .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+        .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+        .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+        @media (min-width: 640px) {
+            .sm\:text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+        }
+        .font-medium { font-weight: 500; }
+        .font-semibold { font-weight: 600; }
+        .font-bold { font-weight: 700; }
+        .italic { font-style: italic; }
+        .uppercase { text-transform: uppercase; }
+        .tracking-tight { letter-spacing: -0.025em; }
+        .tracking-wider { letter-spacing: 0.05em; }
+        .leading-relaxed { line-height: 1.625; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+
+        /* Colors & Backgrounds */
+        .bg-slate-950 { background-color: #020617; }
+        .bg-slate-950\/90 { background-color: rgba(2, 6, 23, 0.9); }
+        .bg-slate-950\/80 { background-color: rgba(2, 6, 23, 0.8); }
+        .bg-slate-900 { background-color: #0f172a; }
+        .bg-slate-800 { background-color: #1e293b; }
+        .bg-sky-950 { background-color: #082f49; }
+        .bg-sky-950\/60 { background-color: rgba(8, 47, 73, 0.6); }
+        .bg-sky-600 { background-color: #0284c7; }
+        .bg-rose-950 { background-color: #4c0519; }
+        .bg-rose-950\/50 { background-color: rgba(76, 5, 25, 0.5); }
+        .bg-emerald-950\/60 { background-color: rgba(2, 44, 34, 0.6); }
+        .bg-amber-950\/60 { background-color: rgba(69, 26, 3, 0.6); }
+        .bg-black\/80 { background-color: rgba(0, 0, 0, 0.8); }
+
+        .hover\:bg-slate-700:hover:not(:disabled) { background-color: #334155; }
+        .hover\:bg-sky-500:hover:not(:disabled) { background-color: #0ea5e9; }
+
+        .text-white { color: #ffffff; }
+        .text-slate-200 { color: #e2e8f0; }
+        .text-slate-300 { color: #cbd5e1; }
+        .text-slate-400 { color: #94a3b8; }
+        .text-slate-500 { color: #64748b; }
+        .text-slate-600 { color: #475569; }
+        .text-sky-300 { color: #7dd3fc; }
+        .text-sky-400 { color: #38bdf8; }
+        .text-emerald-300 { color: #6ee7b7; }
+        .text-emerald-400 { color: #34d399; }
+        .text-rose-300 { color: #fda4af; }
+        .text-amber-300 { color: #fcd34d; }
+        .text-amber-400 { color: #fbbf24; }
+        .text-purple-400 { color: #c084fc; }
+
+        /* Borders, Radius, Shadows & Opacity */
+        .border { border: 1px solid #1e293b; }
+        .border-2 { border-width: 2px; border-style: solid; }
+        .border-b { border-bottom: 1px solid #1e293b; }
+        .border-dashed { border-style: dashed; }
+        .border-slate-800 { border-color: #1e293b; }
+        .border-slate-700 { border-color: #334155; }
+        .border-sky-700 { border-color: #0369a1; }
+        .border-sky-700\/60 { border-color: rgba(3, 105, 161, 0.6); }
+        .border-sky-500 { border-color: #0ea5e9; }
+        .border-rose-700 { border-color: #be123c; }
+        .border-rose-800\/60 { border-color: rgba(159, 18, 57, 0.6); }
+        .border-emerald-700\/60 { border-color: rgba(4, 120, 87, 0.6); }
+        .border-amber-700\/60 { border-color: rgba(180, 83, 9, 0.6); }
+        .border-amber-500 { border-color: #f59e0b; }
+
+        .rounded-sm { border-radius: 0.125rem; }
+        .rounded { border-radius: 0.25rem; }
+        .rounded-lg { border-radius: 0.5rem; }
+        .rounded-xl { border-radius: 0.75rem; }
+        .rounded-full { border-radius: 9999px; }
+
+        .shadow-md { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.4); }
+        .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6); }
+        .shadow-inner { box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.4); }
+        .opacity-70 { opacity: 0.7; }
+        .transition { transition: all 0.15s ease-in-out; }
+    </style>
+</head>
+<body class="h-screen flex flex-col select-none">
+
+    <!-- Header -->
+    <header class="bg-slate-900 border-b border-slate-800 py-3 px-6 shrink-0 shadow-md flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <span class="text-2xl">🚁</span>
+            <div>
+                <h1 class="text-lg font-bold text-sky-400 tracking-tight">Visuelle Programmier-Angabe: Rettungseinsatz im Katastrophengebiet</h1>
+                <p class="text-xs text-slate-400">Interaktive Konzept-Animation (Ohne Code) &bull; Objektbeziehungen, Kapselung &amp; 2D-Weltkarte</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <span id="phase-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-sky-950 text-sky-300 border border-sky-700">Phase 1</span>
+            <div class="flex items-center gap-2 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                <button id="btn-prev" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded border border-slate-700 transition">&larr; Zurück</button>
+                <div class="px-3 py-1 font-mono-code text-xs">
+                    <span id="step-current" class="text-sky-400 font-bold">1</span><span class="text-slate-500">/</span><span id="step-total" class="text-slate-400">9</span>
+                </div>
+                <button id="btn-next" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded border border-sky-500 transition">Weiter &rarr;</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden p-4 gap-4 bg-slate-950">
+        
+        <!-- LEFT COLUMN: 15x15 Weltkarte Visualisierung (6 cols) -->
+        <section class="lg:col-span-6 bg-slate-900 rounded-xl border border-slate-800 p-4 flex flex-col items-center justify-between overflow-hidden shadow-2xl">
+            <div class="w-full flex justify-between items-center border-b border-slate-800 pb-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">🗺️ 2D-Array: Weltkarte (Mind. 15 &times; 15)</span>
+                    <span class="px-2 py-0.5 text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-700 rounded">private!</span>
+                </div>
+                <span id="map-stats" class="text-xs font-mono-code text-slate-400">225 Felder (15&times;15)</span>
+            </div>
+
+            <!-- 15x15 Grid Container -->
+            <div id="grid-container" class="my-auto p-2 bg-slate-950 rounded-xl border border-slate-800 shadow-inner"></div>
+
+            <!-- Legend -->
+            <div class="w-full bg-slate-950/90 border border-slate-800 rounded-lg p-2.5 flex flex-wrap justify-around items-center text-xs gap-2">
+                <div class="flex items-center gap-1.5"><span>🟫</span><span class="text-slate-300">Erde (50% Start / 40% Ende)</span></div>
+                <div class="flex items-center gap-1.5"><span>🕳️</span><span class="text-slate-300">20% Löcher (45)</span></div>
+                <div class="flex items-center gap-1.5"><span>💧</span><span class="text-slate-300">30% Wasser (67)</span></div>
+                <div class="flex items-center gap-1.5"><span>🤖</span><span class="text-slate-300">10% Roboter (22)</span></div>
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 inline-block border-2 border-dashed border-amber-500 rounded-sm"></span><span class="text-amber-300">Hotspots: (4,6), (2,7), (6,9)</span></div>
+            </div>
+        </section>
+
+        <!-- RIGHT COLUMN: Visual Explanation, Object Interaction & Console Log (6 cols) -->
+        <section class="lg:col-span-6 flex flex-col gap-4 overflow-hidden">
+            
+            <!-- RIGHT TOP: Aufgaben-Erklärung des aktuellen Schritts -->
+            <div class="bg-slate-900 rounded-xl border border-slate-800 p-4 flex flex-col gap-2 shadow-2xl shrink-0">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-1.5">
+                    <span class="text-xs font-bold uppercase tracking-wider text-sky-400">📋 Aufgaben-Logik &amp; Ablaufregel</span>
+                    <span id="step-title" class="text-xs font-bold text-amber-300"></span>
+                </div>
+                <div id="explanation-text" class="text-xs sm:text-sm text-slate-200 leading-relaxed bg-slate-950/80 p-3 rounded-lg border border-slate-800"></div>
+            </div>
+
+            <!-- RIGHT MIDDLE: Visuelles Objekt-Interaktions-Board -->
+            <div class="flex-1 bg-slate-900 rounded-xl border border-slate-800 p-4 flex flex-col justify-between overflow-hidden shadow-2xl">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-1.5 shrink-0">
+                    <span class="text-xs font-bold uppercase tracking-wider text-purple-400">🔄 Objekt-Beziehungen &amp; Kommunikation</span>
+                    <span class="text-[11px] text-slate-400">Kapselung &amp; Delegation</span>
+                </div>
+
+                <!-- 3 Visual Object Boxes -->
+                <div class="my-auto grid grid-cols-3 gap-3 items-center py-2">
+                    
+                    <!-- Katastrophengebiet Card -->
+                    <div id="card-gebiet" class="obj-card flex flex-col gap-1.5">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-1">
+                            <span class="text-xs font-bold text-emerald-400">🌍 Katastrophengebiet</span>
+                        </div>
+                        <div class="text-[11px] text-slate-300 space-y-1">
+                            <div class="bg-rose-950/50 border border-rose-800/60 px-2 py-1 rounded text-rose-300 font-semibold">
+                                🔒 Weltkarte (privat!)
+                            </div>
+                            <div class="bg-slate-950 px-2 py-1 rounded border border-slate-800">
+                                📏 Groesse: <span class="text-sky-300 font-mono-code">15 (&ge;15)</span>
+                            </div>
+                            <div class="bg-slate-950 px-2 py-1 rounded border border-slate-800">
+                                🚁 Helikopter-Array: <span class="text-sky-300 font-mono-code">22 Stück</span>
+                            </div>
+                            <div id="badge-istabladbar" class="bg-emerald-950/60 border border-emerald-700/60 px-2 py-1 rounded text-emerald-300 font-semibold">
+                                🛎️ Methode: IstAbladbar(pos)
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Helikopter Card -->
+                    <div id="card-heli" class="obj-card flex flex-col gap-1.5">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-1">
+                            <span class="text-xs font-bold text-sky-400">🚁 Helikopter</span>
+                        </div>
+                        <div class="text-[11px] text-slate-300 space-y-1">
+                            <div class="bg-slate-950 px-2 py-1 rounded border border-slate-800">
+                                🔗 Hat: <span class="text-emerald-300">Katastrophenzone</span>
+                            </div>
+                            <div class="bg-slate-950 px-2 py-1 rounded border border-slate-800">
+                                🔗 Hat: <span class="text-amber-300">1 Roboter</span>
+                            </div>
+                            <div class="bg-slate-950 px-2 py-1 rounded border border-slate-800 text-slate-400 italic">
+                                🌫️ Sieht Weltkarte NICHT direkt!
+                            </div>
+                            <div id="badge-positioniere" class="bg-sky-950/60 border border-sky-700/60 px-2 py-1 rounded text-sky-300 font-semibold">
+                                ⚙️ PositioniereRoboter()
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Roboter Card -->
+                    <div id="card-robo" class="obj-card flex flex-col gap-1.5">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-1">
+                            <span class="text-xs font-bold text-amber-400">🤖 Roboter</span>
+                        </div>
+                        <div class="text-[11px] text-slate-300 space-y-1">
+                            <div class="bg-slate-950 px-2 py-1 rounded border border-slate-800">
+                                🔗 Hat: <span class="text-emerald-300">SELBES Gebiet</span>
+                            </div>
+                            <div class="bg-slate-950 px-2 py-1 rounded border border-slate-800">
+                                🎯 GewuenschtePos: <span id="robo-wunsch" class="text-amber-300 font-mono-code">--</span>
+                            </div>
+                            <div class="bg-slate-950 px-2 py-1 rounded border border-slate-800">
+                                📍 AktuellePos: <span id="robo-aktuell" class="text-emerald-300 font-mono-code">--</span>
+                            </div>
+                            <div id="badge-suchen" class="bg-amber-950/60 border border-amber-700/60 px-2 py-1 rounded text-amber-300 font-semibold">
+                                📢 Methode: Suchen()
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Dynamic Communication Status Banner -->
+                <div id="comm-banner" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-center font-medium text-sky-300"></div>
+            </div>
+
+            <!-- RIGHT BOTTOM: Live Konsolen-Ausgabe (Suchen-Meldungen) -->
+            <div class="h-[135px] shrink-0 bg-slate-900 rounded-xl border border-slate-800 p-3 flex flex-col overflow-hidden shadow-2xl">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-1 mb-1.5 shrink-0">
+                    <span class="text-xs font-bold uppercase tracking-wider text-amber-400">🖥️ Konsolenausgabe der Methode Suchen()</span>
+                    <span class="text-[10px] font-mono-code text-slate-400">UTF-8 Konsole</span>
+                </div>
+                <div id="console-box" class="flex-1 bg-black/80 rounded p-2 font-mono-code text-[11px] text-emerald-400 overflow-y-auto space-y-1"></div>
+            </div>
+
+        </section>
+    </main>
+
+    <script>
+        function createEmptyEarthGrid() {
+            const g = [];
+            for (let y = 0; y < 15; y++) {
+                const row = [];
+                for (let x = 0; x < 15; x++) row.push("🟫");
+                g.push(row);
+            }
+            return g;
+        }
+
+        const holeList = [
+            [0,2],[0,5],[0,11],[0,14],[1,1],[1,4],[1,9],[1,12],[2,0],[2,3],[2,10],[2,13],
+            [3,2],[3,6],[3,8],[3,14],[4,1],[4,9],[4,12],[5,0],[5,4],[5,7],[5,11],[6,2],
+            [6,5],[6,13],[7,1],[7,8],[7,10],[8,3],[8,6],[8,12],[9,0],[9,4],[9,9],[9,14],
+            [10,2],[10,7],[10,11],[11,1],[11,5],[11,13],[12,3],[12,8],[13,6]
+        ];
+
+        const waterList = [
+            [0,1],[0,4],[0,7],[0,9],[0,12],[1,2],[1,6],[1,8],[1,11],[1,14],
+            [2,1],[2,5],[2,7],[2,9],[2,12],[3,0],[3,4],[3,7],[3,10],[3,12],
+            [4,2],[4,5],[4,8],[4,11],[4,14],[5,1],[5,3],[5,6],[5,9],[5,13],
+            [6,0],[6,4],[6,7],[6,11],[6,14],[7,2],[7,5],[7,7],[7,12],[7,14],
+            [8,1],[8,4],[8,8],[8,10],[8,13],[9,2],[9,6],[9,8],[9,11],[9,13],
+            [10,0],[10,4],[10,6],[10,9],[10,13],[11,2],[11,7],[11,10],[11,12],
+            [12,1],[12,5],[12,10],[12,14],[13,2],[13,8],[13,11],[14,4]
+        ];
+
+        const extraRobots = [
+            [0,0],[0,8],[1,3],[1,10],[3,3],[3,11],[5,2],[5,10],[6,1],
+            [7,4],[7,9],[8,5],[9,7],[10,3],[10,12],[11,4],[12,6],[13,3],[14,9]
+        ];
+
+        const gridStep1 = createEmptyEarthGrid();
+
+        const gridStep2 = createEmptyEarthGrid();
+        holeList.forEach(([y, x]) => { gridStep2[y][x] = "🕳️"; });
+
+        const gridStep3 = JSON.parse(JSON.stringify(gridStep2));
+        waterList.forEach(([y, x]) => { gridStep3[y][x] = "💧"; });
+
+        const gridStep5 = JSON.parse(JSON.stringify(gridStep3));
+        gridStep5[4][6] = "🤖";
+
+        const gridStep7 = JSON.parse(JSON.stringify(gridStep5));
+        gridStep7[2][8] = "🤖";
+
+        const gridStep8 = JSON.parse(JSON.stringify(gridStep7));
+        gridStep8[6][9] = "🤖";
+
+        const gridStep9 = JSON.parse(JSON.stringify(gridStep8));
+        extraRobots.forEach(([y, x]) => { gridStep9[y][x] = "🤖"; });
+
+        const steps = [
+            {
+                phase: "1. Kartengröße & Erde",
+                title: "Katastrophengebiet anlegen (Mindestens 15 × 15)",
+                grid: gridStep1,
+                stats: "225 Felder (100% Erde 🟫)",
+                desc: "Das <b>Katastrophengebiet</b> besitzt ein privates 2D-Array namens <b>Weltkarte</b>. Es muss mindestens <b>15 &times; 15 Felder</b> groß sein (größere Werte sind erlaubt). Im Konstruktor wird die gesamte Karte zunächst vollständig mit <b>Erdsymbolen (🟫)</b> gefüllt.",
+                activeCards: ["gebiet"],
+                wunsch: "--", aktuell: "--",
+                comm: "🌍 Konstruktor Katastrophengebiet: Initialisiere 15×15 Weltkarte mit Erde (🟫).",
+                logs: []
+            },
+            {
+                phase: "2. Gelände: 20% Löcher",
+                title: "20% der Fläche mit Löchern (🕳️) befüllen",
+                grid: gridStep2,
+                stats: "45 Löcher (20%) | 180 Erde (80%)",
+                desc: "Als Nächstes werden im Konstruktor des Katastrophengebiets zufällig <b>20 % der Gesamtfläche</b> (bei 225 Feldern = <b>45 Felder</b>) mit tiefen <b>Löchern (🕳️)</b> versehen. Auf diesen Feldern kann später kein Roboter landen!",
+                activeCards: ["gebiet"],
+                wunsch: "--", aktuell: "--",
+                comm: "🕳️ 20% der Weltkarte (45 zufällige Positionen) werden zu Löchern.",
+                logs: []
+            },
+            {
+                phase: "3. Gelände: 30% Wasser",
+                title: "30% der Fläche mit Wasser (💧) überfluten",
+                grid: gridStep3,
+                stats: "45 Löcher (20%) | 67 Wasser (30%) | 113 Erde (50%)",
+                desc: "Nun werden weitere <b>30 % der Gesamtfläche</b> (bei 225 Feldern = <b>67 Felder</b>) zufällig mit <b>Wasser (💧)</b> gefüllt. Damit besteht die Karte jetzt zu 20 % aus Löchern, zu 30 % aus Wasser und zu 50 % aus begehbarer Erde (🟫).",
+                activeCards: ["gebiet"],
+                wunsch: "--", aktuell: "--",
+                comm: "💧 30% der Weltkarte (67 zufällige Positionen) werden mit Wasser gefüllt.",
+                logs: []
+            },
+            {
+                phase: "4. Einheiten & Hotspots",
+                title: "10% Helikopter & Roboter + 3 Pflicht-Hotspots",
+                grid: gridStep3,
+                showHotspots: true,
+                stats: "Bedarf: 10% von 225 = 22 Helikopter & 22 Roboter",
+                desc: "Es sollen <b>10 % der Fläche</b> (<b>22 Stück</b>) mit Suchrobotern besiedelt werden. Das Katastrophengebiet legt ein Array für <b>22 Helikopter</b> an. Jeder Helikopter erzeugt im Konstruktor seinen <b>Roboter</b> (mit demselben Katastrophengebiet!). Die ersten 3 Roboter wollen unbedingt zu den Vermissten-Hotspots <b>(4, 6)</b>, <b>(2, 7)</b> und <b>(6, 9)</b>.",
+                activeCards: ["gebiet", "heli", "robo"],
+                wunsch: "(4,6), (2,7), (6,9)", aktuell: "noch im Helikopter",
+                comm: "🚁 Katastrophengebiet erstellt 22 Helikopter -> Jeder Helikopter erstellt 1 Roboter mit demselben Gebiet.",
+                logs: []
+            },
+            {
+                phase: "5. Hotspot 1: (4, 6)",
+                title: "Helikopter #1 prüft Wunschposition (4, 6) -> Direktlandung!",
+                grid: gridStep5,
+                showHotspots: true,
+                targetOk: [4, 6],
+                stats: "1 / 22 Robotern platziert",
+                desc: "<b>Helikopter #1</b> startet <i>PositioniereRoboter()</i>. Er fragt seinen Roboter nach dessen <i>GewuenschtePosition</i>: <b>(4, 6)</b>. Da die <i>Weltkarte</i> privat ist, fragt der Helikopter über <b>IstAbladbar((4, 6))</b> beim Gebiet an. Auf (4, 6) ist Erde (🟫)! Das Gebiet trägt <b>🤖</b> ein und gibt <i>wahr</i> zurück. Der Roboter wird abgeladen und ruft <b>Suchen()</b> auf.",
+                activeCards: ["heli", "gebiet", "robo"],
+                wunsch: "(4, 6)", aktuell: "(4, 6)",
+                comm: "✅ IstAbladbar((4, 6)) == true! AktuellePosition = (4, 6) -> Roboter.Suchen() wird aufgerufen.",
+                logs: [
+                    "Beginne suche auf position (4, 6) und bewege mich auf position (4, 6)"
+                ]
+            },
+            {
+                phase: "6. Hotspot 2: (2, 7) blockiert!",
+                title: "Helikopter #2 prüft Wunschposition (2, 7) -> Wasser! ❌",
+                grid: gridStep5,
+                showHotspots: true,
+                targetFail: [2, 7],
+                stats: "Kollision auf (2, 7): Dort ist Wasser 💧!",
+                desc: "<b>Helikopter #2</b> möchte seinen Roboter auf dessen Wunschposition <b>(2, 7)</b> abladen. Doch der Aufruf <b>IstAbladbar((2, 7))</b> liefert <b>falsch</b> zurück, weil sich auf (2, 7) <b>Wasser (💧)</b> befindet! Der Helikopter darf den Roboter dort nicht absetzen.",
+                activeCards: ["heli", "gebiet"],
+                wunsch: "(2, 7)", aktuell: "suche Ausweichplatz...",
+                comm: "❌ IstAbladbar((2, 7)) == false (Wasser 💧)! Helikopter muss neuen Zufallsort wählen!",
+                logs: [
+                    "Beginne suche auf position (4, 6) und bewege mich auf position (4, 6)"
+                ]
+            },
+            {
+                phase: "7. Ausweichlandung für #2",
+                title: "Helikopter #2 wählt Zufallsposition (2, 8) -> Wunsch bleibt (2, 7)!",
+                grid: gridStep7,
+                showHotspots: true,
+                targetFail: [2, 7],
+                targetOk: [2, 8],
+                stats: "2 / 22 Robotern platziert",
+                desc: "Der Helikopter würfelt solange eine neue Zufallsposition, bis <b>IstAbladbar</b> klappt – hier z. B. auf <b>(2, 8)</b>. <b>Wichtige Regel:</b> Die <i>AktuellePosition</i> des Roboters wird auf <b>(2, 8)</b> gesetzt, aber seine <i>GewuenschtePosition</i> bleibt unverändert auf <b>(2, 7)</b>! Danach gibt <i>Suchen()</i> beide Positionen aus.",
+                activeCards: ["heli", "robo"],
+                wunsch: "(2, 7) [unverändert!]", aktuell: "(2, 8) [abgeladen]",
+                comm: "✅ Ausweichort (2, 8) ist frei! Roboter landet auf (2, 8) und bewegt sich Richtung Wunschziel (2, 7).",
+                logs: [
+                    "Beginne suche auf position (4, 6) und bewege mich auf position (4, 6)",
+                    "Beginne suche auf position (2, 8) und bewege mich auf position (2, 7)"
+                ]
+            },
+            {
+                phase: "8. Hotspot 3: (6, 9)",
+                title: "Helikopter #3 setzt Roboter #3 auf Hotspot (6, 9) ab",
+                grid: gridStep8,
+                showHotspots: true,
+                targetOk: [6, 9],
+                stats: "3 / 22 Robotern platziert (Alle 3 Hotspots versorgt)",
+                desc: "<b>Helikopter #3</b> prüft den dritten Vermissten-Hotspot <b>(6, 9)</b> über <i>IstAbladbar((6, 9))</i>. Da sich dort Erde (🟫) befindet, wird der Roboter direkt dort abgesetzt (<i>AktuellePosition</i> = (6, 9), <i>GewuenschtePosition</i> = (6, 9)) und startet sofort seine Suche.",
+                activeCards: ["heli", "robo"],
+                wunsch: "(6, 9)", aktuell: "(6, 9)",
+                comm: "✅ IstAbladbar((6, 9)) == true! Alle 3 Schwerpunkt-Roboter sind im Einsatz.",
+                logs: [
+                    "Beginne suche auf position (4, 6) und bewege mich auf position (4, 6)",
+                    "Beginne suche auf position (2, 8) und bewege mich auf position (2, 7)",
+                    "Beginne suche auf position (6, 9) und bewege mich auf position (6, 9)"
+                ]
+            },
+            {
+                phase: "9. Alle 22 Roboter & Print()",
+                title: "Restliche Roboter zufällig abladen & Weltkarte ausgeben",
+                grid: gridStep9,
+                showHotspots: true,
+                stats: "22 Roboter (10%) | 45 Löcher (20%) | 67 Wasser (30%) | 91 Erde (40%)",
+                desc: "Die restlichen 19 Helikopter laden ihre Roboter nach genau demselben Prinzip zufällig ab (niemals auf Wasser 💧, niemals in Löchern 🕳️ und niemals doppelt auf demselben Feld 🤖). Zum Schluss gibt <b>Print()</b> die fertige 15&times;15 Weltkarte in der Konsole aus!",
+                activeCards: ["gebiet", "heli", "robo"],
+                wunsch: "(zufällig)", aktuell: "(freies Erdfeld 🟫)",
+                comm: "🏁 Alle 22 Roboter sind gelandet und suchen! gebiet.Print() zeigt die gesamte Weltkarte.",
+                logs: [
+                    "Beginne suche auf position (4, 6) und bewege mich auf position (4, 6)",
+                    "Beginne suche auf position (2, 8) und bewege mich auf position (2, 7)",
+                    "Beginne suche auf position (6, 9) und bewege mich auf position (6, 9)",
+                    "Beginne suche auf position (0, 0) und bewege mich auf position (0, 0)",
+                    "Beginne suche auf position (1, 3) und bewege mich auf position (1, 4)  [Ausweichort!]",
+                    "... (insgesamt 22 Suchmeldungen in der Konsole)"
+                ]
+            }
+        ];
+
+        let currentStep = 0;
+        const hotspots = [[4, 6], [2, 7], [6, 9]];
+
+        function renderGrid() {
+            const step = steps[currentStep];
+            const hotspotSet = new Set(hotspots.map(([y, x]) => `${y},${x}`));
+
+            let html = `<div class="flex flex-col gap-0.5">`;
+            html += `<div class="flex items-center gap-0.5 mb-0.5"><span class="w-5 text-[10px] text-slate-500 font-mono-code"></span>`;
+            for (let x = 0; x < 15; x++) {
+                html += `<span class="w-[26px] text-center text-[10px] text-slate-500 font-mono-code">${x}</span>`;
+            }
+            html += `</div>`;
+
+            for (let y = 0; y < 15; y++) {
+                html += `<div class="flex items-center gap-0.5">`;
+                html += `<span class="w-5 text-right pr-1 text-[10px] text-slate-500 font-mono-code">${y}</span>`;
+                for (let x = 0; x < 15; x++) {
+                    const val = step.grid[y][x];
+                    let classes = "grid-cell";
+                    if (step.showHotspots && hotspotSet.has(`${y},${x}`)) {
+                        classes += " cell-hotspot";
+                    }
+                    if (step.targetOk && step.targetOk[0] === y && step.targetOk[1] === x) {
+                        classes += " cell-target-ok";
+                    }
+                    if (step.targetFail && step.targetFail[0] === y && step.targetFail[1] === x) {
+                        classes += " cell-target-fail";
+                    }
+                    html += `<div class="${classes}" title="(y=${y}, x=${x})">${val}</div>`;
+                }
+                html += `</div>`;
+            }
+            html += `</div>`;
+            document.getElementById("grid-container").innerHTML = html;
+        }
+
+        function render() {
+            const step = steps[currentStep];
+            document.getElementById("btn-prev").disabled = (currentStep === 0);
+            document.getElementById("btn-next").disabled = (currentStep === steps.length - 1);
+            document.getElementById("step-current").textContent = currentStep + 1;
+            document.getElementById("step-total").textContent = steps.length;
+
+            document.getElementById("phase-badge").textContent = step.phase;
+            document.getElementById("step-title").textContent = step.title;
+            document.getElementById("map-stats").textContent = step.stats;
+            document.getElementById("explanation-text").innerHTML = step.desc;
+
+            const mapCard = {
+                gebiet: document.getElementById("card-gebiet"),
+                heli: document.getElementById("card-heli"),
+                robo: document.getElementById("card-robo")
+            };
+            Object.keys(mapCard).forEach(k => {
+                mapCard[k].className = "obj-card flex flex-col gap-1.5" + (step.activeCards.includes(k) ? " obj-card-active" : " opacity-70");
+            });
+
+            document.getElementById("robo-wunsch").textContent = step.wunsch;
+            document.getElementById("robo-aktuell").textContent = step.aktuell;
+            document.getElementById("comm-banner").textContent = step.comm;
+
+            const consoleBox = document.getElementById("console-box");
+            if (step.logs.length === 0) {
+                consoleBox.innerHTML = `<div class="text-slate-600 italic">Noch keine Suchmeldungen ausgegeben...</div>`;
+            } else {
+                consoleBox.innerHTML = step.logs.map(l => `<div>&gt; ${l}</div>`).join("");
+                consoleBox.scrollTop = consoleBox.scrollHeight;
+            }
+
+            renderGrid();
+        }
+
+        document.getElementById("btn-next").addEventListener("click", () => {
+            if (currentStep < steps.length - 1) { currentStep++; render(); }
+        });
+        document.getElementById("btn-prev").addEventListener("click", () => {
+            if (currentStep > 0) { currentStep--; render(); }
+        });
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "ArrowRight") document.getElementById("btn-next").click();
+            if (e.key === "ArrowLeft") document.getElementById("btn-prev").click();
+        });
+
+        render();
+    </script>
+</body>
+</html>
