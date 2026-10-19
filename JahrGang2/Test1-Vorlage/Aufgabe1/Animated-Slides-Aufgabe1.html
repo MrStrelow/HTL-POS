@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aufgabe 01 Visualizer – Standard (2 Variablen) vs. Bonus (6 Variablen)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; overflow: hidden; }
+        .font-code { font-family: 'Fira Code', monospace; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+        .val-badge {
+            background-color: rgba(100, 116, 139, 0.2); border: 1px solid rgba(100, 116, 139, 0.4); color: #e2e8f0;
+            padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;
+            display: inline-flex; align-items: center;
+        }
+        .val-badge.bool-true { background-color: rgba(16, 185, 129, 0.18); border-color: rgba(16, 185, 129, 0.5); color: #34d399; }
+        .val-badge.bool-false { background-color: rgba(244, 63, 94, 0.15); border-color: rgba(244, 63, 94, 0.45); color: #fb7185; }
+        .val-badge.bool-inactive { background-color: rgba(51, 65, 85, 0.3); border-color: rgba(71, 85, 105, 0.4); color: #64748b; }
+
+        .cell-box {
+            width: 42px; height: 42px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; border-radius: 7px;
+            background: #0f172a; border: 1.5px solid #1e293b;
+            transition: all 0.25s ease;
+        }
+        
+        /* Perspektiven-Farben: Grün = Bedingung erfüllt (if / true), Rot = Bedingung nicht erfüllt (else / false) */
+        .cell-if-met { border-color: #34d399 !important; background: rgba(52, 211, 153, 0.2) !important; box-shadow: 0 0 12px rgba(52, 211, 153, 0.4); transform: scale(1.04); }
+        .cell-else-not { border-color: #fb7185 !important; background: rgba(244, 63, 94, 0.12) !important; opacity: 0.75; }
+        .cell-neutral { border-color: #334155 !important; background: #0f172a !important; }
+    </style>
+</head>
+<body class="h-screen flex flex-col select-none">
+
+    <!-- Header -->
+    <header class="bg-slate-900 border-b border-slate-800 py-3 px-6 shrink-0 shadow-md flex flex-col xl:flex-row justify-between items-center gap-3 z-20">
+        <div>
+            <div class="flex items-center gap-2.5">
+                <span class="px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider bg-sky-950 text-sky-400 border border-sky-700 rounded-md">Aufgabe 01</span>
+                <h1 class="text-xl font-bold text-sky-400 tracking-tight">ZeichneZentriertesKreuz – Standard (2 Bedingungen) vs. Bonus (6 Bedingungen)</h1>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">Vergleiche den schlanken Code mit Guard Clause (Standard) mit den vielen Bedingungen ohne Guard Clause (Bonus)</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+            <!-- Modus-Umschalter: Standard vs. Bonus -->
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Aufgaben-Modus:</span>
+                <select id="mode-select" class="bg-slate-950 border border-slate-700 text-amber-300 text-xs sm:text-sm rounded-lg px-3 py-2 outline-none font-bold shadow-inner" onchange="setMode(this.value)">
+                    <option value="standard">Standard: Mit Guard Clause (Nur 2 Variablen)</option>
+                    <option value="bonus">⭐ Bonus: Ohne Guard Clause (Alle 6 Variablen)</option>
+                </select>
+            </div>
+
+            <!-- Gittergröße (Nur im Bonus-Modus umschaltbar) -->
+            <div id="grid-size-wrapper" class="hidden items-center gap-2">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Maße:</span>
+                <select id="grid-select" class="bg-slate-950 border border-slate-700 text-emerald-300 text-xs sm:text-sm rounded-lg px-2.5 py-2 outline-none font-bold" onchange="setBonusGrid(this.value)">
+                    <option value="5x5">5 × 5 (ungerade / ungerade)</option>
+                    <option value="6x5">6 × 5 (Zeilen gerade / Spalten ungerade)</option>
+                    <option value="5x6">5 × 6 (Zeilen ungerade / Spalten gerade)</option>
+                    <option value="6x6">6 × 6 (gerade / gerade)</option>
+                </select>
+            </div>
+
+            <!-- Schritt-Auswahl -->
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Ablauf-Schritt:</span>
+                <select id="step-select" class="bg-slate-950 border border-slate-700 text-sky-300 text-xs sm:text-sm rounded-lg px-3 py-2 outline-none font-bold" onchange="setStep(parseInt(this.value))">
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] overflow-hidden p-4 gap-5 bg-slate-950">
+        
+        <!-- Left: Interactive Grid -->
+        <section class="bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+            <div class="bg-slate-950 py-2.5 px-5 border-b border-slate-800 flex justify-between items-center">
+                <span id="grid-title" class="text-xs font-semibold text-slate-400 uppercase tracking-widest">2D-Gitter Vorschau</span>
+                <span id="grid-badge" class="font-code text-xs text-emerald-400 font-bold"></span>
+            </div>
+            <div id="visual-stage" class="flex-1 p-5 flex flex-col items-center justify-center overflow-y-auto bg-slate-950/70"></div>
+            <div class="bg-slate-950/90 border-t border-slate-800 px-5 py-2 flex justify-between items-center text-xs text-slate-400">
+                <span>💡 <span class="text-emerald-400 font-bold">Grün</span> = Bedingung erfüllt (<code class="font-code text-emerald-400">true</code> / <code class="font-code text-emerald-400">if</code>) &bull; <span class="text-rose-400 font-bold">Rot</span> = Nicht erfüllt (<code class="font-code text-rose-400">false</code> / <code class="font-code text-rose-400">else</code>)</span>
+                <span class="font-code text-[11px] text-slate-500">Pfeiltasten &larr; / &rarr;</span>
+            </div>
+        </section>
+
+        <!-- Right: Structure info (Dynamisch: 2 Variablen im Standard vs. 6 Variablen im Bonus) -->
+        <section class="flex flex-col gap-4 overflow-hidden">
+            <div class="flex-1 bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+                <div class="bg-slate-950 py-2.5 px-5 border-b border-slate-800 flex justify-between items-center">
+                    <span id="right-panel-title" class="text-xs font-semibold text-sky-400 uppercase tracking-widest">Benötigte Variablen im Code</span>
+                    <span id="var-count-badge" class="px-2 py-0.5 text-[11px] font-bold rounded bg-slate-800 text-slate-300"></span>
+                </div>
+                <div id="structure-container" class="flex-1 overflow-y-auto p-4 flex flex-col gap-2.5 bg-slate-900/50 text-xs"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 border-t border-slate-800 shrink-0 p-3.5 z-20">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 max-w-7xl mx-auto items-center">
+            <div class="lg:col-span-2 bg-slate-950 border border-slate-800 rounded-lg p-3.5 min-h-[72px] flex flex-col justify-center">
+                <p id="explanation-text" class="text-sm sm:text-[15px] text-slate-200 leading-relaxed"></p>
+            </div>
+            <div class="flex items-center justify-center gap-3">
+                <button id="btn-prev" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg shadow disabled:opacity-30 text-sm font-medium border border-slate-700">&larr; Zurück</button>
+                <div class="bg-slate-950 px-5 py-2.5 rounded-lg border border-slate-800 font-code text-sm text-center min-w-[90px]">
+                    <span id="step-current" class="text-sky-400 font-bold">1</span><span class="text-slate-500">/</span><span id="step-total" class="text-slate-400">4</span>
+                </div>
+                <button id="btn-next" class="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg shadow disabled:opacity-30 text-sm font-bold border border-sky-500">Weiter &rarr;</button>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        let currentMode = 'standard';
+        let currentStep = 0;
+        let bonusRows = 5;
+        let bonusCols = 5;
+
+        // =====================================================================
+        // 1. STANDARD-MODUS (Mit Guard Clause -> Nur 2 bool-Variablen nötig!)
+        // =====================================================================
+        const standardSteps = [
+            {
+                dropdown: "1. Guard Clause (Prüfung auf gerade Maße & > 0)",
+                desc: "Zu Beginn prüft eine <code class='text-sky-300 font-code'>Guard Clause</code>, ob <b>anzahlZeilen</b> und <b>anzahlSpalten</b> jeweils gerade und größer als 0 sind. Da ungerade Zahlen hier sofort abgewiesen werden, sparen wir uns im weiteren Code alle ungeraden Fallunterscheidungen! (Auf dem Gitter wird noch nichts gezeichnet).",
+                stepType: 'guard'
+            },
+            {
+                dropdown: "2. gibKreuzSymbolInZeileAus (Mittlere Zeilen)",
+                desc: "Weil <b>anzahlZeilen</b> garantiert gerade ist, brauchen wir für die Zeilen <b>nur eine einzige Variable</b>: <code class='text-amber-300 font-code'>gibKreuzSymbolInZeileAus</code> prüft direkt, ob sich <b>zeile</b> auf einer der beiden mittleren Zeilen befindet (<span class='text-emerald-400 font-bold'>grün = erfüllt</span>, <span class='text-rose-400 font-bold'>rot = nicht erfüllt</span>).",
+                stepType: 'rowOnly'
+            },
+            {
+                dropdown: "3. gibKreuzSymbolInSpalteAus (Mittlere Spalten)",
+                desc: "Genauso brauchen wir für die Spalten <b>nur eine einzige Variable</b>: <code class='text-sky-300 font-code'>gibKreuzSymbolInSpalteAus</code> prüft direkt, ob sich <b>spalte</b> auf einer der beiden mittleren Spalten befindet (<span class='text-emerald-400 font-bold'>grün = erfüllt</span>, <span class='text-rose-400 font-bold'>rot = nicht erfüllt</span>).",
+                stepType: 'colOnly'
+            },
+            {
+                dropdown: "4. Finale Verzweigung: if (grün) vs. else (rot)",
+                desc: "In der <code class='text-sky-300 font-code'>if / else</code>-Verzweigung werden beide Variablen mit <b>ODER</b> verknüpft: Ist Zeile ODER Spalte wahr, ist die Bedingung <span class='text-emerald-400 font-bold'>erfüllt (grün &rarr; kreuzSymbol 🟥)</span>, andernfalls greift der <code class='text-rose-400 font-code'>else</code>-Zweig <span class='text-rose-400 font-bold'>(rot &rarr; hintergrundSymbol 🟦)</span>.",
+                stepType: 'final'
+            }
+        ];
+
+        // =====================================================================
+        // 2. BONUS-MODUS (Ohne Guard Clause -> 6 bool-Variablen nötig!)
+        // =====================================================================
+        const bonusSteps = [
+            {
+                dropdown: "1. Bonus-Schritt 1: gibKreuzSymbolInGeradenZeilenAus",
+                desc: "<b>Ohne Guard Clause</b> wissen wir nicht vorab, ob <b>anzahlZeilen</b> gerade oder ungerade ist! Wir brauchen daher viel mehr Bedingungen. Zuerst prüft <code class='text-amber-300 font-code'>gibKreuzSymbolInGeradenZeilenAus</code>: Ist die Zeilenanzahl gerade <b>UND</b> liegt <b>zeile</b> auf den zwei mittleren Zeilen?",
+                stepType: 'b_evenRow'
+            },
+            {
+                dropdown: "2. Bonus-Schritt 2: gibKreuzSymbolInUngeradenZeilenAus",
+                desc: "Zusätzlich brauchen wir eine zweite Variable <code class='text-amber-300 font-code'>gibKreuzSymbolInUngeradenZeilenAus</code>: Sie prüft, ob die Zeilenanzahl ungerade ist <b>UND</b> <b>zeile</b> genau auf der einzigen mittleren Zeile liegt.",
+                stepType: 'b_oddRow'
+            },
+            {
+                dropdown: "3. Bonus-Schritt 3: Verbinden zu gibKreuzSymbolInZeileAus",
+                desc: "Erst eine dritte Variable <code class='text-white font-code'>gibKreuzSymbolInZeileAus</code> führt beide Zeilen-Fälle mit <b>ODER</b> zusammen: Egal ob gerade oder ungerade – jetzt wissen wir, ob die aktuelle Zeile zur horizontalen Mitte gehört!",
+                stepType: 'b_combRow'
+            },
+            {
+                dropdown: "4. Bonus-Schritt 4: gibKreuzSymbolInGeradenSpaltenAus",
+                desc: "Derselbe Mehraufwand gilt für die Spalten! Die vierte Variable <code class='text-sky-300 font-code'>gibKreuzSymbolInGeradenSpaltenAus</code> prüft: Ist die Spaltenanzahl gerade <b>UND</b> liegt <b>spalte</b> auf einer der beiden mittleren Spalten?",
+                stepType: 'b_evenCol'
+            },
+            {
+                dropdown: "5. Bonus-Schritt 5: gibKreuzSymbolInUngeradenSpaltenAus",
+                desc: "Die fünfte Variable <code class='text-sky-300 font-code'>gibKreuzSymbolInUngeradenSpaltenAus</code> prüft den ungeraden Spaltenfall: Ist die Spaltenanzahl ungerade <b>UND</b> liegt <b>spalte</b> genau auf der einzigen mittleren Spalte?",
+                stepType: 'b_oddCol'
+            },
+            {
+                dropdown: "6. Bonus-Schritt 6: Verbinden zu gibKreuzSymbolInSpalteAus",
+                desc: "Die sechste Variable <code class='text-white font-code'>gibKreuzSymbolInSpalteAus</code> verbindet die beiden Spalten-Fälle mit <b>ODER</b> zur vertikalen Mitte.",
+                stepType: 'b_combCol'
+            },
+            {
+                dropdown: "7. Finale Verzweigung: if (grün) vs. else (rot)",
+                desc: "Erst nachdem alle 6 Variablen ausgewertet wurden, entscheidet <code class='text-sky-300 font-code'>if / else</code>: Ist <code class='font-code'>gibKreuzSymbolInZeileAus</code> ODER <code class='font-code'>gibKreuzSymbolInSpalteAus</code> erfüllt (<span class='text-emerald-400 font-bold'>grün &rarr; 🟥</span>), sonst <code class='font-code'>else</code> (<span class='text-rose-400 font-bold'>rot &rarr; 🟦</span>).",
+                stepType: 'b_final'
+            }
+        ];
+
+        function setMode(mode) {
+            currentMode = mode;
+            currentStep = 0;
+            const gridWrapper = document.getElementById('grid-size-wrapper');
+            if (mode === 'bonus') {
+                gridWrapper.classList.remove('hidden');
+                gridWrapper.classList.add('flex');
+            } else {
+                gridWrapper.classList.add('hidden');
+                gridWrapper.classList.remove('flex');
+            }
+            populateStepSelect();
+            render();
+        }
+
+        function setBonusGrid(val) {
+            const parts = val.split('x');
+            bonusRows = parseInt(parts[0]);
+            bonusCols = parseInt(parts[1]);
+            render();
+        }
+
+        function setStep(idx) {
+            currentStep = idx;
+            document.getElementById('step-select').value = String(idx);
+            render();
+        }
+
+        function populateStepSelect() {
+            const list = currentMode === 'standard' ? standardSteps : bonusSteps;
+            const sel = document.getElementById('step-select');
+            sel.innerHTML = list.map((s, i) => `<option value="${i}">${s.dropdown}</option>`).join('');
+        }
+
+        function render() {
+            const isBonus = (currentMode === 'bonus');
+            const list = isBonus ? bonusSteps : standardSteps;
+            const st = list[currentStep];
+
+            document.getElementById('btn-prev').disabled = (currentStep === 0);
+            document.getElementById('btn-next').disabled = (currentStep === list.length - 1);
+            document.getElementById('step-current').textContent = currentStep + 1;
+            document.getElementById('step-total').textContent = list.length;
+            document.getElementById('explanation-text').innerHTML = st.desc;
+
+            const rows = isBonus ? bonusRows : 6;
+            const cols = isBonus ? bonusCols : 6;
+            const isRowEven = (rows % 2 === 0);
+            const isColEven = (cols % 2 === 0);
+
+            document.getElementById('grid-title').textContent = `2D-Gitter Vorschau (anzahlZeilen = ${rows}, anzahlSpalten = ${cols})`;
+            document.getElementById('grid-badge').textContent = isBonus
+                ? `Ohne Guard Clause (${isRowEven ? 'Zeilen gerade' : 'Zeilen ungerade'}, ${isColEven ? 'Spalten gerade' : 'Spalten ungerade'})`
+                : `Guard Clause: Bestanden (6 × 6 gerade)`;
+
+            document.getElementById('var-count-badge').textContent = isBonus
+                ? "6 bool-Variablen (komplex)"
+                : "Nur 2 bool-Variablen (vereinfacht)";
+
+            // Helper functions for cell evaluation
+            const checkEvenRow = (r) => isRowEven && (r === (rows / 2) - 1 || r === rows / 2);
+            const checkOddRow  = (r) => !isRowEven && (r === Math.floor(rows / 2));
+            const checkCombRow = (r) => checkEvenRow(r) || checkOddRow(r);
+
+            const checkEvenCol = (c) => isColEven && (c === (cols / 2) - 1 || c === cols / 2);
+            const checkOddCol  = (c) => !isColEven && (c === Math.floor(cols / 2));
+            const checkCombCol = (c) => checkEvenCol(c) || checkOddCol(c);
+
+            // Render Grid
+            let html = `<div class="flex flex-col gap-1.5">`;
+            html += `<div class="flex gap-1.5"><span class="w-10 text-[10px] font-code text-slate-500 text-right pr-1">spalte</span>`;
+            for (let c = 0; c < cols; c++) {
+                let colActive = false;
+                if (!isBonus && currentStep >= 2) colActive = checkEvenCol(c);
+                if (isBonus) {
+                    if (st.stepType === 'b_evenCol') colActive = checkEvenCol(c);
+                    else if (st.stepType === 'b_oddCol') colActive = checkOddCol(c);
+                    else if (st.stepType === 'b_combCol' || st.stepType === 'b_final') colActive = checkCombCol(c);
+                }
+                html += `<span class="w-[42px] text-center font-code text-xs ${colActive ? 'text-emerald-400 font-bold' : 'text-slate-500'}">${c}</span>`;
+            }
+            html += `</div>`;
+
+            for (let r = 0; r < rows; r++) {
+                let rowActive = false;
+                if (!isBonus && (currentStep === 1 || currentStep === 3)) rowActive = checkEvenRow(r);
+                if (isBonus) {
+                    if (st.stepType === 'b_evenRow') rowActive = checkEvenRow(r);
+                    else if (st.stepType === 'b_oddRow') rowActive = checkOddRow(r);
+                    else if (st.stepType === 'b_combRow' || st.stepType === 'b_final') rowActive = checkCombRow(r);
+                }
+
+                html += `<div class="flex items-center gap-1.5">`;
+                html += `<span class="w-10 text-right pr-2 font-code text-xs ${rowActive ? 'text-emerald-400 font-bold' : 'text-slate-500'}">z=${r}</span>`;
+
+                for (let c = 0; c < cols; c++) {
+                    let cls = "cell-box";
+                    let isMet = false;
+                    let isFinalStep = false;
+
+                    if (!isBonus) {
+                        if (st.stepType === 'guard') {
+                            cls += " cell-neutral";
+                        } else {
+                            if (st.stepType === 'rowOnly') isMet = checkEvenRow(r);
+                            else if (st.stepType === 'colOnly') isMet = checkEvenCol(c);
+                            else if (st.stepType === 'final') { isMet = checkEvenRow(r) || checkEvenCol(c); isFinalStep = true; }
+                            cls += isMet ? " cell-if-met" : " cell-else-not";
+                        }
+                    } else {
+                        if (st.stepType === 'b_evenRow') isMet = checkEvenRow(r);
+                        else if (st.stepType === 'b_oddRow') isMet = checkOddRow(r);
+                        else if (st.stepType === 'b_combRow') isMet = checkCombRow(r);
+                        else if (st.stepType === 'b_evenCol') isMet = checkEvenCol(c);
+                        else if (st.stepType === 'b_oddCol') isMet = checkOddCol(c);
+                        else if (st.stepType === 'b_combCol') isMet = checkCombCol(c);
+                        else if (st.stepType === 'b_final') { isMet = checkCombRow(r) || checkCombCol(c); isFinalStep = true; }
+                        cls += isMet ? " cell-if-met" : " cell-else-not";
+                    }
+
+                    const symbol = (isFinalStep && isMet) ? '🟥' : '🟦';
+                    html += `<div class="${cls}">${symbol}</div>`;
+                }
+                html += `</div>`;
+            }
+            html += `</div>`;
+            document.getElementById('visual-stage').innerHTML = html;
+
+            // Render Right Panel: Standard (2 variables) vs. Bonus (6 variables)
+            const container = document.getElementById('structure-container');
+            if (!isBonus) {
+                container.innerHTML = `
+                    <div class="p-3 rounded-lg border ${currentStep === 0 ? 'border-emerald-500 bg-emerald-950/30' : 'border-slate-800 bg-slate-950/50'} space-y-1">
+                        <div class="flex justify-between items-center">
+                            <span class="font-code font-bold text-emerald-300">Guard Clause (Gerade &amp; &gt; 0)</span>
+                            <span class="val-badge bool-true">Vorab-Filter aktiv</span>
+                        </div>
+                        <p class="text-slate-400 text-[11px]">Fängt ungerade Zahlen sofort ab. Dadurch fallen unten <b>4 komplette Teilbedingungen weg</b>!</p>
+                    </div>
+
+                    <div class="p-3 rounded-lg border ${currentStep === 1 ? 'border-emerald-500 bg-emerald-950/25' : 'border-slate-800 bg-slate-950/50'} space-y-1">
+                        <div class="flex justify-between items-center">
+                            <span class="font-code font-bold text-amber-300">1. bool gibKreuzSymbolInZeileAus</span>
+                            <span class="val-badge ${currentStep >= 1 ? 'bool-true' : 'bool-inactive'}">2 mittlere Zeilen</span>
+                        </div>
+                        <p class="text-slate-400 text-[11px]">Prüft direkt, ob sich <b>zeile</b> auf einer der beiden mittleren Zeilen befindet (<span class='text-emerald-400 font-bold'>grün</span> vs. <span class='text-rose-400 font-bold'>rot</span>).</p>
+                    </div>
+
+                    <div class="p-3 rounded-lg border ${currentStep === 2 ? 'border-emerald-500 bg-emerald-950/25' : 'border-slate-800 bg-slate-950/50'} space-y-1">
+                        <div class="flex justify-between items-center">
+                            <span class="font-code font-bold text-sky-300">2. bool gibKreuzSymbolInSpalteAus</span>
+                            <span class="val-badge ${currentStep >= 2 ? 'bool-true' : 'bool-inactive'}">2 mittlere Spalten</span>
+                        </div>
+                        <p class="text-slate-400 text-[11px]">Prüft direkt, ob sich <b>spalte</b> auf einer der beiden mittleren Spalten befindet (<span class='text-emerald-400 font-bold'>grün</span> vs. <span class='text-rose-400 font-bold'>rot</span>).</p>
+                    </div>
+
+                    <div class="p-3 rounded-lg border ${currentStep === 3 ? 'border-emerald-500 bg-emerald-950/30' : 'border-slate-800 bg-slate-950/50'} flex justify-between items-center">
+                        <span class="font-code font-bold text-white">if / else Ausgabe</span>
+                        <span class="text-emerald-200 text-[11px]">Zeile ODER Spalte erfüllt (<span class='text-emerald-400 font-bold'>grün</span>) &bull; else (<span class='text-rose-400 font-bold'>rot</span>)</span>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="p-2.5 rounded-lg border ${currentStep === 0 ? 'border-emerald-500 bg-emerald-950/25' : 'border-slate-800 bg-slate-950/50'} space-y-0.5">
+                        <div class="flex justify-between items-center">
+                            <span class="font-code font-bold text-amber-300">1. bool gibKreuzSymbolInGeradenZeilenAus</span>
+                            <span class="val-badge ${isRowEven ? 'bool-true' : 'bool-false'}">${isRowEven ? 'Greift (Zeilen gerade)' : 'Alles falsch (Zeilen ungerade)'}</span>
+                        </div>
+                        <p class="text-slate-400 text-[11px]">Prüft: Zeilenanzahl gerade UND <b>zeile</b> auf einer der 2 mittleren Zeilen.</p>
+                    </div>
+
+                    <div class="p-2.5 rounded-lg border ${currentStep === 1 ? 'border-emerald-500 bg-emerald-950/25' : 'border-slate-800 bg-slate-950/50'} space-y-0.5">
+                        <div class="flex justify-between items-center">
+                            <span class="font-code font-bold text-amber-300">2. bool gibKreuzSymbolInUngeradenZeilenAus</span>
+                            <span class="val-badge ${!isRowEven ? 'bool-true' : 'bool-false'}">${!isRowEven ? 'Greift (1 Mittelzeile)' : 'Alles falsch (Zeilen gerade)'}</span>
+                        </div>
+                        <p class="text-slate-400 text-[11px]">Prüft: Zeilenanzahl ungerade UND <b>zeile</b> genau auf der 1 mittleren Zeile.</p>
+                    </div>
+
+                    <div class="p-2.5 rounded-lg border ${currentStep === 2 ? 'border-emerald-500 bg-emerald-950/25' : 'border-slate-700 bg-slate-800/70'} flex justify-between items-center">
+                        <span class="font-code font-bold text-white">3. bool gibKreuzSymbolInZeileAus</span>
+                        <span class="text-amber-300 font-code text-[11px]">Verbindet 1. ODER 2.</span>
+                    </div>
+
+                    <div class="p-2.5 rounded-lg border ${currentStep === 3 ? 'border-emerald-500 bg-emerald-950/25' : 'border-slate-800 bg-slate-950/50'} space-y-0.5">
+                        <div class="flex justify-between items-center">
+                            <span class="font-code font-bold text-sky-300">4. bool gibKreuzSymbolInGeradenSpaltenAus</span>
+                            <span class="val-badge ${isColEven ? 'bool-true' : 'bool-false'}">${isColEven ? 'Greift (Spalten gerade)' : 'Alles falsch (Spalten ungerade)'}</span>
+                        </div>
+                        <p class="text-slate-400 text-[11px]">Prüft: Spaltenanzahl gerade UND <b>spalte</b> auf einer der 2 mittleren Spalten.</p>
+                    </div>
+
+                    <div class="p-2.5 rounded-lg border ${currentStep === 4 ? 'border-emerald-500 bg-emerald-950/25' : 'border-slate-800 bg-slate-950/50'} space-y-0.5">
+                        <div class="flex justify-between items-center">
+                            <span class="font-code font-bold text-sky-300">5. bool gibKreuzSymbolInUngeradenSpaltenAus</span>
+                            <span class="val-badge ${!isColEven ? 'bool-true' : 'bool-false'}">${!isColEven ? 'Greift (1 Mittelspalte)' : 'Alles falsch (Spalten gerade)'}</span>
+                        </div>
+                        <p class="text-slate-400 text-[11px]">Prüft: Spaltenanzahl ungerade UND <b>spalte</b> genau auf der 1 mittleren Spalte.</p>
+                    </div>
+
+                    <div class="p-2.5 rounded-lg border ${currentStep === 5 ? 'border-emerald-500 bg-emerald-950/25' : 'border-slate-700 bg-slate-800/70'} flex justify-between items-center">
+                        <span class="font-code font-bold text-white">6. bool gibKreuzSymbolInSpalteAus</span>
+                        <span class="text-sky-300 font-code text-[11px]">Verbindet 4. ODER 5.</span>
+                    </div>
+
+                    <div class="p-2.5 rounded-lg border ${currentStep === 6 ? 'border-emerald-500 bg-emerald-950/30' : 'border-slate-800 bg-slate-950/50'} flex justify-between items-center">
+                        <span class="font-code font-bold text-emerald-300">if / else Ausgabe</span>
+                        <span class="text-emerald-200 text-[11px]">3. ODER 6. erfüllt (<span class='text-emerald-400 font-bold'>grün</span>) &bull; else (<span class='text-rose-400 font-bold'>rot</span>)</span>
+                    </div>
+                `;
+            }
+        }
+
+        document.getElementById('btn-next').onclick = () => {
+            const list = currentMode === 'standard' ? standardSteps : bonusSteps;
+            if (currentStep < list.length - 1) setStep(currentStep + 1);
+        };
+        document.getElementById('btn-prev').onclick = () => {
+            if (currentStep > 0) setStep(currentStep - 1);
+        };
+        document.addEventListener('keydown', e => {
+            if (e.key === 'ArrowRight') document.getElementById('btn-next').click();
+            if (e.key === 'ArrowLeft') document.getElementById('btn-prev').click();
+        });
+
+        setMode('standard');
+    </script>
+</body>
+</html>

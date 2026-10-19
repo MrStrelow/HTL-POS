@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aufgabe 02 Visualizer – Parallele Array-Suche (Min & Max)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; overflow: hidden; }
+        .font-code { font-family: 'Fira Code', monospace; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+        .val-badge {
+            background-color: rgba(100, 116, 139, 0.2); border: 1px solid rgba(100, 116, 139, 0.4); color: #e2e8f0;
+            padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;
+            display: inline-flex; align-items: center;
+        }
+        .val-badge.ref-badge { background-color: rgba(14, 165, 233, 0.12); border-color: rgba(14, 165, 233, 0.35); color: #38bdf8; }
+        .val-badge.ok-badge { background-color: rgba(16, 185, 129, 0.18); border-color: rgba(16, 185, 129, 0.5); color: #34d399; }
+        .val-badge.warn-badge { background-color: rgba(251, 191, 36, 0.18); border-color: rgba(251, 191, 36, 0.5); color: #fbbf24; }
+
+        .arr-cell {
+            width: 76px; height: 36px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; border-radius: 6px;
+            background: #0f172a; border: 1.5px solid #334155;
+            transition: all 0.25s ease;
+        }
+        .col-current {
+            border-color: #fbbf24 !important;
+            background: rgba(251, 191, 36, 0.18) !important;
+            transform: scale(1.06);
+            box-shadow: 0 0 12px rgba(251, 191, 36, 0.35);
+        }
+        .col-best {
+            border-color: #10b981 !important;
+            background: rgba(16, 185, 129, 0.22) !important;
+            box-shadow: 0 0 14px rgba(16, 185, 129, 0.4);
+        }
+        .col-mismatch {
+            opacity: 0.35;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col select-none">
+
+    <!-- Header -->
+    <header class="bg-slate-900 border-b border-slate-800 py-3 px-6 shrink-0 shadow-md flex flex-col lg:flex-row justify-between items-center gap-3 z-20">
+        <div>
+            <div class="flex items-center gap-2.5">
+                <span class="px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider bg-emerald-950 text-emerald-400 border border-emerald-700 rounded-md">Aufgabe 02</span>
+                <h1 class="text-xl font-bold text-sky-400 tracking-tight">Vollständiger Schleifendurchlauf in 3 parallelen Arrays</h1>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">Jeder Index i (0 bis 8) wird geprüft &bull; Automatische Filterung auf das übergebene Ziel</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Ansicht wählen:</span>
+                <select id="op-select" class="bg-slate-950 border border-slate-700 text-sky-300 text-sm rounded-lg px-3 py-2 outline-none font-bold shadow-inner" onchange="setOperation(this.value)">
+                    <option value="MinSearch">1. FindeSchnellsteVerbindung (Stadlau / Alle Indizes 0-8)</option>
+                    <option value="MaxSearch">2. FindeGemuetlichsteVerbindung (Salzburg / Alle Indizes 0-8)</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-[1.58fr_1fr] overflow-hidden p-4 gap-5 bg-slate-950">
+        
+        <!-- Left: Visual Stage -->
+        <section class="bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+            <div class="bg-slate-950 py-2.5 px-5 border-b border-slate-800 flex justify-between items-center">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Visueller Schleifendurchlauf</span>
+                <span id="stage-badge" class="font-code text-xs text-amber-300 font-bold"></span>
+            </div>
+            <div id="visual-stage" class="flex-1 p-4 flex flex-col items-center justify-center overflow-x-auto bg-slate-950/70"></div>
+            <div class="bg-slate-950/90 border-t border-slate-800 px-5 py-2 flex justify-between items-center text-xs text-slate-400">
+                <span>💡 Schleife läuft von <code class="font-code text-sky-300">i = 0</code> bis <code class="font-code text-sky-300">ziele.Length - 1</code>. Nur bei übereinstimmendem Ziel wird verglichen!</span>
+                <span class="font-code text-[11px] text-slate-500">Pfeiltasten &larr; / &rarr;</span>
+            </div>
+        </section>
+
+        <!-- Right: Memory / Variables & Console -->
+        <section class="flex flex-col gap-4 overflow-hidden">
+            <div class="flex-[0.95] bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+                <div class="bg-slate-950 py-2.5 px-5 border-b border-slate-800">
+                    <span class="text-xs font-semibold text-sky-400 uppercase tracking-widest">Aktuelle Schleifen-Variablen</span>
+                </div>
+                <div id="vars-container" class="flex-1 overflow-y-auto p-4 flex flex-col gap-2.5 bg-slate-900/50 text-xs"></div>
+            </div>
+
+            <div class="flex-[1.05] bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+                <div class="bg-slate-950 py-2.5 px-5 border-b border-slate-800 flex justify-between items-center">
+                    <span class="text-xs font-semibold text-amber-400 uppercase tracking-widest">🖥️ Konsolen-Protokoll</span>
+                    <span class="font-code text-[11px] text-slate-500">Encoding.UTF8</span>
+                </div>
+                <div id="console-container" class="flex-1 overflow-y-auto p-3.5 bg-black/90 font-code text-xs text-slate-200 space-y-1.5 leading-relaxed"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 border-t border-slate-800 shrink-0 p-3.5 z-20">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 max-w-7xl mx-auto items-center">
+            <div class="lg:col-span-2 bg-slate-950 border border-slate-800 rounded-lg p-3.5 min-h-[72px] flex flex-col justify-center">
+                <p id="explanation-text" class="text-sm sm:text-[15px] text-slate-200 leading-relaxed"></p>
+            </div>
+            <div class="flex items-center justify-center gap-3">
+                <button id="btn-prev" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg shadow disabled:opacity-30 text-sm font-medium border border-slate-700">&larr; Zurück</button>
+                <div class="bg-slate-950 px-5 py-2.5 rounded-lg border border-slate-800 font-code text-sm text-center min-w-[90px]">
+                    <span id="step-current" class="text-sky-400 font-bold">1</span><span class="text-slate-500">/</span><span id="step-total" class="text-slate-400">1</span>
+                </div>
+                <button id="btn-next" class="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg shadow disabled:opacity-30 text-sm font-bold border border-sky-500">Weiter &rarr;</button>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const arrZiele = ["Salzburg", "Stadlau", "Linz",     "Salzburg", "Stadlau", "Innsbruck", "Linz",   "Graz",   "Stadlau"];
+        const arrZuege = ["RJ 540",   "S80",     "WEST 908", "RJX 760",  "REX 8",   "RJX 162",   "ICE 28", "RJ 651", "R 2514" ];
+        const arrZeit  = [172,        14,        85,         142,        9,         254,         74,       156,      22       ];
+
+        function renderThreeArrays(currIdx, bestIdx, targetCity) {
+            let html = `<div class="flex flex-col gap-2 min-w-[780px]">`;
+
+            // Pointer Header Row
+            html += `<div class="flex items-center gap-1.5"><span class="w-28"></span>`;
+            for (let i = 0; i < arrZiele.length; i++) {
+                let tag = "";
+                if (i === currIdx && i === bestIdx) tag = `<span class="px-1.5 py-0.5 rounded bg-emerald-500 text-slate-950 font-bold text-[10px]">NEU BEST!</span>`;
+                else if (i === currIdx) tag = `<span class="px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 font-bold text-[10px]">&darr; i = ${i}</span>`;
+                else if (i === bestIdx) tag = `<span class="px-1.5 py-0.5 rounded bg-emerald-900 text-emerald-300 border border-emerald-500 font-bold text-[10px]">★ Best (${i})</span>`;
+                html += `<div class="w-[76px] h-6 flex items-center justify-center font-code">${tag}</div>`;
+            }
+            html += `</div>`;
+
+            // Index Row
+            html += `<div class="flex items-center gap-1.5"><span class="w-28 text-right pr-2 font-code text-xs text-slate-400">Index i:</span>`;
+            for (let i = 0; i < arrZiele.length; i++) {
+                const highlight = (i === currIdx) ? "text-amber-300 font-bold" : (i === bestIdx ? "text-emerald-400 font-bold" : "text-slate-500");
+                html += `<div class="w-[76px] text-center font-code text-xs ${highlight}">[${i}]</div>`;
+            }
+            html += `</div>`;
+
+            // Row 1: ziele
+            html += `<div class="flex items-center gap-1.5"><span class="w-28 text-right pr-2 font-code text-xs text-sky-400 font-bold">ziele[i]</span>`;
+            for (let i = 0; i < arrZiele.length; i++) {
+                let cls = "arr-cell font-semibold text-white";
+                if (i === bestIdx) cls += " col-best";
+                else if (i === currIdx) cls += " col-current";
+                else if (arrZiele[i] !== targetCity) cls += " col-mismatch";
+                html += `<div class="${cls}">${arrZiele[i]}</div>`;
+            }
+            html += `</div>`;
+
+            // Row 2: zuege
+            html += `<div class="flex items-center gap-1.5"><span class="w-28 text-right pr-2 font-code text-xs text-purple-400 font-bold">zuege[i]</span>`;
+            for (let i = 0; i < arrZuege.length; i++) {
+                let cls = "arr-cell font-code text-sky-200";
+                if (i === bestIdx) cls += " col-best";
+                else if (i === currIdx) cls += " col-current";
+                else if (arrZiele[i] !== targetCity) cls += " col-mismatch";
+                html += `<div class="${cls}">${arrZuege[i]}</div>`;
+            }
+            html += `</div>`;
+
+            // Row 3: fahrtzeiten
+            html += `<div class="flex items-center gap-1.5"><span class="w-28 text-right pr-2 font-code text-xs text-amber-400 font-bold">fahrtzeiten[i]</span>`;
+            for (let i = 0; i < arrZeit.length; i++) {
+                let cls = "arr-cell font-code font-bold text-amber-300";
+                if (i === bestIdx) cls += " col-best !text-emerald-300";
+                else if (i === currIdx) cls += " col-current";
+                else if (arrZiele[i] !== targetCity) cls += " col-mismatch";
+                html += `<div class="${cls}">${arrZeit[i]}m</div>`;
+            }
+            html += `</div>`;
+
+            html += `</div>`;
+            return html;
+        }
+
+        // Generator for full 0-to-8 loop steps
+        function generateLoopSteps(targetCity, isMinSearch) {
+            let steps = [];
+            let bestIdx = -1;
+            let bestVal = isMinSearch ? Infinity : -1;
+
+            // Initial step before loop
+            steps.push({
+                badge: `Start der ${isMinSearch ? 'Minimum' : 'Maximum'}-Suche für "${targetCity}"`,
+                desc: `Vor der Schleife initialisieren wir: <b>besterIndex = -1</b> und ${isMinSearch ? '<b>kuerzesteZeit = int.MaxValue</b>' : '<b>laengsteZeit = -1</b>'}. Der Zeiger <code>i</code> wandert nun von Index 0 bis ${arrZiele.length - 1}.`,
+                vars: [
+                    { k: "Gesuchtes <b>ziel</b>", v: `"${targetCity}"`, cls: "ref-badge" },
+                    { k: "<b>besterIndex</b>", v: "-1", cls: "warn-badge" },
+                    { k: `${isMinSearch ? '<b>kuerzesteZeit' : '<b>laengsteZeit'}</b>`, v: `${isMinSearch ? 'MaxValue' : '-1'}`, cls: "warn-badge" }
+                ],
+                stage: renderThreeArrays(-1, -1, targetCity),
+                console: [`Starte Schleife: for (int i = 0; i < ziele.Length; i++)`]
+            });
+
+            for (let i = 0; i < arrZiele.length; i++) {
+                let isMatch = (arrZiele[i] === targetCity);
+                let isNewBest = false;
+
+                if (isMatch) {
+                    if (isMinSearch) {
+                        if (arrZeit[i] < bestVal) {
+                            bestVal = arrZeit[i];
+                            bestIdx = i;
+                            isNewBest = true;
+                        }
+                    } else {
+                        if (arrZeit[i] > bestVal) {
+                            bestVal = arrZeit[i];
+                            bestIdx = i;
+                            isNewBest = true;
+                        }
+                    }
+                }
+
+                let descText = `<b>Index i = ${i}:</b> Wir prüfen <code>ziele[i] == "${targetCity}"</code>. In <b>ziele[${i}]</b> steht <code>"${arrZiele[i]}"</code>. `;
+                let consoleLines = [`i = ${i}: ziele[i] = "${arrZiele[i]}"`];
+
+                if (!isMatch) {
+                    descText += `Das Ziel stimmt <b>nicht</b> überein &rarr; Überspringen!`;
+                    consoleLines.push(`  -> Falsches Ziel (${arrZiele[i]} != ${targetCity}) -> Weitergehen.`);
+                } else {
+                    if (isNewBest) {
+                        descText += `<b>Treffer!</b> Das Ziel stimmt überein (${arrZiele[i]}). Die Fahrtzeit (${arrZeit[i]} Min.) ist <b>besser</b> als der bisherige Wert &rarr; <b>Neuer Bestwert gespeichert!</b>`;
+                        consoleLines.push(`  -> Treffer! "${targetCity}" mit ${arrZeit[i]}m ist ein neuer Bestwert -> besterIndex = ${i}`);
+                    } else {
+                        descText += `<b>Treffer!</b> Das Ziel stimmt überein (${arrZiele[i]}), aber die Fahrtzeit (${arrZeit[i]} Min.) ist <b>nicht</b> besser als unser aktueller Bestwert (${bestVal} Min.) &rarr; Keine Änderung.`;
+                        consoleLines.push(`  -> Treffer! "${targetCity}" mit ${arrZeit[i]}m ist nicht besser als ${bestVal}m -> Unverändert.`);
+                    }
+                }
+
+                steps.push({
+                    badge: `Schleifendurchlauf i = ${i} (${arrZiele[i]})`,
+                    desc: descText,
+                    vars: [
+                        { k: "Aktueller Index <b>i</b>", v: `${i} (Stadt: ${arrZiele[i]}, ${arrZeit[i]}m)`, cls: isMatch ? (isNewBest ? "ok-badge" : "ref-badge") : "warn-badge" },
+                        { k: "<b>besterIndex</b>", v: bestIdx === -1 ? "keiner" : `${bestIdx} (${arrZuege[bestIdx]})`, cls: "ok-badge" },
+                        { k: `${isMinSearch ? '<b>kuerzesteZeit' : '<b>laengsteZeit'}</b>`, v: bestIdx === -1 ? "—" : `${bestVal} Min`, cls: "ok-badge" }
+                    ],
+                    stage: renderThreeArrays(i, bestIdx, targetCity),
+                    console: consoleLines
+                });
+            }
+
+            // Final step
+            steps.push({
+                badge: `Ende der Suche (Ergebnis)`,
+                desc: `Die Schleife hat alle Einträge geprüft. Der beste gefundene Index ist <b>${bestIdx}</b> mit dem Zug <b>${arrZuege[bestIdx]}</b> und einer Fahrtzeit von <b>${bestVal} Minuten</b>!`,
+                vars: [
+                    { k: "Status", v: "Schleife beendet", cls: "ok-badge" },
+                    { k: "Finaler <b>besterIndex</b>", v: `${bestIdx} (${arrZuege[bestIdx]})`, cls: "ok-badge" },
+                    { k: "Finaler Wert", v: `${bestVal} Minuten`, cls: "ok-badge" }
+                ],
+                stage: renderThreeArrays(-1, bestIdx, targetCity),
+                console: [
+                    `✅ Schleifendurchlauf beendet.`,
+                    `👉 Rückgabe: besterIndex = ${bestIdx} (${arrZuege[bestIdx]}, ${bestVal} Min)`
+                ]
+            });
+
+            return steps;
+        }
+
+        const scenarios = {
+            MinSearch: generateLoopSteps("Stadlau", true),
+            MaxSearch: generateLoopSteps("Salzburg", false)
+        };
+
+        let currentOp = 'MinSearch';
+        let currentStep = 0;
+
+        function setOperation(op) {
+            currentOp = op;
+            currentStep = 0;
+            render();
+        }
+
+        function render() {
+            const steps = scenarios[currentOp];
+            const st = steps[currentStep];
+
+            document.getElementById('btn-prev').disabled = (currentStep === 0);
+            document.getElementById('btn-next').disabled = (currentStep === steps.length - 1);
+            document.getElementById('step-current').textContent = currentStep + 1;
+            document.getElementById('step-total').textContent = steps.length;
+
+            document.getElementById('stage-badge').textContent = st.badge;
+            document.getElementById('explanation-text').innerHTML = st.desc;
+            document.getElementById('visual-stage').innerHTML = st.stage;
+
+            const varsC = document.getElementById('vars-container');
+            varsC.innerHTML = st.vars.map(v => `
+                <div class="flex justify-between items-center bg-slate-800/80 px-3.5 py-2.5 rounded border border-slate-700">
+                    <span class="text-slate-300">${v.k}</span>
+                    <span class="val-badge ${v.cls || 'ref-badge'} font-code">${v.v}</span>
+                </div>
+            `).join('');
+
+            const conC = document.getElementById('console-container');
+            conC.innerHTML = st.console.map(l => `<div>&gt; ${l}</div>`).join('');
+        }
+
+        document.getElementById('btn-next').onclick = () => {
+            if (currentStep < scenarios[currentOp].length - 1) { currentStep++; render(); }
+        };
+        document.getElementById('btn-prev').onclick = () => {
+            if (currentStep > 0) { currentStep--; render(); }
+        };
+        document.addEventListener('keydown', e => {
+            if (e.key === 'ArrowRight') document.getElementById('btn-next').click();
+            if (e.key === 'ArrowLeft') document.getElementById('btn-prev').click();
+        });
+
+        setOperation('MinSearch');
+    </script>
+</body>
+</html>
