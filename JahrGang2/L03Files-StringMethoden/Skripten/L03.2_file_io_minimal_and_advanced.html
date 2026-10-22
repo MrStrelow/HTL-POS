@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C# File I/O & Memory Visualizer Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; }
+        .font-code { font-family: 'Fira Code', monospace; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        @keyframes pushFrame {
+            0% { opacity: 0; transform: translateY(-20px) scale(0.96); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .frame-push { animation: pushFrame 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        @keyframes valueChange {
+            0% { background-color: rgba(16, 185, 129, 0.85); transform: scale(1.1); color: white; border-color: #10b981; }
+            100% { background-color: #0f172a; transform: scale(1); border-color: #334155; }
+        }
+        .value-changed { animation: valueChange 0.8s ease-out forwards; }
+
+        @keyframes fadeInCode {
+            from { opacity: 0; transform: translateX(-6px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .code-appear { animation: fadeInCode 0.2s ease-out forwards; }
+
+        .line-active { background-color: rgba(56, 189, 248, 0.18); border-left: 4px solid #38bdf8; }
+        .line-normal { border-left: 4px solid transparent; }
+
+        .file-cursor { background-color: rgba(245, 158, 11, 0.2); border-left: 4px solid #f59e0b; }
+        .file-bulk { background-color: rgba(168, 85, 247, 0.2); border-left: 4px solid #a855f7; }
+        .file-written { background-color: rgba(16, 185, 129, 0.2); border-left: 4px solid #10b981; }
+        .file-error { background-color: rgba(239, 68, 68, 0.2); border-left: 4px solid #ef4444; }
+
+        .ref-A10 { background-color: rgba(217, 70, 239, 0.2); color: #f0abfc; border: 1px solid rgba(217, 70, 239, 0.5); }
+        .ref-B20 { background-color: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.5); }
+        .ref-C30 { background-color: rgba(56, 189, 248, 0.2); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.5); }
+
+        .tab-active { background-color: #0284c7; color: #ffffff; border-color: #38bdf8; }
+        .tab-inactive { background-color: #1e293b; color: #94a3b8; border-color: #334155; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+    <header class="bg-slate-900 border-b border-slate-800 px-4 py-2.5 shrink-0 flex flex-wrap items-center justify-between gap-3 shadow-md z-20">
+        <div>
+            <h1 class="text-xl font-bold text-sky-400 tracking-tight">C# File I/O, Stack &amp; Managed Heap Visualizer</h1>
+            <p class="text-xs text-slate-400">Farbiger Code (zeilenweise) + Festplatten-Ansicht + Getrennter Call Stack &amp; Managed Heap</p>
+        </div>
+        <div class="flex items-center gap-1.5 flex-wrap">
+            <button id="tab-min1" onclick="switchProg('min_write')" class="tab-active px-3 py-1.5 rounded-lg text-xs font-bold border transition-all">
+                1. Min: Schreiben
+            </button>
+            <button id="tab-min2" onclick="switchProg('min_read')" class="tab-inactive px-3 py-1.5 rounded-lg text-xs font-bold border transition-all">
+                2. Min: Lesen
+            </button>
+            <button id="tab-parse" onclick="switchProg('parse_port')" class="tab-inactive px-3 py-1.5 rounded-lg text-xs font-bold border transition-all">
+                3. Config &amp; Port-Check (foreach)
+            </button>
+            <button id="tab-stream" onclick="switchProg('stream_io')" class="tab-inactive px-3 py-1.5 rounded-lg text-xs font-bold border transition-all">
+                4. StreamReader &amp; Writer (while)
+            </button>
+            <button id="tab-cheat" onclick="switchProg('cheat')" class="tab-inactive px-3 py-1.5 rounded-lg text-xs font-bold border transition-all">
+                5. Befehls-Übersicht
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Visualizer View -->
+    <main id="view-visualizer" class="flex-1 flex flex-col lg:flex-row overflow-hidden p-3.5 gap-4 bg-slate-950">
+        <!-- Left: Colored C# Code -->
+        <section class="flex-1 lg:flex-[1.2] bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+            <div class="bg-slate-950 py-2 px-4 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-rose-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+                    <span id="code-filename" class="ml-2 text-xs font-semibold text-slate-400 uppercase tracking-widest font-code">Program.cs</span>
+                </div>
+                <div class="flex items-center gap-2 font-code text-xs">
+                    <span class="text-slate-500">Konsole:</span>
+                    <span id="console-out" class="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-emerald-300 font-bold">// bereit</span>
+                </div>
+            </div>
+            <div id="code-container" class="flex-1 overflow-y-auto p-3 font-code text-[12.5px] leading-6"></div>
+        </section>
+
+        <!-- Right: 1. Disk Files | 2. Call Stack | 3. Managed Heap -->
+        <section class="flex-1 lg:flex-[1.8] flex flex-col gap-3 overflow-hidden">
+            
+            <!-- Top: Festplatte (Input & Output Files) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 h-[32%] shrink-0 min-h-[145px]">
+                <div class="bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-xl">
+                    <div class="bg-slate-950 py-1.5 px-3 border-b border-slate-800 flex items-center justify-between">
+                        <div class="flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <span id="disk-1-title" class="text-[11px] font-semibold text-amber-300 uppercase tracking-wider font-code">Festplatte: Datei 1</span>
+                        </div>
+                        <span id="disk-1-status" class="text-[10px] font-code px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">CLOSED</span>
+                    </div>
+                    <div id="disk-1-body" class="flex-1 overflow-y-auto p-2.5 font-code text-xs space-y-1 bg-slate-900/50"></div>
+                </div>
+
+                <div class="bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-xl">
+                    <div class="bg-slate-950 py-1.5 px-3 border-b border-slate-800 flex items-center justify-between">
+                        <div class="flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <span id="disk-2-title" class="text-[11px] font-semibold text-emerald-300 uppercase tracking-wider font-code">Festplatte / Konsole</span>
+                        </div>
+                        <span id="disk-2-status" class="text-[10px] font-code px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">IDLE</span>
+                    </div>
+                    <div id="disk-2-body" class="flex-1 overflow-y-auto p-2.5 font-code text-xs space-y-1 bg-slate-900/50"></div>
+                </div>
+            </div>
+
+            <!-- Middle: Call Stack (Lokale Variablen) -->
+            <div class="flex-1 bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl min-h-0">
+                <div class="bg-slate-950 py-1.5 px-4 border-b border-slate-800 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Call Stack (Lokale Variablen)</span>
+                </div>
+                <div id="stack-container" class="flex-1 overflow-y-auto p-3 flex flex-col-reverse gap-2.5 bg-slate-900/50"></div>
+            </div>
+
+            <!-- Bottom: Managed Heap (Objekte) -->
+            <div class="flex-1 bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl min-h-0">
+                <div class="bg-slate-950 py-1.5 px-4 border-b border-slate-800 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Managed Heap (Objekte &amp; Arrays)</span>
+                    </div>
+                </div>
+                <div id="heap-container" class="flex-1 overflow-y-auto p-3 flex flex-wrap content-start gap-3 bg-slate-900/50"></div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Cheat Sheet View -->
+    <main id="view-cheat" class="hidden flex-1 overflow-y-auto p-6 bg-slate-950">
+        <div class="max-w-5xl mx-auto space-y-5">
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
+                <h2 class="text-lg font-bold text-sky-400 mb-1">Übersicht: Alle verwendeten C#-Befehle für File I/O &amp; Validierung</h2>
+                <p class="text-xs text-slate-300">Wann verwendet man <code>File.ReadAllLines</code> und wann <code>StreamReader</code>?</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-code">
+                <div class="bg-slate-900 border border-sky-500/30 rounded-xl p-4 space-y-2.5">
+                    <h3 class="text-sky-300 font-bold border-b border-slate-800 pb-1">1. File-Klasse (Komplett-I/O im RAM)</h3>
+                    <div class="bg-slate-950 p-2.5 rounded border border-slate-800">
+                        <span class="text-emerald-300 font-bold block">File.WriteAllLines("datei.txt", array);</span>
+                        <span class="font-sans text-slate-400">Schreibt ein komplettes <code>string[]</code> in einem Schritt auf die Festplatte.</span>
+                    </div>
+                    <div class="bg-slate-950 p-2.5 rounded border border-slate-800">
+                        <span class="text-emerald-300 font-bold block">string[] lines = File.ReadAllLines("datei.txt");</span>
+                        <span class="font-sans text-slate-400">Lädt alle Zeilen auf einmal als <code>string[]</code> in den Managed Heap. Perfekt für kleine Configs mit <code>foreach</code>.</span>
+                    </div>
+                    <div class="bg-slate-950 p-2.5 rounded border border-slate-800">
+                        <span class="text-emerald-300 font-bold block">if (!File.Exists("datei.txt")) { return; }</span>
+                        <span class="font-sans text-slate-400">Prüft vor dem Lesen, ob die Datei auf der Festplatte vorhanden ist.</span>
+                    </div>
+                </div>
+                <div class="bg-slate-900 border border-amber-500/30 rounded-xl p-4 space-y-2.5">
+                    <h3 class="text-amber-300 font-bold border-b border-slate-800 pb-1">2. StreamReader / Writer &amp; Port-Check</h3>
+                    <div class="bg-slate-950 p-2.5 rounded border border-slate-800">
+                        <span class="text-amber-300 font-bold block">using (StreamReader sr = new StreamReader(pfad))</span>
+                        <span class="font-sans text-slate-400">Liest mit <code>while ((line = sr.ReadLine()) != null)</code> Zeile für Zeile. Braucht fast keinen Heap-Speicher!</span>
+                    </div>
+                    <div class="bg-slate-950 p-2.5 rounded border border-slate-800">
+                        <span class="text-amber-300 font-bold block">int.TryParse(val, out int port) &amp;&amp; port &gt;= 1 &amp;&amp; port &lt;= 65535</span>
+                        <span class="font-sans text-slate-400">Prüft sicher, ob <code>val</code> eine ganze Zahl ist UND im gültigen TCP/UDP-Portbereich liegt.</span>
+                    </div>
+                    <div class="bg-slate-950 p-2.5 rounded border border-slate-800">
+                        <span class="text-amber-300 font-bold block">!string.IsNullOrWhiteSpace(val)</span>
+                        <span class="font-sans text-slate-400">Prüft beim Server-Namen, ob tatsächlich ein gültiger Text hinter dem <code>=</code> steht.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer id="footer-ctrl" class="bg-slate-900 border-t border-slate-800 shrink-0 p-3">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 max-w-[1600px] mx-auto items-center">
+            <div class="lg:col-span-2 bg-slate-950 border border-slate-800 rounded-lg p-3 min-h-[74px] flex flex-col justify-center">
+                <h3 class="text-[11px] uppercase font-bold text-sky-400 mb-0.5 tracking-wider" id="step-title"></h3>
+                <p id="explanation-text" class="text-xs text-slate-200 leading-relaxed"></p>
+            </div>
+            <div class="flex flex-col items-center justify-center gap-1">
+                <div class="flex items-center gap-3">
+                    <button id="btn-prev" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg disabled:opacity-30 text-xs font-medium border border-slate-700">&larr; Zurück</button>
+                    <div class="bg-slate-950 px-3.5 py-1.5 rounded-lg border border-slate-800 font-code text-xs min-w-[85px] text-center">
+                        <span id="step-current" class="text-sky-400 font-bold"></span><span class="text-slate-500">/</span><span id="step-total" class="text-slate-400"></span>
+                    </div>
+                    <button id="btn-next" class="px-4 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg disabled:opacity-30 text-xs font-bold border border-sky-500">Weiter &rarr;</button>
+                </div>
+                <span class="text-[10px] text-slate-500">Pfeiltasten &larr; / &rarr;</span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const progs = {
+            min_write: {
+                filename: "Min1_Schreiben.cs (Das absolute Minimum zum Schreiben)",
+                d1Title: "Festplatte: hallo.txt",
+                d2Title: "Konsolen-Ausgabe",
+                code: [
+                    /*0*/ "<span class='text-pink-400'>using</span> System.IO;",
+                    /*1*/ "",
+                    /*2*/ "<span class='text-pink-400'>static void</span> <span class='text-sky-300'>Main</span>()",
+                    /*3*/ "{",
+                    /*4*/ "    <span class='text-pink-400'>string</span>[] daten = { <span class='text-amber-300'>&quot;Hallo&quot;</span>, <span class='text-amber-300'>&quot;HTL&quot;</span> };",
+                    /*5*/ "    <span class='text-teal-300'>File</span>.<span class='text-sky-300'>WriteAllLines</span>(<span class='text-amber-300'>&quot;hallo.txt&quot;</span>, daten);",
+                    /*6*/ "}"
+                ],
+                steps: [
+                    {
+                        maxL: 2, actL: 2, con: "// Programm startet",
+                        d1St: "NICHT VORHANDEN", d1Lines: [], d2St: "IDLE", d2Lines: [],
+                        stack: [{ name: "Main()", vars: {} }], heap: {},
+                        title: "Schritt 1: Einstieg in Main()",
+                        desc: "Wir starten mit dem minimalsten C#-Programm, um eine Datei zu schreiben. Noch liegt <code>hallo.txt</code> nicht auf der Festplatte."
+                    },
+                    {
+                        maxL: 3, actL: 3, con: "// Stack-Frame aktiv",
+                        d1St: "NICHT VORHANDEN", d1Lines: [], d2St: "IDLE", d2Lines: [],
+                        stack: [{ name: "Main()", vars: {} }], heap: {},
+                        title: "Schritt 2: Öffnende geschweifte Klammer {",
+                        desc: "Der Block von <code>Main()</code> wird betreten. Auf dem Call Stack ist der Frame für <code>Main()</code> bereit."
+                    },
+                    {
+                        maxL: 4, actL: 4, con: "// Array im Heap angelegt",
+                        d1St: "NICHT VORHANDEN", d1Lines: [], d2St: "IDLE", d2Lines: [],
+                        stack: [{ name: "Main()", vars: { "daten": "0xA10" } }],
+                        heap: { "0xA10": { type: "string[]", val: ["\"Hallo\"", "\"HTL\""] } },
+                        title: "Schritt 3: Array auf dem Managed Heap anlegen",
+                        desc: "<code>string[] daten = { \"Hallo\", \"HTL\" };</code> erzeugt ein Array-Objekt bei Adresse <span class='ref-A10 px-1 rounded font-code text-[11px]'>[0xA10]</span> auf dem Heap. Die Variable <code>daten</code> am Stack speichert diese Referenz."
+                    },
+                    {
+                        maxL: 5, actL: 5, con: "// Öffne hallo.txt zum Schreiben",
+                        d1St: "OPEN (WRITING...)", d1Lines: [{ t: "Hallo", c: "file-written" }], d2St: "IDLE", d2Lines: [],
+                        stack: [{ name: "Main()", vars: { "daten": "0xA10" } }],
+                        heap: { "0xA10": { type: "string[]", val: ["\"Hallo\"", "\"HTL\""] } },
+                        title: "Schritt 4: File.WriteAllLines startet Schreibvorgang",
+                        desc: "<code>File.WriteAllLines(\"hallo.txt\", daten)</code> legt die Datei auf der Festplatte an und schreibt das erste Element <code>\"Hallo\"</code> aus dem Heap-Array in Zeile 0."
+                    },
+                    {
+                        maxL: 5, actL: 5, con: "// Schreibe Zeile 1 & schließe Datei",
+                        d1St: "CLOSED (SAVED)", d1Lines: [{ t: "Hallo", c: "file-written" }, { t: "HTL", c: "file-written" }], d2St: "IDLE", d2Lines: [],
+                        stack: [{ name: "Main()", vars: { "daten": "0xA10" } }],
+                        heap: { "0xA10": { type: "string[]", val: ["\"Hallo\"", "\"HTL\""] } },
+                        title: "Schritt 5: Zweite Zeile geschrieben & Datei automatisch geschlossen",
+                        desc: "Das zweite Element <code>\"HTL\"</code> wird in Zeile 1 geschrieben. Danach schließt <code>File.WriteAllLines</code> die Datei sofort automatisch."
+                    },
+                    {
+                        maxL: 6, actL: 6, con: "// Programm beendet",
+                        d1St: "CLOSED (SAVED)", d1Lines: [{ t: "Hallo", c: "" }, { t: "HTL", c: "" }], d2St: "DONE", d2Lines: [{ t: "Exit Code 0", c: "file-written" }],
+                        stack: [], heap: {},
+                        title: "Schritt 6: Programmende }",
+                        desc: "<code>Main()</code> endet. Der Call Stack und der Heap werden aufgeräumt, während <code>hallo.txt</code> dauerhaft auf der Festplatte gespeichert bleibt!"
+                    }
+                ]
+            },
+            min_read: {
+                filename: "Min2_Lesen.cs (Das absolute Minimum zum Lesen)",
+                d1Title: "Festplatte: hallo.txt",
+                d2Title: "Konsolen-Ausgabe",
+                code: [
+                    /*0*/ "<span class='text-pink-400'>using</span> System;",
+                    /*1*/ "<span class='text-pink-400'>using</span> System.IO;",
+                    /*2*/ "",
+                    /*3*/ "<span class='text-pink-400'>static void</span> <span class='text-sky-300'>Main</span>()",
+                    /*4*/ "{",
+                    /*5*/ "    <span class='text-pink-400'>string</span>[] zeilen = <span class='text-teal-300'>File</span>.<span class='text-sky-300'>ReadAllLines</span>(<span class='text-amber-300'>&quot;hallo.txt&quot;</span>);",
+                    /*6*/ "    <span class='text-pink-400'>foreach</span> (<span class='text-pink-400'>string</span> z <span class='text-pink-400'>in</span> zeilen)",
+                    /*7*/ "    {",
+                    /*8*/ "        <span class='text-teal-300'>Console</span>.<span class='text-sky-300'>WriteLine</span>(z);",
+                    /*9*/ "    }",
+                    /*10*/ "}"
+                ],
+                steps: [
+                    {
+                        maxL: 4, actL: 3, con: "// Programm startet",
+                        d1St: "CLOSED", d1Lines: [{ t: "Hallo", c: "" }, { t: "HTL", c: "" }], d2St: "READY", d2Lines: [],
+                        stack: [{ name: "Main()", vars: {} }], heap: {},
+                        title: "Schritt 1: Start in Main() – Datei liegt auf der Festplatte",
+                        desc: "Auf der Festplatte existiert bereits <code>hallo.txt</code> mit 2 Zeilen. Der Managed Heap ist noch leer."
+                    },
+                    {
+                        maxL: 5, actL: 5, con: "// Lese hallo.txt komplett ein",
+                        d1St: "OPEN -> READ ALL -> CLOSED", d1Lines: [{ t: "Hallo", c: "file-bulk" }, { t: "HTL", c: "file-bulk" }], d2St: "READY", d2Lines: [],
+                        stack: [{ name: "Main()", vars: { "zeilen": "0xB20" } }],
+                        heap: { "0xB20": { type: "string[]", val: ["\"Hallo\"", "\"HTL\""] } },
+                        title: "Schritt 2: File.ReadAllLines lädt alles in den Heap",
+                        desc: "<code>File.ReadAllLines(\"hallo.txt\")</code> öffnet die Datei, kopiert alle Zeilen auf einmal in ein neues Array <span class='ref-B20 px-1 rounded font-code text-[11px]'>[0xB20]</span> am Heap und schließt die Datei wieder."
+                    },
+                    {
+                        maxL: 6, actL: 6, con: "// foreach Start (Index 0)",
+                        d1St: "CLOSED", d1Lines: [{ t: "Hallo", c: "" }, { t: "HTL", c: "" }], d2St: "READY", d2Lines: [],
+                        stack: [{ name: "Main()", vars: { "zeilen": "0xB20", "z": "\"Hallo\"" } }],
+                        heap: { "0xB20": { type: "string[]", val: ["\"Hallo\"", "\"HTL\""] } },
+                        title: "Schritt 3: foreach-Schleife holt 1. Element (z = \"Hallo\")",
+                        desc: "Die <code>foreach</code>-Schleife greift über die Referenz <code>[0xB20]</code> auf Index 0 zu und kopiert <code>\"Hallo\"</code> in die Schleifenvariable <code>z</code>."
+                    },
+                    {
+                        maxL: 9, actL: 8, con: "Hallo",
+                        d1St: "CLOSED", d1Lines: [{ t: "Hallo", c: "" }, { t: "HTL", c: "" }], d2St: "OUTPUT", d2Lines: [{ t: "Hallo", c: "file-written" }],
+                        stack: [{ name: "Main()", vars: { "zeilen": "0xB20", "z": "\"Hallo\"" } }],
+                        heap: { "0xB20": { type: "string[]", val: ["\"Hallo\"", "\"HTL\""] } },
+                        title: "Schritt 4: Console.WriteLine(z) gibt 'Hallo' aus",
+                        desc: "Im Rumpf der Schleife wird der aktuelle Wert von <code>z</code> (<code>\"Hallo\"</code>) auf der Konsole ausgegeben."
+                    },
+                    {
+                        maxL: 9, actL: 6, con: "Hallo",
+                        d1St: "CLOSED", d1Lines: [{ t: "Hallo", c: "" }, { t: "HTL", c: "" }], d2St: "OUTPUT", d2Lines: [{ t: "Hallo", c: "" }],
+                        stack: [{ name: "Main()", vars: { "zeilen": "0xB20", "z": "\"HTL\"" } }],
+                        heap: { "0xB20": { type: "string[]", val: ["\"Hallo\"", "\"HTL\""] } },
+                        title: "Schritt 5: foreach-Schleife holt 2. Element (z = \"HTL\")",
+                        desc: "Im nächsten Durchlauf rückt <code>foreach</code> automatisch auf Index 1 des Heap-Arrays vor: <code>z</code> ist jetzt <code>\"HTL\"</code>."
+                    },
+                    {
+                        maxL: 9, actL: 8, con: "HTL",
+                        d1St: "CLOSED", d1Lines: [{ t: "Hallo", c: "" }, { t: "HTL", c: "" }], d2St: "OUTPUT", d2Lines: [{ t: "Hallo", c: "" }, { t: "HTL", c: "file-written" }],
+                        stack: [{ name: "Main()", vars: { "zeilen": "0xB20", "z": "\"HTL\"" } }],
+                        heap: { "0xB20": { type: "string[]", val: ["\"Hallo\"", "\"HTL\""] } },
+                        title: "Schritt 6: Console.WriteLine(z) gibt 'HTL' aus",
+                        desc: "Auch die zweite Zeile wird auf der Konsole ausgegeben."
+                    },
+                    {
+                        maxL: 10, actL: 10, con: "// Programm beendet",
+                        d1St: "CLOSED", d1Lines: [{ t: "Hallo", c: "" }, { t: "HTL", c: "" }], d2St: "DONE", d2Lines: [{ t: "Hallo", c: "" }, { t: "HTL", c: "" }],
+                        stack: [], heap: {},
+                        title: "Schritt 7: Schleife & Programm beendet",
+                        desc: "Alle Elemente aus <code>zeilen</code> wurden durchlaufen. <code>Main()</code> wird geschlossen."
+                    }
+                ]
+            },
+            parse_port: {
+                filename: "ConfigPortCheck.cs (ReadAllLines, foreach, Port & Name prüfen + WriteAllLines)",
+                d1Title: "Festplatte: server.cfg",
+                d2Title: "Festplatte: valid_server.cfg",
+                code: [
+                    /* 0*/ "<span class='text-pink-400'>static void</span> <span class='text-sky-300'>Main</span>()",
+                    /* 1*/ "{",
+                    /* 2*/ "    <span class='text-sky-300'>PruefeUndSpeichereConfig</span>(<span class='text-amber-300'>&quot;server.cfg&quot;</span>, <span class='text-amber-300'>&quot;valid_server.cfg&quot;</span>);",
+                    /* 3*/ "}",
+                    /* 4*/ "",
+                    /* 5*/ "<span class='text-pink-400'>static void</span> <span class='text-sky-300'>PruefeUndSpeichereConfig</span>(<span class='text-pink-400'>string</span> inPfad, <span class='text-pink-400'>string</span> outPfad)",
+                    /* 6*/ "{",
+                    /* 7*/ "    <span class='text-pink-400'>string</span>[] lines = <span class='text-teal-300'>File</span>.<span class='text-sky-300'>ReadAllLines</span>(inPfad);",
+                    /* 8*/ "    <span class='text-pink-400'>string</span>[] valid = <span class='text-pink-400'>new string</span>[lines.Length];",
+                    /* 9*/ "    <span class='text-pink-400'>int</span> count = <span class='text-emerald-400'>0</span>;",
+                    /*10*/ "    <span class='text-pink-400'>foreach</span> (<span class='text-pink-400'>string</span> line <span class='text-pink-400'>in</span> lines)",
+                    /*11*/ "    {",
+                    /*12*/ "        <span class='text-pink-400'>string</span>[] p = line.<span class='text-sky-300'>Split</span>(<span class='text-amber-300'>'='</span>);",
+                    /*13*/ "        <span class='text-pink-400'>if</span> (p.Length != <span class='text-emerald-400'>2</span>) { <span class='text-pink-400'>continue</span>; }",
+                    /*14*/ "        <span class='text-pink-400'>string</span> key = p[<span class='text-emerald-400'>0</span>]; <span class='text-pink-400'>string</span> val = p[<span class='text-emerald-400'>1</span>];",
+                    /*15*/ "        <span class='text-pink-400'>if</span> (key == <span class='text-amber-300'>&quot;port&quot;</span> &amp;&amp; <span class='text-pink-400'>int</span>.<span class='text-sky-300'>TryParse</span>(val, <span class='text-pink-400'>out int</span> port) &amp;&amp; port &gt;= <span class='text-emerald-400'>1</span> &amp;&amp; port &lt;= <span class='text-emerald-400'>65535</span>)",
+                    /*16*/ "        {",
+                    /*17*/ "            <span class='text-teal-300'>Console</span>.<span class='text-sky-300'>WriteLine</span>(<span class='text-amber-300'>$&quot;Port OK: {port}&quot;</span>);",
+                    /*18*/ "            valid[count] = <span class='text-amber-300'>$&quot;port={port}&quot;</span>; count++;",
+                    /*19*/ "        }",
+                    /*20*/ "        <span class='text-pink-400'>else if</span> (key == <span class='text-amber-300'>&quot;name&quot;</span> &amp;&amp; val.Length &gt; <span class='text-emerald-400'>0</span>)",
+                    /*21*/ "        {",
+                    /*22*/ "            <span class='text-teal-300'>Console</span>.<span class='text-sky-300'>WriteLine</span>(<span class='text-amber-300'>$&quot;Name OK: {val}&quot;</span>);",
+                    /*23*/ "            valid[count] = <span class='text-amber-300'>$&quot;name={val}&quot;</span>; count++;",
+                    /*24*/ "        }",
+                    /*25*/ "    }",
+                    /*26*/ "    <span class='text-teal-300'>File</span>.<span class='text-sky-300'>WriteAllLines</span>(outPfad, valid);",
+                    /*27*/ "}"
+                ],
+                steps: [
+                    {
+                        maxL: 3, actL: 2, con: "// Aufruf aus Main()",
+                        d1St: "CLOSED", d1Lines: [{ t: "port=8080", c: "" }, { t: "port=99999", c: "" }, { t: "name=", c: "" }, { t: "name=HTLServer", c: "" }],
+                        d2St: "NICHT VORHANDEN", d2Lines: [],
+                        stack: [{ name: "Main()", vars: {} }], heap: {},
+                        title: "Schritt 1: Aufruf von PruefeUndSpeichereConfig() in Main()",
+                        desc: "Auf der Festplatte liegt <code>server.cfg</code> mit 4 Zeilen: einem gültigen Port (<code>8080</code>), einem zu großen Port (<code>99999</code>), einem leeren Namen (<code>name=</code>) und einem gültigen Namen (<code>HTLServer</code>)."
+                    },
+                    {
+                        maxL: 7, actL: 7, con: "// ReadAllLines lädt server.cfg",
+                        d1St: "OPEN -> READ ALL -> CLOSED", d1Lines: [{ t: "port=8080", c: "file-bulk" }, { t: "port=99999", c: "file-bulk" }, { t: "name=", c: "file-bulk" }, { t: "name=HTLServer", c: "file-bulk" }],
+                        d2St: "NICHT VORHANDEN", d2Lines: [],
+                        stack: [{ name: "Main()", vars: {} }, { name: "PruefeUndSpeichereConfig()", vars: { "inPfad": "\"server.cfg\"", "lines": "0xA10" } }],
+                        heap: { "0xA10": { type: "string[] lines", val: ["\"port=8080\"", "\"port=99999\"", "\"name=\"", "\"name=HTLServer\""] } },
+                        title: "Schritt 2: File.ReadAllLines lädt alle 4 Zeilen in den Heap [0xA10]",
+                        desc: "Weil eine Konfigurationsdatei klein ist, laden wir sie mit <code>File.ReadAllLines</code> komplett in das Array <span class='ref-A10 px-1 rounded font-code text-[11px]'>[0xA10]</span> am Managed Heap."
+                    },
+                    {
+                        maxL: 9, actL: 8, con: "// Ziel-Array valid[] reserviert",
+                        d1St: "CLOSED", d1Lines: [{ t: "port=8080", c: "" }, { t: "port=99999", c: "" }, { t: "name=", c: "" }, { t: "name=HTLServer", c: "" }],
+                        d2St: "NICHT VORHANDEN", d2Lines: [],
+                        stack: [{ name: "Main()", vars: {} }, { name: "PruefeUndSpeichereConfig()", vars: { "lines": "0xA10", "valid": "0xB20", "count": 0 } }],
+                        heap: {
+                            "0xA10": { type: "string[] lines", val: ["\"port=8080\"", "\"port=99999\"", "\"name=\"", "\"name=HTLServer\""] },
+                            "0xB20": { type: "string[] valid", val: ["null", "null", "null", "null"] }
+                        },
+                        title: "Schritt 3: Array valid[] [0xB20] & Zähler count = 0 anlegen",
+                        desc: "Auf dem Heap wird ein zweites Array <span class='ref-B20 px-1 rounded font-code text-[11px]'>[0xB20]</span> für die geprüften Einträge angelegt."
+                    },
+                    {
+                        maxL: 14, actL: 12, con: "// 1. Zeile: 'port=8080' splitten",
+                        d1St: "CLOSED", d1Lines: [{ t: "port=8080", c: "file-cursor" }, { t: "port=99999", c: "" }, { t: "name=", c: "" }, { t: "name=HTLServer", c: "" }],
+                        d2St: "NICHT VORHANDEN", d2Lines: [],
+                        stack: [{ name: "Main()", vars: {} }, { name: "PruefeUndSpeichereConfig()", vars: { "line": "\"port=8080\"", "key": "\"port\"", "val": "\"8080\"", "count": 0 } }],
+                        heap: {
+                            "0xA10": { type: "string[] lines", val: ["\"port=8080\"", "\"port=99999\"", "\"name=\"", "\"name=HTLServer\""] },
+                            "0xB20": { type: "string[] valid", val: ["null", "null", "null", "null"] },
+                            "0xC30": { type: "string[] p", val: ["\"port\"", "\"8080\""] }
+                        },
+                        title: "Schritt 4: foreach Durchlauf 1 ('port=8080') -> Split('=')",
+                        desc: "<code>line.Split('=')</code> erzeugt das Array <code>p</code> mit <code>key = \"port\"</code> und <code>val = \"8080\"</code>."
+                    },
+                    {
+                        maxL: 19, actL: 15, con: "// TryParse('8080') -> true, Port 1..65535 -> true",
+                        d1St: "CLOSED", d1Lines: [{ t: "port=8080", c: "file-cursor" }, { t: "port=99999", c: "" }, { t: "name=", c: "" }, { t: "name=HTLServer", c: "" }],
+                        d2St: "NICHT VORHANDEN", d2Lines: [],
+                        stack: [{ name: "Main()", vars: {} }, { name: "PruefeUndSpeichereConfig()", vars: { "key": "\"port\"", "val": "\"8080\"", "port": 8080, "count": 0 } }],
+                        heap: {
+                            "0xA10": { type: "string[] lines", val: ["\"port=8080\"", "\"port=99999\"", "\"name=\"", "\"name=HTLServer\""] },
+                            "0xB20": { type: "string[] valid", val: ["null", "null", "null", "null"] }
+                        },
+                        title: "Schritt 5: Port-Prüfung für 8080 erfolgreich!",
+                        desc: "<code>int.TryParse(\"8080\", out int port)</code> liefert <code>true</code> (<code>port = 8080</code>). Da <code>8080 &gt;= 1 &amp;&amp; 8080 &lt;= 65535</code> gilt, ist es ein echter Netzwerk-Port!"
+                    },
+                    {
+                        maxL: 19, actL: 18, con: "Port OK: 8080",
+                        d1St: "CLOSED", d1Lines: [{ t: "port=8080", c: "file-written" }, { t: "port=99999", c: "" }, { t: "name=", c: "" }, { t: "name=HTLServer", c: "" }],
+                        d2St: "NICHT VORHANDEN", d2Lines: [],
+                        stack: [{ name: "Main()", vars: {} }, { name: "PruefeUndSpeichereConfig()", vars: { "key": "\"port\"", "port": 8080, "count": 1 } }],
+                        heap: {
+                            "0xA10": { type: "string[] lines", val: ["\"port=8080\"", "\"port=99999\"", "\"name=\"", "\"name=HTLServer\""] },
+                            "0xB20": { type: "string[] valid", val: ["\"port=8080\"", "null", "null", "null"] }
+                        },
+                        title: "Schritt 6: Ausgabe auf Konsole & Speichern in valid[0]",
+                        desc: "Auf der Konsole erscheint <code>Port OK: 8080</code>. Im Heap-Array <code>valid[0]</code> wird <code>\"port=8080\"</code> gespeichert und <code>count</code> auf <code>1</code> erhöht."
+                    },
+                    {
+                        maxL: 19, actL: 15, con: "// SKIP: 99999 > 65535 (Kein gültiger Port!)",
+                        d1St: "CLOSED", d1Lines: [{ t: "port=8080", c: "" }, { t: "port=99999", c: "file-error" }, { t: "name=", c: "" }, { t: "name=HTLServer", c: "" }],
+                        d2St: "NICHT VORHANDEN", d2Lines: [],
+                        stack: [{ name: "Main()", vars: {} }, { name: "PruefeUndSpeichereConfig()", vars: { "line": "\"port=99999\"", "port": 99999, "port <= 65535": "false!", "count": 1 } }],
+                        heap: {
+                            "0xA10": { type: "string[] lines", val: ["\"port=8080\"", "\"port=99999\"", "\"name=\"", "\"name=HTLServer\""] },
+                            "0xB20": { type: "string[] valid", val: ["\"port=8080\"", "null", "null", "null"] }
+                        },
+                        title: "Schritt 7: foreach Durchlauf 2 ('port=99999') -> Ungültiger Port wird übersprungen!",
+                        desc: "<code>99999</code> ist zwar eine Zahl (<code>TryParse == true</code>), aber größer als <code>65535</code>! Die Bedingung ist <code>false</code> &rarr; keine Konsolenausgabe, <code>count</code> bleibt <code>1</code>."
+                    },
+                    {
+                        maxL: 25, actL: 20, con: "// SKIP: name= hat Länge 0 (Leerstring!)",
+                        d1St: "CLOSED", d1Lines: [{ t: "port=8080", c: "" }, { t: "port=99999", c: "" }, { t: "name=", c: "file-error" }, { t: "name=HTLServer", c: "" }],
+                        d2St: "NICHT VORHANDEN", d2Lines: [],
+                        stack: [{ name: "Main()", vars: {} }, { name: "PruefeUndSpeichereConfig()", vars: { "line": "\"name=\"", "key": "\"name\"", "val": "\"\"", "val.Length > 0": "false!", "count": 1 } }],
+                        heap: {
+                            "0xA10": { type: "string[] lines", val: ["\"port=8080\"", "\"port=99999\"", "\"name=\"", "\"name=HTLServer\""] },
+                            "0xB20": { type: "string[] valid", val: ["\"port=8080\"", "null", "null", "null"] }
+                        },
+                        title: "Schritt 8: foreach Durchlauf 3 ('name=') -> Leerer Name wird übersprungen!",
+                        desc: "Bei <code>\"name=\"</code> ist <code>val</code> ein leerer String <code>\"\"</code> (<code>val.Length == 0</code>). Auch diese fehlerhafte Zeile wird übersprungen!"
+                    },
+                    {
+                        maxL: 25, actL: 23, con: "Name OK: HTLServer",
+                        d1St: "CLOSED", d1Lines: [{ t: "port=8080", c: "" }, { t: "port=99999", c: "" }, { t: "name=", c: "" }, { t: "name=HTLServer", c: "file-written" }],
+                        d2St: "NICHT VORHANDEN", d2Lines: [],
+                        stack: [{ name: "Main()", vars: {} }, { name: "PruefeUndSpeichereConfig()", vars: { "key": "\"name\"", "val": "\"HTLServer\"", "count": 2 } }],
+                        heap: {
+                            "0xA10": { type: "string[] lines", val: ["\"port=8080\"", "\"port=99999\"", "\"name=\"", "\"name=HTLServer\""] },
+                            "0xB20": { type: "string[] valid", val: ["\"port=8080\"", "\"name=HTLServer\"", "null", "null"] }
+                        },
+                        title: "Schritt 9: foreach Durchlauf 4 ('name=HTLServer') -> Gültiger Name!",
+                        desc: "<code>key == \"name\"</code> und <code>val.Length &gt; 0</code> sind erfüllt. Konsole gibt <code>Name OK: HTLServer</code> aus, und <code>valid[1]</code> erhält <code>\"name=HTLServer\"</code>."
+                    },
+                    {
+                        maxL: 27, actL: 26, con: "valid_server.cfg geschrieben!",
+                        d1St: "CLOSED", d1Lines: [{ t: "port=8080", c: "" }, { t: "port=99999", c: "" }, { t: "name=", c: "" }, { t: "name=HTLServer", c: "" }],
+                        d2St: "OPEN -> WRITE -> CLOSED", d2Lines: [{ t: "port=8080", c: "file-written" }, { t: "name=HTLServer", c: "file-written" }],
+                        stack: [{ name: "Main()", vars: {} }, { name: "PruefeUndSpeichereConfig()", vars: { "outPfad": "\"valid_server.cfg\"", "count": 2 } }],
+                        heap: {
+                            "0xB20": { type: "string[] valid", val: ["\"port=8080\"", "\"name=HTLServer\"", "null", "null"] }
+                        },
+                        title: "Schritt 10: File.WriteAllLines schreibt bereinigte Datei",
+                        desc: "Am Ende schreibt <code>File.WriteAllLines(outPfad, valid)</code> die geprüften Konfigurationszeilen auf die Festplatte in <code>valid_server.cfg</code>."
+                    }
+                ]
+            },
+            stream_io: {
+                filename: "StreamPortFilter.cs (Große Dateien zeilenweise mit StreamReader & StreamWriter)",
+                d1Title: "Festplatte: raw_ports.log",
+                d2Title: "Festplatte: clean_ports.log",
+                code: [
+                    /* 0*/ "<span class='text-pink-400'>static void</span> <span class='text-sky-300'>Main</span>()",
+                    /* 1*/ "{",
+                    /* 2*/ "    <span class='text-pink-400'>int</span>[] ports = <span class='text-pink-400'>new int</span>[<span class='text-emerald-400'>3</span>];",
+                    /* 3*/ "    <span class='text-pink-400'>int</span> n = <span class='text-sky-300'>FilterePortsMitStream</span>(<span class='text-amber-300'>&quot;raw_ports.log&quot;</span>, <span class='text-amber-300'>&quot;clean_ports.log&quot;</span>, ports);",
+                    /* 4*/ "}",
+                    /* 5*/ "",
+                    /* 6*/ "<span class='text-pink-400'>static int</span> <span class='text-sky-300'>FilterePortsMitStream</span>(<span class='text-pink-400'>string</span> inPfad, <span class='text-pink-400'>string</span> outPfad, <span class='text-pink-400'>int</span>[] ports)",
+                    /* 7*/ "{",
+                    /* 8*/ "    <span class='text-pink-400'>int</span> count = <span class='text-emerald-400'>0</span>;",
+                    /* 9*/ "    <span class='text-pink-400'>using</span> (<span class='text-teal-300'>StreamReader</span> sr = <span class='text-pink-400'>new</span> <span class='text-teal-300'>StreamReader</span>(inPfad))",
+                    /*10*/ "    {",
+                    /*11*/ "        <span class='text-pink-400'>using</span> (<span class='text-teal-300'>StreamWriter</span> sw = <span class='text-pink-400'>new</span> <span class='text-teal-300'>StreamWriter</span>(outPfad))",
+                    /*12*/ "        {",
+                    /*13*/ "            <span class='text-pink-400'>string</span> line;",
+                    /*14*/ "            <span class='text-pink-400'>while</span> ((line = sr.<span class='text-sky-300'>ReadLine</span>()) != <span class='text-pink-400'>null</span> &amp;&amp; count &lt; ports.Length)",
+                    /*15*/ "            {",
+                    /*16*/ "                <span class='text-pink-400'>if</span> (<span class='text-pink-400'>int</span>.<span class='text-sky-300'>TryParse</span>(line, <span class='text-pink-400'>out int</span> p) &amp;&amp; p &gt;= <span class='text-emerald-400'>1</span> &amp;&amp; p &lt;= <span class='text-emerald-400'>65535</span>)",
+                    /*17*/ "                {",
+                    /*18*/ "                    ports[count] = p; count++;",
+                    /*19*/ "                    sw.<span class='text-sky-300'>WriteLine</span>(<span class='text-amber-300'>$&quot;PORT_OK:{p}&quot;</span>);",
+                    /*20*/ "                }",
+                    /*21*/ "            }",
+                    /*22*/ "        }",
+                    /*23*/ "    }",
+                    /*24*/ "    <span class='text-pink-400'>return</span> count;",
+                    /*25*/ "}"
+                ],
+                steps: [
+                    {
+                        maxL: 3, actL: 2, con: "// Array ports[3] reserviert",
+                        d1St: "CLOSED", d1Lines: [{ t: "443", c: "" }, { t: "abc", c: "" }, { t: "70000", c: "" }, { t: "22", c: "" }],
+                        d2St: "NICHT VORHANDEN", d2Lines: [],
+                        stack: [{ name: "Main()", vars: { "ports": "0xA10" } }],
+                        heap: { "0xA10": { type: "int[] ports", val: [0, 0, 0] } },
+                        title: "Schritt 1: Array int[] ports [0xA10] in Main() anlegen",
+                        desc: "In <code>Main()</code> reservieren wir ein Array <code>int[] ports = new int[3]</code> am Heap und übergeben dessen Referenz an <code>FilterePortsMitStream()</code>."
+                    },
+                    {
+                        maxL: 12, actL: 11, con: "// Streams geöffnet",
+                        d1St: "OPEN (StreamReader)", d1Lines: [{ t: "443", c: "" }, { t: "abc", c: "" }, { t: "70000", c: "" }, { t: "22", c: "" }],
+                        d2St: "OPEN (StreamWriter)", d2Lines: [],
+                        stack: [
+                            { name: "Main()", vars: { "ports": "0xA10" } },
+                            { name: "FilterePortsMitStream()", vars: { "ports": "0xA10", "count": 0, "sr": "Zeiger vor Zeile 0", "sw": "Bereit" } }
+                        ],
+                        heap: { "0xA10": { type: "int[] ports", val: [0, 0, 0] } },
+                        title: "Schritt 2: StreamReader & StreamWriter mit using öffnen",
+                        desc: "Beide Dateien werden im Streaming-Modus geöffnet. Es wird <strong>kein</strong> großes <code>string[]</code>-Array der Datei im Heap angelegt!"
+                    },
+                    {
+                        maxL: 20, actL: 19, con: "PORT_OK:443 geschrieben",
+                        d1St: "OPEN (Zeile 0)", d1Lines: [{ t: "443 &larr; sr.ReadLine()", c: "file-cursor" }, { t: "abc", c: "" }, { t: "70000", c: "" }, { t: "22", c: "" }],
+                        d2St: "OPEN (StreamWriter)", d2Lines: [{ t: "PORT_OK:443", c: "file-written" }],
+                        stack: [
+                            { name: "Main()", vars: { "ports": "0xA10" } },
+                            { name: "FilterePortsMitStream()", vars: { "line": "\"443\"", "p": 443, "count": 1 } }
+                        ],
+                        heap: { "0xA10": { type: "int[] ports", val: [443, 0, 0] } },
+                        title: "Schritt 3: 1. Zeile ('443') -> Gültiger Port! In Array & Datei schreiben",
+                        desc: "<code>sr.ReadLine()</code> liest <code>\"443\"</code>. <code>TryParse</code> und Port-Check (<code>1..65535</code>) sind <code>true</code>. <code>443</code> landet in <code>ports[0]</code> und <code>sw.WriteLine</code> schreibt sofort auf die Festplatte."
+                    },
+                    {
+                        maxL: 20, actL: 16, con: "// SKIP: 'abc' ist keine Zahl",
+                        d1St: "OPEN (Zeile 1)", d1Lines: [{ t: "443", c: "" }, { t: "abc &larr; TryParse FAIL", c: "file-error" }, { t: "70000", c: "" }, { t: "22", c: "" }],
+                        d2St: "OPEN (StreamWriter)", d2Lines: [{ t: "PORT_OK:443", c: "" }],
+                        stack: [
+                            { name: "Main()", vars: { "ports": "0xA10" } },
+                            { name: "FilterePortsMitStream()", vars: { "line": "\"abc\"", "TryParse": "false!", "count": 1 } }
+                        ],
+                        heap: { "0xA10": { type: "int[] ports", val: [443, 0, 0] } },
+                        title: "Schritt 4: 2. Zeile ('abc') -> TryParse liefert false",
+                        desc: "<code>\"abc\"</code> ist keine Zahl. Der <code>if</code>-Block wird übersprungen, <code>count</code> bleibt auf <code>1</code>."
+                    },
+                    {
+                        maxL: 20, actL: 16, con: "// SKIP: 70000 > 65535",
+                        d1St: "OPEN (Zeile 2)", d1Lines: [{ t: "443", c: "" }, { t: "abc", c: "" }, { t: "70000 &larr; Port > 65535", c: "file-error" }, { t: "22", c: "" }],
+                        d2St: "OPEN (StreamWriter)", d2Lines: [{ t: "PORT_OK:443", c: "" }],
+                        stack: [
+                            { name: "Main()", vars: { "ports": "0xA10" } },
+                            { name: "FilterePortsMitStream()", vars: { "line": "\"70000\"", "p": 70000, "p <= 65535": "false!", "count": 1 } }
+                        ],
+                        heap: { "0xA10": { type: "int[] ports", val: [443, 0, 0] } },
+                        title: "Schritt 5: 3. Zeile ('70000') -> Außerhalb des Portbereichs",
+                        desc: "<code>70000</code> ist größer als <code>65535</code> und damit kein gültiger Port. Wird ebenfalls sauber übersprungen!"
+                    },
+                    {
+                        maxL: 20, actL: 19, con: "PORT_OK:22 geschrieben",
+                        d1St: "OPEN (Zeile 3)", d1Lines: [{ t: "443", c: "" }, { t: "abc", c: "" }, { t: "70000", c: "" }, { t: "22 &larr; sr.ReadLine()", c: "file-cursor" }],
+                        d2St: "OPEN (StreamWriter)", d2Lines: [{ t: "PORT_OK:443", c: "" }, { t: "PORT_OK:22", c: "file-written" }],
+                        stack: [
+                            { name: "Main()", vars: { "ports": "0xA10" } },
+                            { name: "FilterePortsMitStream()", vars: { "line": "\"22\"", "p": 22, "count": 2 } }
+                        ],
+                        heap: { "0xA10": { type: "int[] ports", val: [443, 22, 0] } },
+                        title: "Schritt 6: 4. Zeile ('22') -> Gültiger Port auf Index count = 1",
+                        desc: "<code>22</code> (SSH-Port) ist gültig. Er wird nahtlos in <code>ports[1]</code> eingetragen und per <code>sw.WriteLine</code> an <code>clean_ports.log</code> angehängt."
+                    },
+                    {
+                        maxL: 25, actL: 24, con: "// Streams geschlossen, return 2",
+                        d1St: "CLOSED (Disposed)", d1Lines: [{ t: "443", c: "" }, { t: "abc", c: "" }, { t: "70000", c: "" }, { t: "22", c: "" }],
+                        d2St: "CLOSED (Flushed & Disposed)", d2Lines: [{ t: "PORT_OK:443", c: "" }, { t: "PORT_OK:22", c: "" }],
+                        stack: [{ name: "Main()", vars: { "ports": "0xA10", "n": 2 } }],
+                        heap: { "0xA10": { type: "int[] ports", val: [443, 22, 0] } },
+                        title: "Schritt 7: EOF (null), automatisches Schließen & Rücksprung",
+                        desc: "<code>sr.ReadLine()</code> liefert am Dateiende <code>null</code>. Die <code>using</code>-Blöcke schließen beide Dateien sicher, und <code>Main()</code> erhält <code>n = 2</code> zurück."
+                    }
+                ]
+            }
+        };
+
+        let currentProg = 'min_write';
+        let currentStep = 0;
+        let lastMaxL = -1;
+        let lastHeap = {};
+
+        function getBadgeClass(val) {
+            if (val === '0xA10') return 'ref-A10';
+            if (val === '0xB20') return 'ref-B20';
+            if (val === '0xC30') return 'ref-C30';
+            return '';
+        }
+
+        function formatStackVal(val) {
+            const s = String(val);
+            const badge = getBadgeClass(s);
+            if (badge) {
+                return `<span class="${badge} px-1.5 py-0.5 rounded text-xs font-bold">[${s}]</span>`;
+            }
+            if (s.includes("false")) return `<span class="text-rose-400 font-bold">${s}</span>`;
+            return `<span class="text-emerald-400 font-bold">${s}</span>`;
+        }
+
+        function switchProg(p) {
+            currentProg = p;
+            document.querySelectorAll('header button').forEach(b => b.className = 'tab-inactive px-3 py-1.5 rounded-lg text-xs font-bold border transition-all');
+            if (p === 'min_write') document.getElementById('tab-min1').className = 'tab-active px-3 py-1.5 rounded-lg text-xs font-bold border transition-all';
+            if (p === 'min_read') document.getElementById('tab-min2').className = 'tab-active px-3 py-1.5 rounded-lg text-xs font-bold border transition-all';
+            if (p === 'parse_port') document.getElementById('tab-parse').className = 'tab-active px-3 py-1.5 rounded-lg text-xs font-bold border transition-all';
+            if (p === 'stream_io') document.getElementById('tab-stream').className = 'tab-active px-3 py-1.5 rounded-lg text-xs font-bold border transition-all';
+            if (p === 'cheat') document.getElementById('tab-cheat').className = 'tab-active px-3 py-1.5 rounded-lg text-xs font-bold border transition-all';
+
+            if (p === 'cheat') {
+                document.getElementById('view-visualizer').classList.add('hidden');
+                document.getElementById('footer-ctrl').classList.add('hidden');
+                document.getElementById('view-cheat').classList.remove('hidden');
+            } else {
+                document.getElementById('view-visualizer').classList.remove('hidden');
+                document.getElementById('footer-ctrl').classList.remove('hidden');
+                document.getElementById('view-cheat').classList.add('hidden');
+                currentStep = 0;
+                lastMaxL = -1;
+                lastHeap = {};
+                render();
+            }
+        }
+
+        function renderDiskBox(titleId, statusId, bodyId, titleTxt, statusTxt, lines) {
+            document.getElementById(titleId).textContent = titleTxt;
+            const stEl = document.getElementById(statusId);
+            stEl.textContent = statusTxt;
+            stEl.className = statusTxt.includes("OPEN")
+                ? "text-[10px] font-code px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/50 font-bold"
+                : "text-[10px] font-code px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700";
+
+            const bodyEl = document.getElementById(bodyId);
+            bodyEl.innerHTML = '';
+            if (!lines || lines.length === 0) {
+                bodyEl.innerHTML = `<div class="text-slate-600 italic text-xs py-3 text-center">Leer / Noch keine Zeilen</div>`;
+            } else {
+                lines.forEach((item, idx) => {
+                    const row = document.createElement('div');
+                    row.className = `flex justify-between items-center px-2.5 py-1 rounded border border-slate-800/80 bg-slate-950/70 text-slate-200 ${item.c || ''}`;
+                    row.innerHTML = `<span class="text-[10px] text-slate-500 mr-2">Zeile ${idx}</span><span class="flex-1 font-bold">${item.t}</span>`;
+                    bodyEl.appendChild(row);
+                });
+            }
+        }
+
+        function render() {
+            if (currentProg === 'cheat') return;
+            const prog = progs[currentProg];
+            const step = prog.steps[currentStep];
+
+            document.getElementById('code-filename').textContent = prog.filename;
+            document.getElementById('console-out').textContent = step.con;
+
+            document.getElementById('btn-prev').disabled = currentStep === 0;
+            document.getElementById('btn-next').disabled = currentStep === prog.steps.length - 1;
+            document.getElementById('step-current').textContent = currentStep + 1;
+            document.getElementById('step-total').textContent = prog.steps.length;
+
+            document.getElementById('step-title').textContent = step.title;
+            document.getElementById('explanation-text').innerHTML = step.desc;
+
+            // Render Colored Code progressively
+            const uiCode = document.getElementById('code-container');
+            uiCode.innerHTML = '';
+            for (let i = 0; i <= step.maxL; i++) {
+                const isAct = i === step.actL;
+                const isNew = i > lastMaxL;
+                const div = document.createElement('div');
+                div.className = `flex px-2 py-0.5 rounded ${isAct ? 'line-active text-sky-50' : 'line-normal text-slate-300'} ${isNew ? 'code-appear' : ''}`;
+                div.innerHTML = `
+                    <span class="w-6 shrink-0 text-right text-slate-600 mr-3 select-none text-xs border-r border-slate-800 pr-2">${i + 1}</span>
+                    <span class="whitespace-pre">${isAct ? '<strong>' + prog.code[i] + '</strong>' : prog.code[i]}</span>
+                `;
+                uiCode.appendChild(div);
+            }
+            lastMaxL = step.maxL;
+            const actEl = uiCode.querySelector('.line-active');
+            if (actEl) actEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // Render Disk Files
+            renderDiskBox('disk-1-title', 'disk-1-status', 'disk-1-body', prog.d1Title, step.d1St, step.d1Lines);
+            renderDiskBox('disk-2-title', 'disk-2-status', 'disk-2-body', prog.d2Title, step.d2St, step.d2Lines);
+
+            // Render Call Stack (Original Style)
+            const uiStack = document.getElementById('stack-container');
+            uiStack.innerHTML = '';
+            if (step.stack.length === 0) {
+                uiStack.innerHTML = `<div class="h-full flex items-center justify-center text-slate-600 text-xs italic">Call Stack leer</div>`;
+            } else {
+                step.stack.forEach((frame, idx) => {
+                    const isTop = idx === step.stack.length - 1;
+                    const el = document.createElement('div');
+                    el.className = `border rounded-xl overflow-hidden bg-slate-800 transition-all shrink-0 ${isTop ? 'border-sky-500/50 ring-1 ring-sky-500/20 frame-push' : 'border-slate-700/50 opacity-55 scale-[0.98]'}`;
+                    let html = `
+                        <div class="${isTop ? 'bg-sky-500/10 text-sky-300' : 'bg-slate-900 text-slate-400'} px-3 py-1.5 border-b border-slate-700/50 font-code text-xs font-bold flex justify-between">
+                            <span>${frame.name}</span>
+                        </div>
+                        <div class="p-2.5 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    `;
+                    const keys = Object.keys(frame.vars || {});
+                    if (keys.length === 0) {
+                        html += `<span class="text-xs text-slate-500 italic">Keine lokalen Variablen</span>`;
+                    } else {
+                        keys.forEach(k => {
+                            html += `
+                                <div class="flex justify-between items-center bg-slate-950/60 px-2.5 py-1.5 rounded border border-slate-700/50 font-code text-xs">
+                                    <span class="text-slate-300">${k}</span>
+                                    <span>${formatStackVal(frame.vars[k])}</span>
+                                </div>
+                            `;
+                        });
+                    }
+                    html += `</div>`;
+                    el.innerHTML = html;
+                    uiStack.appendChild(el);
+                });
+            }
+
+            // Render Managed Heap (Original Style with idx boxes)
+            const uiHeap = document.getElementById('heap-container');
+            uiHeap.innerHTML = '';
+            const hKeys = Object.keys(step.heap);
+            if (hKeys.length === 0) {
+                uiHeap.innerHTML = `<div class="h-full w-full flex items-center justify-center text-slate-600 text-xs italic">Keine Objekte im Heap</div>`;
+            } else {
+                hKeys.forEach(addr => {
+                    const obj = step.heap[addr];
+                    const prevArr = lastHeap[addr]?.val || [];
+                    const badgeClass = getBadgeClass(addr);
+                    const el = document.createElement('div');
+                    el.className = "flex flex-col border border-slate-700 rounded-xl overflow-hidden bg-slate-800 shrink-0 shadow-lg";
+                    let html = `
+                        <div class="bg-slate-950 px-3 py-1.5 border-b border-slate-800 flex justify-between items-center gap-3">
+                            <span class="font-code text-xs text-slate-400">${obj.type}</span>
+                            <span class="font-code font-bold ${badgeClass} px-2 py-0.5 rounded text-xs">[${addr}]</span>
+                        </div>
+                        <div class="p-2.5 flex gap-2 justify-center flex-wrap">
+                    `;
+                    obj.val.forEach((val, idx) => {
+                        const changed = prevArr[idx] !== undefined && prevArr[idx] !== val;
+                        html += `
+                            <div class="flex flex-col items-center">
+                                <span class="text-[10px] text-slate-500 mb-0.5 font-code">idx ${idx}</span>
+                                <div class="px-2.5 h-8 min-w-[42px] flex items-center justify-center bg-slate-950 border border-slate-700 rounded text-slate-200 font-code text-xs font-bold ${changed ? 'value-changed' : ''}">
+                                    ${val}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += `</div>`;
+                    el.innerHTML = html;
+                    uiHeap.appendChild(el);
+                });
+            }
+            lastHeap = JSON.parse(JSON.stringify(step.heap));
+        }
+
+        document.getElementById('btn-next').addEventListener('click', () => {
+            const p = progs[currentProg];
+            if (currentStep < p.steps.length - 1) { currentStep++; render(); }
+        });
+        document.getElementById('btn-prev').addEventListener('click', () => {
+            if (currentStep > 0) { currentStep--; render(); }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (currentProg === 'cheat') return;
+            if (e.key === 'ArrowRight') document.getElementById('btn-next').click();
+            if (e.key === 'ArrowLeft') document.getElementById('btn-prev').click();
+        });
+
+        render();
+    </script>
+</body>
+</html>

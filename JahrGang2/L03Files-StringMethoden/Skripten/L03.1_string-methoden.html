@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strings in C# – interaktiv</title>
+<style>
+  :root {
+    --bg: #f6f7fb; --card: #ffffff; --text: #1d2433; --muted: #5d6781;
+    --line: #dde1ee; --accent: #4f46e5; --accent-soft: #e8e7fd;
+    --ok: #15803d; --ok-soft: #dcfce7; --bad: #b91c1c; --bad-soft: #fee2e2;
+    --hl: #fde68a; --code-bg: #111827; --code-text: #e5e7eb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1320; --card: #181d2f; --text: #e8eaf3; --muted: #9aa3bd;
+      --line: #2c3350; --accent: #8b87ff; --accent-soft: #272a54;
+      --ok: #4ade80; --ok-soft: #12351f; --bad: #f87171; --bad-soft: #3b1717;
+      --hl: #78560a; --code-bg: #0a0d18; --code-text: #e5e7eb;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { padding: 40px 16px 24px; text-align: center; }
+  header h1 { margin: 0 0 6px; font-size: 2rem; }
+  header p { margin: 0; color: var(--muted); }
+  main { max-width: 900px; margin: 0 auto; padding: 0 16px 60px; }
+  nav { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 0 0 24px; }
+  nav a { padding: 6px 12px; border-radius: 999px; background: var(--card);
+    border: 1px solid var(--line); color: var(--text); text-decoration: none; font-size: .9rem; }
+  nav a:hover { border-color: var(--accent); color: var(--accent); }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 22px; margin-bottom: 24px; }
+  h2 { margin: 0 0 4px; font-size: 1.3rem; }
+  h2 .num { display: inline-block; width: 28px; height: 28px; line-height: 28px; text-align: center;
+    background: var(--accent); color: #fff; border-radius: 50%; font-size: .9rem; margin-right: 8px; }
+  .q { color: var(--muted); margin: 0 0 14px; }
+  code, .code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  p code, li code, td code { background: var(--accent-soft); padding: 1px 6px; border-radius: 5px; font-size: .9em; }
+  pre.code { background: var(--code-bg); color: var(--code-text); padding: 12px 14px; border-radius: 10px;
+    overflow-x: auto; margin: 10px 0; font-size: .92rem; line-height: 1.5; }
+  pre.code .k { color: #93c5fd; } pre.code .s { color: #fca5a5; } pre.code .c { color: #86efac; }
+  pre.code .n { color: #fcd34d; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-bottom: 12px; }
+  label { display: flex; flex-direction: column; font-size: .85rem; color: var(--muted); gap: 4px; }
+  input[type=text], input[type=number] { font: inherit; font-family: ui-monospace, Menlo, Consolas, monospace;
+    padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); }
+  input:focus { outline: 2px solid var(--accent); }
+  input[type=number] { width: 90px; }
+  input.wide { width: min(100%, 320px); }
+  button { font: inherit; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--accent);
+    background: var(--accent); color: #fff; cursor: pointer; }
+  button.ghost { background: transparent; color: var(--accent); }
+  button:disabled { opacity: .45; cursor: default; }
+  .chars { display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0; }
+  .ch { display: flex; flex-direction: column; align-items: center; min-width: 38px; cursor: pointer;
+    border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg); user-select: none; }
+  .ch .i { font-size: .72rem; color: var(--muted); padding: 1px 0; width: 100%; text-align: center;
+    border-bottom: 1px solid var(--line); font-family: ui-monospace, Menlo, monospace; }
+  .ch .v { font-family: ui-monospace, Menlo, monospace; font-size: 1.15rem; padding: 6px 0; }
+  .ch .r { font-size: .68rem; color: var(--muted); padding-bottom: 2px; font-family: ui-monospace, Menlo, monospace; }
+  .ch.on { background: var(--hl); border-color: #d4a017; }
+  .ch.cur { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .ch.cur .i, .ch.cur .r { color: #e0e0ff; border-color: #6d67ee; }
+  .ch.done { background: var(--accent-soft); }
+  .result { padding: 10px 14px; border-radius: 10px; background: var(--ok-soft); color: var(--ok);
+    font-family: ui-monospace, Menlo, monospace; margin: 8px 0; word-break: break-word; }
+  .result.err { background: var(--bad-soft); color: var(--bad); }
+  .note { background: var(--accent-soft); border-radius: 10px; padding: 10px 14px; margin: 12px 0 0; font-size: .93rem; }
+  table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; font-size: .82rem; }
+  td.t { color: var(--ok); font-weight: 700; } td.f { color: var(--bad); font-weight: 700; }
+  td.t::before { content: "✔ "; } td.f::before { content: "✘ "; }
+  .scroll { overflow-x: auto; }
+  .tag { display: inline-block; padding: 1px 7px; border-radius: 6px; font-size: .78rem; margin: 1px;
+    font-family: ui-monospace, Menlo, monospace; }
+  .out { font-family: ui-monospace, Menlo, monospace; background: var(--bg); border: 1px dashed var(--line);
+    border-radius: 8px; padding: 8px 12px; min-height: 40px; word-break: break-all; }
+  .legend span { margin-right: 10px; font-size: .85rem; }
+  .cheat { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+  .cheat div { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .cheat b { display: block; margin-bottom: 4px; }
+  footer { text-align: center; color: var(--muted); font-size: .85rem; padding-bottom: 30px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Strings in C#</h1>
+  <p>Zeichen, Teilstrings, Schleifen und <code>char</code>-Methoden – zum Ausprobieren</p>
+</header>
+<main>
+  <nav>
+    <a href="#s1">1 · [ ]</a><a href="#s2">2 · Substring</a><a href="#s3">3 · Durchlaufen</a>
+    <a href="#s4">4 · char-Tests</a><a href="#s5">5 · ToString()</a>
+  </nav>
+
+  <section id="uebersicht">
+    <h2>Das Wichtigste auf einen Blick</h2>
+    <p class="q">Ein <code>string</code> ist eine Folge von <code>char</code>-Zeichen. Gezählt wird ab <b>0</b>. Strings sind <b>unveränderlich</b>.</p>
+    <div class="cheat">
+      <div><b>Einzelnes Zeichen</b><code>char c = s[2];</code></div>
+      <div><b>Teilstring</b><code>s.Substring(2, 3);</code></div>
+      <div><b>Länge</b><code>s.Length</code> (letzter Index: <code>Length - 1</code>)</div>
+      <div><b>Zeichen testen</b><code>char.IsDigit(c)</code>, <code>char.IsLetter(c)</code> …</div>
+      <div><b>char → string</b><code>c.ToString()</code></div>
+    </div>
+  </section>
+
+  <!-- 1 -->
+  <section id="s1">
+    <h2><span class="num">1</span>Zugriff auf ein einzelnes Zeichen mit [ ]</h2>
+    <p class="q">Wie kann ich mit <code>[]</code> auf ein einzelnes Zeichen zugreifen?</p>
+    <div class="row">
+      <label>String <input type="text" id="s1-str" class="wide" value="Hallo Welt"></label>
+      <label>Index <input type="number" id="s1-idx" value="4"></label>
+    </div>
+    <div class="chars" id="s1-chars"></div>
+    <pre class="code" id="s1-code"></pre>
+    <div id="s1-res"></div>
+    <div class="note">
+      <b>Merke:</b> Der erste Index ist <code>0</code>, der letzte ist <code>s.Length - 1</code>.
+      Ein Index außerhalb löst eine <code>IndexOutOfRangeException</code> aus.
+      Zeichen lassen sich nur <b>lesen</b>: <code>s[0] = 'X';</code> ergibt einen Compilerfehler, weil Strings unveränderlich sind.
+      Probiere es aus: Klicke auf ein Zeichen oder gib einen zu großen Index ein.
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section id="s2">
+    <h2><span class="num">2</span>Teilstrings mit Substring</h2>
+    <p class="q">Wie kann ich mit <code>Substring</code> auf einen Teilstring zugreifen?</p>
+    <div class="row">
+      <label>String <input type="text" id="s2-str" class="wide" value="Programmieren"></label>
+      <label>Startindex <input type="number" id="s2-start" value="3"></label>
+      <label>Länge <input type="number" id="s2-len" value="4"></label>
+    </div>
+    <div class="chars" id="s2-chars"></div>
+    <pre class="code" id="s2-code"></pre>
+    <div id="s2-res"></div>
+    <div class="note">
+      <b>Merke:</b> <code>Substring(start, länge)</code> – der zweite Parameter ist die <b>Länge</b>, nicht der Endindex!
+      <code>Substring(start)</code> liefert alles ab <code>start</code> bis zum Ende.
+      Alternativ gibt es seit C# 8 den Bereichsoperator <code>s[start..ende]</code> (Ende <i>exklusiv</i>).
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section id="s3">
+    <h2><span class="num">3</span>Einen String durchlaufen</h2>
+    <p class="q">Wie kann man einen String von vorne nach hinten durchlaufen?</p>
+    <div class="row">
+      <label>String <input type="text" id="s3-str" class="wide" value="Hallo"></label>
+      <button id="s3-step">Schritt ▶</button>
+      <button id="s3-auto" class="ghost">Automatisch</button>
+      <button id="s3-reset" class="ghost">Zurücksetzen</button>
+    </div>
+    <div class="chars" id="s3-chars"></div>
+    <pre class="code" id="s3-code"></pre>
+    <div class="out" id="s3-out"></div>
+    <p><b>Variante mit <code>foreach</code></b> (wenn man den Index nicht braucht):</p>
+    <pre class="code"><span class="k">foreach</span> (<span class="k">char</span> c <span class="k">in</span> s)
+{
+    Console.WriteLine(c);
+}</pre>
+    <p><b>Rückwärts durchlaufen:</b></p>
+    <pre class="code"><span class="k">for</span> (<span class="k">int</span> i = s.Length - <span class="n">1</span>; i &gt;= <span class="n">0</span>; i--)
+{
+    Console.Write(s[i]);   <span class="c">// "ollaH"</span>
+}</pre>
+    <div class="note"><b>Merke:</b> <code>for</code> braucht man, wenn der Index wichtig ist (z.&nbsp;B. Position merken, jedes 2. Zeichen). <code>foreach</code> ist kürzer, wenn nur jedes Zeichen der Reihe nach interessiert.</div>
+  </section>
+
+  <!-- 4 -->
+  <section id="s4">
+    <h2><span class="num">4</span>Zeichen testen mit char.Is…</h2>
+    <p class="q">Welche Methoden gibt es zum Testen einzelner Zeichen?</p>
+    <p>Hinweis: Eine Methode <code>char.IsAlpha</code> gibt es in C# <b>nicht</b> – der Buchstabentest heißt <code>char.IsLetter</code>.</p>
+
+    <h3>Ein einzelnes Zeichen prüfen</h3>
+    <div class="row"><label>Zeichen <input type="text" id="s4-char" maxlength="1" value="A" style="width:70px"></label></div>
+    <div class="scroll"><table>
+      <thead><tr><th>Aufruf</th><th>Ergebnis</th><th>Bedeutung</th></tr></thead>
+      <tbody id="s4-table"></tbody>
+    </table></div>
+
+    <h3>Ganzen String analysieren</h3>
+    <div class="row"><label>String <input type="text" id="s4-str" class="wide" value="Hallo Welt 2024! Ö?"></label></div>
+    <div class="chars" id="s4-chars"></div>
+    <div class="legend" id="s4-legend"></div>
+    <pre class="code" id="s4-code"></pre>
+    <div class="result" id="s4-res"></div>
+  </section>
+
+  <!-- 5 -->
+  <section id="s5">
+    <h2><span class="num">5</span>Ein char mit ToString() in einen String umwandeln</h2>
+    <p class="q">Wie kann ich ein einzelnes Zeichen mit <code>ToString()</code> in einen String umwandeln?</p>
+    <div class="row">
+      <label>Zeichen 1 <input type="text" id="s5-a" maxlength="1" value="a" style="width:70px"></label>
+      <label>Zeichen 2 <input type="text" id="s5-b" maxlength="1" value="b" style="width:70px"></label>
+    </div>
+    <div class="scroll"><table>
+      <thead><tr><th>Code</th><th>Typ</th><th>Ergebnis</th></tr></thead>
+      <tbody id="s5-table"></tbody>
+    </table></div>
+    <pre class="code"><span class="k">char</span> c = <span class="s">'a'</span>;
+<span class="k">string</span> t = c.ToString();     <span class="c">// "a"</span>
+<span class="k">string</span> u = s[0].ToString();  <span class="c">// erstes Zeichen von s als String</span></pre>
+    <div class="note">
+      <b>Stolperfalle:</b> <code>char + char</code> rechnet mit den Zeichencodes und ergibt eine <b>Zahl</b>.
+      Erst mit <code>ToString()</code> (oder einem String auf einer Seite) entsteht Text.
+    </div>
+  </section>
+</main>
+<footer>Strings in C# · interaktives Lernmaterial</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+// C#-Stringliteral
+const lit = s => '"' + s.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"';
+const clit = c => c === "'" ? "'\\''" : c === "\\" ? "'\\\\'" : "'" + c + "'";
+const show = c => c === " " ? "␣" : c;
+const intVal = (el, def = 0) => { const n = parseInt(el.value, 10); return isNaN(n) ? def : n; };
+const strOf = id => $(id).value;
+
+function charBoxes(container, s, cls = {}, onclick) {
+  container.innerHTML = "";
+  [...s].forEach((c, i) => {
+    const d = document.createElement("div");
+    d.className = "ch " + (cls[i] || "");
+    d.innerHTML = `<div class="i">${i}</div><div class="v">${esc(show(c))}</div>`;
+    if (onclick) d.onclick = () => onclick(i);
+    container.appendChild(d);
+  });
+}
+function res(id, text, err) { $(id).innerHTML = `<div class="result${err ? " err" : ""}">${esc(text)}</div>`; }
+const kw = t => `<span class="k">${t}</span>`;
+const st = t => `<span class="s">${esc(t)}</span>`;
+
+/* ---------- 1: [] ---------- */
+function upd1() {
+  const s = strOf("s1-str"), i = intVal($("s1-idx"));
+  const cls = {}; if (i >= 0 && i < s.length) cls[i] = "cur";
+  charBoxes($("s1-chars"), s, cls, k => { $("s1-idx").value = k; upd1(); });
+  $("s1-code").innerHTML =
+    `${kw("string")} s = ${st(lit(s))};\n${kw("char")} c = s[${i}];`;
+  if (i < 0 || i >= s.length)
+    res("s1-res", `IndexOutOfRangeException – Index ${i} liegt außerhalb von 0 bis ${s.length - 1} (s.Length = ${s.length})`, true);
+  else
+    res("s1-res", `c = ${clit(s[i])}   (Index ${i} von ${s.length} Zeichen, Code ${s.charCodeAt(i)})`);
+  if (s.length)
+    $("s1-res").innerHTML += `<div class="result">Letztes Zeichen: s[s.Length - 1] = ${esc(clit(s[s.length - 1]))}   ·   s[^1] = ${esc(clit(s[s.length - 1]))}</div>`;
+}
+
+/* ---------- 2: Substring ---------- */
+function upd2() {
+  const s = strOf("s2-str"), a = intVal($("s2-start")), n = intVal($("s2-len"));
+  const cls = {};
+  const ok = a >= 0 && n >= 0 && a + n <= s.length;
+  if (ok) for (let k = a; k < a + n; k++) cls[k] = "on";
+  charBoxes($("s2-chars"), s, cls);
+  $("s2-code").innerHTML =
+    `${kw("string")} s = ${st(lit(s))};\n${kw("string")} t = s.Substring(${a}, ${n});\n${kw("string")} u = s.Substring(${a});\n${kw("string")} v = s[${a}..${a + n}];`;
+  let h = "";
+  if (ok) h += `<div class="result">s.Substring(${a}, ${n}) = ${esc(lit(s.substr(a, n)))}</div>`;
+  else h += `<div class="result err">ArgumentOutOfRangeException – Start ${a} und Länge ${n} passen nicht in einen String der Länge ${s.length}</div>`;
+  if (a >= 0 && a <= s.length) {
+    h += `<div class="result">s.Substring(${a}) = ${esc(lit(s.substring(a)))}</div>`;
+  } else {
+    h += `<div class="result err">s.Substring(${a}) → ArgumentOutOfRangeException</div>`;
+  }
+  if (ok) h += `<div class="result">s[${a}..${a + n}] = ${esc(lit(s.substring(a, a + n)))}</div>`;
+  $("s2-res").innerHTML = h;
+}
+
+/* ---------- 3: Durchlaufen ---------- */
+let pos3 = -1, timer3 = null;
+function upd3() {
+  const s = strOf("s3-str");
+  if (pos3 >= s.length) pos3 = s.length - 1;
+  const cls = {};
+  for (let k = 0; k < s.length; k++) if (k < pos3) cls[k] = "done";
+  if (pos3 >= 0) cls[pos3] = "cur";
+  charBoxes($("s3-chars"), s, cls);
+  $("s3-code").innerHTML =
+    `${kw("string")} s = ${st(lit(s))};\n${kw("for")} (${kw("int")} i = 0; i &lt; s.Length; i++)\n{\n    ${kw("char")} c = s[i];   <span class="c">// i = ${pos3 < 0 ? "–" : pos3}${pos3 >= 0 ? ", c = " + esc(clit(s[pos3])) : ""}</span>\n    Console.WriteLine(c);\n}`;
+  $("s3-out").textContent = pos3 < 0 ? "(Ausgabe erscheint hier)" : [...s.slice(0, pos3 + 1)].map(show).join("\n").replace(/\n/g, " ⏎ ");
+  $("s3-step").disabled = pos3 >= s.length - 1 || s.length === 0;
+}
+function step3() {
+  const s = strOf("s3-str");
+  if (pos3 < s.length - 1) pos3++;
+  upd3();
+  if (pos3 >= s.length - 1) stop3();
+}
+function stop3() { clearInterval(timer3); timer3 = null; $("s3-auto").textContent = "Automatisch"; }
+$("s3-step").onclick = step3;
+$("s3-auto").onclick = () => {
+  if (timer3) return stop3();
+  if (pos3 >= strOf("s3-str").length - 1) pos3 = -1;
+  $("s3-auto").textContent = "Stopp";
+  timer3 = setInterval(step3, 600);
+};
+$("s3-reset").onclick = () => { stop3(); pos3 = -1; upd3(); };
+$("s3-str").oninput = () => { stop3(); pos3 = -1; upd3(); };
+
+/* ---------- 4: char-Tests ---------- */
+const tests = [
+  ["char.IsDigit(c)",        c => /\p{Nd}/u.test(c),         "Ziffer 0–9"],
+  ["char.IsLetter(c)",       c => /\p{L}/u.test(c),          "Buchstabe (auch Ä, Ö, ß …)"],
+  ["char.IsLetterOrDigit(c)",c => /[\p{L}\p{Nd}]/u.test(c),  "Buchstabe oder Ziffer"],
+  ["char.IsUpper(c)",        c => /\p{Lu}/u.test(c),         "Großbuchstabe"],
+  ["char.IsLower(c)",        c => /\p{Ll}/u.test(c),         "Kleinbuchstabe"],
+  ["char.IsWhiteSpace(c)",   c => /\s/.test(c),              "Leerzeichen, Tab, Zeilenumbruch"],
+  ["char.IsPunctuation(c)",  c => /\p{P}/u.test(c),          "Satzzeichen . , ! ? : ; - ( )"],
+  ["char.IsSymbol(c)",       c => /\p{S}/u.test(c),          "Symbol + = &lt; &gt; $ ^ ~"],
+];
+function upd4a() {
+  const c = strOf("s4-char");
+  let h = "";
+  if (!c) h = `<tr><td colspan="3">Bitte ein Zeichen eingeben.</td></tr>`;
+  else {
+    tests.forEach(([name, f, desc]) => {
+      const r = f(c);
+      h += `<tr><td><code>${name}</code></td><td class="${r ? "t" : "f"}">${r}</td><td>${desc}</td></tr>`;
+    });
+    h += `<tr><td><code>char.ToUpper(c)</code></td><td><code>${esc(clit(c.toUpperCase()[0]))}</code></td><td>in Großbuchstaben</td></tr>`;
+    h += `<tr><td><code>char.ToLower(c)</code></td><td><code>${esc(clit(c.toLowerCase()[0]))}</code></td><td>in Kleinbuchstaben</td></tr>`;
+    h += `<tr><td><code>(int)c</code></td><td><code>${c.charCodeAt(0)}</code></td><td>Zeichencode (Unicode)</td></tr>`;
+  }
+  $("s4-table").innerHTML = h;
+}
+const classes = [
+  ["Ziffer",       "var(--ok-soft)",  "var(--ok)",  c => /\p{Nd}/u.test(c)],
+  ["Großbuchst.",  "var(--accent-soft)", "var(--accent)", c => /\p{Lu}/u.test(c)],
+  ["Kleinbuchst.", "var(--hl)",       "var(--text)", c => /\p{Ll}/u.test(c)],
+  ["Leerzeichen",  "var(--line)",     "var(--text)", c => /\s/.test(c)],
+  ["Satz-/Sonderz.","var(--bad-soft)","var(--bad)", c => true],
+];
+function upd4b() {
+  const s = strOf("s4-str");
+  const counts = { digit: 0, letter: 0, upper: 0, lower: 0, space: 0, other: 0 };
+  const box = $("s4-chars"); box.innerHTML = "";
+  [...s].forEach((c, i) => {
+    const k = classes.findIndex(x => x[3](c));
+    if (/\p{Nd}/u.test(c)) counts.digit++;
+    if (/\p{L}/u.test(c)) counts.letter++;
+    if (/\p{Lu}/u.test(c)) counts.upper++;
+    if (/\p{Ll}/u.test(c)) counts.lower++;
+    if (/\s/.test(c)) counts.space++;
+    const d = document.createElement("div");
+    d.className = "ch";
+    d.style.background = classes[k][1]; d.style.color = classes[k][2];
+    d.innerHTML = `<div class="i">${i}</div><div class="v">${esc(show(c))}</div>`;
+    box.appendChild(d);
+  });
+  $("s4-legend").innerHTML = classes.map(c =>
+    `<span><span class="tag" style="background:${c[1]};color:${c[2]}">&nbsp;&nbsp;</span> ${c[0]}</span>`).join("");
+  $("s4-code").innerHTML =
+`${kw("int")} digits = 0, letters = 0, uppers = 0;
+${kw("foreach")} (${kw("char")} c ${kw("in")} s)
+{
+    ${kw("if")} (${kw("char")}.IsDigit(c))  digits++;
+    ${kw("if")} (${kw("char")}.IsLetter(c)) letters++;
+    ${kw("if")} (${kw("char")}.IsUpper(c))  uppers++;
+}`;
+  $("s4-res").textContent =
+    `digits = ${counts.digit}, letters = ${counts.letter}, uppers = ${counts.upper}  (Länge ${s.length})`;
+}
+
+/* ---------- 5: ToString ---------- */
+function upd5() {
+  const a = strOf("s5-a"), b = strOf("s5-b");
+  const rows = [];
+  if (a) {
+    rows.push([`c1.ToString()`, "string", lit(a)]);
+    rows.push([`c1 + ""`, "string", lit(a)]);
+  }
+  if (a && b) {
+    const sum = a.charCodeAt(0) + b.charCodeAt(0);
+    rows.push([`c1 + c2`, "int  ⚠", String(sum) + `  (${a.charCodeAt(0)} + ${b.charCodeAt(0)})`]);
+    rows.push([`c1.ToString() + c2`, "string", lit(a + b)]);
+    rows.push([`c1.ToString() + c2.ToString()`, "string", lit(a + b)]);
+    rows.push([`"" + c1 + c2`, "string", lit(a + b)]);
+    rows.push([`string.Concat(c1, c2)`, "string", lit(a + b)]);
+  }
+  $("s5-table").innerHTML = rows.length
+    ? rows.map(r => `<tr><td><code>${esc(r[0])}</code></td><td>${esc(r[1])}</td><td><code>${esc(r[2])}</code></td></tr>`).join("")
+    : `<tr><td colspan="3">Bitte Zeichen eingeben.</td></tr>`;
+}
+
+["s1-str","s1-idx"].forEach(i => $(i).oninput = upd1);
+["s2-str","s2-start","s2-len"].forEach(i => $(i).oninput = upd2);
+$("s4-char").oninput = upd4a;
+$("s4-str").oninput = upd4b;
+["s5-a","s5-b"].forEach(i => $(i).oninput = upd5);
+upd1(); upd2(); upd3(); upd4a(); upd4b(); upd5();
+</script>
+</body>
+</html>

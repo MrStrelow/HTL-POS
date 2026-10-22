@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C# 2D-Gitter & Named Tuples: Euklidische Distanz (y = k*x + d)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; }
+        .font-code { font-family: 'Fira Code', monospace; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+        @keyframes fadeInCode {
+            from { opacity: 0; transform: translateX(-6px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .code-appear { animation: fadeInCode 0.2s ease-out forwards; }
+
+        @keyframes pulseCell {
+            0% { transform: scale(1.25); filter: brightness(1.4); }
+            100% { transform: scale(1); filter: brightness(1); }
+        }
+        .cell-pop { animation: pulseCell 0.4s ease-out forwards; }
+
+        .line-active { background-color: rgba(56, 189, 248, 0.18); border-left: 4px solid #38bdf8; }
+        .line-normal { border-left: 4px solid transparent; }
+
+        .file-cursor { background-color: rgba(245, 158, 11, 0.2); border-left: 4px solid #f59e0b; }
+        .file-written { background-color: rgba(16, 185, 129, 0.2); border-left: 4px solid #10b981; }
+
+        .tab-active { background-color: #0284c7; color: #ffffff; border-color: #38bdf8; }
+        .tab-inactive { background-color: #1e293b; color: #94a3b8; border-color: #334155; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+    <header class="bg-slate-900 border-b border-slate-800 px-4 py-2.5 shrink-0 flex flex-wrap items-center justify-between gap-3 shadow-md z-20">
+        <div>
+            <h1 class="text-xl font-bold text-sky-400 tracking-tight">C# 2D-Gitter (0/0 oben links) &amp; Lineare Funktion (y = k·x + d)</h1>
+            <p class="text-xs text-slate-400">Farbiger Code + Festplatten-Ansicht (<code class="text-amber-300">coords.txt</code>) + Schrittweises Einzeichnen der Geradenpunkte</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <button id="tab-t1" onclick="switchTask('task1')" class="tab-active px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all">
+                1. File schreiben/lesen, Named Tuples &amp; Distanz (11 Schritte)
+            </button>
+            <button id="tab-t2" onclick="switchTask('task2')" class="tab-inactive px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all">
+                2. 2D-Gitter &amp; Gerade y = k·x + d zeichnen (10 Schritte)
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden p-3.5 gap-4 bg-slate-950">
+        <!-- Left: Colored C# Code -->
+        <section class="flex-1 lg:flex-[1.25] bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+            <div class="bg-slate-950 py-2 px-4 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-rose-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+                    <span id="code-title" class="ml-2 text-xs font-semibold text-slate-400 uppercase tracking-widest font-code">Program.cs</span>
+                </div>
+                <span class="text-[11px] font-code text-sky-400">Colored Code (zeilenweise)</span>
+            </div>
+            <div id="code-container" class="flex-1 overflow-y-auto p-3 font-code text-[12.5px] leading-6"></div>
+        </section>
+
+        <!-- Right: Disk File + Stack/Tuple Variables + 2D Grid Board -->
+        <section class="flex-1 lg:flex-[1.75] flex flex-col gap-3 overflow-hidden">
+            
+            <!-- Top Row: Festplatte (coords.txt) & Named Tuple / Variablen -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 shrink-0">
+                <!-- Festplatte coords.txt -->
+                <div class="bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-xl">
+                    <div class="bg-slate-950 py-1.5 px-3 border-b border-slate-800 flex items-center justify-between">
+                        <div class="flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <span class="text-[11px] font-semibold text-amber-300 uppercase tracking-wider font-code">Festplatte: coords.txt</span>
+                        </div>
+                        <span id="file-status" class="text-[10px] font-code px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">CLOSED</span>
+                    </div>
+                    <div id="file-body" class="p-2.5 font-code text-xs space-y-1 bg-slate-900/60 min-h-[68px]"></div>
+                </div>
+
+                <!-- Stack & Named Tuple Variablen -->
+                <div class="bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-xl">
+                    <div class="bg-slate-950 py-1.5 px-3 border-b border-slate-800 flex items-center justify-between">
+                        <span class="text-[11px] font-semibold text-sky-300 uppercase tracking-wider font-code">Call Stack &amp; Named Tuples</span>
+                        <span class="text-[10px] font-code text-emerald-400">((int X, int Y) Start, (int X, int Y) Ziel)</span>
+                    </div>
+                    <div id="vars-body" class="p-2.5 font-code text-xs space-y-1 bg-slate-900/60 min-h-[68px]"></div>
+                </div>
+            </div>
+
+            <!-- Formula Bar (Full width, never cut off) -->
+            <div class="bg-slate-900 border border-sky-500/40 rounded-xl p-2.5 px-4 shadow flex flex-wrap items-center justify-between gap-2 shrink-0 font-code text-xs">
+                <div class="flex items-center gap-2.5">
+                    <span class="px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 font-bold border border-sky-500/40">Lineare Funktion</span>
+                    <span class="text-white font-bold">y = k &middot; x + d</span>
+                </div>
+                <div id="formula-status" class="text-slate-200 font-bold">
+                    Ursprung in S(1,1) &rArr; d = 0 | k = (5 - 1) / (6 - 1) = 0.80
+                </div>
+            </div>
+
+            <!-- Bottom: 2D Grid Visualizer (0/0 Top-Left) -->
+            <div class="flex-1 bg-slate-900 rounded-xl border border-slate-800 flex flex-col items-center justify-between p-3 overflow-hidden relative min-h-0">
+                <div class="w-full flex justify-between items-center text-xs font-code px-2">
+                    <span class="text-slate-400">2D-Array Koordinaten: <strong class="text-emerald-300">Oben links ist (0/0)</strong> | <strong class="text-sky-300">x &rarr; rechts, y &darr; unten</strong></span>
+                    <div class="flex gap-3">
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-emerald-500 inline-block"></span> S (1,1)</span>
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-rose-500 inline-block"></span> Z (6,5)</span>
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-sky-400 inline-block"></span> * Gerade (k&middot;x + d)</span>
+                    </div>
+                </div>
+
+                <div class="relative my-auto select-none">
+                    <div id="board-grid" class="grid grid-cols-9 gap-1 font-code text-xs"></div>
+                    <svg id="graph-overlay" class="absolute inset-0 pointer-events-none" width="340" height="340" viewBox="0 0 340 340"></svg>
+                </div>
+
+                <div id="console-footer" class="w-full max-w-[580px] bg-slate-950 border border-slate-800 rounded-lg px-4 py-1.5 font-code text-xs text-center text-emerald-300 font-bold shadow-inner"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-slate-900 border-t border-slate-800 shrink-0 p-3">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 max-w-[1600px] mx-auto items-center">
+            <div class="lg:col-span-2 bg-slate-950 border border-slate-800 rounded-lg p-3 min-h-[72px] flex flex-col justify-center">
+                <h3 class="text-[11px] uppercase font-bold text-sky-400 mb-0.5 tracking-wider" id="step-title"></h3>
+                <p id="explanation-text" class="text-xs text-slate-200 leading-relaxed"></p>
+            </div>
+            <div class="flex flex-col items-center justify-center gap-1">
+                <div class="flex items-center gap-3">
+                    <button id="btn-prev" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg disabled:opacity-30 text-xs font-medium border border-slate-700">&larr; Zurück</button>
+                    <div class="bg-slate-950 px-3.5 py-1.5 rounded-lg border border-slate-800 font-code text-xs min-w-[85px] text-center">
+                        <span id="step-current" class="text-sky-400 font-bold"></span><span class="text-slate-500">/</span><span id="step-total" class="text-slate-400"></span>
+                    </div>
+                    <button id="btn-next" class="px-4 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg disabled:opacity-30 text-xs font-bold border border-sky-500">Weiter &rarr;</button>
+                </div>
+                <span class="text-[10px] text-slate-500">Pfeiltasten &larr; / &rarr;</span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const tasks = {
+            task1: {
+                title: "Aufgabe1_FileUndNamedTuples.cs",
+                code: [
+                    /* 0*/ "<span class='text-pink-400'>using</span> System;",
+                    /* 1*/ "<span class='text-pink-400'>using</span> System.IO;",
+                    /* 2*/ "",
+                    /* 3*/ "<span class='text-pink-400'>static void</span> <span class='text-sky-300'>Main</span>()",
+                    /* 4*/ "{",
+                    /* 5*/ "    <span class='text-pink-400'>string</span> pfad = <span class='text-amber-300'>&quot;coords.txt&quot;</span>;",
+                    /* 6*/ "    <span class='text-sky-300'>SchreibeDatei</span>(pfad);",
+                    /* 7*/ "    var punkte = <span class='text-sky-300'>LeseKoordinaten</span>(pfad);",
+                    /* 8*/ "    <span class='text-pink-400'>double</span> distanz = <span class='text-sky-300'>BerechneEuklid</span>(punkte.Start, punkte.Ziel);",
+                    /* 9*/ "    <span class='text-teal-300'>Console</span>.<span class='text-sky-300'>WriteLine</span>(<span class='text-amber-300'>$&quot;Start: ({punkte.Start.X}|{punkte.Start.Y}), Ziel: ({punkte.Ziel.X}|{punkte.Ziel.Y}) -&gt; Distanz: {distanz:F2}&quot;</span>);",
+                    /*10*/ "}",
+                    /*11*/ "",
+                    /*12*/ "<span class='text-pink-400'>static void</span> <span class='text-sky-300'>SchreibeDatei</span>(<span class='text-pink-400'>string</span> pfad)",
+                    /*13*/ "{",
+                    /*14*/ "    <span class='text-pink-400'>string</span>[] zeilen = { <span class='text-amber-300'>&quot;1;1&quot;</span>, <span class='text-amber-300'>&quot;6;5&quot;</span> };",
+                    /*15*/ "    <span class='text-teal-300'>File</span>.<span class='text-sky-300'>WriteAllLines</span>(pfad, zeilen);",
+                    /*16*/ "}",
+                    /*17*/ "",
+                    /*18*/ "<span class='text-pink-400'>static</span> ((<span class='text-pink-400'>int</span> X, <span class='text-pink-400'>int</span> Y) Start, (<span class='text-pink-400'>int</span> X, <span class='text-pink-400'>int</span> Y) Ziel) <span class='text-sky-300'>LeseKoordinaten</span>(<span class='text-pink-400'>string</span> pfad)",
+                    /*19*/ "{",
+                    /*20*/ "    <span class='text-pink-400'>string</span>[] lines = <span class='text-teal-300'>File</span>.<span class='text-sky-300'>ReadAllLines</span>(pfad);",
+                    /*21*/ "    <span class='text-pink-400'>string</span>[] p1 = lines[<span class='text-emerald-400'>0</span>].<span class='text-sky-300'>Split</span>(<span class='text-amber-300'>';'</span>);",
+                    /*22*/ "    <span class='text-pink-400'>string</span>[] p2 = lines[<span class='text-emerald-400'>1</span>].<span class='text-sky-300'>Split</span>(<span class='text-amber-300'>';'</span>);",
+                    /*23*/ "    <span class='text-pink-400'>int</span>.<span class='text-sky-300'>TryParse</span>(p1[<span class='text-emerald-400'>0</span>], <span class='text-pink-400'>out int</span> sx);",
+                    /*24*/ "    <span class='text-pink-400'>int</span>.<span class='text-sky-300'>TryParse</span>(p1[<span class='text-emerald-400'>1</span>], <span class='text-pink-400'>out int</span> sy);",
+                    /*25*/ "    <span class='text-pink-400'>int</span>.<span class='text-sky-300'>TryParse</span>(p2[<span class='text-emerald-400'>0</span>], <span class='text-pink-400'>out int</span> zx);",
+                    /*26*/ "    <span class='text-pink-400'>int</span>.<span class='text-sky-300'>TryParse</span>(p2[<span class='text-emerald-400'>1</span>], <span class='text-pink-400'>out int</span> zy);",
+                    /*27*/ "    <span class='text-pink-400'>return</span> ((sx, sy), (zx, zy));",
+                    /*28*/ "}",
+                    /*29*/ "",
+                    /*30*/ "<span class='text-pink-400'>static double</span> <span class='text-sky-300'>BerechneEuklid</span>((<span class='text-pink-400'>int</span> X, <span class='text-pink-400'>int</span> Y) start, (<span class='text-pink-400'>int</span> X, <span class='text-pink-400'>int</span> Y) ziel)",
+                    /*31*/ "{",
+                    /*32*/ "    <span class='text-pink-400'>int</span> dx = ziel.X - start.X;",
+                    /*33*/ "    <span class='text-pink-400'>int</span> dy = ziel.Y - start.Y;",
+                    /*34*/ "    <span class='text-pink-400'>return</span> <span class='text-teal-300'>Math</span>.<span class='text-sky-300'>Sqrt</span>(dx * dx + dy * dy);",
+                    /*35*/ "}"
+                ],
+                steps: [
+                    {
+                        maxL: 5, actL: 5, fSt: "NICHT VORHANDEN", fLines: [],
+                        vars: { "Main: pfad": "\"coords.txt\"" },
+                        formula: "Bereit zum Schreiben der Koordinaten",
+                        stars: 0, showPoints: false, showLine: false,
+                        footer: "// Konsole noch leer",
+                        title: "Schritt 1: Programmstart in Main()",
+                        desc: "Wir legen den Dateinamen <code>pfad = \"coords.txt\"</code> fest. Auf der Festplatte existiert die Datei noch nicht."
+                    },
+                    {
+                        maxL: 6, actL: 6, fSt: "NICHT VORHANDEN", fLines: [],
+                        vars: { "Main: pfad": "\"coords.txt\"" },
+                        formula: "Aufruf von SchreibeDatei(pfad)",
+                        stars: 0, showPoints: false, showLine: false,
+                        footer: "// Springe in SchreibeDatei()",
+                        title: "Schritt 2: Methode SchreibeDatei(pfad) aufrufen",
+                        desc: "<code>Main()</code> ruft die Methode <code>SchreibeDatei(pfad)</code> auf."
+                    },
+                    {
+                        maxL: 16, actL: 15, fSt: "OPEN -> WRITE -> CLOSED",
+                        fLines: [{ t: "1;1", c: "file-written" }, { t: "6;5", c: "file-written" }],
+                        vars: { "zeilen[0]": "\"1;1\"", "zeilen[1]": "\"6;5\"" },
+                        formula: "Start (1|1) und Ziel (6|5) auf Festplatte gespeichert",
+                        stars: 0, showPoints: false, showLine: false,
+                        footer: "// coords.txt wurde auf der Festplatte angelegt",
+                        title: "Schritt 3: File.WriteAllLines schreibt '1;1' und '6;5' auf die Festplatte",
+                        desc: "In <code>SchreibeDatei()</code> wird das Array <code>{ \"1;1\", \"6;5\" }</code> angelegt und mit <code>File.WriteAllLines</code> in <code>coords.txt</code> geschrieben."
+                    },
+                    {
+                        maxL: 20, actL: 20, fSt: "OPEN -> READ ALL -> CLOSED",
+                        fLines: [{ t: "1;1 &larr; lines[0]", c: "file-cursor" }, { t: "6;5 &larr; lines[1]", c: "file-cursor" }],
+                        vars: { "lines": "[\"1;1\", \"6;5\"]" },
+                        formula: "LeseKoordinaten() liest beide Zeilen ein",
+                        stars: 0, showPoints: false, showLine: false,
+                        footer: "// Dateiinhalt liegt jetzt in lines[]",
+                        title: "Schritt 4: LeseKoordinaten() lädt Datei mit File.ReadAllLines",
+                        desc: "Nun rufen wir <code>LeseKoordinaten(pfad)</code> auf. <code>File.ReadAllLines</code> liest beide Zeilen von der Festplatte in das Array <code>lines[]</code>."
+                    },
+                    {
+                        maxL: 22, actL: 22, fSt: "CLOSED",
+                        fLines: [{ t: "1;1", c: "" }, { t: "6;5", c: "" }],
+                        vars: { "p1": "[\"1\", \"1\"]", "p2": "[\"6\", \"5\"]" },
+                        formula: "Strings am Semikolon ';' getrennt",
+                        stars: 0, showPoints: false, showLine: false,
+                        footer: "// Teilstrings bereit für TryParse",
+                        title: "Schritt 5: Zeilen mit Split(';') zerlegen",
+                        desc: "<code>lines[0].Split(';')</code> liefert <code>p1 = [\"1\", \"1\"]</code> und <code>lines[1].Split(';')</code> liefert <code>p2 = [\"6\", \"5\"]</code>."
+                    },
+                    {
+                        maxL: 26, actL: 26, fSt: "CLOSED",
+                        fLines: [{ t: "1;1", c: "" }, { t: "6;5", c: "" }],
+                        vars: { "sx, sy": "1, 1", "zx, zy": "6, 5" },
+                        formula: "int.TryParse hat alle 4 Koordinaten in int umgewandelt",
+                        stars: 0, showPoints: true, showLine: false,
+                        footer: "// Koordinaten im 2D-Gitter: S(1,1) und Z(6,5)",
+                        title: "Schritt 6: Umwandlung in Integer mit int.TryParse",
+                        desc: "Alle 4 Koordinaten werden mit <code>int.TryParse</code> in die Variablen <code>sx = 1, sy = 1</code> und <code>zx = 6, zy = 5</code> geparst. Im 2D-Gitter (0/0 oben links!) erscheinen <code>S</code> und <code>Z</code>."
+                    },
+                    {
+                        maxL: 28, actL: 27, fSt: "CLOSED",
+                        fLines: [{ t: "1;1", c: "" }, { t: "6;5", c: "" }],
+                        vars: { "punkte.Start": "(X: 1, Y: 1)", "punkte.Ziel": "(X: 6, Y: 5)" },
+                        formula: "Return als Named Tuple ((sx, sy), (zx, zy))",
+                        stars: 0, showPoints: true, showLine: false,
+                        footer: "// Named Tuple an Main() übergeben",
+                        title: "Schritt 7: Rückgabe als Named Tuple an Main()",
+                        desc: "<code>return ((sx, sy), (zx, zy));</code> packt beide Punkte in ein <strong>Named Tuple</strong>. In <code>Main()</code> heißt das Ergebnis <code>punkte</code> mit <code>punkte.Start</code> und <code>punkte.Ziel</code>."
+                    },
+                    {
+                        maxL: 31, actL: 30, fSt: "CLOSED",
+                        fLines: [{ t: "1;1", c: "" }, { t: "6;5", c: "" }],
+                        vars: { "start": "(X: 1, Y: 1)", "ziel": "(X: 6, Y: 5)" },
+                        formula: "Übergabe der Tupel an BerechneEuklid(start, ziel)",
+                        stars: 0, showPoints: true, showLine: false,
+                        footer: "// BerechneEuklid() gestartet",
+                        title: "Schritt 8: Aufruf von BerechneEuklid(punkte.Start, punkte.Ziel)",
+                        desc: "Wir übergeben die beiden Tupel direkt als Parameter an die Funktion <code>BerechneEuklid</code>."
+                    },
+                    {
+                        maxL: 33, actL: 33, fSt: "CLOSED",
+                        fLines: [{ t: "1;1", c: "" }, { t: "6;5", c: "" }],
+                        vars: { "dx": "6 - 1 = 5", "dy": "5 - 1 = 4" },
+                        formula: "Abstände: dx = ziel.X - start.X = 5 | dy = ziel.Y - start.Y = 4",
+                        stars: 0, showPoints: true, showLine: false,
+                        footer: "// Katheten dx = 5 und dy = 4 berechnet",
+                        title: "Schritt 9: Katheten dx und dy aus den Tupeln berechnen",
+                        desc: "Über <code>ziel.X - start.X</code> erhalten wir <code>dx = 5</code> Schritte nach rechts, über <code>ziel.Y - start.Y</code> erhalten wir <code>dy = 4</code> Schritte nach unten."
+                    },
+                    {
+                        maxL: 35, actL: 34, fSt: "CLOSED",
+                        fLines: [{ t: "1;1", c: "" }, { t: "6;5", c: "" }],
+                        vars: { "dx*dx + dy*dy": "25 + 16 = 41", "Return Sqrt(41)": "6.4031..." },
+                        formula: "Euklid = Sqrt(5² + 4²) = Sqrt(41) ≈ 6.40",
+                        stars: 0, showPoints: true, showLine: true,
+                        footer: "// Rückgabewert distanz = 6.40",
+                        title: "Schritt 10: Satz des Pythagoras mit Math.Sqrt()",
+                        desc: "<code>Math.Sqrt(dx * dx + dy * dy)</code> berechnet die direkte Luftlinie (Euklidische Distanz) $\\sqrt{25 + 16} = \\sqrt{41} \\approx 6.40$."
+                    },
+                    {
+                        maxL: 35, actL: 9, fSt: "CLOSED",
+                        fLines: [{ t: "1;1", c: "" }, { t: "6;5", c: "" }],
+                        vars: { "punkte.Start": "(1|1)", "punkte.Ziel": "(6|5)", "distanz": "6.40" },
+                        formula: "Ausgabe mit Interpolated String $\"... {distanz:F2}\"",
+                        stars: 0, showPoints: true, showLine: true,
+                        footer: "Start: (1|1), Ziel: (6|5) -> Distanz: 6.40",
+                        title: "Schritt 11: Konsolenausgabe mit Interpolated String in Main()",
+                        desc: "In Zeile 10 gibt <code>Console.WriteLine($\"...\")</code> die Koordinaten aus dem Named Tuple und die auf 2 Nachkommastellen formatierte Distanz aus."
+                    }
+                ]
+            },
+            task2: {
+                title: "Aufgabe2_GitterUndGeradeZeichnen.cs",
+                code: [
+                    /* 0*/ "<span class='text-pink-400'>static void</span> <span class='text-sky-300'>Main</span>()",
+                    /* 1*/ "{",
+                    /* 2*/ "    var punkte = <span class='text-sky-300'>LeseKoordinaten</span>(<span class='text-amber-300'>&quot;coords.txt&quot;</span>);",
+                    /* 3*/ "    <span class='text-pink-400'>double</span> distanz = <span class='text-sky-300'>BerechneEuklid</span>(punkte.Start, punkte.Ziel);",
+                    /* 4*/ "    <span class='text-sky-300'>ZeichneGitter</span>(punkte.Start, punkte.Ziel, distanz, mitLinie: <span class='text-pink-400'>false</span>);",
+                    /* 5*/ "    <span class='text-sky-300'>ZeichneGitter</span>(punkte.Start, punkte.Ziel, distanz, mitLinie: <span class='text-pink-400'>true</span>);",
+                    /* 6*/ "}",
+                    /* 7*/ "",
+                    /* 8*/ "<span class='text-pink-400'>static void</span> <span class='text-sky-300'>ZeichneGitter</span>((<span class='text-pink-400'>int</span> X, <span class='text-pink-400'>int</span> Y) start, (<span class='text-pink-400'>int</span> X, <span class='text-pink-400'>int</span> Y) ziel, <span class='text-pink-400'>double</span> dist, <span class='text-pink-400'>bool</span> mitLinie)",
+                    /* 9*/ "{",
+                    /*10*/ "    <span class='text-pink-400'>double</span> k = (<span class='text-pink-400'>double</span>)(ziel.Y - start.Y) / (ziel.X - start.X);",
+                    /*11*/ "    <span class='text-pink-400'>for</span> (<span class='text-pink-400'>int</span> y = <span class='text-emerald-400'>0</span>; y &lt; <span class='text-emerald-400'>8</span>; y++) <span class='text-slate-500'>// y=0 ist oben (2D-Array Zeile)</span>",
+                    /*12*/ "    {",
+                    /*13*/ "        <span class='text-pink-400'>for</span> (<span class='text-pink-400'>int</span> x = <span class='text-emerald-400'>0</span>; x &lt; <span class='text-emerald-400'>8</span>; x++) <span class='text-slate-500'>// x=0 ist links (2D-Array Spalte)</span>",
+                    /*14*/ "        {",
+                    /*15*/ "            <span class='text-pink-400'>int</span> xLokal = x - start.X;",
+                    /*16*/ "            <span class='text-pink-400'>int</span> yGerade = start.Y + (<span class='text-pink-400'>int</span>)<span class='text-teal-300'>Math</span>.<span class='text-sky-300'>Round</span>(k * xLokal);",
+                    /*17*/ "            <span class='text-pink-400'>if</span> (x == start.X &amp;&amp; y == start.Y)",
+                    /*18*/ "            {",
+                    /*19*/ "                <span class='text-teal-300'>Console</span>.<span class='text-sky-300'>Write</span>(<span class='text-amber-300'>&quot;S &quot;</span>);",
+                    /*20*/ "            }",
+                    /*21*/ "            <span class='text-pink-400'>else if</span> (x == ziel.X &amp;&amp; y == ziel.Y)",
+                    /*22*/ "            {",
+                    /*23*/ "                <span class='text-teal-300'>Console</span>.<span class='text-sky-300'>Write</span>(<span class='text-amber-300'>&quot;Z &quot;</span>);",
+                    /*24*/ "            }",
+                    /*25*/ "            <span class='text-pink-400'>else if</span> (mitLinie &amp;&amp; x &gt; start.X &amp;&amp; x &lt; ziel.X &amp;&amp; y == yGerade)",
+                    /*26*/ "            {",
+                    /*27*/ "                <span class='text-teal-300'>Console</span>.<span class='text-sky-300'>Write</span>(<span class='text-amber-300'>&quot;* &quot;</span>);",
+                    /*28*/ "            }",
+                    /*29*/ "            <span class='text-pink-400'>else</span>",
+                    /*30*/ "            {",
+                    /*31*/ "                <span class='text-teal-300'>Console</span>.<span class='text-sky-300'>Write</span>(<span class='text-amber-300'>&quot;. &quot;</span>);",
+                    /*32*/ "            }",
+                    /*33*/ "        }",
+                    /*34*/ "        <span class='text-teal-300'>Console</span>.<span class='text-sky-300'>WriteLine</span>();",
+                    /*35*/ "    }",
+                    /*36*/ "    <span class='text-teal-300'>Console</span>.<span class='text-sky-300'>WriteLine</span>(<span class='text-amber-300'>$&quot;Euklid-Distanz: {dist:F2} (Gerade y = {k:F2}*x + 0)&quot;</span>);",
+                    /*37*/ "}"
+                ],
+                steps: [
+                    {
+                        maxL: 4, actL: 4, fSt: "CLOSED",
+                        fLines: [{ t: "1;1", c: "" }, { t: "6;5", c: "" }],
+                        vars: { "start": "(1, 1)", "ziel": "(6, 5)", "mitLinie": "false" },
+                        formula: "1. Aufruf: ZeichneGitter(..., mitLinie: false)",
+                        stars: 0, showPoints: true, showLine: false,
+                        footer: "Euklid-Distanz: 6.40 (Gerade y = 0.80*x + 0)",
+                        title: "Schritt 1: Erster Aufruf ohne Linie (Nur Start 'S' & Ziel 'Z')",
+                        desc: "Beim ersten Aufruf ist <code>mitLinie = false</code>. Das Gitter startet wie ein 2D-Array oben links bei <code>(0,0)</code> und zeichnet nur <code>S</code> bei <code>(1,1)</code> und <code>Z</code> bei <code>(6,5)</code>."
+                    },
+                    {
+                        maxL: 6, actL: 5, fSt: "CLOSED",
+                        fLines: [{ t: "1;1", c: "" }, { t: "6;5", c: "" }],
+                        vars: { "start": "(1, 1)", "ziel": "(6, 5)", "mitLinie": "true" },
+                        formula: "2. Aufruf: ZeichneGitter(..., mitLinie: true)",
+                        stars: 0, showPoints: true, showLine: true,
+                        footer: "// Starte Zeichnen der Geraden y = k*x + d",
+                        title: "Schritt 2: Zweiter Aufruf mit Linie (mitLinie: true)",
+                        desc: "Jetzt wollen wir die Euklidische Distanz durch eine Gerade zwischen Start und Ziel im Gitter annähern."
+                    },
+                    {
+                        maxL: 10, actL: 10, fSt: "CLOSED",
+                        fLines: [{ t: "1;1", c: "" }, { t: "6;5", c: "" }],
+                        vars: { "ziel.Y - start.Y": "4", "ziel.X - start.X": "5", "k": "0.80", "d": "0 (Ursprung in S)" },
+                        formula: "k = (5 - 1) / (6 - 1) = 4.0 / 5.0 = 0.80 | d = 0",
+                        stars: 0, showPoints: true, showLine: true,
+                        footer: "// Steigung k = 0.80 berechnet",
+                        title: "Schritt 3: Steigung k für y = k·x + d berechnen",
+                        desc: "Da wir das lokale Koordinatensystem direkt in den Startpunkt <code>S(1,1)</code> legen, ist der Achsenabschnitt <code>d = 0</code>. Die Steigung ist <code>k = (double)(5 - 1) / (6 - 1) = 0.80</code>."
+                    },
+                    {
+                        maxL: 14, actL: 13, fSt: "CLOSED",
+                        fLines: [{ t: "1;1", c: "" }, { t: "6;5", c: "" }],
+                        vars: { "y (Zeile)": "0 .. 7 (von oben nach unten)", "x (Spalte)": "0 .. 7 (von links nach rechts)" },
+                        formula: "2D-Schleifen starten oben links bei (x=0, y=0)",
+                        stars: 0, showPoints: true, showLine: true,
+                        footer: "// Laufe Zeile für Zeile durch das 8x8 Feld",
+                        title: "Schritt 4: Geschachtelte Schleifen (Oben links ist 0/0)",
+                        desc: "Die äußere Schleife zählt <code>y</code> von <code>0</code> (ganz oben) bis <code>7</code> (ganz unten). Die innere Schleife zählt die Laufachse <code>x</code> von <code>0</code> (links) bis <code>7</code> (rechts)."
+                    },
+                    {
+                        maxL: 28, actL: 27, fSt: "CLOSED",
+                        fLines: [{ t: "1;1", c: "" }, { t: "6;5", c: "" }],
+                        vars: { "x": "2", "xLokal = 2 - 1": "1", "k * xLokal": "0.80", "yGerade = 1 + Round(0.8)": "2" },
+                        formula: "Für x = 2: yGerade = 1 + Round(0.80 * 1) = 1 + 1 = 2 -> Stern '*' bei (2|2)",
+                        stars: 1, showPoints: true, showLine: true,
+                        footer: "// 1. Geradenpunkt bei (x=2, y=2) gezeichnet",
+                        title: "Schritt 5: Laufachse x = 2 -> 1. Stern '*' bei (2|2)",
+                        desc: "Bei Spalte <code>x = 2</code> ist <code>xLokal = 2 - 1 = 1</code>. Der Geradenwert ist <code>1 + Math.Round(0.8 * 1) = 2</code>. Sobald die Schleife in Zeile <code>y = 2</code> ist, druckt sie <code>\"* \"</code>!"
+                    },
+                    {
+                        maxL: 28, actL: 27, fSt: "CLOSED",
+                        fLines: [{ t: "1;1", c: "" }, { t: "6;5", c: "" }],
+                        vars: { "x": "3", "xLokal = 3 - 1": "2", "k * xLokal": "1.60", "yGerade = 1 + Round(1.6)": "3" },
+                        formula: "Für x = 3: yGerade = 1 + Round(0.80 * 2) = 1 + 2 = 3 -> Stern '*' bei (3|3)",
+                        stars: 2, showPoints: true, showLine: true,
+                        footer: "// 2. Geradenpunkt bei (x=3, y=3) gezeichnet",
+                        title: "Schritt 6: Laufachse x = 3 -> 2. Stern '*' bei (3|3)",
+                        desc: "Bei Spalte <code>x = 3</code> ist <code>xLokal = 2</code>. <code>0.8 * 2 = 1.6</code>, gerundet <code>2</code>. Damit ist <code>yGerade = 1 + 2 = 3</code> &rarr; Stern <code>'*'</code> bei <code>(3|3)</code>."
+                    },
+                    {
+                        maxL: 28, actL: 27, fSt: "CLOSED",
+                        fLines: [{ t: "1;1", c: "" }, { t: "6;5", c: "" }],
+                        vars: { "x": "4", "xLokal = 4 - 1": "3", "k * xLokal": "2.40", "yGerade = 1 + Round(2.4)": "3" },
+                        formula: "Für x = 4: yGerade = 1 + Round(0.80 * 3) = 1 + 2 = 3 -> Stern '*' bei (4|3)",
+                        stars: 3, showPoints: true, showLine: true,
+                        footer: "// 3. Geradenpunkt bei (x=4, y=3) gezeichnet",
+                        title: "Schritt 7: Laufachse x = 4 -> 3. Stern '*' bei (4|3)",
+                        desc: "Bei Spalte <code>x = 4</code> ist <code>xLokal = 3</code>. <code>0.8 * 3 = 2.4</code>, abgerundet ergibt das wieder <code>2</code>! Also bleibt <code>yGerade = 1 + 2 = 3</code> &rarr; Stern <code>'*'</code> bei <code>(4|3)</code>."
+                    },
+                    {
+                        maxL: 28, actL: 27, fSt: "CLOSED",
+                        fLines: [{ t: "1;1", c: "" }, { t: "6;5", c: "" }],
+                        vars: { "x": "5", "xLokal = 5 - 1": "4", "k * xLokal": "3.20", "yGerade = 1 + Round(3.2)": "4" },
+                        formula: "Für x = 5: yGerade = 1 + Round(0.80 * 4) = 1 + 3 = 4 -> Stern '*' bei (5|4)",
+                        stars: 4, showPoints: true, showLine: true,
+                        footer: "// 4. Geradenpunkt bei (x=5, y=4) gezeichnet",
+                        title: "Schritt 8: Laufachse x = 5 -> 4. Stern '*' bei (5|4)",
+                        desc: "Bei Spalte <code>x = 5</code> ist <code>xLokal = 4</code>. <code>0.8 * 4 = 3.2</code>, gerundet <code>3</code>. Damit ist <code>yGerade = 1 + 3 = 4</code> &rarr; Stern <code>'*'</code> bei <code>(5|4)</code>."
+                    },
+                    {
+                        maxL: 35, actL: 23, fSt: "CLOSED",
+                        fLines: [{ t: "1;1", c: "" }, { t: "6;5", c: "" }],
+                        vars: { "x": "6", "y": "5", "Treffer": "Ziel 'Z' bei (6|5)" },
+                        formula: "Bei x = 6, y = 5 wird 'Z' gedruckt (Ende der Strecke)",
+                        stars: 4, showPoints: true, showLine: true,
+                        footer: "// Zielpunkt Z(6|5) erreicht",
+                        title: "Schritt 9: Zielpunkt Z(6|5) schließt die Gerade ab",
+                        desc: "Bei <code>x = 6, y = 5</code> greift der <code>else if (x == ziel.X &amp;&amp; y == ziel.Y)</code>-Zweig und setzt das Zielsymbol <code>'Z'</code>."
+                    },
+                    {
+                        maxL: 37, actL: 36, fSt: "CLOSED",
+                        fLines: [{ t: "1;1", c: "" }, { t: "6;5", c: "" }],
+                        vars: { "dist": "6.40", "k": "0.80", "d": "0" },
+                        formula: "Fertig! Gerade y = 0.80*x + 0 nähert die Euklid-Distanz (6.40) im Konsolengitter an",
+                        stars: 4, showPoints: true, showLine: true,
+                        footer: "Euklid-Distanz: 6.40 (Gerade y = 0.80*x + 0)",
+                        title: "Schritt 10: Distanz & Geradengleichung ganz unten ausgeben",
+                        desc: "Nach Beendigung der beiden <code>for</code>-Schleifen gibt Zeile 37 ganz unten unter dem Spielfeld die Euklidische Distanz und die Geradengleichung aus."
+                    }
+                ]
+            }
+        };
+
+        let activeTask = 'task1';
+        let currentStep = 0;
+        let lastMaxL = -1;
+        const sx = 1, sy = 1, zx = 6, zy = 5;
+        const k = (zy - sy) / (zx - sx); // 0.80
+
+        function switchTask(t) {
+            activeTask = t;
+            currentStep = 0;
+            lastMaxL = -1;
+            document.getElementById('tab-t1').className = (t === 'task1' ? 'tab-active' : 'tab-inactive') + ' px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all';
+            document.getElementById('tab-t2').className = (t === 'task2' ? 'tab-active' : 'tab-inactive') + ' px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all';
+            render();
+        }
+
+        function cellCenter(x, y) {
+            const col = x + 1;
+            const row = y;
+            return { cx: col * 36 + 16, cy: row * 36 + 16 };
+        }
+
+        function renderBoard(step) {
+            const uiBoard = document.getElementById('board-grid');
+            uiBoard.innerHTML = '';
+
+            // Top row: X-Axis header or Left col: Y-Axis
+            // 2D-Array: y=0 is TOP, y=7 is BOTTOM
+            for (let y = 0; y < 8; y++) {
+                const yLab = document.createElement('div');
+                yLab.className = "w-[32px] h-[32px] flex items-center justify-center text-slate-500 font-bold";
+                yLab.textContent = y;
+                uiBoard.appendChild(yLab);
+
+                for (let x = 0; x < 8; x++) {
+                    const cell = document.createElement('div');
+                    const isDark = (x + y) % 2 === 0;
+                    let cls = isDark ? "bg-slate-900 border-slate-800 text-slate-600" : "bg-slate-800/60 border-slate-700/60 text-slate-600";
+                    let sym = ".";
+
+                    const xLokal = x - sx;
+                    const yGerade = sy + Math.round(k * xLokal);
+
+                    if (step.showPoints) {
+                        if (x === sx && y === sy) {
+                            sym = "S";
+                            cls = "bg-emerald-500/30 border-emerald-400 text-emerald-200 font-bold cell-pop";
+                        } else if (x === zx && y === zy) {
+                            sym = "Z";
+                            cls = "bg-rose-500/30 border-rose-400 text-rose-200 font-bold cell-pop";
+                        } else if (x > sx && x <= sx + step.stars && y === yGerade) {
+                            sym = "*";
+                            cls = "bg-sky-500/35 border-sky-400 text-sky-200 font-bold cell-pop";
+                        }
+                    }
+
+                    cell.className = `w-[32px] h-[32px] rounded border flex items-center justify-center transition-all ${cls}`;
+                    cell.textContent = sym;
+                    uiBoard.appendChild(cell);
+                }
+            }
+
+            const corner = document.createElement('div');
+            corner.className = "w-[32px] h-[24px] flex items-center justify-center text-[10px] text-slate-500";
+            corner.textContent = "y\\x";
+            uiBoard.appendChild(corner);
+
+            for (let x = 0; x < 8; x++) {
+                const xLab = document.createElement('div');
+                xLab.className = "w-[32px] h-[24px] flex items-center justify-center text-slate-500 font-bold";
+                xLab.textContent = x;
+                uiBoard.appendChild(xLab);
+            }
+
+            const svg = document.getElementById('graph-overlay');
+            svg.innerHTML = '';
+            const orig = cellCenter(sx, sy);
+            const dest = cellCenter(zx, zy);
+            const xAxisEnd = cellCenter(7, sy);
+            const yAxisEnd = cellCenter(sx, 7);
+
+            if (step.showLine) {
+                // Coordinate axes originating at Start S(1,1) -> 1st Quadrant right-down
+                svg.innerHTML += `
+                    <line x1="${orig.cx}" y1="${orig.cy}" x2="${xAxisEnd.cx + 10}" y2="${orig.cy}" stroke="#10b981" stroke-width="1.8" stroke-dasharray="4 3" />
+                    <line x1="${orig.cx}" y1="${orig.cy}" x2="${orig.cx}" y2="${yAxisEnd.cy + 10}" stroke="#10b981" stroke-width="1.8" stroke-dasharray="4 3" />
+                    <line x1="${orig.cx}" y1="${orig.cy}" x2="${dest.cx}" y2="${dest.cy}" stroke="#38bdf8" stroke-width="3" />
+                `;
+                for (let i = 1; i <= step.stars; i++) {
+                    const x = sx + i;
+                    const exactY = sy + k * i;
+                    const pt = cellCenter(x, exactY);
+                    svg.innerHTML += `<circle cx="${pt.cx}" cy="${pt.cy}" r="4" fill="#38bdf8" stroke="#020617" stroke-width="1.5" />`;
+                }
+            }
+        }
+
+        function render() {
+            const task = tasks[activeTask];
+            const step = task.steps[currentStep];
+
+            document.getElementById('code-title').textContent = task.title;
+            document.getElementById('btn-prev').disabled = currentStep === 0;
+            document.getElementById('btn-next').disabled = currentStep === task.steps.length - 1;
+            document.getElementById('step-current').textContent = currentStep + 1;
+            document.getElementById('step-total').textContent = task.steps.length;
+
+            document.getElementById('step-title').textContent = step.title;
+            document.getElementById('explanation-text').innerHTML = step.desc;
+            document.getElementById('formula-status').textContent = step.formula;
+            document.getElementById('console-footer').textContent = step.footer;
+
+            // Render Colored Code progressively
+            const uiCode = document.getElementById('code-container');
+            uiCode.innerHTML = '';
+            for (let i = 0; i <= step.maxL; i++) {
+                const isAct = i === step.actL;
+                const isNew = i > lastMaxL;
+                const div = document.createElement('div');
+                div.className = `flex px-2 py-0.5 rounded ${isAct ? 'line-active text-sky-50' : 'line-normal text-slate-300'} ${isNew ? 'code-appear' : ''}`;
+                div.innerHTML = `
+                    <span class="w-6 shrink-0 text-right text-slate-600 mr-3 select-none text-xs border-r border-slate-800 pr-2">${i + 1}</span>
+                    <span class="whitespace-pre">${isAct ? '<strong>' + task.code[i] + '</strong>' : task.code[i]}</span>
+                `;
+                uiCode.appendChild(div);
+            }
+            lastMaxL = step.maxL;
+            const actEl = uiCode.querySelector('.line-active');
+            if (actEl) actEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // Render Disk File coords.txt
+            document.getElementById('file-status').textContent = step.fSt;
+            const fBody = document.getElementById('file-body');
+            fBody.innerHTML = '';
+            if (step.fLines.length === 0) {
+                fBody.innerHTML = `<div class="text-slate-600 italic text-xs py-2 text-center">Noch nicht erstellt</div>`;
+            } else {
+                step.fLines.forEach((l, idx) => {
+                    const row = document.createElement('div');
+                    row.className = `flex justify-between px-2.5 py-1 rounded border border-slate-800 bg-slate-950/70 text-slate-200 ${l.c || ''}`;
+                    row.innerHTML = `<span class="text-slate-500 text-[10px]">Zeile ${idx}</span><span class="font-bold text-amber-300">${l.t}</span>`;
+                    fBody.appendChild(row);
+                });
+            }
+
+            // Render Stack / Named Tuple Vars
+            const vBody = document.getElementById('vars-body');
+            vBody.innerHTML = '';
+            Object.keys(step.vars).forEach(k => {
+                const row = document.createElement('div');
+                row.className = "flex justify-between px-2.5 py-0.5 rounded border border-slate-800 bg-slate-950/70";
+                row.innerHTML = `<span class="text-slate-400">${k}</span><span class="text-emerald-300 font-bold">${step.vars[k]}</span>`;
+                vBody.appendChild(row);
+            });
+
+            renderBoard(step);
+        }
+
+        document.getElementById('btn-next').addEventListener('click', () => {
+            const len = tasks[activeTask].steps.length;
+            if (currentStep < len - 1) { currentStep++; render(); }
+        });
+        document.getElementById('btn-prev').addEventListener('click', () => {
+            if (currentStep > 0) { currentStep--; render(); }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') document.getElementById('btn-next').click();
+            if (e.key === 'ArrowLeft') document.getElementById('btn-prev').click();
+        });
+
+        render();
+    </script>
+</body>
+</html>
