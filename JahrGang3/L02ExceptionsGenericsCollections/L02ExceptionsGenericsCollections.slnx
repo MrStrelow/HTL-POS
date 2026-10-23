@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Skripten/Skripten.csproj" />
+  <Project Path="Zetteluebungen/Zetteluebungen.csproj" />
+</Solution>

@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C# Exceptions & Kontrollstrukturen – Schritt für Schritt</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-panel: #1e293b;
+            --bg-code: #0b1120;
+            --border-color: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-blue: #38bdf8;
+            --accent-green: #4ade80;
+            --accent-amber: #fbbf24;
+            --accent-red: #f87171;
+            --accent-purple: #c084fc;
+            --font-mono: 'Consolas', 'Monaco', 'Courier New', monospace;
+            --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header & Example Tabs */
+        header {
+            background-color: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.7rem 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .title-area h1 { font-size: 1.12rem; font-weight: 600; color: var(--text-main); }
+        .title-area span { font-size: 0.78rem; color: var(--text-muted); }
+
+        .tabs { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+
+        .tab-btn {
+            background: rgba(255,255,255,0.03);
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            padding: 0.42rem 0.75rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.78rem;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover { color: var(--text-main); border-color: var(--accent-blue); }
+        .tab-btn.active {
+            background-color: var(--accent-blue);
+            color: var(--bg-dark);
+            border-color: var(--accent-blue);
+        }
+
+        /* Mode Toggle Bar */
+        .toggle-bar {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            background-color: rgba(15, 23, 42, 0.75);
+            border: 1px solid var(--border-color);
+            padding: 0.45rem 0.9rem;
+            border-radius: 6px;
+        }
+
+        .toggle-bar.visible { display: flex; }
+
+        .toggle-info {
+            font-size: 0.83rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .toggle-switch-btn {
+            background-color: var(--accent-amber);
+            color: var(--bg-dark);
+            border: none;
+            padding: 0.38rem 0.9rem;
+            border-radius: 5px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .toggle-switch-btn:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+
+        /* Main Split Layout */
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 52% 48%;
+            overflow: hidden;
+        }
+
+        /* Left Side: Progressive Code Panel */
+        .code-panel {
+            background-color: var(--bg-code);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 0.55rem 1rem;
+            background-color: rgba(255,255,255,0.03);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.76rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .code-container {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            line-height: 1.48;
+        }
+
+        .code-block {
+            opacity: 0.16;
+            transition: all 0.3s ease;
+            padding: 0.3rem 0.6rem;
+            border-left: 3px solid transparent;
+            margin-bottom: 0.4rem;
+            border-radius: 0 4px 4px 0;
+            white-space: pre;
+        }
+
+        .code-block.revealed { opacity: 0.78; }
+        .code-block.active-step {
+            opacity: 1;
+            background-color: rgba(56, 189, 248, 0.12);
+            border-left-color: var(--accent-blue);
+        }
+        .code-block.error-step {
+            opacity: 1;
+            background-color: rgba(248, 113, 113, 0.14);
+            border-left-color: var(--accent-red);
+        }
+        .code-block.finally-step {
+            opacity: 1;
+            background-color: rgba(251, 191, 36, 0.14);
+            border-left-color: var(--accent-amber);
+        }
+        .code-block.good-step {
+            opacity: 1;
+            background-color: rgba(74, 222, 128, 0.12);
+            border-left-color: var(--accent-green);
+        }
+
+        /* Syntax Highlighting */
+        .kw { color: #f472b6; font-weight: bold; }
+        .tp { color: #38bdf8; }
+        .mt { color: #fde047; }
+        .st { color: #4ade80; }
+        .cm { color: #64748b; font-style: italic; }
+
+        /* Right Side: Pure Text Info Panel */
+        .info-panel {
+            background-color: var(--bg-dark);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .info-content {
+            flex: 1;
+            padding: 1.25rem 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.1rem;
+        }
+
+        /* Keywords Bar */
+        .keywords-section {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.85rem 1.1rem;
+        }
+
+        .keywords-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .keyword-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+        }
+
+        .kw-pill {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            padding: 0.2rem 0.55rem;
+            border-radius: 4px;
+            background-color: var(--bg-code);
+            border: 1px solid var(--border-color);
+            color: var(--accent-blue);
+        }
+
+        .kw-pill.new-kw {
+            border-color: var(--accent-amber);
+            color: var(--accent-amber);
+            background-color: rgba(251, 191, 36, 0.1);
+            font-weight: bold;
+        }
+
+        /* Text Explanation Cards */
+        .text-section {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent-blue);
+            border-radius: 8px;
+            padding: 1.1rem 1.25rem;
+            line-height: 1.55;
+        }
+
+        .text-section.warn-border { border-left-color: var(--accent-red); }
+        .text-section.good-border { border-left-color: var(--accent-green); }
+        .text-section.amber-border { border-left-color: var(--accent-amber); }
+
+        .text-section h2 {
+            font-size: 1.05rem;
+            margin-bottom: 0.55rem;
+            color: var(--text-main);
+        }
+
+        .text-section p {
+            font-size: 0.9rem;
+            color: #e2e8f0;
+            margin-bottom: 0.65rem;
+        }
+
+        .text-section ul {
+            padding-left: 1.25rem;
+            font-size: 0.88rem;
+            color: #cbd5e1;
+        }
+
+        .text-section li {
+            margin-bottom: 0.4rem;
+        }
+
+        .text-section code {
+            font-family: var(--font-mono);
+            background-color: var(--bg-code);
+            padding: 0.1rem 0.35rem;
+            border-radius: 4px;
+            color: var(--accent-blue);
+            font-size: 0.84rem;
+        }
+
+        /* Console / Logfile Text Output Preview */
+        .console-output {
+            background-color: #050811;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.85rem 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            line-height: 1.45;
+            white-space: pre-wrap;
+        }
+
+        .console-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 0.35rem;
+            display: block;
+        }
+
+        /* Footer Controls */
+        footer {
+            background-color: var(--bg-panel);
+            border-top: 1px solid var(--border-color);
+            padding: 0.7rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .step-dots { display: flex; gap: 0.4rem; }
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--border-color);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .dot.active { background-color: var(--accent-blue); transform: scale(1.25); }
+
+        .controls { display: flex; gap: 0.75rem; align-items: center; }
+        .btn {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 0.48rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.84rem;
+            transition: all 0.2s;
+        }
+        .btn:hover:not(:disabled) { border-color: var(--accent-blue); color: var(--accent-blue); }
+        .btn.primary { background-color: var(--accent-blue); color: var(--bg-dark); border-color: var(--accent-blue); }
+        .btn.primary:hover:not(:disabled) { background-color: #7dd3fc; }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-top">
+        <div class="title-area">
+            <h1>C# Exceptions vs. Kontrollstrukturen</h1>
+            <span>Schritt-für-Schritt Code-Aufbau & strukturierte Dokumentation</span>
+        </div>
+        <div class="tabs">
+            <button class="tab-btn active" id="tab-ex1" onclick="switchTab('ex1')">1) Standard: try / catch / finally</button>
+            <button class="tab-btn" id="tab-ex2" onclick="switchTab('ex2')">2) Mehrere Exceptions & Anti-Patterns</button>
+            <button class="tab-btn" id="tab-ex3" onclick="switchTab('ex3')">3) Eigene Exception & Ausgaben</button>
+            <button class="tab-btn" id="tab-ex4" onclick="switchTab('ex4')">4) Parse vs. TryParse</button>
+            <button class="tab-btn" id="tab-ex5" onclick="switchTab('ex5')">5) Roboter in Ecke (Logik)</button>
+            <button class="tab-btn" id="tab-ex6" onclick="switchTab('ex6')">6) Roboter Achsbruch (Ausnahme)</button>
+        </div>
+    </div>
+
+    <!-- Toggle Bar -->
+    <div class="toggle-bar" id="toggle-bar">
+        <div class="toggle-info" id="toggle-label">Ansicht: ...</div>
+        <button class="toggle-switch-btn" id="toggle-btn" onclick="toggleVariant()">Wechseln</button>
+    </div>
+</header>
+
+<main>
+    <!-- LEFT: Progressive Code -->
+    <section class="code-panel">
+        <div class="panel-header">
+            <span id="code-filename">Datei.cs</span>
+            <span id="step-counter">Schritt 1 / 4</span>
+        </div>
+        <div class="code-container" id="code-container"></div>
+    </section>
+
+    <!-- RIGHT: Pure Text Info & Keyword List -->
+    <section class="info-panel">
+        <div class="panel-header">
+            <span>Erklärung, Konzept & verwendete Keywords</span>
+            <span id="mode-indicator" style="color: var(--accent-blue);">Standardfall</span>
+        </div>
+        <div class="info-content">
+            <!-- Keywords used so far -->
+            <div class="keywords-section">
+                <div class="keywords-title">Bisher verwendete Keywords & Konstrukte in diesem Beispiel:</div>
+                <div class="keyword-list" id="keyword-list"></div>
+            </div>
+
+            <!-- Main Text Explanation -->
+            <div class="text-section" id="main-text-card">
+                <h2 id="info-title">Titel</h2>
+                <div id="info-body"></div>
+            </div>
+
+            <!-- Optional Console / Log Preview -->
+            <div id="console-wrapper" style="display: none;">
+                <span class="console-label" id="console-label">Konsolenausgabe / Compiler / Logfile:</span>
+                <div class="console-output" id="console-output"></div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <div class="step-dots" id="step-dots"></div>
+    <div class="controls">
+        <button class="btn" onclick="resetSteps()">↺ Reset</button>
+        <button class="btn" id="btn-prev" onclick="changeStep(-1)">◀ Zurück</button>
+        <button class="btn primary" id="btn-next" onclick="changeStep(1)">Next Step ▶</button>
+    </div>
+</footer>
+
+<script>
+    let currentTab = 'ex1';
+    let currentVariant = 'A';
+    let currentStep = 0;
+
+    const examples = {
+        // =====================================================================
+        // BEISPIEL 1: Standardfall (throw, try, catch, finally)
+        // =====================================================================
+        ex1: {
+            hasToggle: false,
+            A: {
+                filename: "SensorUeberwachung.cs",
+                modeText: "Grundlagen: try / catch / finally",
+                codeBlocks: [
+                    `<span class="cm">// 1. Methode, die einen kritischen Zustand erkennt und wirft (throw)</span>\n<span class="kw">public static double</span> <span class="mt">LeseKesselDruck</span>(<span class="kw">double</span> bar) {\n    <span class="kw">if</span> (bar > 10.0) {\n        <span class="kw">throw new</span> <span class="tp">InvalidOperationException</span>(<span class="st">"Überdruck! Ventil blockiert."</span>);\n    }\n    <span class="kw">return</span> bar;\n}`,
+                    `<span class="cm">// 2. Aufrufende Methode mit try-Block (Versuchsblock)</span>\n<span class="kw">public static void</span> <span class="mt">PruefeAnlage</span>() {\n    <span class="tp">Console</span>.<span class="mt">WriteLine</span>(<span class="st">"Öffne Sensor-Verbindung..."</span>);\n    <span class="kw">try</span> {\n        <span class="kw">double</span> druck = <span class="mt">LeseKesselDruck</span>(14.5);\n        <span class="tp">Console</span>.<span class="mt">WriteLine</span>(<span class="st">$"Druck OK: {druck} bar"</span>); <span class="cm">// Wird übersprungen!</span>\n    }`,
+                    `    <span class="cm">// 3. catch-Block: Fängt den geworfenen Fehler ab</span>\n    <span class="kw">catch</span> (<span class="tp">InvalidOperationException</span> ex) {\n        <span class="tp">Console</span>.<span class="mt">WriteLine</span>(<span class="st">$"ALARM: {ex.Message}"</span>);\n        <span class="tp">Console</span>.<span class="mt">WriteLine</span>(<span class="st">"Leite Notabschaltung ein..."</span>);\n    }`,
+                    `    <span class="cm">// 4. finally-Block: Aufräumarbeiten (läuft IMMER!)</span>\n    <span class="kw">finally</span> {\n        <span class="tp">Console</span>.<span class="mt">WriteLine</span>(<span class="st">"Schließe Sensor-Verbindung und gib Port frei."</span>);\n    }\n}`
+                ],
+                steps: [
+                    {
+                        revealed: [0], active: 0, style: "error-step",
+                        keywords: ["throw", "new", "InvalidOperationException"],
+                        newKeywords: ["throw", "InvalidOperationException"],
+                        border: "warn-border",
+                        title: "Schritt 1: Wann verwenden wir 'throw'?",
+                        body: `<p>Die Methode <code>LeseKesselDruck(double bar)</code> hat eine klare Aufgabe: Einen gültigen Druckwert zurückzuliefern.</p>
+                               <ul>
+                                   <li>Bei einem Wert über <code>10.0</code> bar liegt ein gefährlicher Ausnahmezustand vor.</li>
+                                   <li>Mit <code>throw new InvalidOperationException(...)</code> zieht die Methode die Reißleine: Die Ausführung von <code>LeseKesselDruck</code> bricht <strong>sofort</strong> ab.</li>
+                                   <li>Das erzeugte Fehler-Objekt wird an die aufrufende Methode zurückgeschleudert.</li>
+                               </ul>`,
+                        console: null
+                    },
+                    {
+                        revealed: [0, 1], active: 1, style: "active-step",
+                        keywords: ["throw", "new", "InvalidOperationException", "try"],
+                        newKeywords: ["try"],
+                        border: "",
+                        title: "Schritt 2: Der 'try'-Block (Kritischen Aufruf überwachen)",
+                        body: `<p>In <code>PruefeAnlage()</code> öffnen wir zuerst die Verbindung zum Sensor und starten dann den <code>try</code>-Block.</p>
+                               <ul>
+                                   <li><code>try</code> umschließt Code, bei dem während der Laufzeit eine Exception auftreten könnte.</li>
+                                   <li>Da wir <code>LeseKesselDruck(14.5)</code> übergeben, knallt es in dieser Zeile.</li>
+                                   <li><strong>Wichtig:</strong> Alle weiteren Zeilen innerhalb des <code>try</code>-Blocks (wie <code>"Druck OK..."</code>) werden ab dem Zeitpunkt des Fehlers komplett übersprungen!</li>
+                               </ul>`,
+                        console: `Öffne Sensor-Verbindung...`
+                    },
+                    {
+                        revealed: [0, 1, 2], active: 2, style: "error-step",
+                        keywords: ["throw", "new", "InvalidOperationException", "try", "catch", "ex.Message"],
+                        newKeywords: ["catch", "ex.Message"],
+                        border: "warn-border",
+                        title: "Schritt 3: Der 'catch'-Block (Reaktion auf den Ausnahmefall)",
+                        body: `<p>Damit das Programm nicht abstürzt, fängt <code>catch (InvalidOperationException ex)</code> das geworfene Fehlerobjekt auf.</p>
+                               <ul>
+                                   <li>In der Variablen <code>ex</code> stecken alle Informationen über den Fehler (z. B. der Text in <code>ex.Message</code>).</li>
+                                   <li>Der <code>catch</code>-Block wird <strong>nur dann</strong> betreten, wenn im <code>try</code>-Block tatsächlich ein passender Fehler geworfen wurde.</li>
+                               </ul>`,
+                        console: `Öffne Sensor-Verbindung...\nALARM: Überdruck! Ventil blockiert.\nLeite Notabschaltung ein...`
+                    },
+                    {
+                        revealed: [0, 1, 2, 3], active: 3, style: "finally-step",
+                        keywords: ["throw", "new", "InvalidOperationException", "try", "catch", "ex.Message", "finally"],
+                        newKeywords: ["finally"],
+                        border: "amber-border",
+                        title: "Schritt 4: Wozu brauche ich 'finally'?",
+                        body: `<p>Der <code>finally</code>-Block hat eine eiserne Garantie in C#: <strong>Er wird IMMER ausgeführt</strong> – völlig egal, ob:</p>
+                               <ul>
+                                   <li>alles gut ging (kein Fehler im <code>try</code>),</li>
+                                   <li>ein Fehler auftrat und im <code>catch</code> behandelt wurde,</li>
+                                   <li>oder sogar ein <code>return</code> mitten im <code>try</code> oder <code>catch</code> stand!</li>
+                               </ul>
+                               <p><strong>Wann brauche ich das?</strong> Immer dann, wenn externe Ressourcen (offene Dateien, Datenbank-Verbindungen, Netzwerk-Ports, Sperren) zwingend wieder geschlossen werden müssen, damit kein Speicherleck (Resource Leak) entsteht.</p>`,
+                        console: `Öffne Sensor-Verbindung...\nALARM: Überdruck! Ventil blockiert.\nLeite Notabschaltung ein...\nSchließe Sensor-Verbindung und gib Port frei.`
+                    }
+                ]
+            }
+        },
+
+        // =====================================================================
+        // BEISPIEL 2: Mehrere Exceptions, Reihenfolge, when & Anti-Patterns
+        // =====================================================================
+        ex2: {
+            hasToggle: true,
+            toggleTextA: "Ansicht A: ✅ KORREKT (Mehrere Exceptions, Reihenfolge & 'when'-Filter)",
+            toggleBtnA: "Wechsle zu Ansicht B: ❌ ANTI-PATTERNS (throw new Exception, catch(Exception) & throw ex)",
+            toggleTextB: "Ansicht B: ❌ ANTI-PATTERNS (throw new Exception, Pokémon-Catch & StackTrace-Verlust)",
+            toggleBtnB: "Zurück zu Ansicht A: ✅ KORREKT (Spezifische Exceptions & Reihenfolge)",
+            A: {
+                filename: "MehrereExceptionsUndFilter.cs",
+                modeText: "✅ Best Practice: Catch-Kaskade & when-Logik",
+                codeBlocks: [
+                    `<span class="cm">// 1. Methode, die unterschiedliche, spezifische Exceptions werfen kann</span>\n<span class="kw">public static void</span> <span class="mt">SteuereRoboterArm</span>(<span class="kw">string</span>? dateiPfad, <span class="kw">int</span> winkel) {\n    <span class="kw">if</span> (dateiPfad == <span class="kw">null</span>)\n        <span class="kw">throw new</span> <span class="tp">ArgumentNullException</span>(<span class="kw">nameof</span>(dateiPfad), <span class="st">"Pfad fehlt!"</span>);\n    <span class="kw">if</span> (winkel < 0 || winkel > 180)\n        <span class="kw">throw new</span> <span class="tp">ArgumentOutOfRangeException</span>(<span class="kw">nameof</span>(winkel), winkel, <span class="st">"Nur 0-180° erlaubt!"</span>);\n    <span class="kw">if</span> (!<span class="tp">File</span>.<span class="mt">Exists</span>(dateiPfad))\n        <span class="kw">throw new</span> <span class="tp">FileNotFoundException</span>(<span class="st">"Kalibrierungsdatei nicht gefunden!"</span>, dateiPfad);\n}`,
+                    `<span class="cm">// 2. try-Block & 1. Catch: Spezifischste Exception zuerst!</span>\n<span class="kw">try</span> {\n    <span class="mt">SteuereRoboterArm</span>(<span class="st">"kalibrierung.cfg"</span>, winkel: 250);\n}\n<span class="kw">catch</span> (<span class="tp">ArgumentNullException</span> ex) {\n    <span class="tp">Console</span>.<span class="mt">WriteLine</span>(<span class="st">$"Programmierfehler (Null): {ex.ParamName}"</span>);\n}`,
+                    `<span class="cm">// 3. Logik-Abfrage direkt beim Catch mit 'when' (Exception Filter)</span>\n<span class="kw">catch</span> (<span class="tp">ArgumentOutOfRangeException</span> ex) <span class="kw">when</span> ((<span class="kw">int</span>)ex.ActualValue! > 180) {\n    <span class="tp">Console</span>.<span class="mt">WriteLine</span>(<span class="st">$"Winkel ({ex.ActualValue}°) zu groß -> Begrenze automatisch auf 180°!"</span>);\n}\n<span class="kw">catch</span> (<span class="tp">ArgumentException</span> ex) { <span class="cm">// Allgemeinere Basisklasse von ArgumentNull & OutOfRange!</span>\n    <span class="tp">Console</span>.<span class="mt">WriteLine</span>(<span class="st">$"Sonstiger Parameterfehler: {ex.Message}"</span>);\n}`,
+                    `<span class="cm">// 4. Weitere spezifische Exceptions & allgemeinster Notfall-Catch ganz unten</span>\n<span class="kw">catch</span> (<span class="tp">FileNotFoundException</span> ex) {\n    <span class="tp">Console</span>.<span class="mt">WriteLine</span>(<span class="st">$"Datei '{ex.FileName}' fehlt -> Lade Standard-Kalibrierung."</span>);\n}\n<span class="kw">catch</span> (<span class="tp">Exception</span> ex) { <span class="cm">// MUSS immer ganz am Ende stehen!</span>\n    <span class="tp">Console</span>.<span class="mt">WriteLine</span>(<span class="st">$"Unerwarteter Systemfehler: {ex.Message}"</span>);\n    <span class="kw">throw</span>; <span class="cm">// Weiterwerfen an nächsthöhere Ebene (StackTrace bleibt erhalten!)</span>\n}`
+                ],
+                steps: [
+                    {
+                        revealed: [0], active: 0, style: "active-step",
+                        keywords: ["ArgumentNullException", "ArgumentOutOfRangeException", "FileNotFoundException", "nameof"],
+                        newKeywords: ["ArgumentNullException", "ArgumentOutOfRangeException", "FileNotFoundException", "nameof"],
+                        border: "good-border",
+                        title: "Schritt 1: Verschiedene, spezifische Exceptions werfen",
+                        body: `<p>Eine Methode kann aus ganz unterschiedlichen Gründen scheitern. Statt immer denselben allgemeinen Fehler zu werfen, wählt man die <strong>exakt passende Exception-Klasse</strong>:</p>
+                               <ul>
+                                   <li><code>ArgumentNullException</code>: Ein übergebenes Objekt ist <code>null</code>.</li>
+                                   <li><code>ArgumentOutOfRangeException</code>: Ein Zahlenwert liegt außerhalb des gültigen Bereichs (z. B. Winkel 250° statt 0–180°).</li>
+                                   <li><code>FileNotFoundException</code>: Eine benötigte Datei existiert nicht auf der Festplatte.</li>
+                               </ul>`,
+                        console: null
+                    },
+                    {
+                        revealed: [0, 1], active: 1, style: "good-step",
+                        keywords: ["ArgumentNullException", "ArgumentOutOfRangeException", "FileNotFoundException", "try", "catch"],
+                        newKeywords: ["try", "catch"],
+                        border: "good-border",
+                        title: "Schritt 2: Warum ist die Reihenfolge der 'catch'-Blöcke zwingend?",
+                        body: `<p>C# prüft die <code>catch</code>-Blöcke nach einem Fehler <strong>strikt von oben nach unten</strong> wie eine Kaskade (der erste passende Block gewinnt!).</p>
+                               <ul>
+                                   <li><strong>Vererbungshierarchie beachten:</strong> <code>ArgumentNullException</code> und <code>ArgumentOutOfRangeException</code> erben beide von <code>ArgumentException</code>, und diese wiederum von <code>Exception</code>.</li>
+                                   <li><strong>Eiserne Regel:</strong> Immer <strong>von der speziellsten Klasse (oben) zur allgemeinsten Basisklasse (unten)</strong> sortieren!</li>
+                               </ul>`,
+                        console: null
+                    },
+                    {
+                        revealed: [0, 1, 2], active: 2, style: "good-step",
+                        keywords: ["try", "catch", "when", "ArgumentOutOfRangeException", "ArgumentException"],
+                        newKeywords: ["when", "ArgumentException"],
+                        border: "good-border",
+                        title: "Schritt 3: Können wir Logik im 'catch' abfragen? Ja, mit 'when'!",
+                        body: `<p>Manchmal wollen wir eine Exception nur dann fangen, wenn eine bestimmte logische Bedingung erfüllt ist. Dafür gibt es in C# das Keyword <code>when</code> (<strong>Exception Filter</strong>):</p>
+                               <ul>
+                                   <li><code>catch (ArgumentOutOfRangeException ex) when ((int)ex.ActualValue! > 180)</code> fängt den Fehler <strong>nur</strong>, wenn der Winkel zu groß war.</li>
+                                   <li>Wäre der Winkel negativ (z. B. <code>-10</code>), liefert <code>when</code> den Wert <code>false</code> $\rightarrow$ C# überspringt diesen Block und fällt eins tiefer in den allgemeineren <code>catch (ArgumentException ex)</code>!</li>
+                                   <li>Natürlich kann man auch klassisch mit <code>if / else</code> <em>innerhalb</em> des <code>catch</code>-Blocks verzweigen.</li>
+                               </ul>`,
+                        console: `Winkel (250°) zu groß -> Begrenze automatisch auf 180°!`
+                    },
+                    {
+                        revealed: [0, 1, 2, 3], active: 3, style: "finally-step",
+                        keywords: ["try", "catch", "when", "FileNotFoundException", "Exception", "throw;"],
+                        newKeywords: ["Exception", "throw;"],
+                        border: "amber-border",
+                        title: "Schritt 4: Der letzte Notfall-Catch ganz unten & 'throw;'",
+                        body: `<p>Ganz am Ende der Kette darf <code>catch (Exception ex)</code> als Fangnetz für völlig unvorhergesehene Fehler stehen.</p>
+                               <ul>
+                                   <li>Wenn wir den Fehler dort nur loggen, aber nicht reparieren können, leiten wir ihn mit einem einfachen <code>throw;</code> (ohne Variablennamen!) nach oben weiter.</li>
+                                   <li><strong>Klicke jetzt oben auf den gelben Toggle-Button</strong>, um die 3 häufigsten Anti-Patterns rund um <code>Exception</code> zu sehen!</li>
+                               </ul>`,
+                        console: `Winkel (250°) zu groß -> Begrenze automatisch auf 180°!`
+                    }
+                ]
+            },
+            B: {
+                filename: "ExceptionAntiPatterns.cs",
+                modeText: "❌ Die 3 großen Exception-Anti-Patterns",
+                codeBlocks: [
+                    `<span class="cm">// ❌ ANTI-PATTERN 1: 'throw new Exception(...)' (Viel zu unspezifisch!)</span>\n<span class="kw">public static void</span> <span class="mt">LadeDatenSchlecht</span>(<span class="kw">int</span> id) {\n    <span class="kw">if</span> (id < 0)\n        <span class="kw">throw new</span> <span class="tp">Exception</span>(<span class="st">"ID darf nicht negativ sein!"</span>); <span class="cm">// ❌ NIEMALS nacktes Exception werfen!</span>\n}`,
+                    `<span class="cm">// ❌ ANTI-PATTERN 2: Falsche Catch-Reihenfolge (Compiler-Fehler CS0160!)</span>\n<span class="kw">try</span> {\n    <span class="mt">LadeDatenSchlecht</span>(-5);\n}\n<span class="kw">catch</span> (<span class="tp">Exception</span> ex) { <span class="cm">// Fängt ALLES ab, weil jede Exception von Exception erbt!</span>\n    <span class="tp">Console</span>.<span class="mt">WriteLine</span>(ex.Message);\n}\n<span class="cm">// catch (ArgumentException ex) { } // ❌ COMPILER-FEHLER CS0160: Unerreichbarer Code!</span>`,
+                    `<span class="cm">// ❌ ANTI-PATTERN 3: Pokémon-Catch (Fehler verschlucken) & 'throw ex;'</span>\n<span class="kw">try</span> {\n    <span class="mt">KritischeBerechnung</span>();\n}\n<span class="kw">catch</span> (<span class="tp">Exception</span> ex) {\n    <span class="cm">// 3a) "Swallowing": Nichts tun -> Programm läuft korrupt weiter (NullReference etc.)!</span>\n    <span class="cm">// 3b) Wenn weiterwerfen, NIEMALS 'throw ex;' schreiben:</span>\n    <span class="kw">throw</span> ex; <span class="cm">// ❌ FALSCH: Löscht den originalen StackTrace! Richtig wäre: throw;</span>\n}`
+                ],
+                steps: [
+                    {
+                        revealed: [0], active: 0, style: "error-step",
+                        keywords: ["throw new Exception(...)"],
+                        newKeywords: ["throw new Exception(...)"],
+                        border: "warn-border",
+                        title: "Anti-Pattern 1: Warum ist 'throw new Exception()' falsch?",
+                        body: `<p>Das Werfen der reinen Basisklasse <code>throw new Exception("...")</code> gilt in C# als klares <strong>Anti-Pattern</strong>:</p>
+                               <ul>
+                                   <li>Die Klasse <code>System.Exception</code> ist der allgemeinste Urahn aller Fehler.</li>
+                                   <li>Wenn eine Methode einfach <code>new Exception()</code> wirft, zwingt sie den Aufrufer dazu, im <code>catch</code> ebenfalls <code>catch (Exception)</code> zu schreiben.</li>
+                                   <li>Der Aufrufer kann nun im Code <strong>nicht mehr unterscheiden</strong>, ob nur die <code>id</code> falsch war oder ob das halbe System abgestürzt ist! Nutze stattdessen immer spezifische Typen (wie <code>ArgumentOutOfRangeException</code>) oder eigene Exception-Klassen.</li>
+                               </ul>`,
+                        console: null
+                    },
+                    {
+                        revealed: [0, 1], active: 1, style: "error-step",
+                        keywords: ["throw new Exception(...)", "catch (Exception ex)", "Compiler-Fehler CS0160"],
+                        newKeywords: ["catch (Exception ex)", "Compiler-Fehler CS0160"],
+                        border: "warn-border",
+                        title: "Anti-Pattern 2: 'catch (Exception)' ganz oben platzieren",
+                        body: `<p>Schreibt man <code>catch (Exception ex)</code> als ersten Block, schnappt dieser sich ausnahmslos jeden Fehler, da alle Exceptions in .NET von <code>Exception</code> erben.</p>
+                               <ul>
+                                   <li>Jeder spezifische <code>catch</code>-Block darunter (wie <code>catch (ArgumentException)</code>) kann niemals erreicht werden.</li>
+                                   <li>Der C#-Compiler verweigert hier sogar das Kompilieren mit dem Fehler <code>CS0160: A previous catch clause already catches all exceptions of this or of a super type</code>.</li>
+                               </ul>`,
+                        console: `<span style="color:#f87171;">Compiler Error CS0160: Eine vorherige catch-Klausel fängt bereits alle Ausnahmen dieses Typs oder eines übergeordneten Typs ("Exception") ab.</span>`
+                    },
+                    {
+                        revealed: [0, 1, 2], active: 2, style: "error-step",
+                        keywords: ["throw new Exception(...)", "catch (Exception ex)", "throw ex; (FALSCH)", "throw; (RICHTIG)"],
+                        newKeywords: ["throw ex; (FALSCH)", "throw; (RICHTIG)"],
+                        border: "warn-border",
+                        title: "Anti-Pattern 3: Pokémon-Catch & der 'throw ex;'-Fehler",
+                        body: `<p>Zwei schwere Fehler beim Umgang mit <code>catch (Exception ex)</code>:</p>
+                               <ul>
+                                   <li><strong>Pokémon-Handling (<em>„Gotta catch 'em all“</em>):</strong> Wer mitten im Programm <code>catch (Exception) { }</code> schreibt, fängt damit auch echte Programmierfehler (wie <code>NullReferenceException</code> oder <code>IndexOutOfRangeException</code>) ab und vertuscht Bugs, statt sie zu beheben!</li>
+                                   <li><strong><code>throw ex;</code> vs. <code>throw;</code>:</strong> Will man einen Fehler nach dem Loggen weiterwerfen, darf man <strong>niemals <code>throw ex;</code></strong> schreiben! <code>throw ex;</code> setzt den <code>StackTrace</code> zurück – es sieht dann im Logfile so aus, als wäre der Fehler erst im <code>catch</code> entstanden. Ein schlichtes <code>throw;</code> (ohne Variable) erhält den originalen Ursprungsort!</li>
+                               </ul>`,
+                        console: `<span style="color:#f87171;">Bei 'throw ex;': Ursprüngliche Zeilennummer des Fehlers geht im StackTrace komplett verloren!</span>\n<span style="color:#4ade80;">Bei 'throw;': Komplette Aufrufkette ab der echten Fehlerzeile bleibt 1:1 erhalten!</span>`
+                    }
+                ]
+            }
+        },
+
+        // =====================================================================
+        // BEISPIEL 3: Eigene Exception erstellen & Ausgaben (StackTrace, Farben)
+        // =====================================================================
+        ex3: {
+            hasToggle: false,
+            A: {
+                filename: "EigeneExceptionUndAusgabe.cs",
+                modeText: "Custom Exception & Fehlerausgabe",
+                codeBlocks: [
+                    `<span class="cm">// 1. Eigene Exception-Klasse definieren (erbt von Exception)</span>\n<span class="kw">public class</span> <span class="tp">TemperaturZuHochException</span> : <span class="tp">Exception</span> {\n    <span class="kw">public double</span> GemesseneGrad { <span class="kw">get</span>; }\n\n    <span class="kw">public</span> <span class="mt">TemperaturZuHochException</span>(<span class="kw">string</span> nachricht, <span class="kw">double</span> grad) \n        : <span class="kw">base</span>(nachricht) {\n        GemesseneGrad = grad;\n    }\n}`,
+                    `<span class="cm">// 2. Eigene Exception mit zusätzlichen Daten werfen</span>\n<span class="kw">public static void</span> <span class="mt">KuehlungPruefen</span>(<span class="kw">double</span> grad) {\n    <span class="kw">if</span> (grad > 90.0) {\n        <span class="kw">throw new</span> <span class="tp">TemperaturZuHochException</span>(<span class="st">"Überhitzungsgefahr!"</span>, grad);\n    }\n}`,
+                    `<span class="cm">// 3. Fangen & Ausgabe-Variante A: Nur die freundliche Fehlermeldung</span>\n<span class="kw">try</span> {\n    <span class="mt">KuehlungPruefen</span>(112.4);\n} <span class="kw">catch</span> (<span class="tp">TemperaturZuHochException</span> ex) {\n    <span class="tp">Console</span>.ForegroundColor = <span class="tp">ConsoleColor</span>.Red;\n    <span class="tp">Console</span>.<span class="mt">WriteLine</span>(<span class="st">$"[FEHLER] {ex.Message} (Wert: {ex.GemesseneGrad} °C)"</span>);\n    <span class="tp">Console</span>.<span class="mt">ResetColor</span>();`,
+                    `    <span class="cm">// 4. Ausgabe-Variante B: StackTrace & vollständiges ex.ToString()</span>\n    <span class="tp">Console</span>.ForegroundColor = <span class="tp">ConsoleColor</span>.Yellow;\n    <span class="tp">Console</span>.<span class="mt">WriteLine</span>(<span class="st">"--- Nur der StackTrace (Wo ist es passiert?): ---"</span>);\n    <span class="tp">Console</span>.<span class="mt">WriteLine</span>(ex.StackTrace);\n    <span class="tp">Console</span>.<span class="mt">WriteLine</span>(<span class="st">"--- Komplette Entwickler-Diagnose (ex.ToString()): ---"</span>);\n    <span class="tp">Console</span>.<span class="mt">WriteLine</span>(ex.<span class="mt">ToString</span>());\n    <span class="tp">Console</span>.<span class="mt">ResetColor</span>();\n}`
+                ],
+                steps: [
+                    {
+                        revealed: [0], active: 0, style: "active-step",
+                        keywords: ["class", ": Exception", "base(nachricht)"],
+                        newKeywords: [": Exception", "base(nachricht)"],
+                        border: "",
+                        title: "Schritt 1: Wie erstelle ich eine eigene Exception?",
+                        body: `<p>Man erstellt eine normale C#-Klasse, die mit <code>: Exception</code> von der Basisklasse <code>System.Exception</code> erbt.</p>
+                               <ul>
+                                   <li><strong>Namenskonvention:</strong> Eigene Exceptions enden immer auf das Wort <code>...Exception</code>.</li>
+                                   <li><strong>Konstruktor & <code>base(nachricht)</code>:</strong> Den eigentlichen Fehlertext reichen wir per <code>: base(nachricht)</code> an die Basisklasse weiter (damit <code>ex.Message</code> später funktioniert).</li>
+                                   <li><strong>Eigene Properties:</strong> Wir können eigene Felder wie <code>GemesseneGrad</code> hinzufügen, um genaue Messwerte im Fehlerobjekt mitzutransportieren!</li>
+                               </ul>`,
+                        console: null
+                    },
+                    {
+                        revealed: [0, 1], active: 1, style: "error-step",
+                        keywords: ["class", ": Exception", "base(nachricht)", "throw", "new"],
+                        newKeywords: ["throw"],
+                        border: "warn-border",
+                        title: "Schritt 2: Eigene Exception werfen",
+                        body: `<p>In <code>KuehlungPruefen(double grad)</code> instanziieren wir unsere neue Klasse mit <code>new</code> und übergeben sowohl den Text als auch den konkreten Messwert <code>grad</code>.</p>
+                               <ul>
+                                   <li>Der Aufruf sieht exakt so aus wie bei eingebauten .NET-Exceptions.</li>
+                                   <li>Ein <code>catch</code>-Block weiter oben kann nun gezielt nur auf <code>TemperaturZuHochException</code> filtern.</li>
+                               </ul>`,
+                        console: null
+                    },
+                    {
+                        revealed: [0, 1, 2], active: 2, style: "error-step",
+                        keywords: [": Exception", "base", "throw", "try", "catch", "ex.Message", "Console.ForegroundColor", "Console.ResetColor()"],
+                        newKeywords: ["Console.ForegroundColor", "Console.ResetColor()", "ex.Message"],
+                        border: "warn-border",
+                        title: "Schritt 3: Farbige Ausgabe & 'ex.Message' (Für Endbenutzer)",
+                        body: `<p>Im <code>catch</code>-Block stehen uns verschiedene Arten der Fehlerausgabe zur Verfügung:</p>
+                               <ul>
+                                   <li><strong>Farbige Konsole:</strong> Mit <code>Console.ForegroundColor = ConsoleColor.Red;</code> heben wir Fehlermeldungen optisch sofort hervor. Wichtig: Danach immer <code>Console.ResetColor();</code> aufrufen!</li>
+                                   <li><strong>Nur der Fehlertext (<code>ex.Message</code>):</strong> Gibt ausschließlich die kurze Beschreibung aus (plus unser eigenes Property <code>ex.GemesseneGrad</code>). Ideal für normale Benutzer, die keine kryptischen Zeilennummern sehen sollen.</li>
+                               </ul>`,
+                        console: `<span style="color:#f87171;">[FEHLER] Überhitzungsgefahr! (Wert: 112,4 °C)</span>`
+                    },
+                    {
+                        revealed: [0, 1, 2, 3], active: 3, style: "finally-step",
+                        keywords: [": Exception", "base", "throw", "try", "catch", "ex.Message", "Console.ForegroundColor", "Console.ResetColor()", "ex.StackTrace", "ex.ToString()"],
+                        newKeywords: ["ex.StackTrace", "ex.ToString()"],
+                        border: "amber-border",
+                        title: "Schritt 4: StackTrace vs. kompletter Fehlertext (Für Entwickler & Logs)",
+                        body: `<p>Für die Fehlersuche (Debugging) reicht <code>ex.Message</code> nicht, weil wir wissen müssen, <strong>in welcher Datei und Zeile</strong> der Fehler auftrat:</p>
+                               <ul>
+                                   <li><strong><code>ex.StackTrace</code>:</strong> Zeigt nur die Aufrufkette rückwärts vom Ort des <code>throw</code> bis zum <code>catch</code> (inkl. Methodennamen und Zeilennummern).</li>
+                                   <li><strong><code>ex.ToString()</code> (oder <code>Console.WriteLine(ex)</code>):</strong> Kombiniert den Klassennamen der Exception, die <code>Message</code> und den gesamten <code>StackTrace</code>. Das ist das Standardformat für Logdateien!</li>
+                               </ul>`,
+                        console: `<span style="color:#f87171;">[FEHLER] Überhitzungsgefahr! (Wert: 112,4 °C)</span>\n<span style="color:#fbbf24;">--- Nur der StackTrace (Wo ist es passiert?): ---\n   at Anlage.KuehlungPruefen(Double grad) in Program.cs:line 18\n   at Anlage.Main() in Program.cs:line 25\n--- Komplette Entwickler-Diagnose (ex.ToString()): ---\nTemperaturZuHochException: Überhitzungsgefahr!\n   at Anlage.KuehlungPruefen(Double grad) in Program.cs:line 18\n   at Anlage.Main() in Program.cs:line 25</span>`
+                    }
+                ]
+            }
+        },
+
+        // =====================================================================
+        // BEISPIEL 4: Parse im try-catch (FALSCH) vs. TryParse (RICHTIG)
+        // =====================================================================
+        ex4: {
+            hasToggle: true,
+            toggleTextA: "Aktuelle Ansicht: ❌ FALSCH (int.Parse im try-catch)",
+            toggleBtnA: "Wechsle zu: ✅ KORREKT (int.TryParse mit Kontrollstruktur)",
+            toggleTextB: "Aktuelle Ansicht: ✅ KORREKT (int.TryParse mit Kontrollstruktur)",
+            toggleBtnB: "Zurück zu: ❌ FALSCH (int.Parse im try-catch)",
+            A: {
+                filename: "InputFalscheVerwendung.cs",
+                modeText: "❌ ANTI-PATTERN: Parse im try-catch",
+                codeBlocks: [
+                    `<span class="cm">// ❌ FALSCH: Benutzereingabe mit int.Parse und try-catch prüfen!</span>\n<span class="tp">Console</span>.<span class="mt">Write</span>(<span class="st">"Bitte Anzahl der Werkstücke eingeben: "</span>);\n<span class="kw">string</span> eingabe = <span class="tp">Console</span>.<span class="mt">ReadLine</span>()!; <span class="cm">// User tippt z.B. "zwölf"</span>`,
+                    `<span class="kw">int</span> anzahl = 0;\n<span class="kw">try</span> {\n    <span class="cm">// int.Parse wirft bei Buchstaben sofort eine FormatException!</span>\n    anzahl = <span class="kw">int</span>.<span class="mt">Parse</span>(eingabe);\n}`,
+                    `<span class="kw">catch</span> (<span class="tp">FormatException</span>) {\n    <span class="tp">Console</span>.<span class="mt">WriteLine</span>(<span class="st">"Ungültige Eingabe! Setze Standardwert 1."</span>);\n    anzahl = 1;\n}`
+                ],
+                steps: [
+                    {
+                        revealed: [0], active: 0, style: "active-step",
+                        keywords: ["Console.ReadLine()"],
+                        newKeywords: ["Console.ReadLine()"],
+                        border: "",
+                        title: "Schritt 1: Das Szenario – Ein Benutzer tippt Text ein",
+                        body: `<p>Wir fragen den Benutzer in der Konsole nach einer Zahl. Da Menschen sich ständig vertippen (z. B. <code>"zwölf"</code> oder <code>"12a"</code>), ist eine ungültige Eingabe hier <strong>völlig erwartbar</strong> und kein unvorhersehbarer Systemabsturz.</p>`,
+                        console: `Bitte Anzahl der Werkstücke eingeben: zwölf`
+                    },
+                    {
+                        revealed: [0, 1], active: 1, style: "error-step",
+                        keywords: ["Console.ReadLine()", "try", "int.Parse"],
+                        newKeywords: ["try", "int.Parse"],
+                        border: "warn-border",
+                        title: "Schritt 2: Warum ist 'int.Parse' im try-Block hier falsch?",
+                        body: `<p><code>int.Parse(eingabe)</code> geht davon aus, dass der String garantiert eine gültige Zahl ist. Ist er das nicht, wirft die Methode eine <code>FormatException</code>.</p>
+                               <ul>
+                                   <li>Wir wissen aber schon vor dem Aufruf, dass User-Input unsicher ist.</li>
+                                   <li>Einen erwartbaren Eingabefehler über eine Exception abzufangen, missbraucht <code>try-catch</code> als reguläre Programm-Steuerung.</li>
+                               </ul>`,
+                        console: `Bitte Anzahl der Werkstücke eingeben: zwölf`
+                    },
+                    {
+                        revealed: [0, 1, 2], active: 2, style: "error-step",
+                        keywords: ["Console.ReadLine()", "try", "int.Parse", "catch", "FormatException"],
+                        newKeywords: ["catch", "FormatException"],
+                        border: "warn-border",
+                        title: "Schritt 3: Die versteckten Kosten dieses Anti-Patterns",
+                        body: `<p>Warum sollte man das niemals so programmieren?</p>
+                               <ul>
+                                   <li><strong>Performance-Katastrophe:</strong> Wenn <code>FormatException</code> geworfen wird, muss die .NET-Laufzeitumgebung die Ausführung anhalten, Speicher auf dem Heap reservieren und den gesamten Call Stack rückwärts durchsuchen. Das dauert <strong>ca. 5.000- bis 10.000-mal länger</strong> als eine einfache <code>if</code>-Abfrage!</li>
+                                   <li><strong>Architektur-Regel:</strong> Klicke oben auf den gelben Toggle-Button, um zu sehen, wie man das mit <code>int.TryParse</code> und einer Kontrollstruktur sauber löst!</li>
+                               </ul>`,
+                        console: `Bitte Anzahl der Werkstücke eingeben: zwölf\nUngültige Eingabe! Setze Standardwert 1.`
+                    }
+                ]
+            },
+            B: {
+                filename: "InputKorrekteVerwendung.cs",
+                modeText: "✅ BEST PRACTICE: int.TryParse + Kontrollstruktur",
+                codeBlocks: [
+                    `<span class="cm">// ✅ KORREKT: Kontrollstruktur (while / if) mit int.TryParse verwenden!</span>\n<span class="tp">Console</span>.<span class="mt">Write</span>(<span class="st">"Bitte Anzahl der Werkstücke eingeben: "</span>);\n<span class="kw">string</span> eingabe = <span class="tp">Console</span>.<span class="mt">ReadLine</span>()!;`,
+                    `<span class="kw">int</span> anzahl;\n<span class="cm">// int.TryParse gibt bool zurück (true = Zahl gültig, false = ungültig)</span>\n<span class="kw">while</span> (!<span class="kw">int</span>.<span class="mt">TryParse</span>(eingabe, <span class="kw">out</span> anzahl) || anzahl <= 0) {\n    <span class="tp">Console</span>.<span class="mt">Write</span>(<span class="st">"Ungültig! Bitte eine positive ganze Zahl eingeben: "</span>);\n    eingabe = <span class="tp">Console</span>.<span class="mt">ReadLine</span>()!;\n}`,
+                    `<span class="tp">Console</span>.<span class="mt">WriteLine</span>(<span class="st">$"Super! Produziere {anzahl} Werkstücke."</span>);`
+                ],
+                steps: [
+                    {
+                        revealed: [0], active: 0, style: "good-step",
+                        keywords: ["Console.ReadLine()"],
+                        newKeywords: ["Console.ReadLine()"],
+                        border: "good-border",
+                        title: "Schritt 1: Eingabe einlesen ohne Exception-Risiko",
+                        body: `<p>Wir lesen den String des Benutzers ein. Anstatt nun blind ins Messer zu laufen und auf einen Absturz zu warten, prüfen wir die Eingabe mit einer normalen <strong>Kontrollstruktur</strong>.</p>`,
+                        console: `Bitte Anzahl der Werkstücke eingeben: zwölf`
+                    },
+                    {
+                        revealed: [0, 1], active: 1, style: "good-step",
+                        keywords: ["Console.ReadLine()", "while", "int.TryParse", "out"],
+                        newKeywords: ["while", "int.TryParse", "out"],
+                        border: "good-border",
+                        title: "Schritt 2: Wie funktioniert 'int.TryParse'?",
+                        body: `<p><strong>Goldene C#-Regel:</strong> Wenn es eine <code>Try...</code>-Methode gibt (<code>int.TryParse</code>, <code>double.TryParse</code>, <code>dict.TryGetValue</code>), ist <strong>immer</strong> diese statt <code>try-catch</code> zu verwenden!</p>
+                               <ul>
+                                   <li><strong>Rückgabewert (<code>bool</code>):</strong> Gibt <code>true</code> zurück, wenn der Text umgewandelt werden konnte, sonst völlig absturzfrei <code>false</code>.</li>
+                                   <li><strong><code>out anzahl</code>:</strong> Wenn die Umwandlung klappt, schreibt die Methode die fertige Zahl direkt in die Variable <code>anzahl</code> hinein.</li>
+                                   <li>Mit der <code>while</code>-Schleife wiederholen wir die Frage einfach so lange, bis der User eine gültige Zahl eingibt.</li>
+                               </ul>`,
+                        console: `Bitte Anzahl der Werkstücke eingeben: zwölf\nUngültig! Bitte eine positive ganze Zahl eingeben: 25`
+                    },
+                    {
+                        revealed: [0, 1, 2], active: 2, style: "good-step",
+                        keywords: ["Console.ReadLine()", "while", "int.TryParse", "out"],
+                        newKeywords: [],
+                        border: "good-border",
+                        title: "Schritt 3: Kontrollstruktur vs. Ausnahmefall",
+                        body: `<p>Sobald die <code>while</code>-Schleife beendet ist, haben wir die 100%ige Garantie, dass in <code>anzahl</code> eine gültige positive Zahl steht.</p>
+                               <ul>
+                                   <li><strong>Kein StackTrace-Overhead:</strong> Die Prüfung dauert nur wenige Nanosekunden.</li>
+                                   <li><strong>Sauberer Programmfluss:</strong> Erwartbare Fehleingaben werden dort gelöst, wo sie hingehören – in eine <code>if</code>- oder <code>while</code>-Bedingung.</li>
+                               </ul>`,
+                        console: `Bitte Anzahl der Werkstücke eingeben: zwölf\nUngültig! Bitte eine positive ganze Zahl eingeben: 25\nSuper! Produziere 25 Werkstücke.`
+                    }
+                ]
+            }
+        },
+
+        // =====================================================================
+        // BEISPIEL 5: Roboter (Zufallsrichtung) & Welt (Ränder + Stein '#')
+        // =====================================================================
+        ex5: {
+            hasToggle: true,
+            toggleTextA: "Aktuelle Ansicht: ✅ KORREKT (Welt prüft Ränder & Stein '#' mit Kontrollstrukturen)",
+            toggleBtnA: "Zeige Anti-Pattern: ❌ FALSCH (Welt wirft Exceptions bei Rand oder Stein '#')",
+            toggleTextB: "Aktuelle Ansicht: ❌ KONZEPTIONELL FALSCH (Welt & Roboter lösen Hindernisse mit try-catch)",
+            toggleBtnB: "Zurück zu: ✅ KORREKT (Kontrollstrukturen mit if, while & bool)",
+            A: {
+                filename: "RoboterWeltKontrollstruktur.cs",
+                modeText: "✅ KORREKT: Ränder & Stein '#' per bool prüfen",
+                codeBlocks: [
+                    `<span class="cm">// 1. Der Roboter: Wählt NUR zufällig eine Richtung aus und gibt sie zurück</span>\n<span class="kw">public class</span> <span class="tp">Roboter</span> {\n    <span class="kw">private</span> <span class="tp">Random</span> rnd = <span class="kw">new</span> <span class="tp">Random</span>();\n    <span class="kw">public</span> <span class="tp">Richtung</span> <span class="mt">WaehleZufallsRichtung</span>() {\n        <span class="cm">// 0 = Nord, 1 = Ost, 2 = Sued, 3 = West</span>\n        <span class="kw">return</span> (<span class="tp">Richtung</span>)rnd.<span class="mt">Next</span>(0, 4);\n    }\n}`,
+                    `<span class="cm">// 2. Die Welt: Prüft mit if auf Weltränder und das Symbol Stein ('#')</span>\n<span class="kw">public class</span> <span class="tp">Welt</span> {\n    <span class="kw">private char</span>[,] gitter = {\n        { <span class="st">'.'</span>, <span class="st">'#'</span>, <span class="st">'.'</span> }, <span class="cm">// Roboter startet bei (x=0, y=0) oben links in der Ecke</span>\n        { <span class="st">'.'</span>, <span class="st">'.'</span>, <span class="st">'.'</span> }  <span class="cm">// Rechts daneben auf (x=1, y=0) liegt ein Stein '#'</span>\n    };\n    <span class="kw">public int</span> BotX = 0, BotY = 0;\n\n    <span class="kw">public bool</span> <span class="mt">VersucheSchritt</span>(<span class="tp">Richtung</span> r) {\n        <span class="kw">int</span> zielX = BotX + (r == <span class="tp">Richtung</span>.Ost ? 1 : r == <span class="tp">Richtung</span>.West ? -1 : 0);\n        <span class="kw">int</span> zielY = BotY + (r == <span class="tp">Richtung</span>.Sued ? 1 : r == <span class="tp">Richtung</span>.Nord ? -1 : 0);\n\n        <span class="cm">// Kontrollstruktur 1: Liegt das Ziel außerhalb der Weltränder?</span>\n        <span class="kw">if</span> (zielX < 0 || zielY < 0 || zielY >= gitter.<span class="mt">GetLength</span>(0) || zielX >= gitter.<span class="mt">GetLength</span>(1))\n            <span class="kw">return false</span>;\n\n        <span class="cm">// Kontrollstruktur 2: Blockiert das Symbol Stein ('#') das Zielfeld?</span>\n        <span class="kw">if</span> (gitter[zielY, zielX] == <span class="st">'#'</span>)\n            <span class="kw">return false</span>;\n\n        BotX = zielX; BotY = zielY; <span class="cm">// Schritt erfolgreich ausführen!</span>\n        <span class="kw">return true</span>;\n    }\n}`,
+                    `<span class="cm">// 3. Zusammenspiel: while-Schleife fragt Roboter, bis die Welt 'true' meldet</span>\n<span class="kw">public static void</span> <span class="mt">MacheEinenGueltigenZug</span>(<span class="tp">Roboter</span> bot, <span class="tp">Welt</span> welt) {\n    <span class="kw">bool</span> erfolgreichBewegt = <span class="kw">false</span>;\n    <span class="kw">while</span> (!erfolgreichBewegt) {\n        <span class="tp">Richtung</span> wunsch = bot.<span class="mt">WaehleZufallsRichtung</span>(); <span class="cm">// Roboter würfelt Richtung</span>\n        erfolgreichBewegt = welt.<span class="mt">VersucheSchritt</span>(wunsch); <span class="cm">// Welt prüft Rand & '#'</span>\n    }\n    <span class="tp">Console</span>.<span class="mt">WriteLine</span>(<span class="st">$"Schritt gemacht! Neue Position: ({welt.BotX}, {welt.BotY})"</span>);\n}`
+                ],
+                steps: [
+                    {
+                        revealed: [0], active: 0, style: "good-step",
+                        keywords: ["Random", "rnd.Next(0, 4)", "return"],
+                        newKeywords: ["Random", "rnd.Next(0, 4)"],
+                        border: "good-border",
+                        title: "Schritt 1: Der Roboter würfelt nur eine Richtung",
+                        body: `<p>Wir trennen die Verantwortlichkeiten sauber auf:</p>
+                               <ul>
+                                   <li>Der <code>Roboter</code> kennt das Spielfeld gar nicht.</li>
+                                   <li>Seine einzige Aufgabe in <code>WaehleZufallsRichtung()</code> ist es, mit <code>rnd.Next(0, 4)</code> zufällig eine Richtung (<code>Nord</code>, <code>Ost</code>, <code>Sued</code> oder <code>West</code>) auszuwählen und an den Aufrufer zu übermitteln.</li>
+                               </ul>`,
+                        console: null
+                    },
+                    {
+                        revealed: [0, 1], active: 1, style: "good-step",
+                        keywords: ["Random", "char[,]", "if", "GetLength", "gitter[y, x] == '#'", "return false", "return true"],
+                        newKeywords: ["char[,]", "if", "gitter[y, x] == '#'", "return false"],
+                        border: "good-border",
+                        title: "Schritt 2: Die Welt prüft Ränder und das Symbol Stein ('#')",
+                        body: `<p>Der Roboter steht bei <code>(0,0)</code> oben links in der Ecke, und rechts neben ihm auf <code>(1,0)</code> liegt ein Stein (Symbol <code>'#'</code>). Damit ist nur <strong>eine einzige Richtung</strong> (Süden nach <code>(0,1)</code>) frei!</p>
+                               <ul>
+                                   <li><strong>Prüfung 1 (Weltränder):</strong> Mit einer <code>if</code>-Kontrollstruktur prüfen wir, ob <code>zielX</code> oder <code>zielY</code> kleiner als <code>0</code> oder größer/gleich der Array-Grenzen ist. Wenn ja: <code>return false;</code>.</li>
+                                   <li><strong>Prüfung 2 (Symbol Stein <code>'#'</code>):</strong> Erst wenn klar ist, dass die Koordinaten im Gitter liegen, prüfen wir mit <code>if (gitter[zielY, zielX] == '#')</code> auf den Stein. Wenn dort ein Stein liegt: <code>return false;</code>.</li>
+                               </ul>`,
+                        console: null
+                    },
+                    {
+                        revealed: [0, 1, 2], active: 2, style: "good-step",
+                        keywords: ["Random", "char[,]", "if", "gitter[y, x] == '#'", "while", "bool"],
+                        newKeywords: ["while", "bool"],
+                        border: "good-border",
+                        title: "Schritt 3: Die while-Schleife verbindet Roboter und Welt",
+                        body: `<p>In <code>MacheEinenGueltigenZug</code> nutzen wir eine <code>while</code>-Kontrollstruktur:</p>
+                               <ul>
+                                   <li>Der Roboter würfelt z. B. zuerst <code>Nord</code> (Weltrand $\rightarrow$ <code>false</code>), dann <code>Ost</code> (Stein <code>'#'</code> $\rightarrow$ <code>false</code>) und schließlich <code>Sued</code> (Freies Feld <code>'.'</code> $\rightarrow$ <code>true</code>).</li>
+                                   <li>Es ist völlig normal, dass der Roboter in der Ecke mehrmals würfeln muss, weil 3 von 4 Richtungen blockiert sind. Deshalb arbeitet man hier <strong>immer mit Kontrollstrukturen (<code>if</code>, <code>while</code>, <code>bool</code>)</strong>!</li>
+                                   <li>Klicke oben auf den gelben Toggle-Button, um zu sehen, warum die Lösung über <code>try-catch</code> konzeptionell falsch ist!</li>
+                               </ul>`,
+                        console: `[Zufall: Nord] -> Abgelehnt (Weltrand oben)\n[Zufall: Ost]  -> Abgelehnt (Blockiert durch Stein '#')\n[Zufall: Sued] -> Frei ('.')!\nSchritt gemacht! Neue Position: (0, 1)`
+                    }
+                ]
+            },
+            B: {
+                filename: "RoboterWeltAntiPattern.cs",
+                modeText: "❌ KONZEPTIONELL FALSCH: Rand & Stein '#' per try-catch",
+                codeBlocks: [
+                    `<span class="cm">// 1. Der Roboter bleibt gleich: Würfelt zufällig eine Richtung</span>\n<span class="kw">public class</span> <span class="tp">Roboter</span> {\n    <span class="kw">private</span> <span class="tp">Random</span> rnd = <span class="kw">new</span> <span class="tp">Random</span>();\n    <span class="kw">public</span> <span class="tp">Richtung</span> <span class="mt">WaehleZufallsRichtung</span>() => (<span class="tp">Richtung</span>)rnd.<span class="mt">Next</span>(0, 4);\n}`,
+                    `<span class="cm">// 2. ❌ FALSCH: Welt prüft Ränder nicht und wirft Exception bei Stein '#'</span>\n<span class="kw">public class</span> <span class="tp">WeltFalsch</span> {\n    <span class="kw">private char</span>[,] gitter = { { <span class="st">'.'</span>, <span class="st">'#'</span>, <span class="st">'.'</span> }, { <span class="st">'.'</span>, <span class="st">'.'</span>, <span class="st">'.'</span> } };\n    <span class="kw">public int</span> BotX = 0, BotY = 0;\n\n    <span class="kw">public void</span> <span class="mt">ErzwingeSchritt</span>(<span class="tp">Richtung</span> r) {\n        <span class="kw">int</span> zielX = BotX + (r == <span class="tp">Richtung</span>.Ost ? 1 : r == <span class="tp">Richtung</span>.West ? -1 : 0);\n        <span class="kw">int</span> zielY = BotY + (r == <span class="tp">Richtung</span>.Sued ? 1 : r == <span class="tp">Richtung</span>.Nord ? -1 : 0);\n\n        <span class="cm">// ❌ Läuft am Rand ungeprüft in eine IndexOutOfRangeException des Arrays!</span>\n        <span class="kw">if</span> (gitter[zielY, zielX] == <span class="st">'#'</span>) {\n            <span class="cm">// ❌ Wirft Exception für ein normales Spielsymbol!</span>\n            <span class="kw">throw new</span> <span class="tp">InvalidOperationException</span>(<span class="st">"Auf Feld liegt ein Stein '#'!"</span>);\n        }\n        BotX = zielX; BotY = zielY;\n    }\n}`,
+                    `<span class="cm">// 3. ❌ FALSCH: try-catch wird als Ersatz für eine normale if-Prüfung missbraucht</span>\n<span class="kw">public static void</span> <span class="mt">MacheZugMitExceptions</span>(<span class="tp">Roboter</span> bot, <span class="tp">WeltFalsch</span> welt) {\n    <span class="kw">bool</span> erfolgreich = <span class="kw">false</span>;\n    <span class="kw">while</span> (!erfolgreich) {\n        <span class="kw">try</span> {\n            <span class="tp">Richtung</span> wunsch = bot.<span class="mt">WaehleZufallsRichtung</span>();\n            welt.<span class="mt">ErzwingeSchritt</span>(wunsch);\n            erfolgreich = <span class="kw">true</span>; <span class="cm">// Nur erreicht, wenn keine Exception flog</span>\n        }\n        <span class="kw">catch</span> (<span class="tp">IndexOutOfRangeException</span>) { <span class="cm">/* Weltrand ignoriert -> weiterwürfeln */</span> }\n        <span class="kw">catch</span> (<span class="tp">InvalidOperationException</span>) { <span class="cm">/* Stein '#' ignoriert -> weiterwürfeln */</span> }\n    }\n}`
+                ],
+                steps: [
+                    {
+                        revealed: [0], active: 0, style: "active-step",
+                        keywords: ["Random", "rnd.Next(0, 4)"],
+                        newKeywords: ["Random"],
+                        border: "",
+                        title: "Schritt 1: Der Roboter liefert weiterhin nur die Zufallsrichtung",
+                        body: `<p>Am Roboter selbst ändert sich nichts: Er wählt zufällig eine Richtung aus und gibt sie weiter.</p>`,
+                        console: null
+                    },
+                    {
+                        revealed: [0, 1], active: 1, style: "error-step",
+                        keywords: ["Random", "char[,]", "IndexOutOfRangeException", "throw", "InvalidOperationException"],
+                        newKeywords: ["IndexOutOfRangeException", "throw", "InvalidOperationException"],
+                        border: "warn-border",
+                        title: "Schritt 2: Der Designfehler in 'ErzwingeSchritt'",
+                        body: `<p>Hier passieren gleich zwei gravierende Konzeptfehler in der Welt-Klasse:</p>
+                               <ul>
+                                   <li><strong>1. Keine Randprüfung vor dem Array-Zugriff:</strong> Wenn der Roboter bei <code>(0,0)</code> nach Norden würfelt, ist <code>zielY = -1</code>. Der Zugriff <code>gitter[-1, 0]</code> lässt das Array mit einer <code>IndexOutOfRangeException</code> abstürzen!</li>
+                                   <li><strong>2. Stein <code>'#'</code> wirft Exception:</strong> Ein Stein auf dem Spielfeld ist ein ganz normales Hindernis im Spiel und kein unerwarteter Systemdefekt. Dafür ein <code>throw new InvalidOperationException(...)</code> auszulösen, ist falsch.</li>
+                               </ul>`,
+                        console: null
+                    },
+                    {
+                        revealed: [0, 1, 2], active: 2, style: "error-step",
+                        keywords: ["Random", "char[,]", "try", "catch", "IndexOutOfRangeException", "InvalidOperationException"],
+                        newKeywords: ["try", "catch"],
+                        border: "warn-border",
+                        title: "Schritt 3: Warum dieses try-catch konzeptionell falsch ist",
+                        body: `<p>Obwohl der Roboter am Ende auch hier ein freies Feld findet, ist dieser Code ein Musterbeispiel für <strong>schlechte Softwarearchitektur</strong>:</p>
+                               <ul>
+                                   <li><strong>Missbrauch als Kontrollstruktur:</strong> Da der Roboter in der Ecke startet und zufällig würfelt, sind Fehlschläge durch den Rand oder den Stein <code>'#'</code> der <strong>Regelfall (75 % Wahrscheinlichkeit beim ersten Wurf!)</strong> und keine Ausnahme.</li>
+                                   <li><strong>Abstürze als Navigationshilfe:</strong> Eine <code>IndexOutOfRangeException</code> zeigt normalerweise einen gefährlichen Programmierfehler (Bug) an. Wer sie im <code>catch</code> einfach stumm ignoriert, bemerkt echte Array-Fehler im Code nie wieder.</li>
+                                   <li><strong>Enormer Laufzeit-Overhead:</strong> Für jeden ungültigen Zufallswurf muss .NET die Ausführung abbrechen und den Call Stack abbauen.</li>
+                               </ul>`,
+                        console: `<span style="color:#f87171;">[Zufall: Nord] -> CRASH: IndexOutOfRangeException (im catch verschluckt)\n[Zufall: Ost]  -> CRASH: InvalidOperationException wegen '#' (im catch verschluckt)</span>\n[Zufall: Sued] -> Schritt ausgeführt.`
+                    }
+                ]
+            }
+        },
+
+        // =====================================================================
+        // BEISPIEL 6: Roboter Achsbruch (Logfile vs. Neues Rad produzieren)
+        // =====================================================================
+        ex6: {
+            hasToggle: true,
+            toggleTextA: "Variante A: ✅ Nicht direkt behebbar -> In Logfile schreiben (File.AppendAllText)",
+            toggleBtnA: "Wechsle zu Variante B: ✅ Behebbar durch Kompensation -> Neues Rad erzeugen & zuweisen",
+            toggleTextB: "Variante B: ✅ Behebbar durch Kompensation -> Neues Rad erzeugen & dem Roboter zuweisen",
+            toggleBtnB: "Zurück zu Variante A: ✅ Nicht direkt behebbar -> In Logfile schreiben",
+            A: {
+                filename: "RoboterAchsbruchLogging.cs",
+                modeText: "✅ KORREKT (Variante A): Logfile schreiben & Stopp",
+                codeBlocks: [
+                    `<span class="cm">// 1. Domänen-Klassen & eigene AchsbruchException</span>\n<span class="kw">public class</span> <span class="tp">Rad</span> { <span class="kw">public bool</span> IstGebrochen { <span class="kw">get</span>; <span class="kw">set</span>; } }\n<span class="kw">public class</span> <span class="tp">Roboter</span> {\n    <span class="kw">public</span> <span class="tp">Rad</span> AntriebsRad { <span class="kw">get</span>; <span class="kw">set</span>; } = <span class="kw">new</span> <span class="tp">Rad</span>();\n    <span class="kw">public void</span> <span class="mt">BewegeVorwaerts</span>() {\n        <span class="kw">if</span> (AntriebsRad.IstGebrochen)\n            <span class="kw">throw new</span> <span class="tp">AchsbruchException</span>(<span class="st">"Antriebsachse während der Fahrt gebrochen!"</span>);\n    }\n}`,
+                    `<span class="cm">// 2. Ausnahmefall tritt im Betrieb auf</span>\n<span class="kw">public static void</span> <span class="mt">StarteFertigung</span>(<span class="tp">Roboter</span> bot) {\n    <span class="kw">try</span> {\n        bot.AntriebsRad.IstGebrochen = <span class="kw">true</span>; <span class="cm">// Materialermüdung!</span>\n        bot.<span class="mt">BewegeVorwaerts</span>();\n    }`,
+                    `    <span class="cm">// 3. Variante A: Fehler kann vor Ort NICHT behoben werden -> Logfile!</span>\n    <span class="kw">catch</span> (<span class="tp">AchsbruchException</span> ex) {\n        <span class="kw">string</span> logEintrag = <span class="st">$"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | KRITISCH | {ex.ToString()}\\n"</span>;\n        <span class="tp">File</span>.<span class="mt">AppendAllText</span>(<span class="st">"roboter_fehler.log"</span>, logEintrag);\n        <span class="tp">Console</span>.<span class="mt">WriteLine</span>(<span class="st">"Achsbruch protokolliert. Roboter wurde sicher abgeschaltet."</span>);\n    }\n}`
+                ],
+                steps: [
+                    {
+                        revealed: [0], active: 0, style: "active-step",
+                        keywords: ["class", "throw", "new", "AchsbruchException"],
+                        newKeywords: ["AchsbruchException", "throw"],
+                        border: "",
+                        title: "Schritt 1: Ein echter Ausnahmefall – Die Achse bricht!",
+                        body: `<p>Im Gegensatz zu einem Stein <code>'#'</code> oder dem Rand des Spielfelds ist ein <strong>physischer Achsbruch</strong> während der Fahrt ein echter Ausnahmezustand:</p>
+                               <ul>
+                                   <li>Die Methode <code>BewegeVorwaerts()</code> kann ihren Auftrag technisch nicht mehr ausführen.</li>
+                                   <li>Hier ist das Werfen einer <code>AchsbruchException</code> mittels <code>throw</code> zu 100 % richtig!</li>
+                               </ul>`,
+                        console: null
+                    },
+                    {
+                        revealed: [0, 1], active: 1, style: "error-step",
+                        keywords: ["class", "throw", "new", "AchsbruchException", "try"],
+                        newKeywords: ["try"],
+                        border: "warn-border",
+                        title: "Schritt 2: Der Achsbruch passiert im 'try'-Block",
+                        body: `<p>Während der Schicht ermüdet das Material (<code>IstGebrochen = true</code>) und der Aufruf <code>bot.BewegeVorwaerts()</code> wirft die Exception.</p>
+                               <p><strong>Die große Architektur-Frage lautet nun:</strong> <em>Kann unsere Software diesen Fehler selbstständig beheben oder nicht?</em></p>`,
+                        console: null
+                    },
+                    {
+                        revealed: [0, 1, 2], active: 2, style: "finally-step",
+                        keywords: ["class", "throw", "new", "AchsbruchException", "try", "catch", "DateTime.Now", "ex.ToString()", "File.AppendAllText"],
+                        newKeywords: ["catch", "File.AppendAllText", "DateTime.Now", "ex.ToString()"],
+                        border: "amber-border",
+                        title: "Schritt 3: Variante A – Nicht behebbar -> In Logfile sichern",
+                        body: `<p>Wenn kein automatisches Ersatzteillager existiert, kann die Software die gebrochene Achse nicht selbst reparieren.</p>
+                               <ul>
+                                   <li><strong>Was tun wir im <code>catch</code>?</strong> Wir protokollieren den genauen Zeitpunkt (<code>DateTime.Now</code>) und den kompletten Diagnose-Text (<code>ex.ToString()</code>) dauerhaft in einer Textdatei.</li>
+                                   <li>Mit <code>System.IO.File.AppendAllText("roboter_fehler.log", logEintrag)</code> schreiben wir direkt auf die Festplatte – ganz ohne externes Logging-Package!</li>
+                                   <li>Danach wird der Roboter kontrolliert gestoppt. Klicke oben auf den Toggle-Button für <strong>Variante B</strong> (Automatische Reparatur im <code>catch</code>)!</li>
+                               </ul>`,
+                        console: `[Inhalt von "roboter_fehler.log"]:\n2026-10-23 10:25:12 | KRITISCH | AchsbruchException: Antriebsachse während der Fahrt gebrochen!\n   at Roboter.BewegeVorwaerts() in Roboter.cs:line 8\n   at Programm.StarteFertigung(Roboter bot) in Roboter.cs:line 15`
+                    }
+                ]
+            },
+            B: {
+                filename: "RoboterAchsbruchReparatur.cs",
+                modeText: "✅ KORREKT (Variante B): Beheben durch Ersatz-Objekt",
+                codeBlocks: [
+                    `<span class="cm">// 1. Werkstatt-Funktion: Produziert ein neues, intaktes Rad-Objekt</span>\n<span class="kw">public static</span> <span class="tp">Rad</span> <span class="mt">ProduziereErsatzRad</span>() {\n    <span class="tp">Console</span>.<span class="mt">WriteLine</span>(<span class="st">"Werkstatt-Arm fertigt neues Ersatzrad..."</span>);\n    <span class="kw">return new</span> <span class="tp">Rad</span> { IstGebrochen = <span class="kw">false</span> };\n}`,
+                    `<span class="cm">// 2. Ausnahmefall tritt im try-Block auf</span>\n<span class="kw">public static void</span> <span class="mt">StarteFertigungMitReparatur</span>(<span class="tp">Roboter</span> bot) {\n    <span class="kw">try</span> {\n        bot.AntriebsRad.IstGebrochen = <span class="kw">true</span>;\n        bot.<span class="mt">BewegeVorwaerts</span>(); <span class="cm">// Wirft AchsbruchException!</span>\n    }`,
+                    `    <span class="cm">// 3. Variante B: Im catch protokollieren UND durch neues Objekt beheben!</span>\n    <span class="kw">catch</span> (<span class="tp">AchsbruchException</span> ex) {\n        <span class="tp">File</span>.<span class="mt">AppendAllText</span>(<span class="st">"roboter_fehler.log"</span>, <span class="st">$"{DateTime.Now} | Reparatur nach: {ex.Message}\\n"</span>);\n        \n        <span class="cm">// Fehlerbehebung (Recovery): Neues Rad produzieren und zuweisen!</span>\n        bot.AntriebsRad = <span class="mt">ProduziereErsatzRad</span>();\n        <span class="tp">Console</span>.<span class="mt">WriteLine</span>(<span class="st">"Neues Rad montiert! Setze Fahrt fort..."</span>);\n        bot.<span class="mt">BewegeVorwaerts</span>(); <span class="cm">// Jetzt klappt es!</span>\n    }\n}`
+                ],
+                steps: [
+                    {
+                        revealed: [0], active: 0, style: "good-step",
+                        keywords: ["new Rad", "return"],
+                        newKeywords: ["new Rad"],
+                        border: "good-border",
+                        title: "Schritt 1: Eine Hilfsfunktion zur Schadensbehebung bereitstellen",
+                        body: `<p>In dieser Ausbaustufe besitzt unsere Fertigungsstraße eine automatische Reparaturstation: Die Methode <code>ProduziereErsatzRad()</code> erstellt mit <code>new Rad()</code> ein völlig neues, intaktes Rad-Objekt und gibt es zurück.</p>`,
+                        console: null
+                    },
+                    {
+                        revealed: [0, 1], active: 1, style: "error-step",
+                        keywords: ["new Rad", "return", "try", "AchsbruchException"],
+                        newKeywords: ["try", "AchsbruchException"],
+                        border: "warn-border",
+                        title: "Schritt 2: Der Achsbruch wirft die Exception",
+                        body: `<p>Genau wie in Variante A bricht im <code>try</code>-Block die Achse und <code>bot.BewegeVorwaerts()</code> wirft die <code>AchsbruchException</code>.</p>`,
+                        console: null
+                    },
+                    {
+                        revealed: [0, 1, 2], active: 2, style: "good-step",
+                        keywords: ["new Rad", "return", "try", "catch", "File.AppendAllText", "bot.AntriebsRad = ..."],
+                        newKeywords: ["catch", "File.AppendAllText", "bot.AntriebsRad = ..."],
+                        border: "good-border",
+                        title: "Schritt 3: Variante B – Im 'catch' das defekte Objekt austauschen!",
+                        body: `<p>Jetzt zeigt sich die volle Stärke einer sauberen Fehlerbehandlung (<strong>Error Recovery / Kompensation</strong>):</p>
+                               <ul>
+                                   <li>Wir schreiben den Vorfall zuerst mit <code>File.AppendAllText(...)</code> in unser Logfile, damit die Wartungshistorie stimmt.</li>
+                                   <li>Danach rufen wir <code>bot.AntriebsRad = ProduziereErsatzRad();</code> auf und ersetzen die kaputte Referenz durch das neue Objekt.</li>
+                                   <li><strong>Fazit:</strong> Sowohl Variante A (Loggen & sicherer Stopp, wenn keine Reparatur möglich ist) als auch Variante B (Loggen & Zustand durch Kompensationslogik reparieren) sind in der Softwarearchitektur <strong>vollkommen korrekt</strong>!</li>
+                               </ul>`,
+                        console: `Werkstatt-Arm fertigt neues Ersatzrad...\nNeues Rad montiert! Setze Fahrt fort...\n\n[Eintrag in "roboter_fehler.log"]:\n23.10.2026 10:26:00 | Reparatur nach: Antriebsachse während der Fahrt gebrochen!`
+                    }
+                ]
+            }
+        }
+    };
+
+    function switchTab(tabId) {
+        currentTab = tabId;
+        currentVariant = 'A';
+        currentStep = 0;
+
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.add('active');
+
+        updateUI();
+    }
+
+    function toggleVariant() {
+        currentVariant = (currentVariant === 'A') ? 'B' : 'A';
+        currentStep = 0;
+        updateUI();
+    }
+
+    function changeStep(delta) {
+        const steps = examples[currentTab][currentVariant].steps;
+        const next = currentStep + delta;
+        if (next >= 0 && next < steps.length) {
+            currentStep = next;
+            updateUI();
+        }
+    }
+
+    function resetSteps() {
+        currentStep = 0;
+        updateUI();
+    }
+
+    function jumpToStep(idx) {
+        currentStep = idx;
+        updateUI();
+    }
+
+    function updateUI() {
+        const tabObj = examples[currentTab];
+        const data = tabObj[currentVariant];
+        const step = data.steps[currentStep];
+
+        // Toggle Bar visibility
+        const toggleBar = document.getElementById('toggle-bar');
+        if (tabObj.hasToggle) {
+            toggleBar.classList.add('visible');
+            document.getElementById('toggle-label').textContent = (currentVariant === 'A') ? tabObj.toggleTextA : tabObj.toggleTextB;
+            document.getElementById('toggle-btn').textContent = (currentVariant === 'A') ? tabObj.toggleBtnA : tabObj.toggleBtnB;
+        } else {
+            toggleBar.classList.remove('visible');
+        }
+
+        // Header counters
+        document.getElementById('code-filename').textContent = data.filename;
+        document.getElementById('step-counter').textContent = `Schritt ${currentStep + 1} / ${data.steps.length}`;
+        document.getElementById('mode-indicator').textContent = data.modeText;
+
+        // Left: Code blocks
+        const codeContainer = document.getElementById('code-container');
+        codeContainer.innerHTML = data.codeBlocks.map((block, idx) => {
+            let classes = ['code-block'];
+            if (step.revealed.includes(idx)) classes.push('revealed');
+            if (step.active === idx) classes.push(step.style || 'active-step');
+            return `<div class="${classes.join(' ')}">${block}</div>`;
+        }).join('');
+
+        // Right: Keyword pills
+        const kwContainer = document.getElementById('keyword-list');
+        kwContainer.innerHTML = step.keywords.map(kw => {
+            const isNew = step.newKeywords && step.newKeywords.includes(kw);
+            return `<span class="kw-pill ${isNew ? 'new-kw' : ''}">${kw}</span>`;
+        }).join('');
+
+        // Right: Text explanation
+        const textCard = document.getElementById('main-text-card');
+        textCard.className = 'text-section ' + (step.border || '');
+        document.getElementById('info-title').textContent = step.title;
+        document.getElementById('info-body').innerHTML = step.body;
+
+        // Right: Optional Console / Logfile Output
+        const consoleWrapper = document.getElementById('console-wrapper');
+        const consoleOutput = document.getElementById('console-output');
+        if (step.console) {
+            consoleWrapper.style.display = 'block';
+            consoleOutput.innerHTML = step.console;
+        } else {
+            consoleWrapper.style.display = 'none';
+        }
+
+        // Footer Dots & Buttons
+        const dotsContainer = document.getElementById('step-dots');
+        dotsContainer.innerHTML = data.steps.map((_, idx) =>
+            `<div class="dot ${idx === currentStep ? 'active' : ''}" onclick="jumpToStep(${idx})"></div>`
+        ).join('');
+
+        document.getElementById('btn-prev').disabled = currentStep === 0;
+        document.getElementById('btn-next').disabled = currentStep === data.steps.length - 1;
+    }
+
+    // Start
+    updateUI();
+</script>
+</body>
+</html>

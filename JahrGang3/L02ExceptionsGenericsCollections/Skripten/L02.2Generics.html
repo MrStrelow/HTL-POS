@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C# Visualisierung: Generics, DoublyLinkedList & Varianz</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-panel: #1e293b;
+            --bg-code: #0b1120;
+            --border-color: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-blue: #38bdf8;
+            --accent-green: #4ade80;
+            --accent-amber: #fbbf24;
+            --accent-red: #f87171;
+            --accent-purple: #c084fc;
+            --font-mono: 'Consolas', 'Monaco', 'Courier New', monospace;
+            --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            background-color: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.75rem 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .title-area h1 { font-size: 1.15rem; font-weight: 600; color: var(--text-main); }
+        .title-area span { font-size: 0.8rem; color: var(--text-muted); }
+
+        .tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
+        .tab-btn {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            padding: 0.45rem 0.9rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.82rem;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover { color: var(--text-main); border-color: var(--accent-purple); }
+        .tab-btn.active {
+            background-color: var(--accent-purple);
+            color: var(--bg-dark);
+            border-color: var(--accent-purple);
+        }
+
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 46% 54%;
+            height: calc(100vh - 125px);
+            overflow: hidden;
+        }
+
+        .code-panel {
+            background-color: var(--bg-code);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 0.6rem 1rem;
+            background-color: rgba(255,255,255,0.03);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .code-container {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.48;
+        }
+
+        .code-block {
+            opacity: 0.18;
+            transition: all 0.35s ease;
+            padding: 0.25rem 0.5rem;
+            border-left: 3px solid transparent;
+            margin-bottom: 0.35rem;
+            border-radius: 0 4px 4px 0;
+            white-space: pre;
+        }
+
+        .code-block.revealed { opacity: 0.75; }
+        .code-block.active-step {
+            opacity: 1;
+            background-color: rgba(192, 132, 252, 0.14);
+            border-left-color: var(--accent-purple);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .code-block.good-step {
+            opacity: 1;
+            background-color: rgba(74, 222, 128, 0.12);
+            border-left-color: var(--accent-green);
+        }
+
+        .kw { color: #f472b6; font-weight: bold; }
+        .tp { color: #38bdf8; }
+        .mt { color: #fde047; }
+        .st { color: #4ade80; }
+        .cm { color: #64748b; font-style: italic; }
+
+        .visual-panel {
+            background-color: var(--bg-dark);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .stage-content {
+            flex: 1;
+            padding: 1.25rem 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .explanation-card {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent-purple);
+            border-radius: 8px;
+            padding: 0.9rem 1.15rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .explanation-card h3 { font-size: 1rem; margin-bottom: 0.35rem; color: var(--accent-purple); }
+        .explanation-card p { font-size: 0.88rem; color: var(--text-main); line-height: 1.45; }
+
+        .canvas-box {
+            flex: 1;
+            background-color: rgba(30, 41, 59, 0.5);
+            border: 1px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            min-height: 300px;
+        }
+
+        .dll-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .dll-node {
+            background-color: var(--bg-panel);
+            border: 2px solid var(--accent-purple);
+            border-radius: 8px;
+            width: 155px;
+            overflow: hidden;
+            transition: all 0.35s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+        }
+
+        .dll-node-header {
+            background-color: rgba(192, 132, 252, 0.2);
+            padding: 0.35rem;
+            text-align: center;
+            font-size: 0.74rem;
+            font-family: var(--font-mono);
+            color: var(--accent-purple);
+            font-weight: bold;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .dll-node-body {
+            padding: 0.65rem 0.5rem;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.88rem;
+        }
+
+        .dll-node-pointers {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.25rem 0.5rem;
+            background-color: rgba(0,0,0,0.25);
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+
+        .dll-arrow { font-size: 1.25rem; color: var(--accent-blue); font-weight: bold; }
+
+        .constraint-box {
+            display: flex;
+            gap: 0.85rem;
+            margin-top: 0.5rem;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .type-card {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            border: 2px solid var(--border-color);
+            background-color: var(--bg-panel);
+            text-align: center;
+            min-width: 155px;
+            transition: all 0.3s;
+        }
+
+        .type-card.valid { border-color: var(--accent-green); background-color: rgba(74, 222, 128, 0.1); }
+        .type-card.invalid { border-color: var(--accent-red); background-color: rgba(248, 113, 113, 0.1); opacity: 0.85; }
+
+        footer {
+            background-color: var(--bg-panel);
+            border-top: 1px solid var(--border-color);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .step-dots { display: flex; gap: 0.4rem; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background-color: var(--border-color); transition: all 0.2s; cursor: pointer; }
+        .dot.active { background-color: var(--accent-purple); transform: scale(1.25); }
+
+        .controls { display: flex; gap: 0.75rem; align-items: center; }
+        .btn {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        .btn:hover:not(:disabled) { border-color: var(--accent-purple); color: var(--accent-purple); }
+        .btn.primary { background-color: var(--accent-purple); color: var(--bg-dark); border-color: var(--accent-purple); }
+        .btn.primary:hover:not(:disabled) { background-color: #d8b4fe; color: var(--bg-dark); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="title-area">
+        <h1>C# Visualisierung: Generics, DoublyLinkedList & Varianz</h1>
+        <span>Vom generischen Knoten über Typ-Restriktionen (where) bis zu in/out Varianz</span>
+    </div>
+    <div class="tabs">
+        <button class="tab-btn active" id="tab-dll" onclick="switchTab('dll')">1. DoublyLinkedList&lt;T&gt;</button>
+        <button class="tab-btn" id="tab-constraints" onclick="switchTab('constraints')">2. Typ-Restriktionen (where)</button>
+        <button class="tab-btn" id="tab-methods" onclick="switchTab('methods')">3. Generische Methoden</button>
+        <button class="tab-btn" id="tab-variance" onclick="switchTab('variance')">4. Bonus: In- & Kontravarianz</button>
+    </div>
+</header>
+
+<main>
+    <section class="code-panel">
+        <div class="panel-header">
+            <span id="code-filename">DoublyLinkedList.cs</span>
+            <span id="step-counter">Schritt 1 / 3</span>
+        </div>
+        <div class="code-container" id="code-container"></div>
+    </section>
+
+    <section class="visual-panel">
+        <div class="panel-header">
+            <span>Heap-Knoten / Compiler Typ-Prüfung</span>
+            <span id="status-badge" style="color: var(--accent-purple);">Bereit</span>
+        </div>
+        <div class="stage-content">
+            <div class="explanation-card">
+                <h3 id="exp-title">Titel</h3>
+                <p id="exp-text">Erklärungstext...</p>
+            </div>
+            <div class="canvas-box" id="canvas-box"></div>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <div class="step-dots" id="step-dots"></div>
+    <div class="controls">
+        <button class="btn" onclick="resetSteps()">↺ Reset</button>
+        <button class="btn" id="btn-prev" onclick="changeStep(-1)">◀ Zurück</button>
+        <button class="btn primary" id="btn-next" onclick="changeStep(1)">Next Step ▶</button>
+    </div>
+</footer>
+
+<script>
+    let currentTab = 'dll';
+    let currentStep = 0;
+
+    const scenarioData = {
+        dll: {
+            filename: "DoublyLinkedList.cs",
+            codeBlocks: [
+                `<span class="cm">// 1. Generischer Knoten Node<T> mit Prev- & Next-Zeigern</span>\n<span class="kw">public class</span> <span class="tp">Node</span>&lt;<span class="tp">T</span>&gt; {\n    <span class="kw">public</span> <span class="tp">T</span> Data { <span class="kw">get</span>; <span class="kw">set</span>; }\n    <span class="kw">public</span> <span class="tp">Node</span>&lt;<span class="tp">T</span>&gt;? Prev { <span class="kw">get</span>; <span class="kw">set</span>; }\n    <span class="kw">public</span> <span class="tp">Node</span>&lt;<span class="tp">T</span>&gt;? Next { <span class="kw">get</span>; <span class="kw">set</span>; }\n    <span class="kw">public</span> <span class="mt">Node</span>(<span class="tp">T</span> data) => Data = data;\n}`,
+                `<span class="cm">// 2. Generische DoublyLinkedList<T> Klasse</span>\n<span class="kw">public class</span> <span class="tp">DoublyLinkedList</span>&lt;<span class="tp">T</span>&gt; {\n    <span class="kw">public</span> <span class="tp">Node</span>&lt;<span class="tp">T</span>&gt;? Head { <span class="kw">get</span>; <span class="kw">private set</span>; }\n    <span class="kw">public</span> <span class="tp">Node</span>&lt;<span class="tp">T</span>&gt;? Tail { <span class="kw">get</span>; <span class="kw">private set</span>; }\n    <span class="kw">public void</span> <span class="mt">AddLast</span>(<span class="tp">T</span> val) { <span class="cm">/* Prev/Next setzen */</span> }\n}`,
+                `<span class="cm">// 3. Typsichere Verwendung mit beliebigen Datentypen</span>\n<span class="kw">var</span> zug = <span class="kw">new</span> <span class="tp">DoublyLinkedList</span>&lt;<span class="kw">string</span>&gt;();\nzug.<span class="mt">AddLast</span>(<span class="st">"Lokomotive"</span>);\nzug.<span class="mt">AddLast</span>(<span class="st">"Speisewagen"</span>);\n\n<span class="kw">var</span> zahlen = <span class="kw">new</span> <span class="tp">DoublyLinkedList</span>&lt;<span class="kw">int</span>&gt;();\nzahlen.<span class="mt">AddLast</span>(10); <span class="cm">// Kein Boxing auf Object!</span>`
+            ],
+            steps: [
+                {
+                    title: "Schritt 1: Der generische Knoten Node<T>",
+                    text: "Wir starten bei unserer Doubly Linked List: Jeder Knoten speichert 'Data' vom Platzhalter-Typ T sowie die Referenzen 'Prev' und 'Next' auf den jeweils benachbarten Node<T>.",
+                    revealed: [0], active: 0, mode: "normal",
+                    status: "Node<T> Bauplan",
+                    render: () => `
+                        <div class="dll-node" style="width: 240px;">
+                            <div class="dll-node-header">class Node&lt;T&gt;</div>
+                            <div class="dll-node-body">Data : <span style="color:var(--accent-blue)">T</span></div>
+                            <div class="dll-node-pointers">
+                                <span>◀ Prev: Node&lt;T&gt;?</span>
+                                <span>Next: Node&lt;T&gt;? ▶</span>
+                            </div>
+                        </div>
+                    `
+                },
+                {
+                    title: "Schritt 2: Die Listen-Struktur DoublyLinkedList<T>",
+                    text: "Die Klasse 'DoublyLinkedList<T>' verwaltet 'Head' und 'Tail'. Beim Einfügen über 'AddLast(T val)' werden die 'Prev'- und 'Next'-Zeiger in O(1) miteinander verkettet.",
+                    revealed: [0, 1], active: 1, mode: "normal",
+                    status: "Verkettung Prev ⇄ Next",
+                    render: () => `
+                        <div class="dll-container">
+                            <div class="dll-node">
+                                <div class="dll-node-header">Head: Node&lt;T&gt;</div>
+                                <div class="dll-node-body">Element 1</div>
+                                <div class="dll-node-pointers"><span>Prev: null</span><span>Next ●</span></div>
+                            </div>
+                            <div class="dll-arrow">⇄</div>
+                            <div class="dll-node">
+                                <div class="dll-node-header">Tail: Node&lt;T&gt;</div>
+                                <div class="dll-node-body">Element 2</div>
+                                <div class="dll-node-pointers"><span>● Prev</span><span>Next: null</span></div>
+                            </div>
+                        </div>
+                    `
+                },
+                {
+                    title: "Schritt 3: Konkrete Instanzen ohne Code-Duplizierung",
+                    text: "Egal ob DoublyLinkedList<string> oder DoublyLinkedList<int>: Wir schreiben den Listencode nur ein einziges Mal. Bei Werttypen wie 'int' verhindert Generizität zudem teures Boxing/Unboxing.",
+                    revealed: [0, 1, 2], active: 2, mode: "good",
+                    status: "Instanziierung (<string> & <int>)",
+                    render: () => `
+                        <div style="display:flex; flex-direction:column; gap:1rem; width:100%; align-items:center;">
+                            <div class="dll-container">
+                                <div class="dll-node" style="border-color:var(--accent-green);">
+                                    <div class="dll-node-header" style="color:var(--accent-green);">Node&lt;string&gt;</div>
+                                    <div class="dll-node-body">"Lokomotive"</div>
+                                </div>
+                                <div class="dll-arrow">⇄</div>
+                                <div class="dll-node" style="border-color:var(--accent-green);">
+                                    <div class="dll-node-header" style="color:var(--accent-green);">Node&lt;string&gt;</div>
+                                    <div class="dll-node-body">"Speisewagen"</div>
+                                </div>
+                            </div>
+                            <div class="dll-container">
+                                <div class="dll-node" style="border-color:var(--accent-blue);">
+                                    <div class="dll-node-header" style="color:var(--accent-blue);">Node&lt;int&gt;</div>
+                                    <div class="dll-node-body">10</div>
+                                </div>
+                                <div class="dll-arrow">⇄</div>
+                                <div class="dll-node" style="border-color:var(--accent-blue);">
+                                    <div class="dll-node-header" style="color:var(--accent-blue);">Node&lt;int&gt;</div>
+                                    <div class="dll-node-body">20</div>
+                                </div>
+                            </div>
+                        </div>
+                    `
+                }
+            ]
+        },
+        constraints: {
+            filename: "WaggonListConstraints.cs",
+            codeBlocks: [
+                `<span class="cm">// 1. Basisklasse und abgeleitete Klassen</span>\n<span class="kw">public abstract class</span> <span class="tp">Waggon</span> {\n    <span class="kw">public double</span> LeergewichtTonnen { <span class="kw">get</span>; <span class="kw">init</span>; }\n}\n<span class="kw">public class</span> <span class="tp">GueterWaggon</span> : <span class="tp">Waggon</span> { }\n<span class="kw">public class</span> <span class="tp">PersonenWaggon</span> : <span class="tp">Waggon</span> { }`,
+                `<span class="cm">// 2. Typ-Vererbungs-Restriktion: where T : Waggon</span>\n<span class="kw">public class</span> <span class="tp">ZugVerband</span>&lt;<span class="tp">T</span>&gt; : <span class="tp">DoublyLinkedList</span>&lt;<span class="tp">T</span>&gt; \n    <span class="kw">where</span> <span class="tp">T</span> : <span class="tp">Waggon</span> {\n\n    <span class="kw">public double</span> <span class="mt">BerechneGesamtGewicht</span>() {\n        <span class="cm">// Dank 'where T : Waggon' kennt der Compiler .LeergewichtTonnen!</span>\n        <span class="kw">return</span> Head != <span class="kw">null</span> ? Head.Data.LeergewichtTonnen : 0;\n    }\n}`,
+                `<span class="cm">// 3. Weitere wichtige C# Constraints im Überblick</span>\n<span class="kw">public class</span> <span class="tp">Factory</span>&lt;<span class="tp">T</span>&gt; <span class="kw">where</span> <span class="tp">T</span> : <span class="kw">class</span>, <span class="tp">IComparable</span>&lt;<span class="tp">T</span>&gt;, <span class="kw">new</span>() {\n    <span class="kw">public</span> <span class="tp">T</span> <span class="mt">ErzeugeNeu</span>() => <span class="kw">new</span> <span class="tp">T</span>(); <span class="cm">// Erlaubt wegen new()</span>\n}`
+            ],
+            steps: [
+                {
+                    title: "Schritt 1: Das Problem ohne Typ-Restriktion",
+                    text: "In einer völlig offenen DoublyLinkedList<T> weiß der C#-Compiler nichts über T (außer den Methoden von System.Object). Wir wollen nun aber eine spezialisierte Liste für Eisenbahn-Waggons bauen.",
+                    revealed: [0], active: 0, mode: "normal",
+                    status: "Vererbungshierarchie",
+                    render: () => `
+                        <div class="constraint-box">
+                            <div class="type-card" style="border-color:var(--accent-blue); width:260px;">
+                                <div style="font-weight:bold; color:var(--accent-blue);">abstract class Waggon</div>
+                                <div style="font-size:0.8rem; margin-top:4px;">+ LeergewichtTonnen : double</div>
+                            </div>
+                        </div>
+                    `
+                },
+                {
+                    title: "Schritt 2: Vererbungs-Restriktion 'where T : Waggon'",
+                    text: "Mit 'where T : Waggon' schränken wir ein, welche Typen für T eingesetzt werden dürfen. Der große Vorteil: Innerhalb der Klasse können wir nun sicher auf alle Eigenschaften von 'Waggon' (wie .LeergewichtTonnen) zugreifen!",
+                    revealed: [0, 1], active: 1, mode: "good",
+                    status: "where T : Waggon aktiv",
+                    render: () => `
+                        <div class="constraint-box">
+                            <div class="type-card valid">
+                                <div style="font-weight:bold; color:var(--accent-green);">✔ GueterWaggon</div>
+                                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">Erbt von Waggon</div>
+                            </div>
+                            <div class="type-card valid">
+                                <div style="font-weight:bold; color:var(--accent-green);">✔ PersonenWaggon</div>
+                                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">Erbt von Waggon</div>
+                            </div>
+                            <div class="type-card invalid">
+                                <div style="font-weight:bold; color:var(--accent-red);">✖ string / Auto</div>
+                                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">Compiler-Fehler CS0311!</div>
+                            </div>
+                        </div>
+                    `
+                },
+                {
+                    title: "Schritt 3: Kombinierte Constraints (class, struct, new())",
+                    text: "Constraints lassen sich kombinieren: 'where T : class' (nur Referenztypen), 'where T : struct' (nur Werttypen), 'where T : IComparable<T>' (muss Interface implementieren) und 'where T : new()' (muss parameterlosen Konstruktor besitzen).",
+                    revealed: [0, 1, 2], active: 2, mode: "normal",
+                    status: "Kombinierte Restriktionen",
+                    render: () => `
+                        <div class="constraint-box" style="flex-direction:column; max-width:500px; gap:0.5rem;">
+                            <div class="type-card valid" style="text-align:left; padding:0.55rem 0.9rem;">
+                                <code style="color:var(--accent-amber);">where T : Basisklasse / IInterface</code>
+                                <div style="font-size:0.78rem; color:var(--text-muted);">Erzwingt Vererbung oder Interface-Implementierung</div>
+                            </div>
+                            <div class="type-card valid" style="text-align:left; padding:0.55rem 0.9rem;">
+                                <code style="color:var(--accent-amber);">where T : class</code> / <code style="color:var(--accent-amber);">where T : struct</code>
+                                <div style="font-size:0.78rem; color:var(--text-muted);">Erzwingt Referenztyp (Heap) bzw. Werttyp (Stack)</div>
+                            </div>
+                            <div class="type-card valid" style="text-align:left; padding:0.55rem 0.9rem;">
+                                <code style="color:var(--accent-amber);">where T : new()</code>
+                                <div style="font-size:0.78rem; color:var(--text-muted);">Erlaubt das Erstellen neuer Instanzen mit <code>new T()</code></div>
+                            </div>
+                        </div>
+                    `
+                }
+            ]
+        },
+        methods: {
+            filename: "GenericMethods.cs",
+            codeBlocks: [
+                `<span class="cm">// 1. Generische Methode in einer normalen Klasse</span>\n<span class="kw">public static class</span> <span class="tp">RangierHelfer</span> {\n    <span class="kw">public static void</span> <span class="mt">Swap</span>&lt;<span class="tp">T</span>&gt;(<span class="kw">ref</span> <span class="tp">T</span> links, <span class="kw">ref</span> <span class="tp">T</span> rechts) {\n        <span class="tp">T</span> temp = links;\n        links = rechts;\n        rechts = temp;\n    }\n}`,
+                `<span class="cm">// 2. Generische Methode mit eigenem Constraint</span>\n<span class="kw">public static</span> <span class="tp">T</span> <span class="mt">FindeMaximum</span>&lt;<span class="tp">T</span>&gt;(<span class="tp">T</span> a, <span class="tp">T</span> b) <span class="kw">where</span> <span class="tp">T</span> : <span class="tp">IComparable</span>&lt;<span class="tp">T</span>&gt; {\n    <span class="kw">return</span> a.<span class="mt">CompareTo</span>(b) >= 0 ? a : b;\n}`,
+                `<span class="cm">// 3. Aufruf mit automatischer Typ-Ableitung (Type Inference)</span>\n<span class="kw">int</span> gleisA = 1, gleisB = 9;\n<span class="tp">RangierHelfer</span>.<span class="mt">Swap</span>(<span class="kw">ref</span> gleisA, <span class="kw">ref</span> gleisB); <span class="cm">// Compiler erkennt <int> automatisch!</span>\n\n<span class="kw">int</span> max = <span class="mt">FindeMaximum</span>(42, 99); <span class="cm">// Erkennt <int>, da int : IComparable<int></span>`
+            ],
+            steps: [
+                {
+                    title: "Schritt 1: Generische Methode Swap<T>",
+                    text: "Auch wenn eine Klasse selbst NICHT generisch ist, kann jede einzelne Methode einen eigenen Typparameter <T> definieren. Hier tauscht 'Swap<T>' zwei Variablen beliebigen Typs per 'ref'.",
+                    revealed: [0], active: 0, mode: "normal",
+                    status: "Methode mit <T>",
+                    render: () => `
+                        <div class="dll-container" style="gap: 1.5rem;">
+                            <div class="dll-node" style="border-color: var(--accent-blue);">
+                                <div class="dll-node-header" style="color:var(--accent-blue);">ref links (T)</div>
+                                <div class="dll-node-body">Wert A</div>
+                            </div>
+                            <div style="font-size:1.8rem; color:var(--accent-green);">⇄</div>
+                            <div class="dll-node" style="border-color: var(--accent-blue);">
+                                <div class="dll-node-header" style="color:var(--accent-blue);">ref rechts (T)</div>
+                                <div class="dll-node-body">Wert B</div>
+                            </div>
+                        </div>
+                    `
+                },
+                {
+                    title: "Schritt 2: Generische Methode mit IComparable<T>",
+                    text: "Um zwei generische Werte auf '>' oder '<' zu prüfen, reicht ein nacktes <T> nicht aus. Mit 'where T : IComparable<T>' stellen wir sicher, dass T die Methode '.CompareTo()' besitzt.",
+                    revealed: [0, 1], active: 1, mode: "normal",
+                    status: "CompareTo() Garantie",
+                    render: () => `
+                        <div class="dll-container" style="gap: 1rem;">
+                            <div class="type-card valid">
+                                <div style="font-weight:bold;">a.CompareTo(b) >= 0</div>
+                                <div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">Erlaubt durch <code>where T : IComparable&lt;T&gt;</code></div>
+                            </div>
+                        </div>
+                    `
+                },
+                {
+                    title: "Schritt 3: Type Inference (Automatische Typ-Erkennung)",
+                    text: "Beim Aufruf müssen wir 'Swap<int>(ref a, ref b)' meist gar nicht ausschreiben: Der Compiler sieht die übergebenen Variablen 'gleisA' und 'gleisB' und leitet T = int automatisch ab!",
+                    revealed: [0, 1, 2], active: 2, mode: "good",
+                    status: "Compiler Type Inference",
+                    render: () => `
+                        <div class="constraint-box" style="max-width:480px;">
+                            <div class="type-card valid" style="width:100%;">
+                                <div style="font-family:var(--font-mono); font-size:0.9rem; color:var(--accent-green);">Swap(ref gleisA, ref gleisB)</div>
+                                <div style="font-size:0.82rem; margin-top:6px; color:var(--text-main);">
+                                    Compiler analysiert Parameter ➔ ersetzt intern automatisch zu:<br>
+                                    <code style="color:var(--accent-blue);">Swap&lt;int&gt;(ref gleisA, ref gleisB)</code>
+                                </div>
+                            </div>
+                        </div>
+                    `
+                }
+            ]
+        },
+        variance: {
+            filename: "VarianceBonus.cs",
+            codeBlocks: [
+                `<span class="cm">// 1. Invarianz (Standard bei Klassen wie DoublyLinkedList<T>)</span>\n<span class="cm">// Trotz GueterWaggon : Waggon ist Folgendes VERBOTEN:</span>\n<span class="cm">// DoublyLinkedList<Waggon> liste = new DoublyLinkedList<GueterWaggon>(); // ❌ Fehler!</span>`,
+                `<span class="cm">// 2. KOVARIANZ (out T): Nur Lesen / Rückgabe (Output)</span>\n<span class="kw">public interface</span> <span class="tp">IReadOnlyDepot</span>&lt;<span class="kw">out</span> <span class="tp">T</span>&gt; {\n    <span class="tp">T</span> <span class="mt">HoleErsten</span>(); <span class="cm">// T steht NUR als Rückgabetyp (out)!</span>\n}\n<span class="cm">// Spezifischer Typ (GueterWaggon) -> Allgemeinerer Typ (Waggon):</span>\n<span class="tp">IReadOnlyDepot</span>&lt;<span class="tp">Waggon</span>&gt; depot = <span class="kw">new</span> <span class="tp">Depot</span>&lt;<span class="tp">GueterWaggon</span>&gt;(); <span class="cm">// ✔ Erlaubt!</span>`,
+                `<span class="cm">// 3. KONTRAVARIANZ (in T): Nur Schreiben / Parameter (Input)</span>\n<span class="kw">public interface</span> <span class="tp">IWartungsStation</span>&lt;<span class="kw">in</span> <span class="tp">T</span>&gt; {\n    <span class="kw">void</span> <span class="mt">WarteFahrzeug</span>(<span class="tp">T</span> item); <span class="cm">// T steht NUR als Parameter (in)!</span>\n}\n<span class="cm">// Allgemeinerer Typ (Waggon) -> Spezifischerer Typ (GueterWaggon):</span>\n<span class="tp">IWartungsStation</span>&lt;<span class="tp">GueterWaggon</span>&gt; station = <span class="kw">new</span> <span class="tp">Station</span>&lt;<span class="tp">Waggon</span>&gt;(); <span class="cm">// ✔ Erlaubt!</span>`
+            ],
+            steps: [
+                {
+                    title: "Schritt 1: Warum normale Generics invariant sind",
+                    text: "Obwohl 'GueterWaggon' von 'Waggon' erbt, darf man eine 'DoublyLinkedList<GueterWaggon>' NICHT einer Variablen vom Typ 'DoublyLinkedList<Waggon>' zuweisen. Grund: Sonst könnte jemand über die allgemeine Referenz plötzlich einen 'PersonenWaggon' in die Güterwaggon-Liste einfügen!",
+                    revealed: [0], active: 0, mode: "normal",
+                    status: "Invarianz-Schutz",
+                    render: () => `
+                        <div class="constraint-box" style="max-width:500px;">
+                            <div class="type-card invalid" style="width:100%; text-align:left;">
+                                <div style="font-weight:bold; color:var(--accent-red);">❌ Warum Invarianz bei Lese-/Schreib-Listen nötig ist:</div>
+                                <div style="font-size:0.82rem; margin-top:6px; line-height:1.45;">
+                                    Wäre <code>List&lt;Waggon&gt; = List&lt;GueterWaggon&gt;</code> erlaubt, könnte man <code>liste.Add(new PersonenWaggon())</code> aufrufen – und die Typsicherheit im Speicher wäre zerstört!
+                                </div>
+                            </div>
+                        </div>
+                    `
+                },
+                {
+                    title: "Schritt 2: Kovarianz mit 'out T' (Nur Output / Lesen)",
+                    text: "Wenn ein Interface T NUR zurückgibt (wie IEnumerable<out T>), markieren wir T mit 'out'. Da nichts eingefügt werden kann, ist die Zuweisung von spezifisch (GueterWaggon) zu allgemein (Waggon) absolut typsicher!",
+                    revealed: [0, 1], active: 1, mode: "good",
+                    status: "Kovarianz (out T)",
+                    render: () => `
+                        <div class="dll-container" style="gap:1rem;">
+                            <div class="type-card valid">
+                                <div style="font-size:0.75rem; color:var(--text-muted);">Spezifischer Produzent</div>
+                                <div style="font-weight:bold; color:var(--accent-green);">Depot&lt;GueterWaggon&gt;</div>
+                            </div>
+                            <div class="dll-arrow">➡</div>
+                            <div class="type-card valid" style="border-color:var(--accent-blue);">
+                                <div style="font-size:0.75rem; color:var(--text-muted);">Allgemeiner Empfänger (out T)</div>
+                                <div style="font-weight:bold; color:var(--accent-blue);">IReadOnlyDepot&lt;Waggon&gt;</div>
+                            </div>
+                        </div>
+                    `
+                },
+                {
+                    title: "Schritt 3: Kontravarianz mit 'in T' (Nur Input / Parameter)",
+                    text: "Wenn ein Interface T NUR als Methoden-Parameter entgegennimmt (wie IComparer<in T>), nutzen wir 'in'. Eine Wartungsstation, die JEDEN 'Waggon' warten kann, kann erst recht für einen 'GueterWaggon' eingesetzt werden – die Vererbungsrichtung dreht sich um!",
+                    revealed: [0, 1, 2], active: 2, mode: "good",
+                    status: "Kontravarianz (in T)",
+                    render: () => `
+                        <div class="dll-container" style="gap:1rem;">
+                            <div class="type-card valid" style="border-color:var(--accent-purple);">
+                                <div style="font-size:0.75rem; color:var(--text-muted);">Allgemeiner Könner</div>
+                                <div style="font-weight:bold; color:var(--accent-purple);">Station&lt;Waggon&gt;</div>
+                            </div>
+                            <div class="dll-arrow">➡</div>
+                            <div class="type-card valid">
+                                <div style="font-size:0.75rem; color:var(--text-muted);">Spezifische Anforderung (in T)</div>
+                                <div style="font-weight:bold; color:var(--accent-green);">IWartungsStation&lt;GueterWaggon&gt;</div>
+                            </div>
+                        </div>
+                    `
+                }
+            ]
+        }
+    };
+
+    function switchTab(tab) {
+        currentTab = tab;
+        currentStep = 0;
+        document.getElementById('tab-dll').classList.toggle('active', tab === 'dll');
+        document.getElementById('tab-constraints').classList.toggle('active', tab === 'constraints');
+        document.getElementById('tab-methods').classList.toggle('active', tab === 'methods');
+        document.getElementById('tab-variance').classList.toggle('active', tab === 'variance');
+        updateUI();
+    }
+
+    function changeStep(delta) {
+        const steps = scenarioData[currentTab].steps;
+        const next = currentStep + delta;
+        if (next >= 0 && next < steps.length) { currentStep = next; updateUI(); }
+    }
+
+    function resetSteps() { currentStep = 0; updateUI(); }
+    function jumpToStep(index) { currentStep = index; updateUI(); }
+
+    function updateUI() {
+        const data = scenarioData[currentTab];
+        const step = data.steps[currentStep];
+
+        document.getElementById('code-filename').textContent = data.filename;
+        document.getElementById('step-counter').textContent = `Schritt ${currentStep + 1} / ${data.steps.length}`;
+        document.getElementById('status-badge').textContent = step.status;
+
+        document.getElementById('code-container').innerHTML = data.codeBlocks.map((block, idx) => {
+            let classes = ['code-block'];
+            if (step.revealed.includes(idx)) classes.push('revealed');
+            if (step.active === idx) {
+                if (step.mode === 'good') classes.push('good-step');
+                else classes.push('active-step');
+            }
+            return `<div class="${classes.join(' ')}">${block}</div>`;
+        }).join('');
+
+        document.getElementById('exp-title').textContent = step.title;
+        document.getElementById('exp-text').textContent = step.text;
+        document.getElementById('canvas-box').innerHTML = step.render();
+
+        document.getElementById('step-dots').innerHTML = data.steps.map((_, idx) => 
+            `<div class="dot ${idx === currentStep ? 'active' : ''}" onclick="jumpToStep(${idx})"></div>`
+        ).join('');
+
+        document.getElementById('btn-prev').disabled = currentStep === 0;
+        document.getElementById('btn-next').disabled = currentStep === data.steps.length - 1;
+    }
+
+    updateUI();
+</script>
+</body>
+</html>
