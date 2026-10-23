@@ -1,0 +1,11 @@
+<Solution>
+  <Project Path="05_BisTrennSymbol/05_BisTrennSymbol.csproj" />
+  <Project Path="02_ErsteZeileSagtWieVieleDatenKommen/02_ErsteZeileSagtWieVieleDatenKommen.csproj" />
+  <Project Path="08_MehrereBlöckeGehörenZusammen/08_MehrereBlöckeGehörenZusammen.csproj" />
+  <Project Path="07_MehrereFilesGleichzeitAusfuehren/07_MehrereFilesGleichzeitAusfuehren.csproj" />
+  <Project Path="03_MusterEinlesen/03_MusterEinlesen.csproj" />
+  <Project Path="09_Spaltenweise/09_Spaltenweise.csproj" />
+  <Project Path="01_Zeilenweise/01_Zeilenweise.csproj" />
+  <Project Path="06_ZweiZeilen/06_ZweiZeilen.csproj" />
+  <Project Path="04_ZweiZeilenAberMehrmalsHintereinander/04_ZweiZeilenAberMehrmalsHintereinander.csproj" />
+</Solution>

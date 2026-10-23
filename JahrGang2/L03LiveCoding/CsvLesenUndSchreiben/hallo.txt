@@ -1,0 +1,7 @@
+Hallo=35
+HTL=85
+hello this is = 10
+HTL = 50 
+HTL = du
+Hallo = 
+Hallo = 100

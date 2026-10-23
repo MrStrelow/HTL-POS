@@ -1,0 +1,5 @@
+﻿2
+SpielerA
+10 20 30
+SpielerB
+5 15 25

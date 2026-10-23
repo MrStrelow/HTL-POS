@@ -1,2 +1,5 @@
 <Solution>
+  <Project Path="Aufgabe01-Linen/Aufgabe01-Linen.csproj"/>
+  <Project Path="Skripten/Skripten.csproj" Id="58beb644-0279-49d9-9443-5ecf1a672f6c" />
+  <Project Path="ZettelUebungen/ZettelUebungen.csproj" Id="ca802ff0-1750-41c1-9556-d79da689cefa" />
 </Solution>
