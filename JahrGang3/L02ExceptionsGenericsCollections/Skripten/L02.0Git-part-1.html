@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Git Visualizer: Commits als Linked List, Staging & Remote</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; overflow: hidden; }
+        .font-code { font-family: 'Fira Code', monospace; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Code Diff & Line Highlighting */
+        .line-active { background-color: rgba(56, 189, 248, 0.16); border-left: 4px solid #38bdf8; }
+        .line-add { background-color: rgba(34, 197, 94, 0.16); border-left: 4px solid #22c55e; }
+        .line-del { background-color: rgba(239, 68, 68, 0.16); border-left: 4px solid #ef4444; text-decoration: line-through; opacity: 0.75; }
+        .line-normal { border-left: 4px solid transparent; }
+
+        /* Memory / Inspector Badges */
+        .val-badge {
+            background-color: rgba(217, 70, 239, 0.1); border: 1px solid rgba(217, 70, 239, 0.3); color: #e879f9;
+            padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;
+            display: inline-flex; align-items: center; transition: all 0.3s ease;
+        }
+        .val-badge.ref-badge { background-color: rgba(14, 165, 233, 0.12); border-color: rgba(14, 165, 233, 0.35); color: #38bdf8; }
+        .val-badge.stage-badge { background-color: rgba(34, 197, 94, 0.12); border-color: rgba(34, 197, 94, 0.35); color: #4ade80; }
+        .val-badge.warn-badge { background-color: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.35); color: #fbbf24; }
+        .val-badge.err-badge { background-color: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.35); color: #f87171; }
+        .val-badge.null-badge { background-color: rgba(100, 116, 139, 0.1); border-color: rgba(100, 116, 139, 0.3); color: #94a3b8; font-style: italic; }
+
+        /* Animations */
+        .path-draw { stroke-dasharray: 1000; stroke-dashoffset: 1000; animation: dash 0.65s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        @keyframes dash { to { stroke-dashoffset: 0; } }
+
+        .node-circle { transition: all 0.3s ease; }
+
+        /* HEAD Pointer Highlight (analog zu 'curr' in der Linked List) */
+        .head-node circle {
+            stroke: #eab308 !important;
+            stroke-width: 3.5px !important;
+            filter: drop-shadow(0 0 10px rgba(234, 179, 8, 0.75));
+        }
+        .head-label { display: none; fill: #fde047; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; }
+        .head-node .head-label { display: block; animation: bounce 1.1s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+
+        /* Pulse animation for active zone in SVG */
+        .zone-active { stroke: #38bdf8 !important; stroke-width: 2.5px !important; fill: rgba(56, 189, 248, 0.06) !important; }
+        .zone-stage-active { stroke: #22c55e !important; stroke-width: 2.5px !important; fill: rgba(34, 197, 94, 0.06) !important; }
+        .zone-warn-active { stroke: #f59e0b !important; stroke-width: 2.5px !important; fill: rgba(245, 158, 11, 0.06) !important; }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col relative select-none">
+
+    <!-- HEADER & TOP-LEVEL TABS -->
+    <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 shrink-0 shadow-md relative z-20 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-3">
+        <div>
+            <div class="flex items-center gap-2.5">
+                <span class="px-2 py-0.5 text-xs font-code font-bold rounded bg-sky-500/15 text-sky-400 border border-sky-500/30">GIT SOLO-WORKFLOW</span>
+                <h1 class="text-xl font-bold text-sky-400 tracking-tight">Git als Linked List & Zeitspeicher</h1>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">Commits als Knoten (Nodes), Code-Änderungen als Value & <code class="text-amber-300 font-code">HEAD</code> als Listen-Zeiger</p>
+        </div>
+        
+        <!-- 5 Themen-Tabs -->
+        <div class="flex flex-wrap gap-1.5 bg-slate-950 p-1.5 rounded-lg border border-slate-800 w-full xl:w-auto">
+            <button id="tab-0" class="tab-btn px-3 py-1.5 rounded-md text-xs font-bold bg-sky-600 text-white transition-all" onclick="switchTab(0)">
+                1) Repo &amp; Staging (cd, add)
+            </button>
+            <button id="tab-1" class="tab-btn px-3 py-1.5 rounded-md text-xs font-bold text-slate-400 hover:bg-slate-800 transition-all" onclick="switchTab(1)">
+                2) Commit &amp; Message (Linked List)
+            </button>
+            <button id="tab-2" class="tab-btn px-3 py-1.5 rounded-md text-xs font-bold text-slate-400 hover:bg-slate-800 transition-all" onclick="switchTab(2)">
+                3) Local vs. Remote (push)
+            </button>
+            <button id="tab-3" class="tab-btn px-3 py-1.5 rounded-md text-xs font-bold text-slate-400 hover:bg-slate-800 transition-all" onclick="switchTab(3)">
+                4) Unstage (git reset &lt;file&gt;)
+            </button>
+            <button id="tab-4" class="tab-btn px-3 py-1.5 rounded-md text-xs font-bold text-slate-400 hover:bg-slate-800 transition-all" onclick="switchTab(4)">
+                5) Datei-Reset (git checkout &lt;file&gt;)
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN 3-COLUMN GRID -->
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-[1.05fr_1.45fr_1.1fr] overflow-hidden p-3 gap-3 bg-slate-950 relative z-10">
+        
+        <!-- LEFT COLUMN: C# Code Editor (Exceptions vs. Kontrollstrukturen) -->
+        <section class="bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl relative">
+            <div class="bg-slate-950 py-2 px-3 border-b border-slate-800 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-1.5" id="file-tabs-container">
+                    <!-- Dynamische Datei-Tabs (z.B. Roboter.cs, Welt.cs) -->
+                </div>
+                <span id="file-status-pill" class="text-[11px] font-code px-2 py-0.5 rounded font-semibold"></span>
+            </div>
+            <div id="code-container" class="flex-1 overflow-y-auto p-3 font-code text-[12.5px] leading-6 select-text"></div>
+            <div class="bg-slate-950/90 px-3 py-1.5 border-t border-slate-800 flex justify-between items-center text-[11px] text-slate-400">
+                <span>Legende: <span class="text-emerald-400 font-bold">+ Neu (Hinzugefügt)</span> | <span class="text-rose-400 font-bold">- Entfernt</span></span>
+                <span id="code-architecture-hint" class="text-sky-400 font-semibold"></span>
+            </div>
+        </section>
+
+        <!-- CENTER COLUMN: SVG Git Graph (Linked List of Commits + Working/Staging/Remote Zones) -->
+        <section class="bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl relative">
+            <div class="bg-slate-950 py-2 px-4 border-b border-slate-800 flex justify-between items-center">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Git Datenstruktur (Commit-Baum &amp; Zonen)</span>
+                <span id="svg-subtitle" class="text-xs font-code text-amber-400">Singly Linked List (Node.Parent)</span>
+            </div>
+            <div class="flex-1 relative bg-slate-950 flex items-center justify-center p-2 overflow-hidden">
+                <svg id="svg-canvas" class="w-full h-full" viewBox="0 0 820 430" preserveAspectRatio="xMidYMid meet">
+                    <defs>
+                        <!-- Pfeilspitzen analog zum Linked List Visualizer -->
+                        <marker id="arrow-head" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#ef4444" />
+                        </marker>
+                        <marker id="arrow-parent" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#f97316" />
+                        </marker>
+                        <marker id="arrow-remote" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#a855f7" />
+                        </marker>
+                        <marker id="arrow-flow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#38bdf8" />
+                        </marker>
+                        <marker id="arrow-flow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#22c55e" />
+                        </marker>
+                        <marker id="arrow-flow-amber" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#f59e0b" />
+                        </marker>
+                    </defs>
+
+                    <!-- Statischer Hintergrund-Rahmen wird dynamisch in #svg-dynamic-layer gerendert -->
+                    <g id="svg-dynamic-layer"></g>
+                </svg>
+
+                <!-- Legende unten links im Canvas -->
+                <div class="absolute bottom-2.5 left-3 flex flex-wrap gap-3 text-[10px] font-bold uppercase tracking-wider bg-slate-900/90 px-2.5 py-1.5 rounded border border-slate-800">
+                    <span class="text-amber-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-400"></span>HEAD (Aktueller Knoten)</span>
+                    <span class="text-orange-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-orange-500"></span>Parent-Pointer (Vorgänger)</span>
+                    <span class="text-emerald-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span>Local Branch (main)</span>
+                    <span class="text-purple-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-500"></span>Remote (origin/main)</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT COLUMN: Terminal (Top) & Git Speicher-Inspektor (Bottom) -->
+        <section class="flex flex-col gap-3 overflow-hidden">
+            
+            <!-- TOP: Interactive Terminal (CLI) -->
+            <div class="flex-[1.15] bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+                <div class="bg-slate-950 py-2 px-3 border-b border-slate-800 flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-500/80"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500/80"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></span>
+                        <span class="text-xs font-semibold text-sky-400 uppercase tracking-widest ml-1">Terminal (Bash / PowerShell)</span>
+                    </div>
+                    <span id="terminal-cwd" class="text-[11px] font-code text-slate-400">~/Projekte</span>
+                </div>
+                <div id="terminal-container" class="flex-1 overflow-y-auto p-3 font-code text-xs leading-relaxed bg-[#050814] select-text space-y-2">
+                    <!-- Terminal Output wird hier gerendert -->
+                </div>
+            </div>
+
+            <!-- BOTTOM: Git Zonen & Commit-Heap Inspektor -->
+            <div class="flex-[1.25] bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+                <div class="bg-slate-950 py-2 px-3 border-b border-slate-800 flex justify-between items-center">
+                    <span class="text-xs font-semibold text-amber-400 uppercase tracking-widest">Git Speicher &amp; Commit-Nodes (Heap)</span>
+                    <span class="text-[11px] font-code text-slate-500">.git/objects</span>
+                </div>
+                <div id="inspector-container" class="flex-1 overflow-y-auto p-3 flex flex-col gap-2 bg-slate-900/50">
+                    <!-- Stack/Heap-artige Darstellung der Zonen & Commit-Objekte -->
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- FOOTER: Erklärung & Schritt-Steuerung (Pfeiltasten) -->
+    <footer class="bg-slate-900 border-t border-slate-800 shrink-0 relative z-20 p-3">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mx-auto items-center">
+            <div class="lg:col-span-2 bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 min-h-[72px] flex flex-col justify-center">
+                <div class="flex items-center gap-2 mb-0.5">
+                    <span id="step-badge" class="text-[11px] font-code uppercase px-2 py-0.5 rounded font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">SCHRITT</span>
+                    <h2 id="step-title" class="text-sm font-bold text-white">Titel</h2>
+                </div>
+                <p id="explanation-text" class="text-xs md:text-[13px] text-slate-300 leading-relaxed"></p>
+            </div>
+            <div class="flex items-center justify-center gap-3">
+                <button id="btn-prev" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg shadow disabled:opacity-30 transition-all text-xs font-semibold border border-slate-700 cursor-pointer">
+                    &larr; Zurück
+                </button>
+                <div class="bg-slate-950 px-4 py-2 rounded-lg border border-slate-800 font-code text-sm text-center min-w-[82px]">
+                    <span id="step-current" class="text-sky-400 font-bold">0</span>
+                    <span class="text-slate-500"> / </span>
+                    <span id="step-total" class="text-slate-400">0</span>
+                </div>
+                <button id="btn-next" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg shadow disabled:opacity-30 transition-all text-xs font-bold border border-sky-500 cursor-pointer">
+                    Weiter &rarr;
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // =========================================================================
+        // STATE & KONFIGURATION
+        // =========================================================================
+        let currentTab = 0;
+        let currentStep = 0;
+        let activeFileIndex = 0;
+
+        // C# Code-Vorlagen (Exceptions vs. Kontrollstrukturen passend zum Katastrophengebiet)
+        const codeSnippets = {
+            // Tab 1: Roboter.cs - AchsbruchException einbauen (echter Ausnahmefall!)
+            roboter_v1: [
+                { text: "public class Roboter {", type: "normal" },
+                { text: "    public Rad AntriebsRad { get; set; } = new Rad();", type: "normal" },
+                { text: "", type: "normal" },
+                { text: "    public void BewegeVorwaerts() {", type: "normal" },
+                { text: "        // Bisher keine Prüfung auf physischen Achsbruch!", type: "normal" },
+                { text: "        PosX += 1;", type: "normal" },
+                { text: "    }", type: "normal" },
+                { text: "}", type: "normal" }
+            ],
+            roboter_v2_diff: [
+                { text: "public class Roboter {", type: "normal" },
+                { text: "    public Rad AntriebsRad { get; set; } = new Rad();", type: "normal" },
+                { text: "", type: "normal" },
+                { text: "    public void BewegeVorwaerts() {", type: "normal" },
+                { text: "        // Physischer Defekt = Echter Ausnahmefall -> Exception!", type: "add" },
+                { text: "        if (AntriebsRad.IstGebrochen) {", type: "add" },
+                { text: "            throw new AchsbruchException(\"Antriebsachse gebrochen!\");", type: "add" },
+                { text: "        }", type: "add" },
+                { text: "        PosX += 1;", type: "normal" },
+                { text: "    }", type: "normal" },
+                { text: "}", type: "normal" }
+            ],
+            helikopter_v2: [
+                { text: "public static class Helikopter {", type: "normal" },
+                { text: "    public static Rad ProduziereErsatzRad() {", type: "add" },
+                { text: "        return new Rad { IstGebrochen = false };", type: "add" },
+                { text: "    }", type: "add" },
+                { text: "}", type: "normal" }
+            ],
+
+            // Tab 2: Program.cs - Parse im try-catch (Anti-Pattern) durch TryParse ersetzen
+            program_bad_parse: [
+                { text: "private static int LeseRoboterAnzahl() {", type: "normal" },
+                { text: "    Console.Write(\"Anzahl Roboter (1-5): \");", type: "normal" },
+                { text: "    string eingabe = Console.ReadLine()!;", type: "normal" },
+                { text: "    // ❌ ANTI-PATTERN: int.Parse + try-catch für User-Input!", type: "del" },
+                { text: "    try {", type: "del" },
+                { text: "        return int.Parse(eingabe);", type: "del" },
+                { text: "    } catch (FormatException) {", type: "del" },
+                { text: "        return 1;", type: "del" },
+                { text: "    }", type: "del" },
+                { text: "}", type: "normal" }
+            ],
+            program_good_tryparse: [
+                { text: "private static int LeseRoboterAnzahl() {", type: "normal" },
+                { text: "    Console.Write(\"Anzahl Roboter (1-5): \");", type: "normal" },
+                { text: "    string eingabe = Console.ReadLine()!;", type: "normal" },
+                { text: "    // ✅ KORREKT: Erwartbare Fehleingabe -> Kontrollstruktur!", type: "add" },
+                { text: "    int anzahl;", type: "add" },
+                { text: "    while (!int.TryParse(eingabe, out anzahl) || anzahl < 1 || anzahl > 5) {", type: "add" },
+                { text: "        Console.Write(\"Ungültig! Bitte Zahl (1-5) eingeben: \");", type: "add" },
+                { text: "        eingabe = Console.ReadLine()!;", type: "add" },
+                { text: "    }", type: "add" },
+                { text: "    return anzahl;", type: "add" },
+                { text: "}", type: "normal" }
+            ],
+
+            // Tab 4 & 5: Welt.cs - Anti-Pattern (Exception bei Stein '#') vs. Kontrollstruktur (bool)
+            welt_antipattern: [
+                { text: "public class Welt {", type: "normal" },
+                { text: "    private char[,] _gitter = { { '.', '#', '.' } };", type: "normal" },
+                { text: "", type: "normal" },
+                { text: "    public bool VersucheSchritt(int zielX, int zielY) {", type: "normal" },
+                { text: "        // ❌ FALSCH: Stein '#' ist ein normales Spiel-Hindernis!", type: "add" },
+                { text: "        if (_gitter[zielY, zielX] == '#') {", type: "add" },
+                { text: "            throw new InvalidOperationException(\"Stein '#' im Weg!\");", type: "add" },
+                { text: "        }", type: "add" },
+                { text: "        return true;", type: "normal" },
+                { text: "    }", type: "normal" },
+                { text: "}", type: "normal" }
+            ],
+            welt_clean_control: [
+                { text: "public class Welt {", type: "normal" },
+                { text: "    private char[,] _gitter = { { '.', '#', '.' } };", type: "normal" },
+                { text: "", type: "normal" },
+                { text: "    public bool VersucheSchritt(int zielX, int zielY) {", type: "normal" },
+                { text: "        // ✅ SAUBER (Stand aus Commit #e8b): Reine Kontrollstruktur", type: "active" },
+                { text: "        if (zielX < 0 || zielY < 0 || zielY >= _gitter.GetLength(0) || zielX >= _gitter.GetLength(1))", type: "active" },
+                { text: "            return false; // Weltrand blockiert", type: "active" },
+                { text: "", type: "normal" },
+                { text: "        if (_gitter[zielY, zielX] == '#')", type: "active" },
+                { text: "            return false; // Stein '#' blockiert", type: "active" },
+                { text: "", type: "normal" },
+                { text: "        return true;", type: "normal" },
+                { text: "    }", type: "normal" },
+                { text: "}", type: "normal" }
+            ]
+        };
+
+        // =========================================================================
+        // 5 TABS MIT SCHRITT-FÜR-SCHRITT SLIDES
+        // =========================================================================
+        const tabsData = [
+            // ---------------------------------------------------------------------
+            // TAB 0: Repository, Navigation (cd) & Staging Area (git add)
+            // ---------------------------------------------------------------------
+            {
+                name: "1) Repo & Staging",
+                subtitle: "Working Directory -> Staging Area (Index) -> Local Repo",
+                steps: [
+                    {
+                        badge: "TERMINAL & ORDNER",
+                        title: "In den Projektordner navigieren (pwd, ls, cd)",
+                        desc: "Bevor wir Git-Befehle nutzen, müssen wir im Terminal mit <code>cd</code> (Change Directory) in unseren Projektordner <code>Katastrophengebiet</code> wechseln. Dort liegt der versteckte Ordner <code>.git</code> (unser lokales Repository).",
+                        cwd: "~/Projekte/Katastrophengebiet",
+                        archHint: "Noch keine Code-Änderungen",
+                        files: [
+                            { name: "Roboter.cs", status: "Unmodified", lines: codeSnippets.roboter_v1 }
+                        ],
+                        terminal: [
+                            { cmd: "pwd", out: "/home/dev/Projekte" },
+                            { cmd: "ls", out: "Katastrophengebiet/   Notizen.txt" },
+                            { cmd: "cd Katastrophengebiet", out: "" },
+                            { cmd: "ls -a", out: ".   ..   .git/   Roboter.cs   Helikopter.cs   Program.cs", highlight: true }
+                        ],
+                        svg: {
+                            mode: "zones",
+                            activeZone: "repo",
+                            localNodes: [
+                                { id: "c1a", hash: "#c1a", msg: "Initialisiere Projekt", val: "Basis-Klassen" }
+                            ],
+                            head: "c1a",
+                            main: "c1a",
+                            workingFiles: [],
+                            stagedFiles: []
+                        },
+                        inspector: {
+                            headRef: "#c1a (main)",
+                            working: ["Keine Änderungen (clean)"],
+                            staging: ["Leer (0 Dateien)"],
+                            commits: [
+                                { hash: "#c1a", msg: "Initialisiere Projekt", diff: "Roboter.cs, Program.cs", parent: "null" }
+                            ]
+                        }
+                    },
+                    {
+                        badge: "WORKING DIRECTORY",
+                        title: "Code bearbeiten: AchsbruchException einbauen & git status",
+                        desc: "Ein physischer Achsbruch beim Roboter ist ein echter Ausnahmefall! Wir bauen <code>throw new AchsbruchException(...)</code> in <code>Roboter.cs</code> und eine Hilfsmethode in <code>Helikopter.cs</code> ein. Mit <code>git status</code> sehen wir: Beide Dateien sind im <strong>Working Directory</strong> als <em>modified (rot)</em> markiert.",
+                        cwd: "~/Projekte/Katastrophengebiet",
+                        archHint: "Achsbruch = Echte Exception!",
+                        files: [
+                            { name: "Roboter.cs", status: "Modified (Working Dir)", lines: codeSnippets.roboter_v2_diff },
+                            { name: "Helikopter.cs", status: "Modified (Working Dir)", lines: codeSnippets.helikopter_v2 }
+                        ],
+                        terminal: [
+                            { cmd: "cd Katastrophengebiet", out: "" },
+                            { cmd: "git status", out: "On branch main\nChanges not staged for commit:\n  (use \"git add <file>...\" to update what will be committed)\n\n\t<span class='text-rose-400'>modified:   Roboter.cs</span>\n\t<span class='text-rose-400'>modified:   Helikopter.cs</span>\n\nno changes added to commit", highlight: true }
+                        ],
+                        svg: {
+                            mode: "zones",
+                            activeZone: "working",
+                            localNodes: [
+                                { id: "c1a", hash: "#c1a", msg: "Initialisiere Projekt", val: "Basis-Klassen" }
+                            ],
+                            head: "c1a",
+                            main: "c1a",
+                            workingFiles: ["Roboter.cs (M)", "Helikopter.cs (M)"],
+                            stagedFiles: []
+                        },
+                        inspector: {
+                            headRef: "#c1a (main)",
+                            working: ["Roboter.cs (+AchsbruchException)", "Helikopter.cs (+Ersatzrad)"],
+                            staging: ["Leer (0 Dateien)"],
+                            commits: [
+                                { hash: "#c1a", msg: "Initialisiere Projekt", diff: "Roboter.cs, Program.cs", parent: "null" }
+                            ]
+                        }
+                    },
+                    {
+                        badge: "STAGING AREA (EINZELDATEI)",
+                        title: "Einzelne Datei vormerken: git add Roboter.cs",
+                        desc: "Die <strong>Staging Area (Index)</strong> ist der Packtisch für unseren nächsten Commit. Mit <code>git add Roboter.cs</code> legen wir gezielt <strong>nur</strong> <code>Roboter.cs</code> in die Staging Area. <code>Helikopter.cs</code> bleibt noch im Working Directory.",
+                        cwd: "~/Projekte/Katastrophengebiet",
+                        archHint: "Gezieltes Staging einer Datei",
+                        files: [
+                            { name: "Roboter.cs", status: "Staged (Index)", lines: codeSnippets.roboter_v2_diff },
+                            { name: "Helikopter.cs", status: "Modified (Working Dir)", lines: codeSnippets.helikopter_v2 }
+                        ],
+                        terminal: [
+                            { cmd: "git add Roboter.cs", out: "", highlight: true },
+                            { cmd: "git status", out: "On branch main\nChanges to be committed:\n\t<span class='text-emerald-400'>modified:   Roboter.cs</span>\n\nChanges not staged for commit:\n\t<span class='text-rose-400'>modified:   Helikopter.cs</span>", highlight: true }
+                        ],
+                        svg: {
+                            mode: "zones",
+                            activeZone: "staging",
+                            flowArrow: "work-to-stage",
+                            localNodes: [
+                                { id: "c1a", hash: "#c1a", msg: "Initialisiere Projekt", val: "Basis-Klassen" }
+                            ],
+                            head: "c1a",
+                            main: "c1a",
+                            workingFiles: ["Helikopter.cs (M)"],
+                            stagedFiles: ["Roboter.cs (Staged)"]
+                        },
+                        inspector: {
+                            headRef: "#c1a (main)",
+                            working: ["Helikopter.cs (+Ersatzrad)"],
+                            staging: ["Roboter.cs (+AchsbruchException)"],
+                            commits: [
+                                { hash: "#c1a", msg: "Initialisiere Projekt", diff: "Roboter.cs, Program.cs", parent: "null" }
+                            ]
+                        }
+                    },
+                    {
+                        badge: "STAGING AREA (ALLE DATEIEN)",
+                        title: "Alle Änderungen vormerken: git add -A",
+                        desc: "Wollen wir alle geänderten, neuen und gelöschten Dateien des gesamten Repositories auf einmal auf den Packtisch (Staging Area) legen, nutzen wir <code>git add -A</code> (kurz für <em>--all</em>). Jetzt sind beide Dateien grün und bereit für den Commit!",
+                        cwd: "~/Projekte/Katastrophengebiet",
+                        archHint: "Beide Dateien in Staging Area",
+                        files: [
+                            { name: "Roboter.cs", status: "Staged (Index)", lines: codeSnippets.roboter_v2_diff },
+                            { name: "Helikopter.cs", status: "Staged (Index)", lines: codeSnippets.helikopter_v2 }
+                        ],
+                        terminal: [
+                            { cmd: "git add Roboter.cs", out: "" },
+                            { cmd: "git add -A", out: "", highlight: true },
+                            { cmd: "git status", out: "On branch main\nChanges to be committed:\n  (use \"git restore --staged <file>...\" to unstage)\n\n\t<span class='text-emerald-400'>modified:   Helikopter.cs</span>\n\t<span class='text-emerald-400'>modified:   Roboter.cs</span>", highlight: true }
+                        ],
+                        svg: {
+                            mode: "zones",
+                            activeZone: "staging",
+                            flowArrow: "work-to-stage",
+                            localNodes: [
+                                { id: "c1a", hash: "#c1a", msg: "Initialisiere Projekt", val: "Basis-Klassen" }
+                            ],
+                            head: "c1a",
+                            main: "c1a",
+                            workingFiles: [],
+                            stagedFiles: ["Roboter.cs (Staged)", "Helikopter.cs (Staged)"]
+                        },
+                        inspector: {
+                            headRef: "#c1a (main)",
+                            working: ["Leer (alles vorgemerkt)"],
+                            staging: ["Roboter.cs (+AchsbruchException)", "Helikopter.cs (+Ersatzrad)"],
+                            commits: [
+                                { hash: "#c1a", msg: "Initialisiere Projekt", diff: "Roboter.cs, Program.cs", parent: "null" }
+                            ]
+                        }
+                    }
+                ]
+            },
+
+            // ---------------------------------------------------------------------
+            // TAB 1: Commits als Linked List & gute Commit-Messages
+            // ---------------------------------------------------------------------
+            {
+                name: "2) Commits als Linked List",
+                subtitle: "Jeder Commit ist ein Knoten mit Value (Code-Diff) & Parent-Pointer",
+                steps: [
+                    {
+                        badge: "COMMIT ERSTELLEN",
+                        title: "Erster neuer Knoten: git commit -m \"...\"",
+                        desc: "Mit <code>git commit -m \"Fuege AchsbruchException und Ersatzrad hinzu\"</code> erzeugt Git einen neuen Knoten <code>#d4f</code>. <strong>Goldene Regel für Commit-Messages:</strong> Ein sinnvoller, mit einem <strong>Verb im Imperativ/Aktiv</strong> beginnender kurzer Satz (Was tut dieser Commit?). Der neue Knoten speichert seinen <code>Parent</code>-Zeiger auf <code>#c1a</code>, und <code>HEAD</code> wandert weiter!",
+                        cwd: "~/Projekte/Katastrophengebiet",
+                        archHint: "Node #d4f.Parent = #c1a",
+                        files: [
+                            { name: "Roboter.cs", status: "Committed (#d4f)", lines: codeSnippets.roboter_v2_diff }
+                        ],
+                        terminal: [
+                            { cmd: "git commit -m \"Fuege AchsbruchException und Ersatzrad hinzu\"", out: "[main d4f891a] Fuege AchsbruchException und Ersatzrad hinzu\n 2 files changed, 8 insertions(+)", highlight: true }
+                        ],
+                        svg: {
+                            mode: "zones",
+                            activeZone: "repo",
+                            flowArrow: "stage-to-repo",
+                            localNodes: [
+                                { id: "c1a", hash: "#c1a", msg: "Initialisiere Projekt", val: "Basis-Klassen" },
+                                { id: "d4f", hash: "#d4f", msg: "Fuege AchsbruchException...", val: "+AchsbruchException", anim: true }
+                            ],
+                            head: "d4f",
+                            main: "d4f",
+                            workingFiles: [],
+                            stagedFiles: []
+                        },
+                        inspector: {
+                            headRef: "#d4f (main)",
+                            working: ["Keine Änderungen (clean)"],
+                            staging: ["Leer (geleert nach Commit)"],
+                            commits: [
+                                { hash: "#d4f", msg: "Fuege AchsbruchException und Ersatzrad hinzu", diff: "+throw new AchsbruchException", parent: "#c1a" },
+                                { hash: "#c1a", msg: "Initialisiere Projekt", diff: "Roboter.cs, Program.cs", parent: "null" }
+                            ]
+                        }
+                    },
+                    {
+                        badge: "CODE-REFACTORING",
+                        title: "Nächste Änderung: int.Parse Anti-Pattern durch TryParse ersetzen",
+                        desc: "In <code>Program.cs</code> sehen wir ein schweres Anti-Pattern: Benutzereingaben wurden mit <code>int.Parse</code> im <code>try-catch</code> geprüft. Da Tippfehler beim User völlig erwartbar sind, bauen wir das auf eine saubere <code>while (!int.TryParse(...))</code>-Kontrollstruktur um.",
+                        cwd: "~/Projekte/Katastrophengebiet",
+                        archHint: "User-Input: TryParse statt Exception!",
+                        files: [
+                            { name: "Program.cs (Vorher)", status: "Anti-Pattern", lines: codeSnippets.program_bad_parse },
+                            { name: "Program.cs (Neu)", status: "Modified (Working Dir)", lines: codeSnippets.program_good_tryparse }
+                        ],
+                        terminal: [
+                            { cmd: "git status -s", out: " <span class='text-rose-400'>M</span> Program.cs", highlight: true }
+                        ],
+                        svg: {
+                            mode: "zones",
+                            activeZone: "working",
+                            localNodes: [
+                                { id: "c1a", hash: "#c1a", msg: "Initialisiere Projekt", val: "Basis-Klassen" },
+                                { id: "d4f", hash: "#d4f", msg: "Fuege AchsbruchException...", val: "+AchsbruchException" }
+                            ],
+                            head: "d4f",
+                            main: "d4f",
+                            workingFiles: ["Program.cs (M)"],
+                            stagedFiles: []
+                        },
+                        inspector: {
+                            headRef: "#d4f (main)",
+                            working: ["Program.cs (-int.Parse, +int.TryParse)"],
+                            staging: ["Leer"],
+                            commits: [
+                                { hash: "#d4f", msg: "Fuege AchsbruchException und Ersatzrad hinzu", diff: "+throw new AchsbruchException", parent: "#c1a" },
+                                { hash: "#c1a", msg: "Initialisiere Projekt", diff: "Roboter.cs, Program.cs", parent: "null" }
+                            ]
+                        }
+                    },
+                    {
+                        badge: "LINKED LIST WÄCHST",
+                        title: "Stagen & zweiter Commit: HEAD rückt auf Knoten #e8b",
+                        desc: "Wir führen <code>git add Program.cs</code> und <code>git commit -m \"Ersetze Parse-Exception durch TryParse-Schleife\"</code> aus. Beobachte die Linked List in der Mitte: Knoten <code>#e8b</code> wird angelegt, sein <code>Parent</code> zeigt auf <code>#d4f</code>, und der <code>HEAD</code>-Zeiger springt auf <code>#e8b</code>!",
+                        cwd: "~/Projekte/Katastrophengebiet",
+                        archHint: "Linked List: #e8b -> #d4f -> #c1a",
+                        files: [
+                            { name: "Program.cs", status: "Committed (#e8b)", lines: codeSnippets.program_good_tryparse }
+                        ],
+                        terminal: [
+                            { cmd: "git add Program.cs", out: "" },
+                            { cmd: "git commit -m \"Ersetze Parse-Exception durch TryParse-Schleife\"", out: "[main e8b302c] Ersetze Parse-Exception durch TryParse-Schleife\n 1 file changed, 7 insertions(+), 6 deletions(-)", highlight: true },
+                            { cmd: "git log --oneline", out: "<span class='text-amber-300'>e8b302c (HEAD -> main)</span> Ersetze Parse-Exception durch TryParse-Schleife\n<span class='text-sky-300'>d4f891a</span> Fuege AchsbruchException und Ersatzrad hinzu\n<span class='text-slate-400'>c1a004b</span> Initialisiere Projekt", highlight: true }
+                        ],
+                        svg: {
+                            mode: "zones",
+                            activeZone: "repo",
+                            flowArrow: "stage-to-repo",
+                            localNodes: [
+                                { id: "c1a", hash: "#c1a", msg: "Initialisiere Projekt", val: "Basis-Klassen" },
+                                { id: "d4f", hash: "#d4f", msg: "Fuege AchsbruchException...", val: "+AchsbruchException" },
+                                { id: "e8b", hash: "#e8b", msg: "Ersetze Parse-Exception...", val: "+int.TryParse()", anim: true }
+                            ],
+                            head: "e8b",
+                            main: "e8b",
+                            workingFiles: [],
+                            stagedFiles: []
+                        },
+                        inspector: {
+                            headRef: "#e8b (main)",
+                            working: ["Keine Änderungen (clean)"],
+                            staging: ["Leer"],
+                            commits: [
+                                { hash: "#e8b", msg: "Ersetze Parse-Exception durch TryParse-Schleife", diff: "-int.Parse, +int.TryParse", parent: "#d4f" },
+                                { hash: "#d4f", msg: "Fuege AchsbruchException und Ersatzrad hinzu", diff: "+throw new AchsbruchException", parent: "#c1a" },
+                                { hash: "#c1a", msg: "Initialisiere Projekt", diff: "Roboter.cs, Program.cs", parent: "null" }
+                            ]
+                        }
+                    }
+                ]
+            },
+
+            // ---------------------------------------------------------------------
+            // TAB 2: Local vs. Remote Repository (git push)
+            // ---------------------------------------------------------------------
+            {
+                name: "3) Local vs. Remote (push)",
+                subtitle: "Synchronisation der lokalen Linked List mit dem Server (origin)",
+                steps: [
+                    {
+                        badge: "LOCAL VS. REMOTE",
+                        title: "Ausgangslage: Lokales Repo ist dem Remote-Server 2 Commits voraus",
+                        desc: "Alle bisherigen Commits (<code>#d4f</code> und <code>#e8b</code>) existieren <strong>nur lokal auf deiner Festplatte</strong>! Auf dem Server (GitHub/GitLab, genannt <code>origin</code>) zeigt der Zeiger <code>origin/main</code> noch immer auf den ersten Knoten <code>#c1a</code>.",
+                        cwd: "~/Projekte/Katastrophengebiet",
+                        archHint: "Your branch is ahead by 2 commits",
+                        files: [
+                            { name: "Program.cs", status: "Lokal auf #e8b", lines: codeSnippets.program_good_tryparse }
+                        ],
+                        terminal: [
+                            { cmd: "git status", out: "On branch main\nYour branch is <span class='text-amber-300 font-bold'>ahead of 'origin/main' by 2 commits</span>.\n  (use \"git push\" to publish your local commits)\n\nnothing to commit, working tree clean", highlight: true }
+                        ],
+                        svg: {
+                            mode: "remote",
+                            pushing: false,
+                            localNodes: [
+                                { id: "c1a", hash: "#c1a", msg: "Initialisiere Projekt", val: "Basis-Klassen" },
+                                { id: "d4f", hash: "#d4f", msg: "Fuege AchsbruchException...", val: "+AchsbruchException" },
+                                { id: "e8b", hash: "#e8b", msg: "Ersetze Parse-Exception...", val: "+int.TryParse()" }
+                            ],
+                            remoteNodes: [
+                                { id: "c1a", hash: "#c1a", msg: "Initialisiere Projekt", val: "Basis-Klassen" }
+                            ],
+                            head: "e8b",
+                            main: "e8b",
+                            originMain: "c1a"
+                        },
+                        inspector: {
+                            headRef: "#e8b (main) | origin/main: #c1a",
+                            working: ["Clean"],
+                            staging: ["Leer"],
+                            commits: [
+                                { hash: "#e8b [NUR LOKAL]", msg: "Ersetze Parse-Exception durch TryParse-Schleife", diff: "+int.TryParse", parent: "#d4f" },
+                                { hash: "#d4f [NUR LOKAL]", msg: "Fuege AchsbruchException und Ersatzrad hinzu", diff: "+AchsbruchException", parent: "#c1a" },
+                                { hash: "#c1a [SYNCHRON]", msg: "Initialisiere Projekt", diff: "Basis-Klassen", parent: "null" }
+                            ]
+                        }
+                    },
+                    {
+                        badge: "GIT PUSH",
+                        title: "Commits hochladen: git push",
+                        desc: "Mit <code>git push</code> vergleicht Git beide Linked Lists, schnürt die fehlenden Knoten (<code>#d4f</code> und <code>#e8b</code>) in ein Paket und überträgt sie über das Netzwerk an das <strong>Remote Repository</strong>. Danach zieht der Server seinen Zeiger <code>origin/main</code> auf <code>#e8b</code> nach!",
+                        cwd: "~/Projekte/Katastrophengebiet",
+                        archHint: "Local & Remote sind 100% synchron!",
+                        files: [
+                            { name: "Program.cs", status: "Synchronisiert (origin/main)", lines: codeSnippets.program_good_tryparse }
+                        ],
+                        terminal: [
+                            { cmd: "git push", out: "Enumerating objects: 9, done.\nCounting objects: 100% (9/9), done.\nWriting objects: 100% (6/6), 1.42 KiB | 1.42 MiB/s, done.\nTo https://github.com/schule/katastrophengebiet.git\n   <span class='text-emerald-400'>c1a004b..e8b302c  main -> main</span>", highlight: true },
+                            { cmd: "git status", out: "On branch main\nYour branch is <span class='text-emerald-400'>up to date with 'origin/main'</span>.\n\nnothing to commit, working tree clean" }
+                        ],
+                        svg: {
+                            mode: "remote",
+                            pushing: true,
+                            localNodes: [
+                                { id: "c1a", hash: "#c1a", msg: "Initialisiere Projekt", val: "Basis-Klassen" },
+                                { id: "d4f", hash: "#d4f", msg: "Fuege AchsbruchException...", val: "+AchsbruchException" },
+                                { id: "e8b", hash: "#e8b", msg: "Ersetze Parse-Exception...", val: "+int.TryParse()" }
+                            ],
+                            remoteNodes: [
+                                { id: "c1a", hash: "#c1a", msg: "Initialisiere Projekt", val: "Basis-Klassen" },
+                                { id: "d4f", hash: "#d4f", msg: "Fuege AchsbruchException...", val: "+AchsbruchException", anim: true },
+                                { id: "e8b", hash: "#e8b", msg: "Ersetze Parse-Exception...", val: "+int.TryParse()", anim: true }
+                            ],
+                            head: "e8b",
+                            main: "e8b",
+                            originMain: "e8b"
+                        },
+                        inspector: {
+                            headRef: "#e8b (main == origin/main)",
+                            working: ["Clean"],
+                            staging: ["Leer"],
+                            commits: [
+                                { hash: "#e8b [SYNCHRON]", msg: "Ersetze Parse-Exception durch TryParse-Schleife", diff: "+int.TryParse", parent: "#d4f" },
+                                { hash: "#d4f [SYNCHRON]", msg: "Fuege AchsbruchException und Ersatzrad hinzu", diff: "+AchsbruchException", parent: "#c1a" },
+                                { hash: "#c1a [SYNCHRON]", msg: "Initialisiere Projekt", diff: "Basis-Klassen", parent: "null" }
+                            ]
+                        }
+                    }
+                ]
+            },
+
+            // ---------------------------------------------------------------------
+            // TAB 3: Staging rückgängig machen (git reset <file>)
+            // ---------------------------------------------------------------------
+            {
+                name: "4) Unstage (git reset <file>)",
+                subtitle: "Versehentlich vorgemerkte Datei aus der Staging Area holen",
+                steps: [
+                    {
+                        badge: "VERSEHENTLICHES ADD -A",
+                        title: "Problem: Unfertige Datei mit Anti-Pattern versehentlich gestaged!",
+                        desc: "Wir haben in <code>Roboter.cs</code> eine saubere Änderung gemacht, aber in <code>Welt.cs</code> zum Testen ein <strong>Anti-Pattern</strong> eingebaut (eine <code>InvalidOperationException</code>, wenn ein Stein <code>'#'</code> im Weg liegt!). Durch ein vorschnelles <code>git add -A</code> liegen nun <strong>beide</strong> Dateien in der Staging Area.",
+                        cwd: "~/Projekte/Katastrophengebiet",
+                        archHint: "Welt.cs darf so NICHT in den Commit!",
+                        files: [
+                            { name: "Welt.cs (Anti-Pattern!)", status: "Staged (Index)", lines: codeSnippets.welt_antipattern },
+                            { name: "Roboter.cs (Sauber)", status: "Staged (Index)", lines: codeSnippets.roboter_v2_diff }
+                        ],
+                        terminal: [
+                            { cmd: "git add -A", out: "" },
+                            { cmd: "git status", out: "On branch main\nChanges to be committed:\n\t<span class='text-emerald-400'>modified:   Roboter.cs</span>\n\t<span class='text-emerald-400'>modified:   Welt.cs</span>   <span class='text-amber-300'><-- Ups! Enthält Exception bei Stein '#'</span>", highlight: true }
+                        ],
+                        svg: {
+                            mode: "zones",
+                            activeZone: "staging",
+                            localNodes: [
+                                { id: "c1a", hash: "#c1a", msg: "Initialisiere Projekt", val: "Basis" },
+                                { id: "d4f", hash: "#d4f", msg: "Fuege Achsbruch...", val: "+Achsbruch" },
+                                { id: "e8b", hash: "#e8b", msg: "Ersetze Parse...", val: "+TryParse" }
+                            ],
+                            head: "e8b",
+                            main: "e8b",
+                            workingFiles: [],
+                            stagedFiles: ["Roboter.cs (Staged)", "Welt.cs (Staged - FEHLERHAFT!)"]
+                        },
+                        inspector: {
+                            headRef: "#e8b (main)",
+                            working: ["Leer"],
+                            staging: ["Roboter.cs (OK)", "Welt.cs (❌ Exception statt if-Check!)"],
+                            commits: [
+                                { hash: "#e8b", msg: "Ersetze Parse-Exception durch TryParse-Schleife", diff: "+int.TryParse", parent: "#d4f" },
+                                { hash: "#d4f", msg: "Fuege AchsbruchException und Ersatzrad hinzu", diff: "+AchsbruchException", parent: "#c1a" }
+                            ]
+                        }
+                    },
+                    {
+                        badge: "GIT RESET <FILE>",
+                        title: "Einzelne Datei aus der Staging Area nehmen: git reset Welt.cs",
+                        desc: "Mit <code>git reset Welt.cs</code> holen wir <strong>nur</strong> <code>Welt.cs</code> von der Staging Area zurück ins Working Directory (Unstage). <strong>Wichtig:</strong> Der Code in <code>Welt.cs</code> wird dabei <em>nicht</em> gelöscht, sondern nur vom Packtisch genommen! <code>Roboter.cs</code> bleibt gestaged und kann alleine committet werden.",
+                        cwd: "~/Projekte/Katastrophengebiet",
+                        archHint: "git reset <file> behält Änderungen im Working Dir",
+                        files: [
+                            { name: "Welt.cs (Unstaged)", status: "Modified (Working Dir)", lines: codeSnippets.welt_antipattern },
+                            { name: "Roboter.cs (Bleibt Staged)", status: "Staged (Index)", lines: codeSnippets.roboter_v2_diff }
+                        ],
+                        terminal: [
+                            { cmd: "git reset Welt.cs", out: "Unstaged changes after reset:\nM\tWelt.cs", highlight: true },
+                            { cmd: "git status", out: "On branch main\nChanges to be committed:\n\t<span class='text-emerald-400'>modified:   Roboter.cs</span>\n\nChanges not staged for commit:\n\t<span class='text-rose-400'>modified:   Welt.cs</span>", highlight: true }
+                        ],
+                        svg: {
+                            mode: "zones",
+                            activeZone: "working",
+                            flowArrow: "stage-to-work",
+                            localNodes: [
+                                { id: "c1a", hash: "#c1a", msg: "Initialisiere Projekt", val: "Basis" },
+                                { id: "d4f", hash: "#d4f", msg: "Fuege Achsbruch...", val: "+Achsbruch" },
+                                { id: "e8b", hash: "#e8b", msg: "Ersetze Parse...", val: "+TryParse" }
+                            ],
+                            head: "e8b",
+                            main: "e8b",
+                            workingFiles: ["Welt.cs (M - Unstaged)"],
+                            stagedFiles: ["Roboter.cs (Staged)"]
+                        },
+                        inspector: {
+                            headRef: "#e8b (main)",
+                            working: ["Welt.cs (Aus Staging zurückgeholt)"],
+                            staging: ["Roboter.cs (Bereit für Commit)"],
+                            commits: [
+                                { hash: "#e8b", msg: "Ersetze Parse-Exception durch TryParse-Schleife", diff: "+int.TryParse", parent: "#d4f" },
+                                { hash: "#d4f", msg: "Fuege AchsbruchException und Ersatzrad hinzu", diff: "+AchsbruchException", parent: "#c1a" }
+                            ]
+                        }
+                    }
+                ]
+            },
+
+            // ---------------------------------------------------------------------
+            // TAB 4: Datei-Stand vom Commit / Remote zurückholen (git checkout <file>)
+            // ---------------------------------------------------------------------
+            {
+                name: "5) Datei zurücksetzen (checkout)",
+                subtitle: "Kaputte lokale Datei verwerfen & sauberen Stand aus Commit / Remote laden",
+                steps: [
+                    {
+                        badge: "KAPUTTER LOKALER CODE",
+                        title: "Ausgangslage: Welt.cs ist lokal verpfuscht (Exception statt if)",
+                        desc: "In <code>Welt.cs</code> steht im Working Directory noch unser kaputter Experimentier-Code (wirft eine <code>InvalidOperationException</code> bei einem Stein <code>'#'</code>). Im letzten synchronisierten Commit <code>#e8b</code> (<code>HEAD</code> bzw. <code>origin/main</code>) liegt aber die saubere Version mit <code>if</code>-Kontrollstrukturen!",
+                        cwd: "~/Projekte/Katastrophengebiet",
+                        archHint: "Lokale Änderung soll komplett verworfen werden",
+                        files: [
+                            { name: "Welt.cs (Lokal kaputt)", status: "Modified (Working Dir)", lines: codeSnippets.welt_antipattern }
+                        ],
+                        terminal: [
+                            { cmd: "git status", out: "On branch main\nChanges not staged for commit:\n  (use \"git checkout -- <file>...\" to discard changes in working directory)\n\n\t<span class='text-rose-400'>modified:   Welt.cs</span>", highlight: true }
+                        ],
+                        svg: {
+                            mode: "zones",
+                            activeZone: "working",
+                            localNodes: [
+                                { id: "c1a", hash: "#c1a", msg: "Initialisiere Projekt", val: "Basis" },
+                                { id: "d4f", hash: "#d4f", msg: "Fuege Achsbruch...", val: "+Achsbruch" },
+                                { id: "e8b", hash: "#e8b", msg: "Ersetze Parse...", val: "Welt.cs (Sauber)" }
+                            ],
+                            head: "e8b",
+                            main: "e8b",
+                            workingFiles: ["Welt.cs (M - Kaputt!)"],
+                            stagedFiles: []
+                        },
+                        inspector: {
+                            headRef: "#e8b (main / origin/main)",
+                            working: ["Welt.cs (❌ Enthält InvalidOperationException)"],
+                            staging: ["Leer"],
+                            commits: [
+                                { hash: "#e8b", msg: "Sauberer Stand (inkl. Welt.cs mit if/bool)", diff: "Welt.cs: return false bei '#'", parent: "#d4f" }
+                            ]
+                        }
+                    },
+                    {
+                        badge: "GIT CHECKOUT <FILE>",
+                        title: "Sauberen Stand auf Local holen: git checkout Welt.cs",
+                        desc: "Mit <code>git checkout Welt.cs</code> (oder direkt vom Remote-Stand nach <code>git fetch</code> via <code>git checkout origin/main -- Welt.cs</code>) kopiert Git die saubere Datei aus dem Commit-Knoten <code>#e8b</code> direkt in unser Working Directory. Das Exception-Anti-Pattern ist überschrieben und die saubere <code>if</code>-Kontrollstruktur ist wiederhergestellt!",
+                        cwd: "~/Projekte/Katastrophengebiet",
+                        archHint: "✅ Saubere Kontrollstruktur aus #e8b wiederhergestellt!",
+                        files: [
+                            { name: "Welt.cs (Wiederhergestellt)", status: "Restored from #e8b", lines: codeSnippets.welt_clean_control }
+                        ],
+                        terminal: [
+                            { cmd: "git checkout Welt.cs", out: "Updated 1 path from the index", highlight: true },
+                            { cmd: "# Alternativ direkt vom Remote-Branch (nach git fetch):", out: "" },
+                            { cmd: "git checkout origin/main -- Welt.cs", out: "" },
+                            { cmd: "git status", out: "On branch main\nnothing to commit, working tree clean", highlight: true }
+                        ],
+                        svg: {
+                            mode: "zones",
+                            activeZone: "repo",
+                            flowArrow: "repo-to-work",
+                            localNodes: [
+                                { id: "c1a", hash: "#c1a", msg: "Initialisiere Projekt", val: "Basis" },
+                                { id: "d4f", hash: "#d4f", msg: "Fuege Achsbruch...", val: "+Achsbruch" },
+                                { id: "e8b", hash: "#e8b", msg: "Ersetze Parse...", val: "Welt.cs (Sauber)" }
+                            ],
+                            head: "e8b",
+                            main: "e8b",
+                            workingFiles: ["Welt.cs (Sauber aus #e8b!)"],
+                            stagedFiles: []
+                        },
+                        inspector: {
+                            headRef: "#e8b (main / origin/main)",
+                            working: ["Clean (Welt.cs exakt wie in #e8b)"],
+                            staging: ["Leer"],
+                            commits: [
+                                { hash: "#e8b", msg: "Sauberer Stand (inkl. Welt.cs mit if/bool)", diff: "Welt.cs: return false bei '#'", parent: "#d4f" }
+                            ]
+                        }
+                    }
+                ]
+            }
+        ];
+
+        // =========================================================================
+        // SYNTAX HIGHLIGHTER FÜR C# CODE LINKS
+        // =========================================================================
+        function highlightCSharp(line) {
+            let escaped = line
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+
+            // Kommentare zuerst schützen
+            if (escaped.trim().startsWith("//")) {
+                return `<span class="text-slate-500 italic">${escaped}</span>`;
+            }
+
+            // Strings hervorheben
+            escaped = escaped.replace(/"([^"]*)"/g, '<span class="text-emerald-300">"$1"</span>');
+
+            // Keywords
+            escaped = escaped.replace(/\b(public|private|static|class|void|bool|int|string|char|return|if|while|try|catch|throw|new|out)\b/g,
+                '<span class="text-pink-400 font-semibold">$1</span>');
+
+            // Typen & Exceptions
+            escaped = escaped.replace(/\b(Roboter|Rad|Helikopter|Welt|Console|AchsbruchException|FormatException|InvalidOperationException)\b/g,
+                '<span class="text-sky-300 font-semibold">$1</span>');
+
+            // Methoden
+            escaped = escaped.replace(/\b(BewegeVorwaerts|ProduziereErsatzRad|LeseRoboterAnzahl|Write|ReadLine|Parse|TryParse|VersucheSchritt|GetLength)\b/g,
+                '<span class="text-amber-300">$1</span>');
+
+            return escaped;
+        }
+
+        // =========================================================================
+        // SVG GRAPH RENDERER (COMMITS ALS LINKED LIST & GIT ZONEN)
+        // =========================================================================
+        function renderSVG(svgData) {
+            const layer = document.getElementById('svg-dynamic-layer');
+            layer.innerHTML = '';
+
+            // Koordinaten für bis zu 3 Commit-Nodes in einer Linked List
+            const nodePositions = {
+                "c1a": { x: 165, y: 125 },
+                "d4f": { x: 425, y: 125 },
+                "e8b": { x: 685, y: 125 }
+            };
+
+            if (svgData.mode === "zones") {
+                // -----------------------------------------------------------------
+                // ANSICHT A: Local Repository (Oben) + Working Dir & Staging (Unten)
+                // -----------------------------------------------------------------
+                const repoActive = svgData.activeZone === "repo" ? "zone-active" : "";
+                const workActive = svgData.activeZone === "working" ? "zone-warn-active" : "";
+                const stageActive = svgData.activeZone === "staging" ? "zone-stage-active" : "";
+
+                let html = `
+                    <!-- OBEN: LOCAL REPOSITORY (LINKED LIST OF COMMITS) -->
+                    <rect x="20" y="20" width="780" height="190" rx="10" fill="#090d16" stroke="#334155" stroke-width="2" stroke-dasharray="5 5" class="${repoActive}" />
+                    <text x="35" y="44" fill="#38bdf8" font-family="Inter" font-weight="bold" font-size="12" letter-spacing="0.5">LOCAL REPOSITORY (.git/objects) — SINGLY LINKED LIST</text>
+                    <text x="650" y="44" fill="#ef4444" font-family="Fira Code" font-weight="bold" font-size="13">HEAD</text>
+
+                    <!-- UNTEN LINKS: WORKING DIRECTORY -->
+                    <rect x="20" y="245" width="365" height="150" rx="10" fill="#090d16" stroke="#334155" stroke-width="2" class="${workActive}" />
+                    <text x="35" y="270" fill="#fbbf24" font-family="Inter" font-weight="bold" font-size="12">1. WORKING DIRECTORY (Arbeitsverzeichnis)</text>
+
+                    <!-- UNTEN RECHTS: STAGING AREA (INDEX) -->
+                    <rect x="435" y="245" width="365" height="150" rx="10" fill="#090d16" stroke="#334155" stroke-width="2" class="${stageActive}" />
+                    <text x="450" y="270" fill="#4ade80" font-family="Inter" font-weight="bold" font-size="12">2. STAGING AREA (Index / Packtisch)</text>
+                `;
+
+                // Parent-Pfeile zwischen Commit-Nodes zeichnen (Linked List Referenzen: Neu -> Alt)
+                const nodes = svgData.localNodes;
+                for (let i = 1; i < nodes.length; i++) {
+                    const curr = nodePositions[nodes[i].id];
+                    const prev = nodePositions[nodes[i - 1].id];
+                    const animClass = nodes[i].anim ? "path-draw" : "";
+                    html += `
+                        <path d="M ${curr.x - 36} ${curr.y} L ${prev.x + 38} ${prev.y}" stroke="#f97316" stroke-width="3" fill="none" marker-end="url(#arrow-parent)" class="${animClass}" />
+                        <text x="${(curr.x + prev.x) / 2}" y="${curr.y - 10}" text-anchor="middle" fill="#fdba74" font-family="Fira Code" font-size="10">Parent</text>
+                    `;
+                }
+
+                // null-Pointer beim allerersten Commit (#c1a)
+                const firstPos = nodePositions[nodes[0].id];
+                html += `
+                    <path d="M ${firstPos.x - 36} ${firstPos.y} L ${firstPos.x - 95} ${firstPos.y}" stroke="#64748b" stroke-width="2" stroke-dasharray="3 3" fill="none" />
+                    <rect x="${firstPos.x - 135}" y="${firstPos.y - 11}" width="38" height="22" rx="4" fill="#1e293b" stroke="#475569" />
+                    <text x="${firstPos.x - 116}" y="${firstPos.y + 4}" text-anchor="middle" fill="#94a3b8" font-family="Fira Code" font-style="italic" font-size="11">null</text>
+                `;
+
+                // HEAD-Pfeil auf aktuellen Knoten
+                const headPos = nodePositions[svgData.head];
+                html += `
+                    <path d="M 670 52 C 670 78, ${headPos.x} 62, ${headPos.x} ${headPos.y - 38}" stroke="#ef4444" stroke-width="2.5" fill="none" marker-end="url(#arrow-head)" class="path-draw" />
+                `;
+
+                // Commit-Knoten zeichnen
+                nodes.forEach(n => {
+                    const pos = nodePositions[n.id];
+                    const isHead = svgData.head === n.id;
+                    const headClass = isHead ? "head-node" : "";
+                    html += `
+                        <g transform="translate(${pos.x}, ${pos.y})" class="${headClass}">
+                            <circle cx="0" cy="0" r="32" fill="#020617" stroke="#64748b" stroke-width="2.5" class="node-circle" />
+                            <text x="0" y="-3" text-anchor="middle" font-family="Fira Code" font-size="13" fill="#f8fafc" font-weight="bold">${n.hash}</text>
+                            <text x="0" y="13" text-anchor="middle" font-family="Inter" font-size="9.5" fill="#38bdf8">${n.val}</text>
+                            <text x="0" y="48" text-anchor="middle" font-family="Inter" font-size="10.5" fill="#cbd5e1" font-weight="500">${n.msg}</text>
+                            <text x="0" y="-44" text-anchor="middle" font-family="Fira Code" font-size="11" class="head-label">HEAD</text>
+                            ${svgData.main === n.id ? `
+                                <rect x="-26" y="55" width="52" height="18" rx="4" fill="#065f46" stroke="#10b981" stroke-width="1" />
+                                <text x="0" y="67" text-anchor="middle" font-family="Fira Code" font-size="10" fill="#6ee7b7" font-weight="bold">main</text>
+                            ` : ''}
+                        </g>
+                    `;
+                });
+
+                // Dateien im Working Directory rendern
+                if (svgData.workingFiles.length === 0) {
+                    html += `<text x="202" y="325" text-anchor="middle" fill="#475569" font-family="Inter" font-size="12" font-style="italic">Keine ungestagten Änderungen</text>`;
+                } else {
+                    svgData.workingFiles.forEach((f, idx) => {
+                        const y = 290 + idx * 36;
+                        html += `
+                            <rect x="40" y="${y}" width="325" height="28" rx="6" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5" />
+                            <text x="55" y="${y + 18}" fill="#fde68a" font-family="Fira Code" font-size="12" font-weight="bold">${f}</text>
+                        `;
+                    });
+                }
+
+                // Dateien in der Staging Area rendern
+                if (svgData.stagedFiles.length === 0) {
+                    html += `<text x="617" y="325" text-anchor="middle" fill="#475569" font-family="Inter" font-size="12" font-style="italic">Staging Area ist leer</text>`;
+                } else {
+                    svgData.stagedFiles.forEach((f, idx) => {
+                        const y = 290 + idx * 36;
+                        html += `
+                            <rect x="455" y="${y}" width="325" height="28" rx="6" fill="#064e3b" stroke="#22c55e" stroke-width="1.5" />
+                            <text x="470" y="${y + 18}" fill="#86efac" font-family="Fira Code" font-size="12" font-weight="bold">${f}</text>
+                        `;
+                    });
+                }
+
+                // Aktions-Pfeile zwischen den Zonen (git add, git commit, git reset, git checkout)
+                if (svgData.flowArrow === "work-to-stage") {
+                    html += `
+                        <path d="M 388 320 L 430 320" stroke="#22c55e" stroke-width="3.5" fill="none" marker-end="url(#arrow-flow-green)" class="path-draw" />
+                        <text x="409" y="308" text-anchor="middle" fill="#4ade80" font-family="Fira Code" font-size="10" font-weight="bold">git add</text>
+                    `;
+                } else if (svgData.flowArrow === "stage-to-repo") {
+                    const target = nodePositions[svgData.head];
+                    html += `
+                        <path d="M 617 245 C 617 215, ${target.x} 215, ${target.x} ${target.y + 38}" stroke="#38bdf8" stroke-width="3.5" fill="none" marker-end="url(#arrow-flow)" class="path-draw" />
+                        <rect x="545" y="213" width="110" height="20" rx="4" fill="#0c4a6e" stroke="#38bdf8" />
+                        <text x="600" y="227" text-anchor="middle" fill="#7dd3fc" font-family="Fira Code" font-size="10" font-weight="bold">git commit -m</text>
+                    `;
+                } else if (svgData.flowArrow === "stage-to-work") {
+                    html += `
+                        <path d="M 432 320 L 390 320" stroke="#f59e0b" stroke-width="3.5" fill="none" marker-end="url(#arrow-flow-amber)" class="path-draw" />
+                        <text x="411" y="308" text-anchor="middle" fill="#fbbf24" font-family="Fira Code" font-size="10" font-weight="bold">git reset</text>
+                    `;
+                } else if (svgData.flowArrow === "repo-to-work") {
+                    const src = nodePositions[svgData.head];
+                    html += `
+                        <path d="M ${src.x - 15} ${src.y + 35} C ${src.x - 40} 230, 210 210, 210 242" stroke="#38bdf8" stroke-width="3.5" fill="none" marker-end="url(#arrow-flow)" class="path-draw" />
+                        <rect x="250" y="213" width="135" height="20" rx="4" fill="#0c4a6e" stroke="#38bdf8" />
+                        <text x="317" y="227" text-anchor="middle" fill="#7dd3fc" font-family="Fira Code" font-size="10" font-weight="bold">git checkout &lt;file&gt;</text>
+                    `;
+                }
+
+                layer.innerHTML = html;
+            } else if (svgData.mode === "remote") {
+                // -----------------------------------------------------------------
+                // ANSICHT B: Local Repository (Unten) vs. Remote Repository (Oben)
+                // -----------------------------------------------------------------
+                let html = `
+                    <!-- OBEN: REMOTE REPOSITORY (GitHub / GitLab) -->
+                    <rect x="20" y="20" width="780" height="165" rx="10" fill="#090d16" stroke="#a855f7" stroke-width="2" stroke-dasharray="5 5" />
+                    <text x="35" y="44" fill="#c084fc" font-family="Inter" font-weight="bold" font-size="12">REMOTE REPOSITORY (origin / Server — GitHub / GitLab)</text>
+
+                    <!-- UNTEN: LOCAL REPOSITORY (Dein PC) -->
+                    <rect x="20" y="230" width="780" height="175" rx="10" fill="#090d16" stroke="#38bdf8" stroke-width="2" />
+                    <text x="35" y="254" fill="#38bdf8" font-family="Inter" font-weight="bold" font-size="12">LOCAL REPOSITORY (Dein PC — .git/objects)</text>
+                `;
+
+                const remoteY = 105;
+                const localY = 315;
+
+                // 1. Remote Linked List zeichnen
+                const rNodes = svgData.remoteNodes;
+                for (let i = 1; i < rNodes.length; i++) {
+                    const currX = nodePositions[rNodes[i].id].x;
+                    const prevX = nodePositions[rNodes[i - 1].id].x;
+                    const animClass = rNodes[i].anim ? "path-draw" : "";
+                    html += `<path d="M ${currX - 34} ${remoteY} L ${prevX + 36} ${remoteY}" stroke="#a855f7" stroke-width="3" fill="none" marker-end="url(#arrow-remote)" class="${animClass}" />`;
+                }
+                rNodes.forEach(n => {
+                    const x = nodePositions[n.id].x;
+                    const isOrigin = svgData.originMain === n.id;
+                    html += `
+                        <g transform="translate(${x}, ${remoteY})">
+                            <circle cx="0" cy="0" r="30" fill="#020617" stroke="${isOrigin ? '#a855f7' : '#64748b'}" stroke-width="2.5" />
+                            <text x="0" y="-2" text-anchor="middle" font-family="Fira Code" font-size="13" fill="#f8fafc" font-weight="bold">${n.hash}</text>
+                            <text x="0" y="13" text-anchor="middle" font-family="Inter" font-size="9.5" fill="#d8b4fe">${n.val}</text>
+                            ${isOrigin ? `
+                                <rect x="-42" y="38" width="84" height="18" rx="4" fill="#4c1d95" stroke="#a855f7" />
+                                <text x="0" y="50" text-anchor="middle" font-family="Fira Code" font-size="10" fill="#e9d5ff" font-weight="bold">origin/main</text>
+                            ` : ''}
+                        </g>
+                    `;
+                });
+
+                // 2. Local Linked List zeichnen
+                const lNodes = svgData.localNodes;
+                for (let i = 1; i < lNodes.length; i++) {
+                    const currX = nodePositions[lNodes[i].id].x;
+                    const prevX = nodePositions[lNodes[i - 1].id].x;
+                    html += `<path d="M ${currX - 34} ${localY} L ${prevX + 36} ${localY}" stroke="#f97316" stroke-width="3" fill="none" marker-end="url(#arrow-parent)" />`;
+                }
+                lNodes.forEach(n => {
+                    const x = nodePositions[n.id].x;
+                    const isHead = svgData.head === n.id;
+                    html += `
+                        <g transform="translate(${x}, ${localY})" class="${isHead ? 'head-node' : ''}">
+                            <circle cx="0" cy="0" r="30" fill="#020617" stroke="#64748b" stroke-width="2.5" />
+                            <text x="0" y="-2" text-anchor="middle" font-family="Fira Code" font-size="13" fill="#f8fafc" font-weight="bold">${n.hash}</text>
+                            <text x="0" y="13" text-anchor="middle" font-family="Inter" font-size="9.5" fill="#38bdf8">${n.val}</text>
+                            <text x="0" y="-40" text-anchor="middle" font-family="Fira Code" font-size="11" class="head-label">HEAD</text>
+                            ${svgData.main === n.id ? `
+                                <rect x="-26" y="38" width="52" height="18" rx="4" fill="#065f46" stroke="#10b981" />
+                                <text x="0" y="50" text-anchor="middle" font-family="Fira Code" font-size="10" fill="#6ee7b7" font-weight="bold">main</text>
+                            ` : ''}
+                        </g>
+                    `;
+                });
+
+                // Push-Transfer-Pfeile von Local nach Remote
+                if (svgData.pushing) {
+                    ["d4f", "e8b"].forEach(id => {
+                        const x = nodePositions[id].x;
+                        html += `
+                            <path d="M ${x} ${localY - 36} L ${x} ${remoteY + 38}" stroke="#22c55e" stroke-width="3.5" stroke-dasharray="6 4" fill="none" marker-end="url(#arrow-flow-green)" class="path-draw" />
+                        `;
+                    });
+                    html += `
+                        <rect x="495" y="194" width="120" height="24" rx="5" fill="#064e3b" stroke="#22c55e" />
+                        <text x="555" y="210" text-anchor="middle" fill="#86efac" font-family="Fira Code" font-size="11" font-weight="bold">git push (Upload)</text>
+                    `;
+                }
+
+                layer.innerHTML = html;
+            }
+        }
+
+        // =========================================================================
+        // HAUPT-RENDER-FUNKTION
+        // =========================================================================
+        function render() {
+            const tab = tabsData[currentTab];
+            const st = tab.steps[currentStep];
+
+            // 1. Header-Tabs aktualisieren
+            tabsData.forEach((_, idx) => {
+                const btn = document.getElementById(`tab-${idx}`);
+                if (idx === currentTab) {
+                    btn.className = "tab-btn px-3 py-1.5 rounded-md text-xs font-bold bg-sky-600 text-white shadow transition-all cursor-pointer";
+                } else {
+                    btn.className = "tab-btn px-3 py-1.5 rounded-md text-xs font-bold text-slate-400 hover:bg-slate-800 transition-all cursor-pointer";
+                }
+            });
+
+            document.getElementById('svg-subtitle').textContent = tab.subtitle;
+
+            // 2. Datei-Tabs & Code-Editor links rendern
+            if (activeFileIndex >= st.files.length) activeFileIndex = 0;
+            const fileTabsContainer = document.getElementById('file-tabs-container');
+            fileTabsContainer.innerHTML = '';
+            st.files.forEach((fileObj, fIdx) => {
+                const isSelected = fIdx === activeFileIndex;
+                const btn = document.createElement('button');
+                btn.className = isSelected
+                    ? "px-2.5 py-1 rounded text-xs font-code font-bold bg-slate-800 text-sky-400 border border-slate-700"
+                    : "px-2.5 py-1 rounded text-xs font-code text-slate-400 hover:text-slate-200";
+                btn.textContent = fileObj.name;
+                btn.onclick = () => { activeFileIndex = fIdx; render(); };
+                fileTabsContainer.appendChild(btn);
+            });
+
+            const currentFile = st.files[activeFileIndex];
+            const statusPill = document.getElementById('file-status-pill');
+            statusPill.textContent = currentFile.status;
+            if (currentFile.status.includes("Staged") || currentFile.status.includes("Committed") || currentFile.status.includes("Restored") || currentFile.status.includes("Synchron")) {
+                statusPill.className = "text-[11px] font-code px-2 py-0.5 rounded font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30";
+            } else if (currentFile.status.includes("Modified") || currentFile.status.includes("Anti-Pattern")) {
+                statusPill.className = "text-[11px] font-code px-2 py-0.5 rounded font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30";
+            } else {
+                statusPill.className = "text-[11px] font-code px-2 py-0.5 rounded font-semibold bg-slate-800 text-slate-400 border border-slate-700";
+            }
+
+            document.getElementById('code-architecture-hint').textContent = st.archHint || "";
+
+            const codeContainer = document.getElementById('code-container');
+            codeContainer.innerHTML = '';
+            currentFile.lines.forEach((lineObj, idx) => {
+                const row = document.createElement('div');
+                let rowClass = "line-normal text-slate-300";
+                let prefix = " ";
+                if (lineObj.type === "add") { rowClass = "line-add text-emerald-100"; prefix = "+"; }
+                else if (lineObj.type === "del") { rowClass = "line-del text-rose-200"; prefix = "-"; }
+                else if (lineObj.type === "active") { rowClass = "line-active text-sky-100"; prefix = "•"; }
+
+                row.className = `flex px-2 py-0.5 rounded ${rowClass}`;
+                row.innerHTML = `
+                    <span class="w-6 shrink-0 text-right text-slate-600 mr-2 text-xs select-none">${idx + 1}</span>
+                    <span class="w-4 shrink-0 font-bold select-none ${lineObj.type === 'add' ? 'text-emerald-400' : lineObj.type === 'del' ? 'text-rose-400' : 'text-sky-400'}">${prefix}</span>
+                    <span class="whitespace-pre">${highlightCSharp(lineObj.text)}</span>
+                `;
+                codeContainer.appendChild(row);
+            });
+
+            // 3. SVG Grafik in der Mitte rendern
+            renderSVG(st.svg);
+
+            // 4. Terminal rechts oben rendern
+            document.getElementById('terminal-cwd').textContent = st.cwd;
+            const termContainer = document.getElementById('terminal-container');
+            termContainer.innerHTML = '';
+            st.terminal.forEach(entry => {
+                const block = document.createElement('div');
+                block.className = entry.highlight
+                    ? "p-2 rounded bg-sky-950/30 border-l-2 border-sky-400"
+                    : "px-2 py-0.5 opacity-80";
+
+                const isComment = entry.cmd.startsWith("#");
+                block.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="text-emerald-400 font-bold select-none">$</span>
+                        <span class="${isComment ? 'text-slate-500 italic' : 'text-white font-semibold'}">${entry.cmd}</span>
+                    </div>
+                    ${entry.out ? `<div class="text-slate-300 whitespace-pre-wrap pl-4 mt-1 text-[11.5px]">${entry.out}</div>` : ''}
+                `;
+                termContainer.appendChild(block);
+            });
+            termContainer.scrollTop = termContainer.scrollHeight;
+
+            // 5. Git Zonen & Commit-Nodes Inspektor rechts unten rendern
+            const insp = st.inspector;
+            const inspContainer = document.getElementById('inspector-container');
+            inspContainer.innerHTML = `
+                <!-- Zeiger & Zonen Status -->
+                <div class="bg-slate-800/90 px-3 py-2 rounded border border-slate-700 flex flex-col gap-1.5">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400 font-code">HEAD Pointer:</span>
+                        <span class="val-badge ref-badge font-code">${insp.headRef}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400 font-code">Working Dir:</span>
+                        <span class="val-badge ${insp.working[0].includes('Clean') || insp.working[0].includes('Keine') || insp.working[0].includes('Leer') ? 'null-badge' : 'warn-badge'}">${insp.working.join(', ')}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400 font-code">Staging Area:</span>
+                        <span class="val-badge ${insp.staging[0].includes('Leer') ? 'null-badge' : 'stage-badge'}">${insp.staging.join(', ')}</span>
+                    </div>
+                </div>
+            `;
+
+            // Commit-Nodes (wie Heap-Nodes im Linked List Visualizer)
+            insp.commits.forEach(c => {
+                inspContainer.innerHTML += `
+                    <div class="bg-slate-800/50 px-3 py-1.5 rounded border border-slate-700/80 flex flex-col gap-1">
+                        <div class="flex justify-between items-center border-b border-slate-700/60 pb-0.5">
+                            <span class="font-code text-[11px] text-emerald-400 font-bold">CommitNode (${c.hash})</span>
+                            <span class="text-[11px] text-slate-400 truncate max-w-[180px]">"${c.msg}"</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 pt-0.5">
+                            <div class="flex justify-between items-center text-[11px]">
+                                <span class="text-slate-400">Val (Diff):</span>
+                                <span class="val-badge truncate max-w-[115px]">${c.diff}</span>
+                            </div>
+                            <div class="flex justify-between items-center text-[11px]">
+                                <span class="text-slate-400">Parent:</span>
+                                <span class="val-badge ${c.parent === 'null' ? 'null-badge' : 'ref-badge'} font-code">${c.parent}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // 6. Footer & Navigation aktualisieren
+            document.getElementById('step-badge').textContent = st.badge;
+            document.getElementById('step-title').textContent = st.title;
+            document.getElementById('explanation-text').innerHTML = st.desc;
+
+            document.getElementById('step-current').textContent = currentStep + 1;
+            document.getElementById('step-total').textContent = tab.steps.length;
+
+            document.getElementById('btn-prev').disabled = (currentStep === 0 && currentTab === 0);
+            document.getElementById('btn-next').disabled = (currentStep === tab.steps.length - 1 && currentTab === tabsData.length - 1);
+        }
+
+        // =========================================================================
+        // NAVIGATION (TABS, BUTTONS & PFEILTASTEN)
+        // =========================================================================
+        window.switchTab = function(tabIndex) {
+            currentTab = tabIndex;
+            currentStep = 0;
+            activeFileIndex = 0;
+            render();
+        };
+
+        function stepForward() {
+            const tab = tabsData[currentTab];
+            if (currentStep < tab.steps.length - 1) {
+                currentStep++;
+                activeFileIndex = 0;
+                render();
+            } else if (currentTab < tabsData.length - 1) {
+                currentTab++;
+                currentStep = 0;
+                activeFileIndex = 0;
+                render();
+            }
+        }
+
+        function stepBackward() {
+            if (currentStep > 0) {
+                currentStep--;
+                activeFileIndex = 0;
+                render();
+            } else if (currentTab > 0) {
+                currentTab--;
+                currentStep = tabsData[currentTab].steps.length - 1;
+                activeFileIndex = 0;
+                render();
+            }
+        }
+
+        document.getElementById('btn-next').onclick = stepForward;
+        document.getElementById('btn-prev').onclick = stepBackward;
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                stepForward();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                stepBackward();
+            }
+        });
+
+        // Initialer Start
+        window.onload = function() {
+            render();
+        };
+    </script>
+</body>
+</html>

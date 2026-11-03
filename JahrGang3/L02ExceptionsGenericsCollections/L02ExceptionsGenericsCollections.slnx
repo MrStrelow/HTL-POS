@@ -1,4 +1,5 @@
 <Solution>
-  <Project Path="Skripten/Skripten.csproj" />
-  <Project Path="Zetteluebungen/Zetteluebungen.csproj" />
+  <Project Path="../../../../../../Documents/GitHub/HTL-POS/JahrGang3/L02ExceptionsGenericsCollections/Skripten/Skripten.csproj" />
+  <Project Path="../../../../../../Documents/GitHub/HTL-POS/JahrGang3/L02ExceptionsGenericsCollections/SMUe/SMUe.csproj" Id="0ceb9359-3d9d-4171-a5cf-8fb4d7742140" />
+  <Project Path="../../../../../../Documents/GitHub/HTL-POS/JahrGang3/L02ExceptionsGenericsCollections/Zetteluebungen/Zetteluebungen.csproj" />
 </Solution>
