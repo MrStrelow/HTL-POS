@@ -1,0 +1,15 @@
+# Drohnen-Lieferauftraege der Firma SkyParcel
+# Format: nummer=...;start=x|y;ziel=x|y;gewicht=...kg;kunde=...
+# Koordinaten: 0|0 ist oben links. 1 Feld = 0,5 km
+
+  nummer=LF-7 ; start=1|1 ; ziel=6|5 ; gewicht=1,5kg ; kunde=mÜLLER gmbh
+NUMMER=LF-0012;START=2|9;ZIEL=17|3;GEWICHT=3,2KG;KUNDE=  bäckerei huber
+nummer=LF-13 ; start=15|2 ; ziel=3|2 ; gewicht=0,8kg ; kunde=apotheke am platz
+
+nummer=LF-14 ; start=4|10 ; ziel=6|1 ; gewicht=2kg ; kunde=htl werkstätte
+nummer=LF-x15 ; start=1|1 ; ziel=2|2 ; gewicht=1kg ; kunde=tippfehler ag
+nummer=LF-16 ; start=1|1 ; ziel=25|3 ; gewicht=1kg ; kunde=weit weg kg
+nummer=LF-17 ; start=3|3 ; ziel=8|8 ; gewicht=7,5kg ; kunde=schwer und co
+nummer=LF-18 ; start=2|5 ; gewicht=1kg ; kunde=vergessen ohg
+nummer=LF-19 ; start=0|10 ; ziel=19|10 ; gewicht=1kg ; kunde=quer durch gmbh
+nummer=LF-20 ; start=18|11 ; ziel=12|0 ; gewicht=4kg ; kunde=elektro maier
