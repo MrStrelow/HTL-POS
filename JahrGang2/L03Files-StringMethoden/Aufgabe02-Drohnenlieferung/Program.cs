@@ -74,38 +74,28 @@ double BerechnePreis(double streckeKm, double gewichtKg)
     throw new NotImplementedException();
 }
 
-// ======================= Aufgabe 4: Stadtplan =======================
+// ======================= Aufgabe 5: Stadtplan und Route =======================
+// Der Stadtplan ist ein string[]: plan[y] ist eine Zeile, plan[y][x] ein einzelnes Zeichen.
 
-char[,] LeseStadtplan(string pfad)
+bool IstImStadtplan(string[] plan, (int X, int Y) p)
 {
     throw new NotImplementedException();
 }
 
-bool IstImStadtplan(char[,] plan, (int X, int Y) p)
+// Liegt das Feld (x|y) auf der Geraden zwischen Start und Ziel?
+bool IstAufRoute((int X, int Y) start, (int X, int Y) ziel, int x, int y)
 {
     throw new NotImplementedException();
 }
 
-char[,] KopiereStadtplan(char[,] plan)
+// false, wenn ein Feld der Route eine Sperrzone '#' ist.
+bool IstRouteFrei(string[] plan, (int X, int Y) start, (int X, int Y) ziel)
 {
     throw new NotImplementedException();
 }
 
-void GibKarteAus(char[,] plan)
-{
-    throw new NotImplementedException();
-}
-
-// ======================= Aufgabe 5: Route einzeichnen =======================
-
-// Rueckgabe false, wenn ein Punkt der Route auf einer Sperrzone '#' liegt.
-bool ZeichneRoute(char[,] plan, (int X, int Y) start, (int X, int Y) ziel)
-{
-    throw new NotImplementedException();
-}
-
-// Setzt '*' bzw. 'X' (Sperrzone getroffen). Rueckgabe false bei Sperrzone.
-bool SetzePunkt(char[,] plan, int x, int y)
+// Gibt den Stadtplan mit S, Z, * (Route) und X (Route trifft Sperrzone) aus.
+void ZeichneKarte(string[] plan, (int X, int Y) start, (int X, int Y) ziel)
 {
     throw new NotImplementedException();
 }

@@ -4,15 +4,15 @@ Welche ``Konzepte`` der Programmiersprache üben wir hier?
 * ``char``-Methoden wie ``char.IsDigit`` und ``ToString()``
 * ``Named Tuples`` als Eingangs- und Ausgangsparameter
 * ``Guard-Clauses`` mit *early exit* und ``out``-Parameter im Stil von ``int.TryParse``
-* ``2D-Arrays`` als ``Referenztypen`` (Kopie vs. Referenz)
-* Euklidische Distanz und die lineare Funktion ``y = k·x + d`` im 2D-Gitter
+* Arrays als ``Referenztypen`` und Zugriff auf ein Zeichen mit ``plan[y][x]``
+* Euklidische Distanz und die lineare Funktion ``y = k·x + d`` im Gitter wie im Unterricht
 
 Welche ``Denkweisen`` üben wir hier?
 * Wie mache ich aus "schmutzigem" Text (Leerzeichen, Groß-/Kleinschreibung, Tippfehler) saubere Daten?
 * Wie teile ich ein großes Problem in viele kleine ``Funktionen`` auf und teste diese einzeln?
 * Wie gehe ich mit fehlerhaften Datensätzen um, ohne dass das ganze Programm abbricht?
 
-Aufwand: ca. 2–3 Stunden. Eine Lösung findest du in [Loesung.cs](Loesung.cs) – schau sie dir nur an, wenn du gar nicht weiterkommst. Voraussetzung ist die gemeinsam programmierte *Länge einer Linie berechnen und einzeichnen* im Unterricht.
+Aufwand: ca. 2–3 Stunden. Eine Lösung findest du in [Loesung.cs](Loesung.cs) – schau sie dir nur an, wenn du gar nicht weiterkommst. Voraussetzung ist die gemeinsam programmierte *Länge einer Linie berechnen und einzeichnen* im Unterricht sowie Aufgabe 1 (Stempeluhr).
 
 ## Drohnen-Lieferdienst SkyParcel
 Die Firma *SkyParcel* liefert Pakete per Drohne innerhalb der Stadt. Die Aufträge kommen als Textdatei ``auftraege.txt`` aus dem Bestellsystem – leider von verschiedenen Mitarbeiter:innen händisch getippt. Groß-/Kleinschreibung ist chaotisch, es gibt zu viele Leerzeichen, Kommentare, Leerzeilen und fehlerhafte Zeilen.
@@ -38,18 +38,35 @@ Die ``Funktionen`` sind in ``Program.cs`` bereits *deklariert*. Ersetze *throw n
   nummer=LF-7 ; start=1|1 ; ziel=6|5 ; gewicht=1,5kg ; kunde=mÜLLER gmbh
 NUMMER=LF-0012;START=2|9;ZIEL=17|3;GEWICHT=3,2KG;KUNDE=  bäckerei huber
 nummer=LF-13 ; start=15|2 ; ziel=3|2 ; gewicht=0,8kg ; kunde=apotheke am platz
+
+nummer=LF-14 ; start=4|10 ; ziel=6|1 ; gewicht=2kg ; kunde=htl werkstätte
+nummer=LF-x15 ; start=1|1 ; ziel=2|2 ; gewicht=1kg ; kunde=tippfehler ag
+nummer=LF-16 ; start=1|1 ; ziel=25|3 ; gewicht=1kg ; kunde=weit weg kg
+nummer=LF-17 ; start=3|3 ; ziel=8|8 ; gewicht=7,5kg ; kunde=schwer und co
+nummer=LF-18 ; start=2|5 ; gewicht=1kg ; kunde=vergessen ohg
+nummer=LF-19 ; start=0|10 ; ziel=19|10 ; gewicht=1kg ; kunde=quer durch gmbh
+nummer=LF-20 ; start=18|11 ; ziel=12|0 ; gewicht=4kg ; kunde=elektro maier
+
 ...
 ```
 
 ``stadtplan.txt`` (20 Spalten × 12 Zeilen, ``#`` ist eine Sperrzone, z.B. ein Spital mit Hubschrauberlandeplatz)
 ```
 ....................
-...
+....................
+....................
+....................
+....................
+....................
+....................
+....................
+.........##.........
+.........##.........
 .........##.........
 .........##.........
 ```
 
-### String-Methoden, die du brauchst
+### String-Methoden
 In den Folien haben wir ``[]``, ``Substring``, ``Length``, ``Split``, ``char.Is...`` und ``ToString()`` kennengelernt. Hier kommen weitere ``Methoden`` dazu. Lies die *Signatur* so: **Rückgabetyp** ``Name(Eingangsparameter)``. Alle Methoden *verändern den String nicht* (Strings sind unveränderlich), sondern liefern einen **neuen** String zurück.
 
 | Signatur | Was macht sie? | Beispiel |
@@ -73,8 +90,6 @@ In den Folien haben wir ``[]``, ``Substring``, ``Length``, ``Split``, ``char.Is.
 | ``static string string.Join(string trenner, string[] werte)`` | Gegenteil von ``Split``: fügt ein Array zusammen | ``string.Join(" ", ["a","b"])`` → ``"a b"`` |
 | ``new string(char zeichen, int anzahl)`` | erzeugt einen String aus lauter gleichen Zeichen | ``new string('-', 5)`` → ``"-----"`` |
 | ``static bool char.IsDigit(char c)`` | ist ``c`` eine Ziffer? | ``char.IsDigit('7')`` → ``true`` |
-
->``static`` bedeutet: Die ``Methode`` wird nicht auf einer ``Variable`` aufgerufen, sondern auf dem ``Typ`` selbst (``string.Join(...)``, ``char.IsDigit(...)``). Sie ist also eine ``Funktion``, die beim ``Typ`` "wohnt".
 
 >**Kommazahlen:** ``double.TryParse`` hängt von der Spracheinstellung des Computers ab (``3,2`` oder ``3.2``?). Wir machen es unabhängig: Zuerst ``Replace(',', '.')``, dann
 >``double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double wert)``. ``InvariantCulture`` bedeutet: Der Punkt ist *immer* das Komma-Zeichen.
@@ -128,17 +143,17 @@ Implementiere ``TryParseAuftrag``. Der Auftrag wird als ``Named Tuple`` zurückg
 Kontrolle: ``LF-0007`` hat 6,40 Felder = 3,20 km und kostet **7,34 €**.
 
 ### Aufgabe 5 - level: 🤔😵‍💫 - Stadtplan und Route
-1. ``LeseStadtplan`` – ``File.ReadAllLines`` und jedes Zeichen in ein ``char[,]`` kopieren (``plan[y, x]``, 0/0 oben links!).
-2. ``IstImStadtplan`` – liegt ein Punkt innerhalb (``GetLength(0)`` = Zeilen, ``GetLength(1)`` = Spalten)?
-3. ``GibKarteAus`` – jedes Zeichen mit ``ToString()`` und einem Leerzeichen zu einer Zeile zusammenbauen, am Ende ``TrimEnd()``.
-4. ``KopiereStadtplan`` – erstellt ein **neues** ``char[,]`` mit demselben Inhalt.
-   **Frage:** Warum brauchen wir für jeden Auftrag eine Kopie? Was passiert ohne Kopie mit dem zweiten Auftrag?
-5. ``ZeichneRoute`` und ``SetzePunkt`` – erweitere das gemeinsame Beispiel (``y = k·x + d``, Ursprung im Startpunkt):
-   - **a)** Ziel liegt **links** vom Start (``dx < 0``): Die Schleife muss rückwärts laufen (``x--``).
-   - **b)** Die Gerade ist **steil** (``|dy| > |dx|``), z.B. ``LF-0014``: Dann entstehen mit ``x`` als Laufachse Lücken! Tausche die Rollen: ``y`` wird die Laufachse und ``x = start.X + Round(k' · (y - start.Y))`` mit ``k' = dx / dy``.
+Den Stadtplan lesen wir mit ``File.ReadAllLines`` in ein ``string[] stadtplan`` ein. ``stadtplan[y]`` ist eine Zeile (ein ``string``), ``stadtplan[y][x]`` ist ein einzelnes Zeichen dieser Zeile (ein ``char``). 0/0 ist oben links!
+
+1. ``IstImStadtplan`` – liegt ein Punkt innerhalb? (``plan.Length`` = Anzahl Zeilen, ``plan[y].Length`` = Anzahl Spalten)
+2. ``IstAufRoute`` – liegt das Feld ``(x|y)`` auf der Geraden zwischen Start und Ziel? Erweitere dafür das gemeinsame Beispiel (``y = k·x + d``, Ursprung im Startpunkt):
+   - **a)** Ziel liegt **links** vom Start (``dx < 0``): Prüfe mit ``Math.Min`` / ``Math.Max``, ob ``x`` zwischen Start und Ziel liegt.
+   - **b)** Die Gerade ist **steil** (``|dy| > |dx|``), z.B. ``LF-0014``: Mit ``x`` als Laufachse entstehen Lücken! Tausche die Rollen: ``y`` wird die Laufachse und ``x = start.X + Round(k' · (y - start.Y))`` mit ``k' = dx / dy``.
    - **c)** Senkrechte (``dx == 0``) und waagrechte (``dy == 0``) Routen dürfen nicht durch 0 dividieren.
-   - ``SetzePunkt`` schreibt ``'*'``. Liegt dort ein ``'#'``, schreibt sie ``'X'`` und liefert ``false``.
-   - Zum Schluss ``'S'`` auf den Start und ``'Z'`` auf das Ziel setzen.
+3. ``IstRouteFrei`` – durchlaufe den Stadtplan Zeile für Zeile, Zeichen für Zeichen. Liegt ein ``'#'`` auf der Route, ist sie nicht frei.
+4. ``ZeichneKarte`` – wie im Unterricht: Für jedes Feld entscheiden, welches Zeichen gedruckt wird: ``'S'``, ``'Z'``, ``'*'`` (Route), ``'X'`` (Route trifft ``'#'``) oder das Zeichen aus dem Stadtplan. Baue jede Zeile mit ``ToString()`` und einem Leerzeichen zusammen und gib sie mit ``TrimEnd()`` aus.
+
+**Frage:** Strings sind unveränderlich – ``stadtplan[y][x] = '*';`` ergibt einen Compilerfehler. Warum ist das hier sogar praktisch? (Tipp: Was würde sonst mit dem Stadtplan für den nächsten Auftrag passieren?)
 
 ```
 📦 LF-0014 für Htl Werkstätte          📦 LF-0019 für Quer Durch Gmbh
@@ -191,4 +206,4 @@ Zeile 14: LF-0019 – Route durch Sperrzone
 ### Bonus - level: 😵‍💫
 * Schreibe zusätzlich jede Karte in ein File ``routen.txt``.
 * Füge in ``auftraege.txt`` eigene Aufträge hinzu, die deine Sonderfälle aus Aufgabe 5 testen (senkrecht, nach links oben, ...).
-* Die Drohne darf nicht direkt *neben* einer Sperrzone fliegen (Sicherheitsabstand 1 Feld). Erweitere ``SetzePunkt``.
+* Die Drohne darf nicht direkt *neben* einer Sperrzone fliegen (Sicherheitsabstand 1 Feld). Erweitere ``IstRouteFrei``.

@@ -1,0 +1,11 @@
+# Stempeluhr der Werkstatt
+# Format: name;kommen-gehen;kommen-gehen;...
+# Zeiten im Format H:MM oder HH:MM
+
+  mÜLLER anna ; 7:30-12:00 ; 12:30-16:15
+HUBER   max;8:00-12:00
+  gruber LISA ; 6:45-11:15 ; 11:45-15:00 ; 15:30-17:00
+
+wagner tom ; 8:00-12:x0
+berger eva ; 13:00-12:00
+kaya ; 

@@ -28,7 +28,8 @@ if (!File.Exists(auftragsPfad) || !File.Exists(kartenPfad))
 }
 
 string[] zeilen = File.ReadAllLines(auftragsPfad);
-char[,] stadtplan = LeseStadtplan(kartenPfad);
+// Jede Zeile ist ein string, ein einzelnes Feld erreichen wir mit stadtplan[y][x]
+string[] stadtplan = File.ReadAllLines(kartenPfad);
 
 string[] berichtZeilen = new string[zeilen.Length + 4];
 string[] fehlerZeilen = new string[zeilen.Length];
@@ -77,12 +78,10 @@ for (int i = 0; i < zeilen.Length; i++)
         continue;
     }
 
-    // Kopie! Sonst wuerden alle Routen in denselben Stadtplan (Referenz) gezeichnet.
-    char[,] karte = KopiereStadtplan(stadtplan);
-    bool frei = ZeichneRoute(karte, auftrag.Start, auftrag.Ziel);
+    bool frei = IstRouteFrei(stadtplan, auftrag.Start, auftrag.Ziel);
 
     Console.WriteLine($"\n📦 {auftrag.Nummer} für {auftrag.Kunde}");
-    GibKarteAus(karte);
+    ZeichneKarte(stadtplan, auftrag.Start, auftrag.Ziel);
 
     if (!frei)
     {
@@ -285,108 +284,90 @@ double BerechnePreis(double streckeKm, double gewichtKg)
     return Math.Round(preis, 2);
 }
 
-// ======================= Aufgabe 4: Stadtplan und Route =======================
+// ======================= Aufgabe 5: Stadtplan und Route =======================
 
-char[,] LeseStadtplan(string pfad)
+bool IstImStadtplan(string[] plan, (int X, int Y) p)
 {
-    string[] zeilen = File.ReadAllLines(pfad);
-    char[,] plan = new char[zeilen.Length, zeilen[0].Length];
-
-    for (int y = 0; y < zeilen.Length; y++)
-    {
-        for (int x = 0; x < zeilen[y].Length; x++)
-        {
-            plan[y, x] = zeilen[y][x];
-        }
-    }
-
-    return plan;
+    return p.X >= 0 && p.Y >= 0 && p.Y < plan.Length && p.X < plan[p.Y].Length;
 }
 
-bool IstImStadtplan(char[,] plan, (int X, int Y) p)
-{
-    return p.X >= 0 && p.Y >= 0 && p.Y < plan.GetLength(0) && p.X < plan.GetLength(1);
-}
-
-char[,] KopiereStadtplan(char[,] plan)
-{
-    char[,] kopie = new char[plan.GetLength(0), plan.GetLength(1)];
-
-    for (int y = 0; y < plan.GetLength(0); y++)
-    {
-        for (int x = 0; x < plan.GetLength(1); x++)
-        {
-            kopie[y, x] = plan[y, x];
-        }
-    }
-
-    return kopie;
-}
-
-// Zeichnet die Gerade y = k*x + d zwischen Start und Ziel ein.
-// Rueckgabe false, wenn ein Punkt der Route auf einer Sperrzone '#' liegt (dort wird 'X' gezeichnet).
-bool ZeichneRoute(char[,] plan, (int X, int Y) start, (int X, int Y) ziel)
+// Liegt das Feld (x|y) auf der Geraden zwischen Start und Ziel?
+bool IstAufRoute((int X, int Y) start, (int X, int Y) ziel, int x, int y)
 {
     int dx = ziel.X - start.X;
     int dy = ziel.Y - start.Y;
-    bool frei = true;
 
     if (Math.Abs(dx) >= Math.Abs(dy))
     {
-        // flache Gerade: Laufachse x (auch nach links)
+        // flache Gerade: Laufachse x, y = k*x + d (Ursprung im Start)
+        if (x < Math.Min(start.X, ziel.X) || x > Math.Max(start.X, ziel.X))
+        {
+            return false;
+        }
+
         double k = dx == 0 ? 0 : (double)dy / dx;
-        int schritt = dx >= 0 ? 1 : -1;
-
-        for (int x = start.X; x != ziel.X + schritt; x += schritt)
-        {
-            int y = start.Y + (int)Math.Round(k * (x - start.X));
-            frei = SetzePunkt(plan, x, y) && frei;
-        }
-    }
-    else
-    {
-        // steile Gerade: Laufachse y, x = k' * y + d
-        double k = (double)dx / dy;
-        int schritt = dy >= 0 ? 1 : -1;
-
-        for (int y = start.Y; y != ziel.Y + schritt; y += schritt)
-        {
-            int x = start.X + (int)Math.Round(k * (y - start.Y));
-            frei = SetzePunkt(plan, x, y) && frei;
-        }
+        return y == start.Y + (int)Math.Round(k * (x - start.X));
     }
 
-    plan[start.Y, start.X] = 'S';
-    plan[ziel.Y, ziel.X] = 'Z';
-    return frei;
-}
-
-bool SetzePunkt(char[,] plan, int x, int y)
-{
-    if (plan[y, x] == '#')
+    // steile Gerade: Laufachse y, x = k' * y + d
+    if (y < Math.Min(start.Y, ziel.Y) || y > Math.Max(start.Y, ziel.Y))
     {
-        plan[y, x] = 'X';
         return false;
     }
 
-    plan[y, x] = '*';
+    double kSteil = (double)dx / dy;
+    return x == start.X + (int)Math.Round(kSteil * (y - start.Y));
+}
+
+// false, wenn ein Feld der Route eine Sperrzone '#' ist.
+bool IstRouteFrei(string[] plan, (int X, int Y) start, (int X, int Y) ziel)
+{
+    for (int y = 0; y < plan.Length; y++)
+    {
+        for (int x = 0; x < plan[y].Length; x++)
+        {
+            if (plan[y][x] == '#' && IstAufRoute(start, ziel, x, y))
+            {
+                return false;
+            }
+        }
+    }
+
     return true;
 }
 
-void GibKarteAus(char[,] plan)
+// Wie im Unterricht: Zeile fuer Zeile, Feld fuer Feld entscheiden, welches Zeichen gedruckt wird.
+void ZeichneKarte(string[] plan, (int X, int Y) start, (int X, int Y) ziel)
 {
-    for (int y = 0; y < plan.GetLength(0); y++)
+    for (int y = 0; y < plan.Length; y++)
     {
         string zeile = "";
-        for (int x = 0; x < plan.GetLength(1); x++)
+
+        for (int x = 0; x < plan[y].Length; x++)
         {
-            zeile += plan[y, x].ToString() + " ";
+            char feld = plan[y][x];
+
+            if (x == start.X && y == start.Y)
+            {
+                feld = 'S';
+            }
+            else if (x == ziel.X && y == ziel.Y)
+            {
+                feld = 'Z';
+            }
+            else if (IstAufRoute(start, ziel, x, y))
+            {
+                feld = plan[y][x] == '#' ? 'X' : '*';
+            }
+
+            zeile += feld.ToString() + " ";
         }
+
         Console.WriteLine(zeile.TrimEnd());
     }
 }
 
-// ======================= Aufgabe 5: Bericht =======================
+// ======================= Aufgabe 6: Bericht =======================
 
 string ErzeugeKopfzeile()
 {
