@@ -1,0 +1,13 @@
+# Bestellungen fuer den Kaffeeautomaten
+# Format: Tisch;Getraenk
+
+1;Espresso
+2; Cappuccino 
+3;Latte
+Espresso fuer Tisch 4
+4;Tee
+5; 
+5;Kaffee
+6;latte;mit Hafermilch
+6;latte
+7;ESPRESSO
