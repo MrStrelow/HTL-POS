@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/L01/">
+    <Project Path="L01Schachbrett/L01Schachbrett.csproj" />
+  </Folder>
+  <Folder Name="/L02/">
+    <Project Path="L02Aufgabe01-GuardClause-Aufgabe2/L02Aufgabe01-GuardClause-Aufgabe2.csproj" />
+    <Project Path="L02GuardClause-komplexer/L02GuardClause-komplexer.csproj" />
+    <Project Path="L02GuardClause/L02GuardClause.csproj" />
+    <Project Path="L02TryPasrseOutRef/L02TryPasrseOutRef.csproj" />
+  </Folder>
+  <Folder Name="/L03/">
+    <Project Path="L03CsvLesenUndSchreiben/L03CsvLesenUndSchreiben.csproj" />
+    <Project Path="L03DistanzBerechnen/L03DistanzBerechnen.csproj" />
+  </Folder>
+  <Project Path="L03DistanzZeichnen/L03DistanzZeichnen.csproj" Id="cc893a4d-9480-429c-81ca-ce885acc3e14" />
+</Solution>
