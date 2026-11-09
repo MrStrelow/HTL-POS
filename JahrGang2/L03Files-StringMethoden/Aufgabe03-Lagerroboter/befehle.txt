@@ -1,0 +1,37 @@
+# Befehle fuer den Lagerroboter R2-L4G
+# Format: befehl [anzahl]
+# Befehle: vor, zurueck, links, rechts, nimm, ablegen
+# Start: (1|1), Blick nach Osten (O)
+
+  VOR 4
+nimm        # Paket bei (5|1)
+Rechts
+vor   2
+ablegen
+vor 3
+LINKS
+spring 2
+vor 1
+ablegen
+
+vor x
+vor
+Links
+VOR   3
+rechts
+vor 2
+nimm
+NIMM
+zurueck 2
+rechts
+vor 5
+ablegen
+
+# Nachtschicht
+ZURÜCK 1
+ablegen
+nimm
+vor	2
+vor -2
+links 2
+vor 1 2

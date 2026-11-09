@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stempeluhr – Schritt für Schritt</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020617; --panel: #0f172a; --line: #1e293b; --muted: #64748b; --text: #f1f5f9;
+    --accent: #38bdf8; --ok: #34d399; --bad: #fb7185; --warn: #fbbf24; --pkg: #f59e0b; --wall: #475569;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+  .mono { font-family: 'Fira Code', monospace; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 12px 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 20px; color: var(--accent); }
+  header small { color: var(--muted); }
+  nav { display: flex; flex-wrap: wrap; gap: 6px; }
+  nav button { background: #111827; color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; font: inherit; font-size: 13px; }
+  nav button.active { color: var(--accent); border-color: var(--accent); background: rgba(56,189,248,.1); }
+  main { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 20px 16px; gap: 16px; }
+  .title { text-align: center; max-width: 900px; }
+  .title h2 { margin: 0 0 6px; font-size: 22px; }
+  .title p { margin: 0; color: #cbd5e1; }
+  .stage { width: 100%; max-width: 1000px; min-height: 380px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; overflow-x: auto; }
+  .caption { min-height: 48px; max-width: 900px; text-align: center; font-size: 17px; padding: 10px 16px; border-radius: 10px; background: rgba(56,189,248,.08); border: 1px solid rgba(56,189,248,.3); }
+  .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .controls button { background: #1e293b; color: var(--text); border: 1px solid #334155; border-radius: 8px; padding: 8px 14px; cursor: pointer; font: inherit; }
+  .controls button:hover { border-color: var(--accent); }
+  .controls .counter { color: var(--muted); font-size: 14px; min-width: 70px; text-align: center; }
+  .speed { color: var(--muted); font-size: 13px; display: flex; gap: 6px; align-items: center; }
+
+  .row { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .ch { width: 30px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: #111827; border: 1.5px solid #334155; font-family: 'Fira Code', monospace; font-size: 18px; transition: all .35s ease; position: relative; }
+  .ch .idx { position: absolute; bottom: -16px; font-size: 10px; color: var(--muted); }
+  .ch.space { color: transparent; background: repeating-linear-gradient(45deg, #111827, #111827 4px, #1f2937 4px, #1f2937 8px); }
+  .ch.hl { border-color: var(--warn); background: rgba(251,191,36,.18); transform: translateY(-4px); }
+  .ch.gone { opacity: .15; transform: scale(.8); }
+  .ch.ok { border-color: var(--ok); background: rgba(52,211,153,.15); }
+  .ch.bad { border-color: var(--bad); background: rgba(251,113,133,.15); }
+  .ch.new { animation: pop .5s ease; border-color: var(--ok); background: rgba(52,211,153,.2); }
+  .chip { padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--accent); background: rgba(56,189,248,.12); font-family: 'Fira Code', monospace; font-size: 18px; animation: pop .45s ease; }
+  .chip.ok { border-color: var(--ok); background: rgba(52,211,153,.15); }
+  .chip.bad { border-color: var(--bad); background: rgba(251,113,133,.15); }
+  .chip.dim { opacity: .35; }
+  .badge { padding: 6px 12px; border-radius: 8px; font-weight: 700; animation: pop .45s ease; }
+  .badge.ok { color: var(--ok); border: 1.5px solid var(--ok); background: rgba(52,211,153,.12); }
+  .badge.bad { color: var(--bad); border: 1.5px solid var(--bad); background: rgba(251,113,133,.12); }
+  .label { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+  .arrow { color: var(--muted); font-size: 22px; }
+
+  .grid { display: grid; gap: 3px; }
+  .cell { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 18px; background: #111827; border: 1px solid #1f2937; transition: all .3s ease; position: relative; }
+  .cell.wall { background: var(--wall); border-color: #64748b; }
+  .cell.pkg::after { content: "📦"; }
+  .cell.goal { background: rgba(52,211,153,.15); border-color: var(--ok); }
+  .cell.goal::after { content: "🏁"; font-size: 15px; }
+  .cell.probe-ok { outline: 3px solid var(--ok); z-index: 2; }
+  .cell.probe-bad { outline: 3px solid var(--bad); z-index: 2; }
+  .cell.trail { background: rgba(56,189,248,.12); }
+  .robot { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; transition: transform .35s ease; z-index: 3; }
+  .robot .dir { position: absolute; font-size: 14px; color: var(--accent); font-weight: 700; }
+  .carry { position: absolute; top: -8px; right: -6px; font-size: 13px; }
+
+  .file { border: 1px solid #334155; border-radius: 10px; background: #0b1222; padding: 10px 14px; font-family: 'Fira Code', monospace; font-size: 13px; line-height: 1.55; min-width: 260px; }
+  .file .ln { color: var(--muted); display: inline-block; width: 24px; }
+  .file .cur { background: rgba(56,189,248,.15); border-radius: 4px; }
+  .file .err { color: var(--bad); }
+  .file .skip { color: #475569; }
+  .arr { display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; max-width: 900px; }
+  .arr .slot { min-width: 46px; height: 34px; padding: 0 6px; border: 1.5px solid #334155; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-family: 'Fira Code', monospace; font-size: 11px; color: #cbd5e1; animation: pop .35s ease; }
+  .cols { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; align-items: flex-start; }
+  .compass { position: relative; width: 220px; height: 220px; border-radius: 50%; border: 2px dashed #334155; }
+  .compass .d { position: absolute; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; background: #111827; border: 2px solid #334155; transition: all .3s; }
+  .compass .d.on { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,.18); transform: scale(1.15); }
+  .compass .bot { position: absolute; left: 50%; top: 50%; width: 60px; height: 60px; margin: -30px; display: flex; align-items: center; justify-content: center; font-size: 34px; transition: transform .5s ease; }
+  .compass .needle { position: absolute; left: 50%; top: 50%; width: 4px; height: 70px; margin-left: -2px; margin-top: -70px; background: var(--accent); border-radius: 2px; transform-origin: 50% 100%; transition: transform .5s ease; }
+  .log { font-family: 'Fira Code', monospace; font-size: 12px; background: #0b1222; border: 1px solid #334155; border-radius: 10px; padding: 8px 12px; min-width: 300px; min-height: 60px; white-space: pre; }
+  .log .e { color: var(--bad); }
+  .log .p { color: #cbd5e1; }
+  .log .new { animation: flash 1s ease; }
+  .stat { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  .stat div { background: #111827; border: 1px solid #334155; border-radius: 8px; padding: 6px 12px; }
+  .cell.route { background: rgba(56,189,248,.25); border-color: var(--accent); color: var(--accent); }
+  .cell.hit { background: rgba(251,113,133,.35); border-color: var(--bad); color: var(--bad); font-weight: 700; }
+  .cell { font-family: 'Fira Code', monospace; font-size: 14px; }
+  @keyframes pop { 0% { transform: scale(.6); opacity: 0; } 70% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes flash { 0% { background: rgba(251,191,36,.35); } 100% { background: transparent; } }
+  @media (max-width: 600px) { .cell { width: 24px; height: 24px; font-size: 13px; } .ch { width: 22px; height: 30px; font-size: 14px; } }
+  .stage { max-width: 1320px !important; align-items: stretch !important; }
+  .trace { display: flex; gap: 22px; flex-wrap: wrap; width: 100%; align-items: flex-start; justify-content: center; }
+  .tview { flex: 1 1 460px; display: flex; flex-direction: column; align-items: center; gap: 14px; min-width: 0; }
+  .tside { flex: 0 1 430px; min-width: 300px; display: flex; flex-direction: column; gap: 6px; }
+  .sig { font-family: 'Fira Code', monospace; font-size: 14px; color: var(--accent); font-weight: 600; }
+  .sig .call { display: block; color: #cbd5e1; font-weight: 400; font-size: 12px; margin-top: 2px; }
+  .steps { margin: 0 0 8px; padding-left: 26px; font-size: 13.5px; }
+  .steps li { padding: 4px 8px; margin: 2px 0; border-radius: 6px; color: #94a3b8; transition: all .25s; }
+  .steps li.cur { background: rgba(56,189,248,.16); color: #fff; outline: 1.5px solid var(--accent); }
+  .steps li.ok::after { content: "  ✔"; color: var(--ok); font-weight: 700; }
+  .steps li.bad::after { content: "  ✘"; color: var(--bad); font-weight: 700; }
+  .vars { border-collapse: collapse; font-family: 'Fira Code', monospace; font-size: 12.5px; width: 100%; }
+  .vars td { border-bottom: 1px solid #1e293b; padding: 4px 8px; vertical-align: top; word-break: break-all; }
+  .vars td:first-child { color: #94a3b8; width: 38%; word-break: normal; }
+  .vars tr.chg td { background: rgba(251,191,36,.16); }
+  .vars tr.chg td:first-child { color: var(--warn); }
+  .v-str { color: #fde68a; } .v-num { color: #93c5fd; } .v-raw { color: #c4b5fd; } .v-none { color: #475569; }
+  .v-true { color: var(--ok); font-weight: 700; } .v-false { color: var(--bad); font-weight: 700; }
+  .box { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .file.small { font-size: 11px; line-height: 1.45; min-width: 0; max-width: 100%; overflow-x: auto; }
+  .file .cur { outline: 1px solid var(--accent); }
+  .ch.sel { border-color: var(--accent); background: rgba(56,189,248,.22); }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>⏱️ Stempeluhr der Werkstatt</h1>
+    <small>Die Musterlösung Schritt für Schritt an den echten Daten: Ablauf, Variablen, Entscheidungen (ohne Code)</small>
+  </div>
+  <nav id="nav"></nav>
+</header>
+<main>
+  <div class="title"><h2 id="slideTitle"></h2><p id="slideText"></p></div>
+  <div class="stage" id="stage"></div>
+  <div class="caption" id="caption"></div>
+  <div class="controls">
+    <button id="btnReset" title="Von vorne">↺</button>
+    <button id="btnPrev">◀ zurück</button>
+    <span class="counter" id="counter"></span>
+    <button id="btnNext">weiter ▶</button>
+    <button id="btnPlay">▶ Abspielen</button>
+    <label class="speed">Tempo <input id="speed" type="range" min="300" max="2500" step="100" value="1400"></label>
+  </div>
+</main>
+
+<script>
+// ===================== Trace-Engine: Ablauf der Musterlösung + Variablen =====================
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const R = t => ({ t });                       // Rohtext (z. B. Tupel, Array-Beschreibung)
+const P = (x, y) => R(`(${x}|${y})`);        // Position
+const fmt = n => n.toFixed(2).replace(".", ",");
+function val(v) {
+  if (v === null || v === undefined) return '<span class="v-none">—</span>';
+  if (typeof v === "string") return `<span class="v-str">"${esc(v).replace(/ /g, "·")}"</span>`;
+  if (typeof v === "boolean") return `<span class="${v ? "v-true" : "v-false"}">${v}</span>`;
+  if (Array.isArray(v)) return `[${v.map(val).join(", ")}]`;
+  if (typeof v === "object" && "t" in v) return `<span class="v-raw">${esc(v.t)}</span>`;
+  if (typeof v === "object" && "c" in v) return `<span class="v-str">'${esc(v.c)}'</span>`;
+  return `<span class="v-num">${esc(v)}</span>`;
+}
+const C = c => ({ c });                       // char
+function chars(text, cls = () => "", showIdx = true) {
+  return `<div class="row">${[...text].map((c, i) =>
+    `<div class="ch ${c === " " ? "space" : ""} ${cls(i, c)}">${esc(c === " " ? "·" : c === "	" ? "⇥" : c)}${showIdx ? `<span class="idx">${i}</span>` : ""}</div>`).join("") || '<div class="ch gone">∅</div>'}</div>`;
+}
+function fileView(lines, cur = -1, marks = {}, small = false) {
+  return `<div class="file ${small ? "small" : ""}">${lines.map(l => l.length > 80 ? l.slice(0, 80) + " … (" + l.length + " Zeichen)" : l).map((l, i) =>
+    `<div class="${i === cur ? "cur" : ""} ${marks[i] || ""}"><span class="ln">${i + 1}</span>${esc(l).replace(/	/g, "⇥&nbsp;&nbsp;").replace(/ /g, "&nbsp;") || "&nbsp;"}</div>`).join("")}</div>`;
+}
+const chip = (t, c = "") => `<span class="chip ${c}" style="white-space:pre">${esc(t)}</span>`;
+const box = (label, inner) => `<div class="box"><div class="label">${label}</div>${inner}</div>`;
+
+class Trace {
+  constructor(fn, steps) { this.fn = fn; this.steps = steps; this.frames = []; this.prev = {}; }
+  call(sig) { this.sig = sig; this.prev = {}; return this; }
+  // cur: aktiver Ablauf-Schritt, vars: Variablen, view: Daten-Ansicht, cap: Erklärung, mark: {Schritt: "ok"|"bad"}
+  f(cur, vars, view, cap, mark = {}) {
+    const rows = Object.entries(vars).map(([k, v]) => {
+      const chg = JSON.stringify(this.prev[k]) !== JSON.stringify(v) && v !== null && v !== undefined;
+      return `<tr class="${chg ? "chg" : ""}"><td>${esc(k)}</td><td>${val(v)}</td></tr>`;
+    }).join("");
+    this.prev = JSON.parse(JSON.stringify(vars));
+    const steps = this.steps.map((s, i) =>
+      `<li class="${i === cur ? "cur" : ""} ${mark[i] || ""}">${s}</li>`).join("");
+    this.frames.push({
+      caption: cap,
+      html: `<div class="trace"><div class="tview">${view}</div>
+        <div class="tside"><div class="sig">${esc(this.fn)}${this.sig ? `<span class="call">${esc(this.sig)}</span>` : ""}</div>
+        <div class="label">Ablauf der Musterlösung</div><ol class="steps">${steps}</ol>
+        <div class="label">Variablen</div><table class="vars">${rows}</table></div></div>`
+    });
+    return this;
+  }
+}
+const slideOf = (title, text, ...traces) => ({ title, text, frames: traces.flatMap(t => t.frames) });
+
+// ===================== Daten (wie in stempelzeiten.txt) =====================
+const DATEI = ["# Stempeluhr der Werkstatt", "# Format: name;kommen-gehen;kommen-gehen;...", "# Zeiten im Format H:MM oder HH:MM", "",
+  "  mÜLLER anna ; 7:30-12:00 ; 12:30-16:15", "HUBER   max;8:00-12:00", "  gruber LISA ; 6:45-11:15 ; 11:45-15:00 ; 15:30-17:00", "  steiner PAUL ; 7.45-12:00 ; 12,30-16:00", "",
+  "wagner tom ; 8:00-12:x0", "berger eva ; 13:00-12:00", "weber jana ; 8:00-12:00 ;", "kaya ; ", " ; 8:00-12:00", "fuchs leo ; 8:00-12:00 ; 11:30-15:00", "moser ida ; 6:00-24:00", "bartholomäus " + "der zweite von hohenstein ".repeat(10).trim() + " ; 7:00-11:00"];
+// --- Musterlösung in JS ---
+function zeitInMinuten(t) { t = t.trim().replace(/[.,]/g, ":"); const p = t.indexOf(":"); if (p < 0) return -1; const h = t.substring(0, p), m = t.substring(p + 1);
+  if (m.length !== 2) return -1; if (!/^\d+$/.test(h.trim()) || !/^\d+$/.test(m.trim())) return -1; if (+h > 23 || +m > 59) return -1; return +h * 60 + +m; }
+function dauer(b) { const z = b.split("-"); if (z.length !== 2) return -1; const s = zeitInMinuten(z[0]), e = zeitInMinuten(z[1]); return (s < 0 || e < 0 || e < s) ? -1 : e - s; }
+function formName(t) { return t.trim().split(" ").filter(w => w).map(w => w[0].toUpperCase() + w.substring(1).toLowerCase()).join(" "); }
+function formDauer(m) { return Math.floor(m / 60) + ":" + String(m % 60).padStart(2, "0"); }
+function bars(list) { // list: [start, ende, ok]
+  const L = 6 * 60, Rr = 18 * 60, w = 520;
+  let h = `<div style="position:relative;width:${w}px;height:46px;border-bottom:1px solid #334155">`;
+  for (const [a, b, ok] of list) { const x = (a - L) / (Rr - L) * w, x2 = (b - L) / (Rr - L) * w;
+    h += `<div style="position:absolute;left:${Math.min(x, x2)}px;width:${Math.max(4, Math.abs(x2 - x))}px;top:6px;height:18px;border-radius:6px;background:${ok ? "rgba(52,211,153,.55)" : "rgba(251,113,133,.55)"}"></div>`; }
+  for (let hh = 6; hh <= 18; hh++) h += `<span style="position:absolute;left:${(hh * 60 - L) / (Rr - L) * w - 4}px;top:28px;font-size:10px;color:#64748b">${hh}</span>`;
+  return h + "</div>";
+}
+
+// ===================== Schritt 1 =====================
+function s1() {
+  const t = new Trace("Hauptprogramm – Anfang", [
+    "Prüfen: gibt es eine Datei unter <b>eingabePfad</b>?",
+    "Guard ❌: nein → Meldung ausgeben, Programm mit return beenden",
+    "✅ <b>zeilen</b> = alle Zeilen der Datei einlesen"]);
+  const arr = (n, hi = -1) => `<div class="arr">${DATEI.slice(0, n).map((l, i) => `<div class="slot" style="${i === hi ? "border-color:var(--warn)" : ""}" title="${esc(l)}">[${i}]</div>`).join("")}</div>`;
+  t.call("");
+  t.f(0, { eingabePfad: "../../../stempelzeiten.txt", "Datei existiert": true, zeilen: null }, `<div style="font-size:64px">📄✅</div>`, "Die Datei existiert → der Guard greift nicht (bei gibtsnicht.txt wäre das Ergebnis false und das Programm würde enden).", { 0: "ok" });
+  t.f(2, { eingabePfad: "../../../stempelzeiten.txt", "Datei existiert": true, zeilen: R("string[17]") }, `${fileView(DATEI, -1, {}, true)}${box("zeilen", arr(17))}`, "Jede der 17 Zeilen wird ein Element – auch Kommentare und Leerzeilen.", { 0: "ok" });
+  t.f(2, { eingabePfad: "../../../stempelzeiten.txt", "Datei existiert": true, zeilen: R("string[17]"), "zeilen[5]": DATEI[5] }, `${fileView(DATEI, 5, {}, true)}${box("zeilen", arr(17, 5))}`, "Achtung Index: <b>zeilen[5]</b> ist die <b>6. Zeile</b> der Datei (Huber).", { 0: "ok" });
+  return slideOf("Schritt 1 – Datei finden und einlesen", "File.Exists als Guard, dann File.ReadAllLines.", t);
+}
+
+// ===================== Schritt 2 =====================
+function s2() {
+  const t = new Trace("string ErzeugeUeberschrift(string s, char links = '=', char rechts = '=', int n = 10)", [
+    "Guard ❌: n &lt; 0 → \"\" zurückgeben",
+    "<b>linkerRand</b> = leerer Text, mit links auf n Zeichen aufgefüllt",
+    "<b>rechterRand</b> = leerer Text, mit rechts auf n Zeichen aufgefüllt",
+    "<b>text</b> = s getrimmt und groß geschrieben",
+    "Guard ❌: text ist leer → linkerRand + rechterRand",
+    "✅ Rückgabe: linkerRand + \" \" + text + \" \" + rechterRand"]);
+  for (const [s, l, r, n, info] of [["Arbeitszeiten", "=", "=", 10, "Aufruf im Hauptprogramm"], ["  Charts ", "o", "o", 3, "Testfall"], ["   ", "-", "-", 2, "Testfall"], ["Tabelle", "!", "!", -1, "Testfall"]]) {
+    const v = { s, links: C(l), rechts: C(r), n, linkerRand: null, rechterRand: null, text: null, Rückgabe: null };
+    t.call(info === "Aufruf im Hauptprogramm" ? `ErzeugeUeberschrift("${s}")  // Hauptprogramm: links, rechts, n weggelassen → Default '=', '=', 10` : `ErzeugeUeberschrift("${s}", '${l}', '${r}', ${n})  // ${info}`);
+    if (n < 0) { v.Rückgabe = ""; t.f(0, v, `<div class="badge bad">❌ n = ${n}</div>`, "n ist negativ → sofort <b>\"\"</b> zurückgeben (early exit).", { 0: "bad" }); continue; }
+    t.f(0, v, box("s", chars(s)), `n = ${n} ist nicht negativ → weiter.`, { 0: "ok" });
+    v.linkerRand = l.repeat(n); t.f(1, v, box("linkerRand", chars(v.linkerRand, () => "new")), `Ein leerer String wird mit '${l}' auf ${n} Zeichen aufgefüllt.`, { 0: "ok" });
+    v.rechterRand = r.repeat(n); t.f(2, v, box("rechterRand", chars(v.rechterRand, () => "new")), `Genauso rechts mit '${r}'.`, { 0: "ok" });
+    v.text = s.trim().toUpperCase(); t.f(3, v, `${box("s", chars(s, (i, c) => c === " " && (i < s.length - s.trimStart().length || i >= s.trimEnd().length) ? "gone" : ""))}${box("text", chars(v.text, () => "new"))}`, "Leerzeichen außen weg, alles groß.", { 0: "ok" });
+    if (!v.text) { v.Rückgabe = v.linkerRand + v.rechterRand; t.f(4, v, box("Rückgabe", chars(v.Rückgabe, () => "ok")), "text ist leer → nur die beiden Ränder, <b>ohne</b> Leerzeichen dazwischen.", { 0: "ok", 4: "bad" }); continue; }
+    v.Rückgabe = `${v.linkerRand} ${v.text} ${v.rechterRand}`;
+    t.f(5, v, box("Rückgabe", chars(v.Rückgabe, (i, c) => c === " " ? "" : "ok", false)), "Zusammensetzen mit je einem Leerzeichen.", { 0: "ok", 4: "ok" });
+  }
+  return slideOf("Schritt 2 – ErzeugeUeberschrift", "Der echte Aufruf aus dem Hauptprogramm und die Sonderfälle.", t);
+}
+
+// ===================== Schritt 3 =====================
+function s3() {
+  const t = new Trace("int ZeitInMinuten(string text)", [
+    "text trimmen",
+    "🔧 Reparatur: '.' und ',' in text durch ':' ersetzen",
+    "<b>pos</b> = Position von ':'",
+    "Guard ❌: pos &lt; 0 → -1",
+    "<b>stundenText</b> = Teil vor pos; <b>minutenText</b> = Teil nach pos",
+    "Guard ❌: minutenText ist nicht genau 2 Zeichen lang → -1",
+    "Guard ❌: stundenText oder minutenText ist keine Zahl → -1",
+    "Guard ❌: h nicht 0–23 oder m nicht 0–59 → -1",
+    "✅ Rückgabe h · 60 + m"]);
+  for (const [txt, info] of [[" 7:30", "Zeile 5, 1. Bereich, Start"], [" 7.45", "Zeile 8 (steiner PAUL)"], [" 12,30", "Zeile 8, 2. Bereich"], ["12:x0 ", "Zeile 10 (wagner tom)"], ["24:00", "Zeile 16 (moser ida)"], ["8:5", "Testfall"], ["1230", "Testfall"]]) {
+    const v = { text: txt, pos: null, stundenText: null, minutenText: null, h: null, m: null, Rückgabe: null };
+    t.call(`ZeitInMinuten("${txt}")  // ${info}`);
+    let tt = txt.trim(); v.text = tt;
+    t.f(0, v, box("text", chars(tt)), "Leerzeichen außen weg.");
+    if (/[.,]/.test(tt)) {
+      t.f(1, v, box("text", chars(tt, (i, c) => c === "." || c === "," ? "bad" : "")), `Statt ':' steht hier '${tt.match(/[.,]/)[0]}'. Eindeutig, was gemeint war → reparieren.`, { 1: "ok" });
+      tt = tt.replace(/[.,]/g, ":"); v.text = tt;
+      t.f(1, v, box("text", chars(tt, (i, c) => c === ":" ? "new" : "")), "Repariert – ab jetzt geht es ganz normal weiter.", { 1: "ok" });
+    } else t.f(1, v, box("text", chars(tt)), "Kein '.' oder ',' → nichts zu reparieren.");
+    const p = tt.indexOf(":"); v.pos = p;
+    t.f(2, v, box("text", chars(tt, i => i === p ? "hl" : "")), p < 0 ? "Kein ':' gefunden → pos = -1." : `':' steht an Index <b>${p}</b>.`);
+    if (p < 0) { v.Rückgabe = -1; t.f(3, v, `${box("text", chars(tt, () => "bad"))}<div class="badge bad">❌ -1</div>`, "Guard ❌ → -1. (\"1230\" ist nicht eindeutig: 12:30? 1:230? → nicht reparieren!)", { 3: "bad" }); continue; }
+    const m = { 3: "ok" };
+    v.stundenText = tt.substring(0, p); v.minutenText = tt.substring(p + 1);
+    t.f(4, v, `${box("text", chars(tt, i => i < p ? "ok" : i > p ? "sel" : "gone"))}<div class="row">${chip("stundenText = " + v.stundenText, "ok")}${chip("minutenText = " + v.minutenText)}</div>`, `Substring: vor Index ${p} und ab Index ${p + 1}.`, m);
+    if (v.minutenText.length !== 2) { v.Rückgabe = -1; m[5] = "bad"; t.f(5, v, `${box("minutenText", chars(v.minutenText, () => "bad"))}<div class="badge bad">❌ -1</div>`, `minutenText hat ${v.minutenText.length} Zeichen statt 2 → -1. (8:5 – war 8:05 oder 8:50 gemeint? Nicht raten!)`, m); continue; }
+    m[5] = "ok"; t.f(5, v, box("minutenText", chars(v.minutenText, () => "ok")), "Genau 2 Zeichen ✔.", m);
+    const okH = /^\d+$/.test(v.stundenText), okM = /^\d+$/.test(v.minutenText);
+    if (!okH || !okM) { v.Rückgabe = -1; m[6] = "bad"; t.f(6, v, `${box("minutenText", chars(v.minutenText, (i, c) => /\d/.test(c) ? "ok" : "bad"))}<div class="badge bad">❌ -1</div>`, `"${okM ? v.stundenText : v.minutenText}" lässt sich nicht in eine Zahl umwandeln (TryParse liefert false) → -1.`, m); continue; }
+    v.h = +v.stundenText; v.m = +v.minutenText; m[6] = "ok";
+    t.f(6, v, `<div class="row">${chip("h = " + v.h, "ok")}${chip("m = " + v.m, "ok")}</div>`, "Beide Teile sind Zahlen ✔.", m);
+    if (v.h > 23 || v.m > 59) { v.Rückgabe = -1; m[7] = "bad"; t.f(7, v, `<div class="badge bad">❌ h = ${v.h} &gt; 23 → -1</div>`, `${v.h} Uhr gibt es nicht (nach 23:59 kommt 0:00) → -1.`, m); continue; }
+    m[7] = "ok"; v.Rückgabe = v.h * 60 + v.m;
+    t.f(8, v, `<div class="row">${chip(`${v.h} · 60 + ${v.m} = ${v.Rückgabe}`, "ok")}</div>${bars([[6 * 60, v.Rückgabe, true]])}`, `Gültig → <b>${v.Rückgabe}</b> Minuten seit Mitternacht.`, m);
+  }
+  return slideOf("Schritt 3 – ZeitInMinuten", "Uhrzeiten aus der Datei – repariert, gültig oder bei einem Guard gestoppt.", t);
+}
+
+// ===================== Schritt 4 =====================
+function s4() {
+  const t = new Trace("int SummiereZeiten(string[] teile)  +  int DauerInMinuten(string bereich)", [
+    "<b>summe</b> = 0; <b>anzahlBereiche</b> = 0; <b>letztesEnde</b> = -1",
+    "for i von 1 bis teile.Length − 1 (teile[0] ist der Name):",
+    "   🔧 teile[i] ist leer oder nur Leerzeichen → continue (überspringen)",
+    "   <b>dauer</b> = DauerInMinuten(teile[i]) – am '-' zerlegen, beide Zeiten gültig, Ende ≥ Start, sonst -1",
+    "   Guard ❌: dauer &lt; 0 → ganze Zeile ungültig, -1",
+    "   <b>start</b> = ZeitInMinuten(Teil vor '-'); Guard ❌: start &lt; letztesEnde (Überlappung) → -1",
+    "   letztesEnde = start + dauer; summe += dauer; anzahlBereiche++",
+    "Guard ❌ (nach der Schleife): anzahlBereiche == 0 → -1",
+    "✅ Rückgabe summe"]);
+  for (const nr of [7, 11, 12, 13, 15]) {
+    const teile = DATEI[nr - 1].trim().split(";");
+    const v = { teile, i: null, dauer: null, start: null, letztesEnde: null, summe: null, anzahlBereiche: null, Rückgabe: null };
+    const done = [];
+    const view = (x = "") => `${fileView(DATEI, nr - 1, {}, true)}<div class="row">${teile.map((p, k) => chip(`[${k}] ${p === "" ? "(leer)" : p}`, k === 0 ? "dim" : k === v.i ? "ok" : "")).join("")}</div>${bars(done)}${x}`;
+    t.call(`SummiereZeiten(zeile.Split(';'))  // Zeile ${nr}`);
+    t.f(-1, v, view(), `Zeile ${nr} wurde mit Split(';') in <b>${teile.length}</b> Teile zerlegt. teile[0] ist der Name.`);
+    v.summe = 0; v.anzahlBereiche = 0; v.letztesEnde = -1;
+    t.f(0, v, view(), "Startwerte. letztesEnde = -1 heißt: es gab noch keinen Bereich.");
+    let bad = false;
+    for (let i = 1; i < teile.length; i++) {
+      Object.assign(v, { i, dauer: null, start: null });
+      t.f(1, v, view(), `i = ${i}: teile[${i}] = "${teile[i]}".`);
+      if (!teile[i].trim()) { t.f(2, v, view(), "Leerer Bereich (kommt von einem ';' ohne Inhalt). Eindeutig nichts gemeint → 🔧 überspringen mit continue.", { 2: "ok" }); continue; }
+      const d = dauer(teile[i]); v.dauer = d;
+      const z = teile[i].split("-"); const st = z.length === 2 ? zeitInMinuten(z[0]) : -1, en = z.length === 2 ? zeitInMinuten(z[1]) : -1;
+      if (d < 0) {
+        if (st >= 0 && en >= 0) done.push([st, en, false]);
+        t.f(3, v, view(), st < 0 || en < 0 ? "Eine der Uhrzeiten ist ungültig → DauerInMinuten liefert -1." : `Ende (${en}) liegt vor Start (${st}) → DauerInMinuten liefert -1.`);
+        v.Rückgabe = -1; t.f(4, v, view(`<div class="badge bad">❌ -1</div>`), "dauer ist -1 → die <b>ganze Zeile</b> ist ungültig.", { 4: "bad" }); bad = true; break;
+      }
+      t.f(3, v, view(), `DauerInMinuten("${teile[i].trim()}") = <b>${d}</b> Minuten.`);
+      v.start = st;
+      if (st < v.letztesEnde) {
+        done.push([st, st + d, false]);
+        v.Rückgabe = -1; t.f(5, v, view(`<div class="badge bad">❌ Überlappung → -1</div>`), `Dieser Bereich beginnt um ${formDauer(st)}, der vorige endet aber erst um ${formDauer(v.letztesEnde)}. Niemand arbeitet doppelt – welche Zeit stimmt? Nicht raten → -1.`, { 4: "ok", 5: "bad" }); bad = true; break;
+      }
+      t.f(5, v, view(), `start = ${st} ≥ letztesEnde = ${v.letztesEnde} → keine Überlappung ✔.`, { 4: "ok", 5: "ok" });
+      done.push([st, st + d, true]); v.letztesEnde = st + d; v.summe += d; v.anzahlBereiche++;
+      t.f(6, v, view(), `summe = <b>${v.summe}</b>, anzahlBereiche = ${v.anzahlBereiche}, letztesEnde = ${v.letztesEnde} (${formDauer(v.letztesEnde)}).`, { 4: "ok", 5: "ok" });
+    }
+    if (bad) continue;
+    if (v.anzahlBereiche === 0) { v.Rückgabe = -1; t.f(7, v, view(`<div class="badge bad">❌ -1</div>`), "Schleife fertig, aber <b>kein einziger</b> gültiger Bereich → -1.", { 7: "bad" }); continue; }
+    v.Rückgabe = v.summe; t.f(8, v, view(`<div class="badge ok">✅ ${v.summe} Minuten</div>`), `anzahlBereiche = ${v.anzahlBereiche} → Rückgabe <b>${v.summe}</b>.`, { 7: "ok" });
+  }
+  return slideOf("Schritt 4 – DauerInMinuten und SummiereZeiten", "Fünf echte Zeilen: gültig, Ende vor Start, ';' am Ende, kein Bereich, Überlappung.", t);
+}
+
+// ===================== Schritt 5 =====================
+function s5() {
+  const t = new Trace("string FormatiereName(string text)", [
+    "<b>woerter</b> = text getrimmt, an ' ' zerlegt, leere Teile weg",
+    "für jedes Wort i: <b>w</b> = woerter[i]",
+    "woerter[i] = erster Buchstabe von w groß + Rest von w klein",
+    "Rückgabe: woerter mit ' ' verbunden"]);
+  for (const nr of [5, 6]) {
+    const txt = DATEI[nr - 1].split(";")[0];
+    const v = { text: txt, woerter: null, i: null, w: null, Rückgabe: null };
+    t.call(`FormatiereName("${txt}")  // Zeile ${nr}, teile[0]`);
+    t.f(-1, v, box("text", chars(txt)), `Der Namensteil von Zeile ${nr}.`);
+    const w = txt.trim().split(" ").filter(s => s); v.woerter = [...w];
+    t.f(0, v, `${box("text", chars(txt, (i, c) => c === " " ? "gone" : ""))}<div class="row">${w.map(x => chip(x)).join("")}</div>`, `Leere Teile fallen weg → <b>${w.length}</b> Wörter.`);
+    for (let i = 0; i < w.length; i++) {
+      v.i = i; v.w = w[i]; t.f(1, v, box("w", chars(w[i], k => k === 0 ? "hl" : "sel")), `i = ${i}: w = "${w[i]}".`);
+      w[i] = w[i][0].toUpperCase() + w[i].substring(1).toLowerCase(); v.woerter = [...w];
+      t.f(2, v, box(`woerter[${i}]`, chars(w[i], () => "new")), `"${v.w[0]}" → "${w[i][0]}" groß, "${v.w.substring(1)}" → "${w[i].substring(1)}" klein.`);
+    }
+    v.Rückgabe = w.join(" "); t.f(3, v, box("Rückgabe", chars(v.Rückgabe, () => "ok")), `Verbunden: <b>"${v.Rückgabe}"</b>.`);
+  }
+  const d = new Trace("string FormatiereDauer(int minuten)", [
+    "<b>h</b> = minuten / 60 (ganzzahlige Division)", "<b>m</b> = minuten % 60 (Rest)", "Rückgabe: h + \":\" + m als Text, links mit '0' auf 2 Stellen"]);
+  for (const [min, info] of [[495, "Müller Anna"], [555, "Gruber Lisa"], [5, "Testfall"]]) {
+    d.call(`FormatiereDauer(${min})  // ${info}`);
+    const v = { minuten: min, h: null, m: null, Rückgabe: null };
+    v.h = Math.floor(min / 60); d.f(0, v, `<div class="row">${chip(`${min} / 60 = ${v.h}`, "ok")}</div>`, `${min} Minuten sind <b>${v.h}</b> ganze Stunden.`);
+    v.m = min % 60; d.f(1, v, `<div class="row">${chip(`${min} % 60 = ${v.m}`, "ok")}</div>`, `Rest: <b>${v.m}</b> Minuten.`);
+    v.Rückgabe = formDauer(min); d.f(2, v, box("Rückgabe", chars(v.Rückgabe, (i) => v.m < 10 && i === v.Rückgabe.length - 2 ? "new" : "ok")), v.m < 10 ? `${v.m} ist einstellig → links eine <b>0</b> davor.` : "Zweistellig – nichts aufzufüllen.");
+  }
+  // --- BerechneSpaltenbreite ---
+  const e = new Trace("int BerechneSpaltenbreite(string[] namen, int MaxNamenLaenge = 255)", [
+    "<b>laengste</b> = 0; <b>zweitLaengste</b> = 0",
+    "foreach name in namen:",
+    "   name.Length &gt; laengste? → zweitLaengste = laengste; laengste = name.Length",
+    "   sonst name.Length &gt; zweitLaengste? → zweitLaengste = name.Length",
+    "Guard ❌: laengste &gt; MaxNamenLaenge (Ausreißer) → zweitLaengste zurückgeben",
+    "✅ laengste zurückgeben"]);
+  const gueltig = gueltigeNamen();
+  e.call("BerechneSpaltenbreite(gueltigeNamen)  // MaxNamenLaenge nicht angegeben → Default 255");
+  const nv = (cur) => `<div class="file small">${gueltig.map((n, k) => `<div class="${k === cur ? "cur" : ""}">${esc(n.length > 40 ? n.slice(0, 40) + " …" : n)} <span style="color:var(--muted)">(${n.length})</span></div>`).join("")}</div>`;
+  let la = 0, zw = 0;
+  e.f(0, { MaxNamenLaenge: 255, name: null, "name.Length": null, laengste: 0, zweitLaengste: 0, Rückgabe: null }, nv(-1), "Der zweite Parameter wurde weggelassen → MaxNamenLaenge hat seinen Default-Wert <b>255</b>. Wir suchen die zwei größten Längen – mit einem einzigen Durchlauf.");
+  gueltig.forEach((n, k) => {
+    const L = n.length;
+    if (L > la) { const alt = la; zw = la; la = L; e.f(2, { MaxNamenLaenge: 255, name: n, "name.Length": L, laengste: la, zweitLaengste: zw, Rückgabe: null }, nv(k), `${L} &gt; ${alt} → neuer Rekord. Der alte Rekord ${alt} rutscht auf Platz 2.`, { 2: "ok" }); }
+    else if (L > zw) { zw = L; e.f(3, { MaxNamenLaenge: 255, name: n, "name.Length": L, laengste: la, zweitLaengste: zw, Rückgabe: null }, nv(k), `${L} ist nicht &gt; ${la}, aber &gt; dem bisherigen Platz 2 → zweitLaengste = ${L}.`, { 2: "bad", 3: "ok" }); }
+    else e.f(1, { MaxNamenLaenge: 255, name: n, "name.Length": L, laengste: la, zweitLaengste: zw, Rückgabe: null }, nv(k), `${L} ist weder Rekord noch Platz 2 → nichts ändert sich.`, { 2: "bad", 3: "bad" });
+  });
+  e.f(4, { MaxNamenLaenge: 255, name: null, "name.Length": null, laengste: la, zweitLaengste: zw, Rückgabe: zw }, nv(-1) + `<div class="badge bad">❌ ${la} &gt; MaxNamenLaenge (255) → Ausreißer</div>`, `Der längste Name hat ${la} Zeichen. Würden wir danach padden, wäre jede Zeile über 270 Zeichen breit! → Wir nehmen den zweitlängsten: <b>${zw}</b>.`, { 4: "bad" });
+
+  // --- FormatiereZeile ---
+  const g = new Trace("string FormatiereZeile(string name, int minuten, int breite)", [
+    "Guard ❌: name.Length &gt; breite → name = die ersten breite Zeichen + \"...\"",
+    "✅ Rückgabe: name rechts auf breite + 3 auffüllen + Dauer links auf 6 + \" h\""]);
+  for (const [n, min] of [["Steiner Paul", 465], ["Huber Max", 240], [gueltig[gueltig.length - 1], 240]]) {
+    const b = 12; let nm = n;
+    g.call(`FormatiereZeile("${n.length > 30 ? n.slice(0, 30) + "…" : n}", ${min}, ${b})`);
+    const v = { name: n.length > 40 ? n.slice(0, 40) + "…" : n, "name.Length": n.length, breite: b, Rückgabe: null };
+    if (n.length > b) {
+      g.f(0, v, box("name (Anfang)", chars(n.slice(0, b + 6), i => i < b ? "ok" : "gone")), `${n.length} &gt; ${b} → nur die ersten ${b} Zeichen behalten …`, { 0: "bad" });
+      nm = n.slice(0, b) + "..."; v.name = nm; v["name.Length"] = nm.length;
+      g.f(0, v, box("name", chars(nm, i => i >= b ? "new" : "ok")), `… und "..." anhängen → genau ${b} + 3 = ${nm.length} Zeichen.`, { 0: "bad" });
+    } else g.f(0, v, box("name", chars(n)), `${n.length} ≤ ${b} → nichts abschneiden.`, { 0: "ok" });
+    const z = nm.padEnd(b + 3) + formDauer(min).padStart(6) + " h"; v.Rückgabe = z;
+    g.f(1, v, box("Rückgabe", chars(z, i => i < nm.length ? "ok" : i < b + 3 ? "new" : "")), `Auffüllen auf ${b} + 3 = ${b + 3} Zeichen, dann die Dauer rechtsbündig. Alle Dauern stehen so genau untereinander.`, { 0: n.length > b ? "bad" : "ok" });
+  }
+  return slideOf("Schritt 5 – Formatieren", "Namen und Summen formatieren, Spaltenbreite bestimmen, Tabellenzeile bauen.", t, d, e, g);
+}
+
+// ===================== Schritt 6 =====================
+function summiere(teile) {
+  let summe = 0, anzahl = 0, letztesEnde = -1;
+  for (let k = 1; k < teile.length; k++) {
+    if (!teile[k].trim()) continue;
+    const d = dauer(teile[k]); if (d < 0) return -1;
+    const st = zeitInMinuten(teile[k].split("-")[0]); if (st < letztesEnde) return -1;
+    letztesEnde = st + d; summe += d; anzahl++;
+  }
+  return anzahl === 0 ? -1 : summe;
+}
+function gueltigeNamen() {
+  const r = [];
+  for (const raw of DATEI) { const z = raw.trim(); if (!z || z.startsWith("#")) continue; const t = z.split(";"), n = formName(t[0]); if (n && summiere(t) >= 0) r.push(n); }
+  return r;
+}
+function breiteVon(namen) { let la = 0, zw = 0; for (const n of namen) { if (n.length > la) { zw = la; la = n.length; } else if (n.length > zw) zw = n.length; } return la > 255 ? zw : la; }
+function kurz(n) { return n.length > 40 ? n.slice(0, 40) + "… (" + n.length + " Zeichen)" : n; }
+function s6() {
+  const t = new Trace("Hauptprogramm", [
+    "Guard ❌: Datei fehlt → Meldung, return",
+    "zeilen einlesen; <b>namen</b>, <b>summen</b> = neue Arrays (zeilen.Length); anzahlPersonen = 0",
+    "foreach über alle Zeilen: <b>zeilenNummer</b> um 1 erhöhen; <b>zeile</b> = Zeile getrimmt",
+    "Guard ❌: leer oder beginnt mit '#' → continue",
+    "<b>teile</b> = zeile.Split(';'); <b>name</b> = FormatiereName(teile[0])",
+    "Guard ❌: name ist leer → Warnung \"Name fehlt\", continue",
+    "<b>summe</b> = SummiereZeiten(teile)",
+    "Guard ❌: summe &lt; 0 → Warnung ausgeben, continue",
+    "✅ noch nicht ausgeben! namen[anzahlPersonen] = name; summen[anzahlPersonen] = summe<br>danach <b>anzahlPersonen</b> um 1 erhöhen",
+    "Durchgang 2: befüllte Namen nach <b>gueltigeNamen</b> kopieren; <b>breite</b> = BerechneSpaltenbreite(gueltigeNamen) – ohne 2. Argument, also MaxNamenLaenge = 255",
+    "ausgabe[0] = Überschrift; for i: ausgabe[i + 1] = FormatiereZeile(namen[i], summen[i], breite)",
+    "ausgabe schreiben und auf der Konsole ausgeben"]);
+  const namen = [], summen = [], warn = [], marks = {};
+  let ausgabe = null;
+  const V = (i, x = {}) => ({ zeilenNummer: i === null ? null : i + 1, zeile: null, name: null, summe: null, anzahlPersonen: namen.length, ...x });
+  const view = cur => `<div class="cols">${fileView(DATEI.map(l => l.length > 60 ? l.slice(0, 60) + " …" : l), cur, marks, true)}<div class="box">
+    ${box("Konsole", `<div class="log">${warn.map(w => `<span class="e">${esc(w)}</span>`).join("\n")}</div>`)}
+    ${box(`namen / summen (${DATEI.length} Plätze)`, `<div class="log">${namen.map((n, k) => `<span class="p ${k === namen.length - 1 && !ausgabe ? "new" : ""}">[${k}] ${esc(kurz(n))} | ${summen[k]}</span>`).join("\n")}</div>`)}
+    ${ausgabe ? box("ausgabe", `<div class="log">${ausgabe.map((o, k) => `<span class="p ${k === ausgabe.length - 1 ? "new" : ""}">${esc(o)}</span>`).join("\n")}</div>`) : ""}</div></div>`;
+  const repariert = { 8: "Hier wurden '.' und ',' in den Uhrzeiten repariert (Schritt 3).", 12: "Das leere Feld nach dem letzten ';' wurde übersprungen (Schritt 4)." };
+  t.call("");
+  t.f(1, V(null), view(-1), `Datei existiert ✔. namen und summen haben je ${DATEI.length} Plätze – wie viele Personen gültig sind, wissen wir noch nicht.`, { 0: "ok" });
+  DATEI.forEach((raw, i) => {
+    const z = raw.trim(), nr = i + 1;
+    if (!z || z.startsWith("#")) { marks[i] = "skip"; t.f(3, V(i, { zeile: z }), view(i), `zeilenNummer = ${nr}: zeile ist ${z ? "ein Kommentar" : "leer"} → <b>continue</b>.`, { 3: "bad" }); return; }
+    const teile = z.split(";"), name = formName(teile[0]);
+    t.f(4, V(i, { zeile: kurz(z), name: kurz(name) }), view(i), `zeilenNummer = ${nr}: zerlegt in ${teile.length} Teile, Name formatiert: <b>"${esc(kurz(name))}"</b>.`, { 3: "ok" });
+    if (!name) { marks[i] = "err"; warn.push(`⚠️ Zeile ${nr}: Name fehlt`); t.f(5, V(i, { zeile: z, name }), view(i), "Vor dem ersten ';' steht nichts – wem gehören diese Zeiten? Das können wir nicht reparieren → Warnung, <b>continue</b>.", { 3: "ok", 5: "bad" }); return; }
+    const s = summiere(teile);
+    t.f(6, V(i, { zeile: kurz(z), name: kurz(name), summe: s }), view(i), `SummiereZeiten liefert <b>${s}</b>.${repariert[nr] ? " 🔧 " + repariert[nr] : ""}`, { 3: "ok", 5: "ok" });
+    if (s < 0) { marks[i] = "err"; warn.push(`⚠️ Zeile ${nr}: ungültige Zeiten bei ${name}`); t.f(7, V(i, { zeile: z, name, summe: s }), view(i), `summe &lt; 0 → Warnung mit <b>Zeile ${nr}</b> (zeilenNummer) ausgeben, <b>continue</b>.`, { 3: "ok", 5: "ok", 7: "bad" }); return; }
+    namen.push(name); summen.push(s);
+    t.f(8, V(i, { zeile: kurz(z), name: kurz(name), summe: s }), view(i), `Gültig – aber noch <b>nicht</b> ausgeben: Wir kennen die Spaltenbreite erst, wenn wir alle Namen gesehen haben. Platz ${namen.length - 1}, anzahlPersonen = ${namen.length}.${name.length > 255 ? " (Dieser Name ist " + name.length + " Zeichen lang!)" : ""}`, { 3: "ok", 5: "ok", 7: "ok" });
+  });
+  const breite = breiteVon(namen);
+  t.f(9, V(null, { breite }), view(-1), `Durchgang 2: Der längste Name hat ${Math.max(...namen.map(n => n.length))} Zeichen (&gt; MaxNamenLaenge = 255, Default-Wert) → BerechneSpaltenbreite(gueltigeNamen) liefert den zweitlängsten: <b>breite = ${breite}</b> (Steiner Paul).`);
+  ausgabe = ["========== ARBEITSZEITEN =========="];
+  t.f(10, V(null, { breite, i: null }), view(-1), "ausgabe[0] ist die Überschrift.");
+  namen.forEach((n, k) => {
+    let nm = n.length > breite ? n.slice(0, breite) + "..." : n;
+    ausgabe.push(nm.padEnd(breite + 3) + formDauer(summen[k]).padStart(6) + " h");
+    t.f(10, V(null, { breite, i: k }), view(-1), `i = ${k}: FormatiereZeile("${esc(kurz(n))}", ${summen[k]}, ${breite}) → ausgabe[${k + 1}].${n.length > breite ? " Zu lang → abgeschnitten und \"...\" angehängt." : ""}`);
+  });
+  t.f(11, V(null, { breite }), view(-1), `Fertig: ${ausgabe.length} Zeilen werden in arbeitszeiten.txt geschrieben und ausgegeben. Alle Dauern stehen genau untereinander.`);
+  return slideOf("Schritt 6 – Hauptprogramm", "Die ganze stempelzeiten.txt: erst Personen sammeln, dann mit der richtigen Spaltenbreite ausgeben.", t);
+}
+
+const slides = [s6(), s1(), s2(), s3(), s4(), s5()];
+
+// ===================== Steuerung =====================
+let s = 0, f = 0, timer = null;
+const $ = id => document.getElementById(id);
+
+const nrOf = sl => +(sl.title.match(/Schritt (\d+)/) || [0, 0])[1];
+$("nav").innerHTML = slides.map((sl, i) => (i === 1 ? '<span style="color:var(--muted);align-self:center;font-size:13px">danach die Methoden:</span>' : "") +
+  `<button data-i="${i}">${i === 0 ? "1. Gesamtablauf (Schritt " + nrOf(sl) + ")" : "Schritt " + nrOf(sl)}</button>`).join("");
+$("nav").addEventListener("click", e => { if (e.target.dataset.i) { stop(); s = +e.target.dataset.i; f = 0; render(); } });
+
+function render() {
+  const sl = slides[s], fr = sl.frames[f];
+  $("slideTitle").textContent = sl.title;
+  $("slideText").textContent = sl.text;
+  $("stage").innerHTML = fr.html;
+  $("caption").innerHTML = fr.caption;
+  $("counter").textContent = `${f + 1} / ${sl.frames.length}`;
+  [...$("nav").querySelectorAll("button")].forEach((b, i) => b.classList.toggle("active", i === s));
+  try { history.replaceState(null, "", "#schritt" + nrOf(slides[s])); } catch (e) {}
+}
+function next() {
+  if (f < slides[s].frames.length - 1) f++;
+  else if (s < slides.length - 1) { s++; f = 0; }
+  else stop();
+  render();
+}
+function prev() { if (f > 0) f--; else if (s > 0) { s--; f = slides[s].frames.length - 1; } render(); }
+function play() { if (timer) return stop(); $("btnPlay").textContent = "⏸ Pause"; timer = setInterval(() => {
+  if (f === slides[s].frames.length - 1) stop(); else next(); }, +$("speed").value); }
+function stop() { clearInterval(timer); timer = null; $("btnPlay").textContent = "▶ Abspielen"; }
+
+$("btnNext").onclick = () => { stop(); next(); };
+$("btnPrev").onclick = () => { stop(); prev(); };
+$("btnReset").onclick = () => { stop(); f = 0; render(); };
+$("btnPlay").onclick = play;
+$("speed").oninput = () => { if (timer) { stop(); play(); } };
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight") { stop(); next(); }
+  if (e.key === "ArrowLeft") { stop(); prev(); }
+  if (e.key === " ") { e.preventDefault(); play(); }
+});
+
+const m = location.hash.match(/schritt(\d)/);
+if (m) { const k = slides.findIndex(sl => nrOf(sl) === +m[1]); if (k >= 0) s = k; }
+render();
+</script>
+</body>
+</html>

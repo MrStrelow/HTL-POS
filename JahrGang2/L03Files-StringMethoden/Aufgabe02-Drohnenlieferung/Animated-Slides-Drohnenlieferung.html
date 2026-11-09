@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drohnenlieferung – Schritt für Schritt</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020617; --panel: #0f172a; --line: #1e293b; --muted: #64748b; --text: #f1f5f9;
+    --accent: #38bdf8; --ok: #34d399; --bad: #fb7185; --warn: #fbbf24; --pkg: #f59e0b; --wall: #475569;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+  .mono { font-family: 'Fira Code', monospace; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 12px 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 20px; color: var(--accent); }
+  header small { color: var(--muted); }
+  nav { display: flex; flex-wrap: wrap; gap: 6px; }
+  nav button { background: #111827; color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; font: inherit; font-size: 13px; }
+  nav button.active { color: var(--accent); border-color: var(--accent); background: rgba(56,189,248,.1); }
+  main { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 20px 16px; gap: 16px; }
+  .title { text-align: center; max-width: 900px; }
+  .title h2 { margin: 0 0 6px; font-size: 22px; }
+  .title p { margin: 0; color: #cbd5e1; }
+  .stage { width: 100%; max-width: 1000px; min-height: 380px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; overflow-x: auto; }
+  .caption { min-height: 48px; max-width: 900px; text-align: center; font-size: 17px; padding: 10px 16px; border-radius: 10px; background: rgba(56,189,248,.08); border: 1px solid rgba(56,189,248,.3); }
+  .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .controls button { background: #1e293b; color: var(--text); border: 1px solid #334155; border-radius: 8px; padding: 8px 14px; cursor: pointer; font: inherit; }
+  .controls button:hover { border-color: var(--accent); }
+  .controls .counter { color: var(--muted); font-size: 14px; min-width: 70px; text-align: center; }
+  .speed { color: var(--muted); font-size: 13px; display: flex; gap: 6px; align-items: center; }
+
+  .row { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .ch { width: 30px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: #111827; border: 1.5px solid #334155; font-family: 'Fira Code', monospace; font-size: 18px; transition: all .35s ease; position: relative; }
+  .ch .idx { position: absolute; bottom: -16px; font-size: 10px; color: var(--muted); }
+  .ch.space { color: transparent; background: repeating-linear-gradient(45deg, #111827, #111827 4px, #1f2937 4px, #1f2937 8px); }
+  .ch.hl { border-color: var(--warn); background: rgba(251,191,36,.18); transform: translateY(-4px); }
+  .ch.gone { opacity: .15; transform: scale(.8); }
+  .ch.ok { border-color: var(--ok); background: rgba(52,211,153,.15); }
+  .ch.bad { border-color: var(--bad); background: rgba(251,113,133,.15); }
+  .ch.new { animation: pop .5s ease; border-color: var(--ok); background: rgba(52,211,153,.2); }
+  .chip { padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--accent); background: rgba(56,189,248,.12); font-family: 'Fira Code', monospace; font-size: 18px; animation: pop .45s ease; }
+  .chip.ok { border-color: var(--ok); background: rgba(52,211,153,.15); }
+  .chip.bad { border-color: var(--bad); background: rgba(251,113,133,.15); }
+  .chip.dim { opacity: .35; }
+  .badge { padding: 6px 12px; border-radius: 8px; font-weight: 700; animation: pop .45s ease; }
+  .badge.ok { color: var(--ok); border: 1.5px solid var(--ok); background: rgba(52,211,153,.12); }
+  .badge.bad { color: var(--bad); border: 1.5px solid var(--bad); background: rgba(251,113,133,.12); }
+  .label { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+  .arrow { color: var(--muted); font-size: 22px; }
+
+  .grid { display: grid; gap: 3px; }
+  .cell { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 18px; background: #111827; border: 1px solid #1f2937; transition: all .3s ease; position: relative; }
+  .cell.wall { background: var(--wall); border-color: #64748b; }
+  .cell.pkg::after { content: "📦"; }
+  .cell.goal { background: rgba(52,211,153,.15); border-color: var(--ok); }
+  .cell.goal::after { content: "🏁"; font-size: 15px; }
+  .cell.probe-ok { outline: 3px solid var(--ok); z-index: 2; }
+  .cell.probe-bad { outline: 3px solid var(--bad); z-index: 2; }
+  .cell.trail { background: rgba(56,189,248,.12); }
+  .robot { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; transition: transform .35s ease; z-index: 3; }
+  .robot .dir { position: absolute; font-size: 14px; color: var(--accent); font-weight: 700; }
+  .carry { position: absolute; top: -8px; right: -6px; font-size: 13px; }
+
+  .file { border: 1px solid #334155; border-radius: 10px; background: #0b1222; padding: 10px 14px; font-family: 'Fira Code', monospace; font-size: 13px; line-height: 1.55; min-width: 260px; }
+  .file .ln { color: var(--muted); display: inline-block; width: 24px; }
+  .file .cur { background: rgba(56,189,248,.15); border-radius: 4px; }
+  .file .err { color: var(--bad); }
+  .file .skip { color: #475569; }
+  .arr { display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; max-width: 900px; }
+  .arr .slot { min-width: 46px; height: 34px; padding: 0 6px; border: 1.5px solid #334155; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-family: 'Fira Code', monospace; font-size: 11px; color: #cbd5e1; animation: pop .35s ease; }
+  .cols { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; align-items: flex-start; }
+  .compass { position: relative; width: 220px; height: 220px; border-radius: 50%; border: 2px dashed #334155; }
+  .compass .d { position: absolute; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; background: #111827; border: 2px solid #334155; transition: all .3s; }
+  .compass .d.on { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,.18); transform: scale(1.15); }
+  .compass .bot { position: absolute; left: 50%; top: 50%; width: 60px; height: 60px; margin: -30px; display: flex; align-items: center; justify-content: center; font-size: 34px; transition: transform .5s ease; }
+  .compass .needle { position: absolute; left: 50%; top: 50%; width: 4px; height: 70px; margin-left: -2px; margin-top: -70px; background: var(--accent); border-radius: 2px; transform-origin: 50% 100%; transition: transform .5s ease; }
+  .log { font-family: 'Fira Code', monospace; font-size: 12px; background: #0b1222; border: 1px solid #334155; border-radius: 10px; padding: 8px 12px; min-width: 300px; min-height: 60px; white-space: pre; }
+  .log .e { color: var(--bad); }
+  .log .p { color: #cbd5e1; }
+  .log .new { animation: flash 1s ease; }
+  .stat { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  .stat div { background: #111827; border: 1px solid #334155; border-radius: 8px; padding: 6px 12px; }
+  .cell.route { background: rgba(56,189,248,.25); border-color: var(--accent); color: var(--accent); }
+  .cell.hit { background: rgba(251,113,133,.35); border-color: var(--bad); color: var(--bad); font-weight: 700; }
+  .cell { font-family: 'Fira Code', monospace; font-size: 14px; }
+  @keyframes pop { 0% { transform: scale(.6); opacity: 0; } 70% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes flash { 0% { background: rgba(251,191,36,.35); } 100% { background: transparent; } }
+  @media (max-width: 600px) { .cell { width: 24px; height: 24px; font-size: 13px; } .ch { width: 22px; height: 30px; font-size: 14px; } }
+  .stage { max-width: 1320px !important; align-items: stretch !important; }
+  .trace { display: flex; gap: 22px; flex-wrap: wrap; width: 100%; align-items: flex-start; justify-content: center; }
+  .tview { flex: 1 1 460px; display: flex; flex-direction: column; align-items: center; gap: 14px; min-width: 0; }
+  .tside { flex: 0 1 430px; min-width: 300px; display: flex; flex-direction: column; gap: 6px; }
+  .sig { font-family: 'Fira Code', monospace; font-size: 14px; color: var(--accent); font-weight: 600; }
+  .sig .call { display: block; color: #cbd5e1; font-weight: 400; font-size: 12px; margin-top: 2px; }
+  .steps { margin: 0 0 8px; padding-left: 26px; font-size: 13.5px; }
+  .steps li { padding: 4px 8px; margin: 2px 0; border-radius: 6px; color: #94a3b8; transition: all .25s; }
+  .steps li.cur { background: rgba(56,189,248,.16); color: #fff; outline: 1.5px solid var(--accent); }
+  .steps li.ok::after { content: "  ✔"; color: var(--ok); font-weight: 700; }
+  .steps li.bad::after { content: "  ✘"; color: var(--bad); font-weight: 700; }
+  .vars { border-collapse: collapse; font-family: 'Fira Code', monospace; font-size: 12.5px; width: 100%; }
+  .vars td { border-bottom: 1px solid #1e293b; padding: 4px 8px; vertical-align: top; word-break: break-all; }
+  .vars td:first-child { color: #94a3b8; width: 38%; word-break: normal; }
+  .vars tr.chg td { background: rgba(251,191,36,.16); }
+  .vars tr.chg td:first-child { color: var(--warn); }
+  .v-str { color: #fde68a; } .v-num { color: #93c5fd; } .v-raw { color: #c4b5fd; } .v-none { color: #475569; }
+  .v-true { color: var(--ok); font-weight: 700; } .v-false { color: var(--bad); font-weight: 700; }
+  .box { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .file.small { font-size: 11px; line-height: 1.45; min-width: 0; max-width: 100%; overflow-x: auto; }
+  .file .cur { outline: 1px solid var(--accent); }
+  .ch.sel { border-color: var(--accent); background: rgba(56,189,248,.22); }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🚁 Drohnen-Lieferdienst SkyParcel</h1>
+    <small>Die Musterlösung Schritt für Schritt an den echten Daten: Ablauf, Variablen, Entscheidungen (ohne Code)</small>
+  </div>
+  <nav id="nav"></nav>
+</header>
+<main>
+  <div class="title"><h2 id="slideTitle"></h2><p id="slideText"></p></div>
+  <div class="stage" id="stage"></div>
+  <div class="caption" id="caption"></div>
+  <div class="controls">
+    <button id="btnReset" title="Von vorne">↺</button>
+    <button id="btnPrev">◀ zurück</button>
+    <span class="counter" id="counter"></span>
+    <button id="btnNext">weiter ▶</button>
+    <button id="btnPlay">▶ Abspielen</button>
+    <label class="speed">Tempo <input id="speed" type="range" min="300" max="2500" step="100" value="1400"></label>
+  </div>
+</main>
+
+<script>
+// ===================== Trace-Engine: Ablauf der Musterlösung + Variablen =====================
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const R = t => ({ t });                       // Rohtext (z. B. Tupel, Array-Beschreibung)
+const P = (x, y) => R(`(${x}|${y})`);        // Position
+const fmt = n => n.toFixed(2).replace(".", ",");
+function val(v) {
+  if (v === null || v === undefined) return '<span class="v-none">—</span>';
+  if (typeof v === "string") return `<span class="v-str">"${esc(v).replace(/ /g, "·")}"</span>`;
+  if (typeof v === "boolean") return `<span class="${v ? "v-true" : "v-false"}">${v}</span>`;
+  if (Array.isArray(v)) return `[${v.map(val).join(", ")}]`;
+  if (typeof v === "object" && "t" in v) return `<span class="v-raw">${esc(v.t)}</span>`;
+  if (typeof v === "object" && "c" in v) return `<span class="v-str">'${esc(v.c)}'</span>`;
+  return `<span class="v-num">${esc(v)}</span>`;
+}
+const C = c => ({ c });                       // char
+function chars(text, cls = () => "", showIdx = true) {
+  return `<div class="row">${[...text].map((c, i) =>
+    `<div class="ch ${c === " " ? "space" : ""} ${cls(i, c)}">${esc(c === " " ? "·" : c === "	" ? "⇥" : c)}${showIdx ? `<span class="idx">${i}</span>` : ""}</div>`).join("") || '<div class="ch gone">∅</div>'}</div>`;
+}
+function fileView(lines, cur = -1, marks = {}, small = false) {
+  return `<div class="file ${small ? "small" : ""}">${lines.map(l => l.length > 80 ? l.slice(0, 80) + " … (" + l.length + " Zeichen)" : l).map((l, i) =>
+    `<div class="${i === cur ? "cur" : ""} ${marks[i] || ""}"><span class="ln">${i + 1}</span>${esc(l).replace(/	/g, "⇥&nbsp;&nbsp;").replace(/ /g, "&nbsp;") || "&nbsp;"}</div>`).join("")}</div>`;
+}
+const chip = (t, c = "") => `<span class="chip ${c}" style="white-space:pre">${esc(t)}</span>`;
+const box = (label, inner) => `<div class="box"><div class="label">${label}</div>${inner}</div>`;
+
+class Trace {
+  constructor(fn, steps) { this.fn = fn; this.steps = steps; this.frames = []; this.prev = {}; }
+  call(sig) { this.sig = sig; this.prev = {}; return this; }
+  // cur: aktiver Ablauf-Schritt, vars: Variablen, view: Daten-Ansicht, cap: Erklärung, mark: {Schritt: "ok"|"bad"}
+  f(cur, vars, view, cap, mark = {}) {
+    const rows = Object.entries(vars).map(([k, v]) => {
+      const chg = JSON.stringify(this.prev[k]) !== JSON.stringify(v) && v !== null && v !== undefined;
+      return `<tr class="${chg ? "chg" : ""}"><td>${esc(k)}</td><td>${val(v)}</td></tr>`;
+    }).join("");
+    this.prev = JSON.parse(JSON.stringify(vars));
+    const steps = this.steps.map((s, i) =>
+      `<li class="${i === cur ? "cur" : ""} ${mark[i] || ""}">${s}</li>`).join("");
+    this.frames.push({
+      caption: cap,
+      html: `<div class="trace"><div class="tview">${view}</div>
+        <div class="tside"><div class="sig">${esc(this.fn)}${this.sig ? `<span class="call">${esc(this.sig)}</span>` : ""}</div>
+        <div class="label">Ablauf der Musterlösung</div><ol class="steps">${steps}</ol>
+        <div class="label">Variablen</div><table class="vars">${rows}</table></div></div>`
+    });
+    return this;
+  }
+}
+const slideOf = (title, text, ...traces) => ({ title, text, frames: traces.flatMap(t => t.frames) });
+
+// ===================== Daten (wie in den Dateien) =====================
+const AUFTRAEGE = ["# Drohnen-Lieferauftraege der Firma SkyParcel", "# Format: nummer=...;start=x|y;ziel=x|y;gewicht=...kg;kunde=...", "# Koordinaten: 0|0 ist oben links. 1 Feld = 0,5 km", "",
+  "  nummer=LF-7 ; start=1|1 ; ziel=6|5 ; gewicht=1,5kg ; kunde=mÜLLER gmbh", "NUMMER=LF-0012;START=2|9;ZIEL=17|3;GEWICHT=3,2KG;KUNDE=  bäckerei huber",
+  "nummer=LF-13 ; start=15|2 ; ziel=3|2 ; gewicht=0,8kg ; kunde=apotheke am platz", "", "nummer=LF-14 ; start=4|10 ; ziel=6|1 ; gewicht=2kg ; kunde=htl werkstätte",
+  "nummer=LF-x15 ; start=1|1 ; ziel=2|2 ; gewicht=1kg ; kunde=tippfehler ag", "nummer=LF-16 ; start=1|1 ; ziel=25|3 ; gewicht=1kg ; kunde=weit weg kg",
+  "nummer=LF-17 ; start=3|3 ; ziel=8|8 ; gewicht=7,5kg ; kunde=schwer und co", "nummer=LF-18 ; start=2|5 ; gewicht=1kg ; kunde=vergessen ohg",
+  "nummer=LF-19 ; start=0|10 ; ziel=19|10 ; gewicht=1kg ; kunde=quer durch gmbh", "nummer=LF-20 ; start=18|11 ; ziel=12|0 ; gewicht=4kg ; kunde=elektro maier",
+  "nummer=LF-21 ; start=(5|3) ; ziel=(11|6) ; gewicht=800g ; kunde=café   CENTRAL ;", "nummer=LF-22 ; start=7|7 ; ziel=7|7 ; gewicht=1kg ; kunde=nirgendwo gmbh",
+  "nummer=lf-12 ; start=1|2 ; ziel=3|4 ; gewicht=1kg ; kunde=doppelt kg", "nummer=LF-23 ; start=2|2 ; ziel=4|4 ; gewicht=-1kg ; kunde=minus ag",
+  "nummer=LF-24 ; start=3|1 ; ziel=8|1 ; gewicht=2,5 kg ; kunde=leer zeichen og"];
+const PLAN = [...Array(8)].map(() => "....................").concat([...Array(4)].map(() => ".........##........."));
+// --- Musterlösung in JS ---
+function roundEven(v) { const f = Math.floor(v), d = v - f; if (Math.abs(d - 0.5) < 1e-9) return f % 2 === 0 ? f : f + 1; return Math.round(v); }
+function aufRoute(s, z, x, y) { const dx = z[0] - s[0], dy = z[1] - s[1];
+  if (Math.abs(dx) >= Math.abs(dy)) { if (x < Math.min(s[0], z[0]) || x > Math.max(s[0], z[0])) return false; const k = dx === 0 ? 0 : dy / dx; return y === s[1] + roundEven(k * (x - s[0])); }
+  if (y < Math.min(s[1], z[1]) || y > Math.max(s[1], z[1])) return false; return x === s[0] + roundEven(dx / dy * (y - s[1])); }
+function leseFeld(teil, key) { const p = teil.indexOf("="); if (p < 0) return null; if (teil.substring(0, p).trim().toLowerCase() !== key) return null; const w = teil.substring(p + 1).trim(); return w.length ? w : null; }
+function normNr(t) { t = t.toUpperCase(); if (!t.startsWith("LF-")) return null; const z = t.substring(3); if (!z.length || z.length > 4 || !/^\d+$/.test(z)) return null; return "LF-" + z.padStart(4, "0"); }
+function koord(t) { t = t.replace(/[()]/g, ""); if (!t.includes("|")) return null; const p = t.split("|"); if (p.length !== 2 || !/^\s*-?\d+\s*$/.test(p[0]) || !/^\s*-?\d+\s*$/.test(p[1])) return null; return [+p[0], +p[1]]; }
+function gewicht(t) { t = t.toLowerCase().trim(); let f = 1, z; if (t.endsWith("kg")) z = t.substring(0, t.length - 2); else if (t.endsWith("g")) { z = t.substring(0, t.length - 1); f = 0.001; } else return null; const g = parseFloat(z.replace(",", ".")) * f; return g > 0 ? g : null; }
+function kunde(t) { return t.trim().split(" ").filter(w => w).map(w => w[0].toUpperCase() + w.substring(1).toLowerCase()).join(" "); }
+function parseAuftrag(z) { z = z.replace(/[ ;]+$/, ""); const t = z.split(";"); if (t.length !== 5) return { e: `${t.length} statt 5 Felder` };
+  const f = ["nummer", "start", "ziel", "gewicht", "kunde"].map((k, i) => leseFeld(t[i], k)); if (f.includes(null)) return { e: "Feld fehlt oder falscher Schlüssel" };
+  const n = normNr(f[0]); if (!n) return { e: `ungültige Auftragsnummer '${f[0]}'` }; const s = koord(f[1]), zi = koord(f[2]); if (!s || !zi) return { e: `${n} – ungültige Koordinate` };
+  const g = gewicht(f[3]); if (!g) return { e: `${n} – ungültiges Gewicht '${f[3]}'` }; return { a: { n, s, z: zi, g, k: kunde(f[4]) } }; }
+const preisVon = (km, kg) => Math.round((3.5 + km * 1.2 + (kg > 2 ? (kg - 2) * 0.8 : 0)) * 100) / 100;
+function karte(route, probes = {}, upTo = 99, scan = null) {
+  let h = `<div class="grid" style="grid-template-columns: repeat(20, auto)">`;
+  for (let y = 0; y < 12; y++) for (let x = 0; x < 20; x++) {
+    const c = PLAN[y][x]; let cls = c === "#" ? "wall" : "", t = "";
+    if (route && y <= upTo) { const [s, z] = route;
+      if (x === s[0] && y === s[1]) t = "S"; else if (x === z[0] && y === z[1]) t = "Z";
+      else if (aufRoute(s, z, x, y)) { if (c === "#") { t = "X"; cls = "hit"; } else { t = "*"; cls = "route"; } } }
+    if (probes[x + "," + y]) cls += " probe-" + probes[x + "," + y];
+    if (scan && scan[0] === x && scan[1] === y) cls += " probe-ok";
+    h += `<div class="cell ${cls}" title="(${x}|${y})" style="width:26px;height:26px">${t}</div>`;
+  }
+  return h + "</div>";
+}
+
+// ===================== Schritt 1 =====================
+function s1() {
+  const t = new Trace("Hauptprogramm – Anfang", [
+    "Guard ❌: auftraege.txt oder stadtplan.txt fehlt → Meldung, return",
+    "<b>zeilen</b> = alle Zeilen von auftraege.txt",
+    "<b>stadtplan</b> = alle Zeilen von stadtplan.txt"]);
+  t.call("");
+  t.f(0, { "auftraege existiert": true, "stadtplan existiert": true, zeilen: null, stadtplan: null }, `<div style="font-size:60px">📄✅ 🗺️✅</div>`, "Beide Dateien existieren → der Guard greift nicht.", { 0: "ok" });
+  t.f(1, { "auftraege existiert": true, "stadtplan existiert": true, zeilen: R("string[20]"), stadtplan: null }, fileView(AUFTRAEGE, -1, {}, true), "20 Zeilen – auch Kommentare und Leerzeilen. Die Zeilennummer zählen wir später in der foreach-Schleife selbst mit.", { 0: "ok" });
+  t.f(2, { "auftraege existiert": true, "stadtplan existiert": true, zeilen: R("string[20]"), stadtplan: R("string[12]"), "stadtplan[0].Length": 20 }, karte(null), "Der Stadtplan: 12 Strings (Zeilen) mit je 20 Zeichen.", { 0: "ok" });
+  t.f(2, { "auftraege existiert": true, "stadtplan existiert": true, zeilen: R("string[20]"), stadtplan: R("string[12]"), "stadtplan[8]": PLAN[8], "stadtplan[8][9]": C("#") }, `${box("stadtplan[8]", chars(PLAN[8], i => i === 9 ? "hl" : ""))}${karte(null, { "9,8": "bad" })}`, "Erst die Zeile (y = 8), dann das Zeichen darin (x = 9): <b>stadtplan[y][x]</b>.", { 0: "ok" });
+  return slideOf("Schritt 1 – Dateien finden und einlesen", "File.Exists als Guard, dann File.ReadAllLines für beide Dateien.", t);
+}
+
+// ===================== Schritt 2 =====================
+function s2() {
+  const t = new Trace("bool TryLeseFeld(string teil, string schluessel, out string wert)", [
+    "wert = \"\"; <b>pos</b> = Position von '='",
+    "Guard ❌: pos &lt; 0 → false",
+    "<b>links</b> = Teil vor pos, getrimmt, klein",
+    "Guard ❌: links ≠ schluessel → false",
+    "<b>wert</b> = Teil nach pos, getrimmt",
+    "Rückgabe: wert ist nicht leer"]);
+  const t6 = AUFTRAEGE[5].split(";"), t13 = AUFTRAEGE[12].split(";");
+  for (const [teil, key, info, nr] of [[t6[0], "nummer", "Zeile 6, teile[0]", 6], [t6[4], "kunde", "Zeile 6, teile[4]", 6], [t13[2], "ziel", "Zeile 13, teile[2] – hier fehlt das Ziel", 13], ["kunde huber", "kunde", "Testfall", -1]]) {
+    const v = { teil, schluessel: key, pos: null, links: null, wert: "", Rückgabe: null };
+    const fv = (hl, x = "") => `${nr > 0 ? fileView(AUFTRAEGE, nr - 1, {}, true) : ""}${box("teil", chars(teil, hl))}${x}`;
+    t.call(`TryLeseFeld("${teil}", "${key}", out wert)  // ${info}`);
+    const p = teil.indexOf("="); v.pos = p;
+    t.f(0, v, fv(i => i === p ? "hl" : ""), p < 0 ? "Kein '=' → pos = -1." : `'=' steht an Index <b>${p}</b>.`);
+    if (p < 0) { v.Rückgabe = false; t.f(1, v, fv(() => "bad"), "Guard ❌ → false.", { 1: "bad" }); continue; }
+    const m = { 1: "ok" }; t.f(1, v, fv(i => i === p ? "hl" : ""), "Gefunden → weiter.", m);
+    v.links = teil.substring(0, p).trim().toLowerCase();
+    t.f(2, v, fv(i => i < p ? "ok" : "gone", `<div class="row">${chip("links = " + v.links)}</div>`), "Teil vor dem '=' – getrimmt und klein (aus NUMMER wird nummer).", m);
+    if (v.links !== key) { m[3] = "bad"; v.Rückgabe = false; t.f(3, v, fv(i => i < p ? "bad" : "gone", `<div class="row">${chip(v.links, "bad")}<span class="arrow">≠</span>${chip(key)}</div>`), `"${v.links}" ist nicht "${key}" → false. (So erkennt TryParseAuftrag, dass an Position 2 kein Ziel steht.)`, m); continue; }
+    m[3] = "ok"; t.f(3, v, fv(i => i < p ? "ok" : ""), `"${v.links}" == "${key}" ✔.`, m);
+    v.wert = teil.substring(p + 1).trim();
+    t.f(4, v, fv(i => i > p ? "ok" : "gone", `<div class="row">${chip("wert = " + v.wert, "ok")}</div>`), "Teil nach dem '=' – getrimmt (Groß-/Kleinschreibung bleibt!).", m);
+    v.Rückgabe = v.wert.length > 0; t.f(5, v, fv(i => i > p ? "ok" : "gone", `<div class="badge ok">✅ true</div>`), "wert ist nicht leer → true.", m);
+  }
+  return slideOf("Schritt 2 – TryLeseFeld", "Teile echter Auftragszeilen werden gelesen.", t);
+}
+
+// ===================== Schritt 3 =====================
+function s3() {
+  const a = new Trace("bool TryNormalisiereNummer(string text, out string nummer, int stellen = 4)", [
+    "nummer = \"\"; text groß schreiben",
+    "Guard ❌: text beginnt nicht mit \"LF-\" → false",
+    "<b>ziffern</b> = text ab Index 3",
+    "Guard ❌: ziffern ist leer oder länger als <b>stellen</b> (Default 4) → false",
+    "für jedes Zeichen c in ziffern: Guard ❌ c ist keine Ziffer → false",
+    "✅ nummer = \"LF-\" + ziffern links mit '0' auf <b>stellen</b> Stellen → true"]);
+  for (const [txt, nr] of [["LF-7", 5], ["LF-x15", 10]]) {
+    const v = { text: txt, ziffern: null, c: null, nummer: "", Rückgabe: null };
+    a.call(`TryNormalisiereNummer("${txt}", out nummer)  // Zeile ${nr}`);
+    v.text = txt.toUpperCase(); a.f(0, v, box("text", chars(v.text)), "Groß geschrieben.");
+    a.f(1, v, box("text", chars(v.text, i => i < 3 ? "ok" : "")), "Beginnt mit \"LF-\" ✔.", { 1: "ok" });
+    v.ziffern = v.text.substring(3); a.f(2, v, box("ziffern", chars(v.ziffern, () => "sel")), "Alles ab Index 3.", { 1: "ok" });
+    a.f(3, v, box("ziffern", chars(v.ziffern, () => "sel")), `${v.ziffern.length} Zeichen – zwischen 1 und 4 ✔.`, { 1: "ok", 3: "ok" });
+    let ok = true;
+    for (let k = 0; k < v.ziffern.length; k++) { const c = v.ziffern[k]; v.c = C(c); const d = /\d/.test(c);
+      a.f(4, v, box("ziffern", chars(v.ziffern, i => i === k ? (d ? "ok" : "bad") : i < k ? "ok" : "")), d ? `'${c}' ist eine Ziffer ✔.` : `'${c}' ist <b>keine</b> Ziffer → sofort false.`, { 1: "ok", 3: "ok", 4: d ? "ok" : "bad" });
+      if (!d) { ok = false; v.Rückgabe = false; break; } }
+    if (!ok) { a.f(4, v, `<div class="badge bad">❌ false</div>`, "Im Hauptprogramm wird daraus: „ungültige Auftragsnummer 'LF-x15'“.", { 1: "ok", 3: "ok", 4: "bad" }); continue; }
+    v.nummer = "LF-" + v.ziffern.padStart(4, "0"); v.Rückgabe = true;
+    a.f(5, v, box("nummer", chars(v.nummer, i => i >= 3 && i < 7 - v.ziffern.length ? "new" : "ok")), `Links mit '0' auf stellen = 4 Stellen (Default-Wert, weil nicht angegeben) → <b>${v.nummer}</b>.`, { 1: "ok", 3: "ok", 4: "ok" });
+  }
+  const b = new Trace("bool TryParseKoordinate(string text, out (int X, int Y) punkt)", [
+    "punkt = (0, 0); 🔧 Reparatur: '(' und ')' aus text entfernen",
+    "Guard ❌: text enthält kein '|' → false",
+    "<b>teile</b> = text am '|' zerlegen",
+    "Guard ❌: nicht genau 2 Teile oder ein Teil ist keine Zahl → false",
+    "✅ punkt = (x, y) → true"]);
+  for (const [txt, info] of [["17|3", "Zeile 6, Ziel"], ["(5|3)", "Zeile 16, Start"]]) {
+    const clean = txt.replace(/[()]/g, ""), [x, y] = clean.split("|").map(Number);
+    b.call(`TryParseKoordinate("${txt}", out punkt)  // ${info}`);
+    if (clean !== txt) {
+      b.f(0, { text: txt, teile: null, punkt: R("(0, 0)"), Rückgabe: null }, box("text", chars(txt, (i, c) => c === "(" || c === ")" ? "bad" : "")), "Klammern um die Koordinate – eindeutig gemeint ist (5|3) → 🔧 Klammern entfernen.", { 0: "ok" });
+      b.f(0, { text: clean, teile: null, punkt: R("(0, 0)"), Rückgabe: null }, box("text", chars(clean, () => "ok")), "Repariert – ab jetzt geht es ganz normal weiter.", { 0: "ok" });
+    } else b.f(0, { text: txt, teile: null, punkt: R("(0, 0)"), Rückgabe: null }, box("text", chars(txt)), "Keine Klammern → nichts zu reparieren.");
+    b.f(1, { text: clean, teile: null, punkt: R("(0, 0)"), Rückgabe: null }, box("text", chars(clean, (i, c) => c === "|" ? "hl" : "")), "Enthält ein '|' ✔.", { 1: "ok" });
+    b.f(2, { text: clean, teile: clean.split("|"), punkt: R("(0, 0)"), Rückgabe: null }, `<div class="row">${clean.split("|").map((p, k) => chip(`teile[${k}] = ${p}`)).join("")}</div>`, "Zerlegt in 2 Teile.", { 1: "ok" });
+    b.f(4, { text: clean, teile: clean.split("|"), x, y, punkt: R(`(${x}, ${y})`), Rückgabe: true }, karte(null, { [x + "," + y]: "ok" }), `Beide sind Zahlen → punkt = (${x}, ${y}): Spalte ${x}, Zeile ${y}.`, { 1: "ok", 3: "ok" });
+  }
+  const c = new Trace("bool TryParseGewicht(string text, out double gewicht)", [
+    "gewicht = 0; text klein schreiben und trimmen; <b>faktor</b> = 1",
+    "endet text mit \"kg\"? → <b>zahl</b> = text ohne die letzten 2 Zeichen",
+    "🔧 sonst endet text mit \"g\"? → <b>zahl</b> = text ohne das letzte Zeichen, faktor = 0.001",
+    "Guard ❌: weder \"kg\" noch \"g\" → false",
+    "',' durch '.' ersetzen; Guard ❌: zahl lässt sich nicht umwandeln → false",
+    "gewicht = gewicht · faktor; Guard ❌: gewicht ≤ 0 → gewicht = 0, false",
+    "✅ true"]);
+  for (const [orig, info] of [["3,2KG", "Zeile 6"], ["800g", "Zeile 16"], ["-1kg", "Zeile 19"]]) {
+    const tx = orig.toLowerCase().trim(); const kg = tx.endsWith("kg");
+    const z = kg ? tx.slice(0, -2) : tx.slice(0, -1), f = kg ? 1 : 0.001, zahl = z.replace(",", "."), g0 = parseFloat(zahl), g = g0 * f;
+    c.call(`TryParseGewicht("${orig}", out gewicht)  // ${info}`);
+    const v = { text: tx, faktor: 1, zahl: null, gewicht: 0, Rückgabe: null };
+    c.f(0, v, box("text", chars(tx)), `"${orig}" → klein: "${tx}".`);
+    if (kg) { v.zahl = z; c.f(1, v, box("text", chars(tx, i => i >= tx.length - 2 ? "gone" : "ok")), "Endet mit \"kg\" → die letzten 2 Zeichen abschneiden.", { 1: "ok" }); }
+    else {
+      c.f(1, v, box("text", chars(tx, i => i === tx.length - 1 ? "hl" : "")), "Endet <b>nicht</b> mit \"kg\" …", { 1: "bad" });
+      v.zahl = z; v.faktor = 0.001;
+      c.f(2, v, box("text", chars(tx, i => i === tx.length - 1 ? "gone" : "ok")), "… aber mit \"g\": eine Gramm-Angabe. Eindeutig → 🔧 1 Zeichen abschneiden, später mal 0.001. (Darum zuerst auf \"kg\" prüfen – \"kg\" endet ja auch mit \"g\"!)", { 1: "bad", 2: "ok" });
+    }
+    const m = kg ? { 1: "ok", 3: "ok" } : { 1: "bad", 2: "ok", 3: "ok" };
+    v.zahl = zahl; c.f(4, v, box("zahl", chars(zahl, (i, ch) => ch === "." && z.includes(",") ? "new" : "ok")), `zahl = "${zahl}" → lässt sich umwandeln: ${String(g0).replace(".", ",")}.`, { ...m, 4: "ok" });
+    v.gewicht = g;
+    if (!(g > 0)) { v.gewicht = 0; v.Rückgabe = false; c.f(5, v, `<div class="badge bad">❌ ${String(g).replace(".", ",")} kg ist nicht &gt; 0 → gewicht = 0, false</div>`, "Ein negatives Gewicht ergibt keinen Sinn. Ist vielleicht 1 kg gemeint? Nicht raten → Fehler.", { ...m, 4: "ok", 5: "bad" }); continue; }
+    v.Rückgabe = true; c.f(6, v, `<div class="badge ok">✅ ${String(g).replace(".", ",")} kg</div>`, `${String(g0).replace(".", ",")} · ${String(f).replace(".", ",")} = ${String(g).replace(".", ",")} kg &gt; 0 → true.`, { ...m, 4: "ok", 5: "ok" });
+  }
+  const d = new Trace("string FormatiereKunde(string text)", [
+    "<b>woerter</b> = text getrimmt, an ' ' zerlegt, leere Teile weg",
+    "für jedes Wort i: woerter[i] = erster Buchstabe groß + Rest klein",
+    "Rückgabe: woerter mit ' ' verbunden"]);
+  d.call('FormatiereKunde("  bäckerei huber")  // Zeile 6');
+  d.f(0, { text: "  bäckerei huber", woerter: ["bäckerei", "huber"], i: null, Rückgabe: null }, box("text", chars("  bäckerei huber", (i, ch) => ch === " " ? "gone" : "")), "2 Wörter.");
+  d.f(1, { text: "  bäckerei huber", woerter: ["Bäckerei", "huber"], i: 0, Rückgabe: null }, box("woerter[0]", chars("Bäckerei", i => i === 0 ? "new" : "ok")), "i = 0: b → B, Rest klein.");
+  d.f(1, { text: "  bäckerei huber", woerter: ["Bäckerei", "Huber"], i: 1, Rückgabe: null }, box("woerter[1]", chars("Huber", i => i === 0 ? "new" : "ok")), "i = 1: h → H, Rest klein.");
+  d.f(2, { text: "  bäckerei huber", woerter: ["Bäckerei", "Huber"], i: 1, Rückgabe: "Bäckerei Huber" }, box("Rückgabe", chars("Bäckerei Huber", () => "ok")), "Verbunden mit einem Leerzeichen.");
+  return slideOf("Schritt 3 – Felder umwandeln", "Werte aus echten Auftragszeilen durch die vier Funktionen.", a, b, c, d);
+}
+
+// ===================== Schritt 4 =====================
+function s4() {
+  const t = new Trace("bool TryParseAuftrag(string zeile, out (...) auftrag, out string fehlergrund)", [
+    "🔧 Reparatur: Leerzeichen und ';' am Zeilenende abschneiden (TrimEnd)",
+    "<b>teile</b> = zeile am ';' zerlegen",
+    "Guard ❌: nicht genau 5 Teile → \"{Anzahl} statt 5 Felder\"",
+    "TryLeseFeld für nummer, start, ziel, gewicht, kunde – Guard ❌: eines false → \"Feld fehlt …\"",
+    "TryNormalisiereNummer – Guard ❌ → \"ungültige Auftragsnummer '…'\"",
+    "TryParseKoordinate für Start und Ziel – Guard ❌ → \"ungültige Koordinate\"",
+    "TryParseGewicht – Guard ❌ → \"ungültiges Gewicht\"",
+    "✅ auftrag = (nummer, start, ziel, gewicht, FormatiereKunde(kunde)) → true"]);
+  for (const nr of [6, 13, 10, 16, 19]) {
+    const roh = AUFTRAEGE[nr - 1].trim(), z = roh.replace(/[ ;]+$/, ""), teile = z.split(";");
+    const v = { zeile: roh, teile: null, nummerText: null, startText: null, zielText: null, gewichtText: null, kundeText: null, auftrag: null, fehlergrund: "", Rückgabe: null };
+    const fv = (x = "") => `${fileView(AUFTRAEGE, nr - 1, {}, true)}${x}`;
+    const parts = cls => `<div class="row">${teile.map((p, i) => chip(`[${i}]${p}`, cls(i))).join("")}</div>`;
+    t.call(`TryParseAuftrag(zeile, out auftrag, out fehlergrund)  // Zeile ${nr}`);
+    if (z !== roh) {
+      t.f(0, v, fv(box("zeile (Ende)", chars(roh.slice(-12), (i, c) => i >= 12 - (roh.length - z.length) ? "bad" : ""))), `Die Zeile endet mit '${roh.slice(z.length)}'. Ohne Reparatur gäbe Split ein leeres 6. Feld → „6 statt 5 Felder“. Eindeutig nichts gemeint → 🔧 abschneiden.`, { 0: "ok" });
+      v.zeile = z;
+    } else t.f(0, v, fv(), "Kein ';' am Ende → nichts zu reparieren.");
+    v.teile = R(`string[${teile.length}]`); t.f(1, v, fv(parts(() => "")), `Zeile ${nr} zerlegt in <b>${teile.length}</b> Teile.`);
+    if (teile.length !== 5) { v.fehlergrund = `${teile.length} statt 5 Felder`; v.Rückgabe = false; t.f(2, v, fv(parts(() => "bad") + `<div class="badge bad">❌ ${v.fehlergrund}</div>`), "Guard ❌ → fehlergrund setzen, return false. (Das Ziel fehlt – woher sollten wir es nehmen?)", { 2: "bad" }); continue; }
+    const m = { 2: "ok" }; t.f(2, v, fv(parts(() => "ok")), "Genau 5 Teile ✔.", m);
+    ["nummer", "start", "ziel", "gewicht", "kunde"].forEach((k, i) => v[k + "Text"] = leseFeld(teile[i], k));
+    m[3] = "ok"; t.f(3, v, fv(parts(() => "ok")), "Alle 5 Schlüssel passen, alle Werte vorhanden.", m);
+    const n = normNr(v.nummerText);
+    if (!n) { m[4] = "bad"; v.fehlergrund = `ungültige Auftragsnummer '${v.nummerText}'`; v.Rückgabe = false; t.f(4, v, fv(parts(i => i === 0 ? "bad" : "dim") + `<div class="badge bad">❌ ${esc(v.fehlergrund)}</div>`), "TryNormalisiereNummer liefert false → early exit. Die restlichen Felder werden gar nicht mehr umgewandelt.", m); continue; }
+    m[4] = "ok"; v.nummer = n; t.f(4, v, fv(parts(i => i === 0 ? "ok" : "")), `"${v.nummerText}" → <b>${n}</b>.`, m);
+    const s = koord(v.startText), zi = koord(v.zielText); v.start = R(`(${s})`); v.ziel = R(`(${zi})`); m[5] = "ok";
+    t.f(5, v, fv(parts(i => i <= 2 ? "ok" : "")), `Start und Ziel umgewandelt.${v.startText.includes("(") ? " 🔧 Die Klammern hat TryParseKoordinate entfernt." : ""}`, m);
+    const g = gewicht(v.gewichtText);
+    if (!g) { m[6] = "bad"; v.fehlergrund = `${n} – ungültiges Gewicht '${v.gewichtText}'`; v.Rückgabe = false; t.f(6, v, fv(parts(i => i === 3 ? "bad" : i < 3 ? "ok" : "dim") + `<div class="badge bad">❌ ${esc(v.fehlergrund)}</div>`), "TryParseGewicht liefert false → early exit.", m); continue; }
+    v.gewicht = g; m[6] = "ok"; t.f(6, v, fv(parts(i => i <= 3 ? "ok" : "")), `Gewicht ${fmt(g)} kg.${v.gewichtText.endsWith("kg") ? "" : " 🔧 Aus Gramm umgerechnet."}`, m);
+    v.auftrag = R(`(${n}, (${s[0]}, ${s[1]}), (${zi[0]}, ${zi[1]}), ${String(g).replace(".", ",")}, ${kunde(v.kundeText)})`); v.Rückgabe = true;
+    t.f(7, v, fv(`<div class="badge ok">✅ ${esc(v.auftrag.t)}</div>`), "Alle Guards bestanden → Named Tuple zurück.", m);
+  }
+  return slideOf("Schritt 4 – TryParseAuftrag", "Fünf echte Zeilen: gültig, Feld fehlt, falsche Nummer, repariert, falsches Gewicht.", t);
+}
+
+// ===================== Schritt 5 =====================
+function s5() {
+  const t = new Trace("double BerechneDistanzFelder(start, ziel)  +  double BerechnePreis(streckeKm, gewichtKg)", [
+    "<b>dx</b> = ziel.X − start.X; <b>dy</b> = ziel.Y − start.Y",
+    "Rückgabe √(dx · dx + dy · dy)",
+    "Hauptprogramm: <b>streckeKm</b> = Distanz · KmProFeld (0,5)",
+    "<b>preis</b> = Grundgebuehr (3,50) + streckeKm · PreisProKm (1,20)",
+    "gewichtKg &gt; FreigewichtKg (2)? → preis += (gewichtKg − 2) · ZuschlagProKg (0,80)",
+    "Rückgabe preis auf 2 Stellen gerundet"]);
+  for (const [nr, s, z, kg, nrS] of [[5, [1, 1], [6, 5], 1.5, "LF-0007"], [6, [2, 9], [17, 3], 3.2, "LF-0012"]]) {
+    const v = { start: P(...s), ziel: P(...z), dx: null, dy: null, distanz: null, streckeKm: null, gewichtKg: kg, preis: null };
+    t.call(`${nrS} – Zeile ${nr}`);
+    v.dx = z[0] - s[0]; v.dy = z[1] - s[1]; t.f(0, v, karte([s, z]), `dx = ${z[0]} − ${s[0]} = <b>${v.dx}</b>, dy = ${z[1]} − ${s[1]} = <b>${v.dy}</b>. (Ein negatives dy heißt: nach oben.)`);
+    const dist = Math.sqrt(v.dx * v.dx + v.dy * v.dy); v.distanz = R(dist.toFixed(4));
+    t.f(1, v, `<div class="row">${chip(`√(${v.dx}·${v.dx} + ${v.dy}·${v.dy}) = √${v.dx * v.dx + v.dy * v.dy} = ${dist.toFixed(2)}`, "ok")}</div>`, "Pythagoras: die Luftlinie in Feldern.");
+    v.streckeKm = R((dist * 0.5).toFixed(4)); t.f(2, v, `<div class="row">${chip(`${dist.toFixed(2)} · 0,5 = ${fmt(dist * 0.5)} km`, "ok")}</div>`, "1 Feld = 0,5 km.");
+    let p = 3.5 + dist * 0.5 * 1.2; v.preis = R(p.toFixed(4));
+    t.f(3, v, `<div class="row">${chip(`3,50 + ${fmt(dist * 0.5)} · 1,20 = ${fmt(p)} €`, "ok")}</div>`, "Grundgebühr plus Kilometerpreis (noch ungerundet).");
+    if (kg > 2) { p += (kg - 2) * 0.8; v.preis = R(p.toFixed(4)); t.f(4, v, `<div class="row">${chip(`+ (${fmt(kg)} − 2) · 0,80 = + ${fmt((kg - 2) * 0.8)} €`, "bad")}</div>`, `${fmt(kg)} kg &gt; 2 kg → Zuschlag.`, { 4: "ok" }); }
+    else t.f(4, v, `<div class="row">${chip(`${fmt(kg)} kg ≤ 2 kg`, "dim")}</div>`, "Unter dem Freigewicht → kein Zuschlag.", { 4: "bad" });
+    v.preis = Math.round(p * 100) / 100; t.f(5, v, `<div class="badge ok">✅ ${fmt(v.preis)} €</div>`, `Gerundet auf 2 Nachkommastellen → <b>${fmt(v.preis)} €</b>.`);
+  }
+  return slideOf("Schritt 5 – Strecke und Preis", "Zwei echte Aufträge werden durchgerechnet.", t);
+}
+
+// ===================== Schritt 6 =====================
+function s6() {
+  const t = new Trace("bool IstAufRoute(start, ziel, int x, int y)", [
+    "<b>dx</b> = ziel.X − start.X; <b>dy</b> = ziel.Y − start.Y",
+    "|dx| ≥ |dy| (flach)? → Laufachse x:",
+    "   ↳ Guard ❌: x nicht zwischen start.X und ziel.X (Min/Max) → false",
+    "   ↳ <b>k</b> = dy / dx (dx = 0 → 0); Rückgabe y == start.Y + Round(k · (x − start.X))",
+    "sonst (steil) → Laufachse y:",
+    "   ↳ Guard ❌: y nicht zwischen start.Y und ziel.Y → false",
+    "   ↳ <b>k'</b> = dx / dy; Rückgabe x == start.X + Round(k' · (y − start.Y))"]);
+  for (const [nrS, s, z, x, y] of [["LF-0007", [1, 1], [6, 5], 4, 3], ["LF-0007", [1, 1], [6, 5], 2, 4], ["LF-0013", [15, 2], [3, 2], 16, 2], ["LF-0013", [15, 2], [3, 2], 7, 2], ["LF-0014", [4, 10], [6, 1], 5, 6], ["LF-0014", [4, 10], [6, 1], 4, 6]]) {
+    const dx = z[0] - s[0], dy = z[1] - s[1], flach = Math.abs(dx) >= Math.abs(dy), r = aufRoute(s, z, x, y);
+    const v = { start: P(...s), ziel: P(...z), x, y, dx: null, dy: null, flach: null, k: null, soll: null, Rückgabe: null };
+    const kv = (pr) => karte([s, z], { [x + "," + y]: pr });
+    t.call(`IstAufRoute((${s}), (${z}), ${x}, ${y})  // ${nrS}`);
+    v.dx = dx; v.dy = dy; t.f(0, v, kv("ok"), `Ist das Feld (${x}|${y}) Teil der Route von ${nrS}?`);
+    v.flach = flach;
+    if (flach) {
+      t.f(1, v, kv("ok"), `|${dx}| ≥ |${dy}| → <b>flach</b>, wir laufen über x.${dx < 0 ? " dx ist negativ – das Ziel liegt links!" : ""}`, { 1: "ok" });
+      const lo = Math.min(s[0], z[0]), hi = Math.max(s[0], z[0]);
+      if (x < lo || x > hi) { v.Rückgabe = false; t.f(2, v, kv("bad"), `x = ${x} liegt nicht zwischen ${lo} und ${hi} → false. (Ohne Min/Max würde das bei dx &lt; 0 nicht funktionieren.)`, { 1: "ok", 2: "bad" }); continue; }
+      t.f(2, v, kv("ok"), `${lo} ≤ ${x} ≤ ${hi} ✔.`, { 1: "ok", 2: "ok" });
+      const k = dx === 0 ? 0 : dy / dx, soll = s[1] + roundEven(k * (x - s[0]));
+      v.k = R(k.toFixed(3)); v.soll = soll; v.Rückgabe = r;
+      t.f(3, v, `${kv(r ? "ok" : "bad")}<div class="row">${chip(`soll y = ${s[1]} + Round(${k.toFixed(2)} · ${x - s[0]}) = ${soll}`, r ? "ok" : "bad")}</div>`, `Auf der Geraden liegt bei x = ${x} das Feld y = ${soll}. Unser y ist ${y} → <b>${r}</b>.`, { 1: "ok", 2: "ok", 3: r ? "ok" : "bad" });
+    } else {
+      t.f(4, v, kv("ok"), `|${dx}| &lt; |${dy}| → <b>steil</b>. Mit x als Laufachse gäbe es Lücken, also laufen wir über y.`, { 1: "bad", 4: "ok" });
+      t.f(5, v, kv("ok"), `${Math.min(s[1], z[1])} ≤ ${y} ≤ ${Math.max(s[1], z[1])} ✔.`, { 1: "bad", 4: "ok", 5: "ok" });
+      const k = dx / dy, soll = s[0] + roundEven(k * (y - s[1]));
+      v.k = R(k.toFixed(3)); v.soll = soll; v.Rückgabe = r;
+      t.f(6, v, `${kv(r ? "ok" : "bad")}<div class="row">${chip(`soll x = ${s[0]} + Round(${k.toFixed(2)} · ${y - s[1]}) = ${soll}`, r ? "ok" : "bad")}</div>`, `In Zeile y = ${y} liegt die Route bei x = ${soll}. Unser x ist ${x} → <b>${r}</b>.`, { 1: "bad", 4: "ok", 5: "ok", 6: r ? "ok" : "bad" });
+    }
+  }
+  const f = new Trace("bool IstRouteFrei(string[] plan, start, ziel)", [
+    "für jede Zeile y, für jedes x:",
+    "   plan[y][x] ist '#' und IstAufRoute(start, ziel, x, y)? → false",
+    "nichts gefunden → true"]);
+  f.call("IstRouteFrei(stadtplan, (0, 10), (19, 10))  // LF-0019");
+  f.f(0, { y: 0, x: 0, "plan[y][x]": C("."), aufRoute: null, Rückgabe: null }, karte([[0, 10], [19, 10]], {}, 99, [0, 0]), "Der ganze Plan wird Zeile für Zeile durchsucht. Zeilen 0–7 haben gar kein '#'.");
+  for (const [x, y] of [[9, 8], [10, 8], [9, 9], [10, 9], [9, 10]]) {
+    const on = aufRoute([0, 10], [19, 10], x, y);
+    f.f(1, { y, x, "plan[y][x]": C("#"), aufRoute: on, Rückgabe: on ? false : null }, karte([[0, 10], [19, 10]], { [x + "," + y]: on ? "bad" : "ok" }), on ? `(${x}|${y}) ist '#' <b>und</b> liegt auf der Route → sofort <b>false</b>.` : `(${x}|${y}) ist '#', liegt aber nicht auf der Route → weiter suchen.`, { 1: on ? "bad" : "ok" });
+  }
+  const k = new Trace("void ZeichneKarte(string[] plan, start, ziel)", [
+    "für jede Zeile y: <b>zeile</b> = \"\"",
+    "   für jedes x: <b>feld</b> = plan[y][x]",
+    "   (x|y) ist Start? → 'S'; sonst Ziel? → 'Z'",
+    "   sonst IstAufRoute? → plan[y][x] ist '#' ? 'X' : '*'",
+    "   zeile += feld + \" \"",
+    "zeile ohne letztes Leerzeichen ausgeben"]);
+  k.call("ZeichneKarte(stadtplan, (4, 10), (6, 1))  // LF-0014");
+  for (let y = 0; y < 12; y++) {
+    let z = ""; for (let x = 0; x < 20; x++) { let c = PLAN[y][x]; if (x === 4 && y === 10) c = "S"; else if (x === 6 && y === 1) c = "Z"; else if (aufRoute([4, 10], [6, 1], x, y)) c = c === "#" ? "X" : "*"; z += c + " "; }
+    if (y === 4 || y === 10 || y === 0) {
+      for (const x of (y === 10 ? [3, 4, 5] : [4, 5, 6])) {
+        let feld = PLAN[y][x], step = 1; if (x === 4 && y === 10) { feld = "S"; step = 2; } else if (aufRoute([4, 10], [6, 1], x, y)) { feld = "*"; step = 3; }
+        k.f(step, { y, x, feld: C(feld), zeile: z.substring(0, 2 * x + 2) }, karte([[4, 10], [6, 1]], { [x + "," + y]: "ok" }, y - 1), `y = ${y}, x = ${x}: ${step === 2 ? "Start → 'S'" : step === 3 ? "liegt auf der Route → '*'" : `nicht Start/Ziel/Route → '${feld}' aus dem Plan`}.`);
+      }
+    }
+    k.f(5, { y, x: 19, zeile: z.trimEnd() }, karte([[4, 10], [6, 1]], {}, y), `Zeile ${y} fertig und ausgegeben.`);
+  }
+  return slideOf("Schritt 6 – IstAufRoute, IstRouteFrei, ZeichneKarte", "Einzelne Felder echter Routen prüfen, Sperrzone suchen, Karte zeilenweise aufbauen.", t, f, k);
+}
+
+// ===================== Schritt 7 =====================
+function s7() {
+  const t = new Trace("Hauptprogramm", [
+    "Guard ❌ Dateien fehlen; einlesen; Kopfzeile in berichtZeilen; <b>bekannteNummern</b> = leeres Array",
+    "foreach über alle Zeilen: <b>zeilenNummer</b> um 1 erhöhen; <b>zeile</b> = Zeile getrimmt",
+    "Guard ❌: leer oder Kommentar → continue",
+    "Guard ❌: TryParseAuftrag false → Fehler \"Zeile {zeilenNummer}: …\", continue",
+    "foreach über bekannteNummern – Guard ❌: Nummer schon dabei → \"doppelte Auftragsnummer\", continue; sonst Nummer merken",
+    "Guard ❌: Start oder Ziel nicht IstImStadtplan → Fehler, continue",
+    "Guard ❌: Start == Ziel → \"Start und Ziel sind gleich\", continue",
+    "<b>streckeKm</b> = BerechneDistanzFelder · 0,5",
+    "Guard ❌: gewicht &gt; MaxGewichtKg (5) → Fehler, continue",
+    "Guard ❌: streckeKm &gt; MaxStreckeKm (10) → Fehler, continue",
+    "<b>frei</b> = IstRouteFrei; Karte ausgeben",
+    "Guard ❌: nicht frei → Fehler, continue",
+    "✅ preis berechnen, Berichtzeile merken, gesamtUmsatz += preis, längste Strecke merken",
+    "Trennlinie, Gesamtumsatz, längste Strecke; Kuerze; Dateien schreiben"]);
+  const bericht = ["NUMMER   KUNDE                  STRECKE   GEWICHT     PREIS"], fehler = [], marks = {}, bekannt = [];
+  let umsatz = 0, lang = 0, langNr = "-", map = null;
+  const V = (i, x = {}) => ({ zeilenNummer: i === null ? null : i + 1, nummer: null, start: null, ziel: null, gewicht: null, streckeKm: null, frei: null, preis: null, bekannteNummern: [...bekannt], gesamtUmsatz: R(fmt(umsatz)), anzahlFehler: fehler.length, ...x });
+  const view = cur => `<div class="cols">${fileView(AUFTRAEGE, cur, marks, true)}<div class="box">${map ? karte(map) : ""}
+    ${box("bericht", `<div class="log" style="font-size:10.5px">${bericht.map((b, k) => `<span class="p ${k === bericht.length - 1 ? "new" : ""}">${esc(b)}</span>`).join("\n")}</div>`)}
+    ${box("fehler", `<div class="log" style="font-size:10.5px">${fehler.map(e => `<span class="e">${esc(e)}</span>`).join("\n")}</div>`)}</div></div>`;
+  const notiz = { 16: " 🔧 Klammern, Gramm und das ';' am Ende wurden beim Zerlegen repariert.", 20: " „2,5 kg“ mit Leerzeichen: TryParse verträgt Leerzeichen am Rand – hier ist nichts zu tun." };
+  t.call("");
+  t.f(0, V(null), view(-1), "Beide Dateien da, eingelesen, Kopfzeile ist die erste Berichtzeile.", { 0: "ok" });
+  AUFTRAEGE.forEach((raw, i) => {
+    const z = raw.trim(), nr = i + 1; map = null;
+    if (!z || z.startsWith("#")) { marks[i] = "skip"; t.f(2, V(i), view(i), `zeilenNummer = ${nr}: ${z ? "Kommentar" : "Leerzeile"} → continue.`, { 2: "bad" }); return; }
+    const ok = { 2: "ok" }; const fail = (st, msg, x, why = "") => { fehler.push(`Zeile ${nr}: ${msg}`); marks[i] = "err"; t.f(st, V(i, x), view(i), `Zeile ${nr}: ❌ ${esc(msg)} → continue.${why}`, { ...ok, [st]: "bad" }); };
+    const p = parseAuftrag(z);
+    if (p.e) return fail(3, p.e);
+    const a = p.a; ok[3] = "ok"; const x = { nummer: a.n, start: P(...a.s), ziel: P(...a.z), gewicht: a.g };
+    t.f(3, V(i, x), view(i), `Zeile ${nr}: Auftrag <b>${a.n}</b> erfolgreich zerlegt.${notiz[nr] || ""}`, ok);
+    if (bekannt.includes(a.n)) return fail(4, `${a.n} – doppelte Auftragsnummer`, x, ` ${a.n} steht schon in bekannteNummern (aus Zeile 6). Welcher der beiden Aufträge gilt? Nicht raten!`);
+    bekannt.push(a.n); ok[4] = "ok";
+    const inP = q => q[0] >= 0 && q[1] >= 0 && q[1] < 12 && q[0] < 20;
+    if (!inP(a.s) || !inP(a.z)) return fail(5, `${a.n} – Koordinate außerhalb des Stadtplans`, x);
+    ok[5] = "ok";
+    if (a.s[0] === a.z[0] && a.s[1] === a.z[1]) return fail(6, `${a.n} – Start und Ziel sind gleich`, x, " Wohin soll geliefert werden?");
+    ok[6] = "ok";
+    const km = Math.sqrt((a.z[0] - a.s[0]) ** 2 + (a.z[1] - a.s[1]) ** 2) * 0.5; x.streckeKm = R(fmt(km));
+    t.f(7, V(i, x), view(i), `streckeKm = ${fmt(km)}.`, ok);
+    if (a.g > 5) return fail(8, `${a.n} – zu schwer (${fmt(a.g)} kg, max. 5,00 kg)`, x);
+    ok[8] = "ok"; if (km > 10) return fail(9, `${a.n} – Strecke zu lang (${fmt(km)} km)`, x);
+    ok[9] = "ok";
+    let frei = true; for (let yy = 0; yy < 12; yy++) for (let xx = 0; xx < 20; xx++) if (PLAN[yy][xx] === "#" && aufRoute(a.s, a.z, xx, yy)) frei = false;
+    x.frei = frei; map = [a.s, a.z];
+    t.f(10, V(i, x), view(i), `Route ${frei ? "ist frei" : "trifft eine Sperrzone (X)"} – die Karte wird in beiden Fällen ausgegeben.`, ok);
+    if (!frei) return fail(11, `${a.n} – Route durch Sperrzone`, x);
+    ok[11] = "ok";
+    const pr = preisVon(km, a.g); x.preis = R(fmt(pr)); umsatz += pr; if (km > lang) { lang = km; langNr = a.n; }
+    let k = a.k; if (k.length > 18) k = k.substring(0, 17) + "…";
+    bericht.push(a.n.padEnd(9) + k.padEnd(20) + `${fmt(km)} km`.padStart(10) + `${fmt(a.g)} kg`.padStart(10) + `${fmt(pr)} €`.padStart(10));
+    t.f(12, V(i, x), view(i), `✅ ${a.n}: ${fmt(pr)} € → Berichtzeile. gesamtUmsatz = ${fmt(umsatz)} €, längste Strecke bisher ${langNr}.`, { ...ok, 12: "ok" });
+  });
+  map = null;
+  bericht.push("-".repeat(59), `Gesamtumsatz: ${fmt(umsatz)} €`, `Längste Strecke: ${langNr} (${fmt(lang)} km)`);
+  t.f(13, V(null), view(-1), `Fertig: ${bericht.length - 4} Aufträge im Bericht, ${fehler.length} Fehler. Kuerze schneidet die leeren Plätze ab, dann werden bericht.txt und fehler.txt geschrieben.`);
+  return slideOf("Schritt 7 – Hauptprogramm", "Die ganze auftraege.txt, Zeile für Zeile, mit allen Guards in der Reihenfolge der Musterlösung.", t);
+}
+const slides = [s7(), s1(), s2(), s3(), s4(), s5(), s6()];
+
+// ===================== Steuerung =====================
+let s = 0, f = 0, timer = null;
+const $ = id => document.getElementById(id);
+
+const nrOf = sl => +(sl.title.match(/Schritt (\d+)/) || [0, 0])[1];
+$("nav").innerHTML = slides.map((sl, i) => (i === 1 ? '<span style="color:var(--muted);align-self:center;font-size:13px">danach die Methoden:</span>' : "") +
+  `<button data-i="${i}">${i === 0 ? "1. Gesamtablauf (Schritt " + nrOf(sl) + ")" : "Schritt " + nrOf(sl)}</button>`).join("");
+$("nav").addEventListener("click", e => { if (e.target.dataset.i) { stop(); s = +e.target.dataset.i; f = 0; render(); } });
+
+function render() {
+  const sl = slides[s], fr = sl.frames[f];
+  $("slideTitle").textContent = sl.title;
+  $("slideText").textContent = sl.text;
+  $("stage").innerHTML = fr.html;
+  $("caption").innerHTML = fr.caption;
+  $("counter").textContent = `${f + 1} / ${sl.frames.length}`;
+  [...$("nav").querySelectorAll("button")].forEach((b, i) => b.classList.toggle("active", i === s));
+  try { history.replaceState(null, "", "#schritt" + nrOf(slides[s])); } catch (e) {}
+}
+function next() {
+  if (f < slides[s].frames.length - 1) f++;
+  else if (s < slides.length - 1) { s++; f = 0; }
+  else stop();
+  render();
+}
+function prev() { if (f > 0) f--; else if (s > 0) { s--; f = slides[s].frames.length - 1; } render(); }
+function play() { if (timer) return stop(); $("btnPlay").textContent = "⏸ Pause"; timer = setInterval(() => {
+  if (f === slides[s].frames.length - 1) stop(); else next(); }, +$("speed").value); }
+function stop() { clearInterval(timer); timer = null; $("btnPlay").textContent = "▶ Abspielen"; }
+
+$("btnNext").onclick = () => { stop(); next(); };
+$("btnPrev").onclick = () => { stop(); prev(); };
+$("btnReset").onclick = () => { stop(); f = 0; render(); };
+$("btnPlay").onclick = play;
+$("speed").oninput = () => { if (timer) { stop(); play(); } };
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight") { stop(); next(); }
+  if (e.key === "ArrowLeft") { stop(); prev(); }
+  if (e.key === " ") { e.preventDefault(); play(); }
+});
+
+const m = location.hash.match(/schritt(\d)/);
+if (m) { const k = slides.findIndex(sl => nrOf(sl) === +m[1]); if (k >= 0) s = k; }
+render();
+</script>
+</body>
+</html>

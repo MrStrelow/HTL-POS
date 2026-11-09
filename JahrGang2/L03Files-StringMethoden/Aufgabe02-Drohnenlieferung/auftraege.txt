@@ -13,3 +13,8 @@ nummer=LF-17 ; start=3|3 ; ziel=8|8 ; gewicht=7,5kg ; kunde=schwer und co
 nummer=LF-18 ; start=2|5 ; gewicht=1kg ; kunde=vergessen ohg
 nummer=LF-19 ; start=0|10 ; ziel=19|10 ; gewicht=1kg ; kunde=quer durch gmbh
 nummer=LF-20 ; start=18|11 ; ziel=12|0 ; gewicht=4kg ; kunde=elektro maier
+nummer=LF-21 ; start=(5|3) ; ziel=(11|6) ; gewicht=800g ; kunde=café   CENTRAL ;
+nummer=LF-22 ; start=7|7 ; ziel=7|7 ; gewicht=1kg ; kunde=nirgendwo gmbh
+nummer=lf-12 ; start=1|2 ; ziel=3|4 ; gewicht=1kg ; kunde=doppelt kg
+nummer=LF-23 ; start=2|2 ; ziel=4|4 ; gewicht=-1kg ; kunde=minus ag
+nummer=LF-24 ; start=3|1 ; ziel=8|1 ; gewicht=2,5 kg ; kunde=leer zeichen og

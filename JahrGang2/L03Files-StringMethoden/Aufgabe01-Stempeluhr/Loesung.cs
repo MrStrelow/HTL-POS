@@ -8,7 +8,7 @@ Console.OutputEncoding = Encoding.UTF8;
 string eingabePfad = "../../../stempelzeiten.txt";
 string ausgabePfad = "../../../arbeitszeiten.txt";
 
-// ======================= Aufgabe 5: Hauptprogramm =======================
+// ======================= Schritt 6: Hauptprogramm =======================
 
 // Guard: ungewuenschter Zustand ❌ -> ohne Eingabefile koennen wir nichts tun (early exit)
 if (!File.Exists(eingabePfad))
@@ -19,16 +19,18 @@ if (!File.Exists(eingabePfad))
 
 string[] zeilen = File.ReadAllLines(eingabePfad);
 
+// Durchgang 1: gueltige Personen sammeln.
 // Wir wissen nicht, wie viele Zeilen gueltig sind -> gross genug anlegen und mitzaehlen
-string[] ausgabe = new string[zeilen.Length + 2];
-int anzahlAusgabe = 0;
+string[] namen = new string[zeilen.Length];
+int[] summen = new int[zeilen.Length];
+int anzahlPersonen = 0;
 
-ausgabe[anzahlAusgabe] = ErzeugeUeberschrift("Arbeitszeiten", '=', '=', 10);
-anzahlAusgabe++;
-
-for (int i = 0; i < zeilen.Length; i++)
+int zeilenNummer = 0;
+foreach (string rohZeile in zeilen)
 {
-    string zeile = zeilen[i].Trim();
+    // Zeilennummer selbst mitzaehlen – vor jedem continue!
+    zeilenNummer++;
+    string zeile = rohZeile.Trim();
 
     // Guard ❌: Kommentare und Leerzeilen ueberspringen
     if (string.IsNullOrWhiteSpace(zeile) || zeile.StartsWith("#"))
@@ -38,39 +40,60 @@ for (int i = 0; i < zeilen.Length; i++)
 
     string[] teile = zeile.Split(';');
     string name = FormatiereName(teile[0]);
+
+    // Guard ❌: ohne Namen wissen wir nicht, wem die Zeiten gehoeren
+    if (name.Length == 0)
+    {
+        Console.WriteLine($"⚠️ Zeile {zeilenNummer}: Name fehlt");
+        continue;
+    }
+
     int summe = SummiereZeiten(teile);
 
     // Guard ❌: ungueltige Zeile melden und ueberspringen
     if (summe < 0)
     {
-        Console.WriteLine($"⚠️ Zeile {i + 1}: ungültige Zeiten bei {name}");
+        Console.WriteLine($"⚠️ Zeile {zeilenNummer}: ungültige Zeiten bei {name}");
         continue;
     }
 
-    // gewuenschter Zustand ✅
-    ausgabe[anzahlAusgabe] = name.PadRight(16) + FormatiereDauer(summe).PadLeft(6) + " h";
-    anzahlAusgabe++;
+    // gewuenschter Zustand ✅: noch nicht ausgeben – die Spaltenbreite kennen wir erst am Ende!
+    namen[anzahlPersonen] = name;
+    summen[anzahlPersonen] = summe;
+    anzahlPersonen++;
 }
 
-// Nur die befuellten Zeilen in ein neues Array kopieren
-string[] fertig = new string[anzahlAusgabe];
-for (int i = 0; i < anzahlAusgabe; i++)
+// Nur die befuellten Namen in ein neues Array kopieren (for: zwei Arrays mit demselben Index)
+string[] gueltigeNamen = new string[anzahlPersonen];
+for (int i = 0; i < anzahlPersonen; i++)
 {
-    fertig[i] = ausgabe[i];
+    gueltigeNamen[i] = namen[i];
 }
 
-File.WriteAllLines(ausgabePfad, fertig);
+// Durchgang 2: erst jetzt kennen wir alle Namen -> Spaltenbreite bestimmen und Zeilen bauen
+int breite = BerechneSpaltenbreite(gueltigeNamen);
+
+string[] ausgabe = new string[anzahlPersonen + 1];
+// links, rechts und n weggelassen -> Default-Werte '=', '=' und 10
+ausgabe[0] = ErzeugeUeberschrift("Arbeitszeiten");
+for (int i = 0; i < anzahlPersonen; i++)
+{
+    ausgabe[i + 1] = FormatiereZeile(namen[i], summen[i], breite);
+}
+
+File.WriteAllLines(ausgabePfad, ausgabe);
 
 Console.WriteLine();
-foreach (string z in fertig)
+foreach (string z in ausgabe)
 {
     Console.WriteLine(z);
 }
 
-// ======================= Aufgabe 1: Ueberschrift =======================
+// ======================= Schritt 2: Ueberschrift =======================
 
 // <n-mal links> + <s in Grossbuchstaben, getrimmt> + <n-mal rechts>
-string ErzeugeUeberschrift(string s, char links, char rechts, int n)
+// Default-Parameter: ohne Angabe 10-mal '=' links und rechts
+string ErzeugeUeberschrift(string s, char links = '=', char rechts = '=', int n = 10)
 {
     // Guard ❌: negative Anzahl
     if (n < 0)
@@ -93,12 +116,13 @@ string ErzeugeUeberschrift(string s, char links, char rechts, int n)
     return linkerRand + " " + text + " " + rechterRand;
 }
 
-// ======================= Aufgabe 2: Uhrzeit umrechnen =======================
+// ======================= Schritt 3: Uhrzeit umrechnen =======================
 
 // "7:30" -> 450 Minuten seit Mitternacht, -1 bei ungueltiger Uhrzeit
 int ZeitInMinuten(string text)
 {
-    text = text.Trim();
+    // Reparatur 🔧: "7.45" und "12,30" sind eindeutig gemeint -> wie "7:45" behandeln
+    text = text.Trim().Replace('.', ':').Replace(',', ':');
     int pos = text.IndexOf(':');
 
     // Guard ❌: kein Doppelpunkt
@@ -132,7 +156,7 @@ int ZeitInMinuten(string text)
     return h * 60 + m;
 }
 
-// ======================= Aufgabe 3: Zeitbereich =======================
+// ======================= Schritt 4: Zeitbereich =======================
 
 // "7:30-12:00" -> 270, -1 bei ungueltigem Bereich
 int DauerInMinuten(string bereich)
@@ -161,15 +185,19 @@ int DauerInMinuten(string bereich)
 // teile[0] ist der Name, alle weiteren Teile sind Zeitbereiche. -1 wenn etwas ungueltig ist.
 int SummiereZeiten(string[] teile)
 {
-    // Guard ❌: kein einziger Zeitbereich
-    if (teile.Length < 2)
-    {
-        return -1;
-    }
-
     int summe = 0;
+    int anzahlBereiche = 0;
+    int letztesEnde = -1;
+
+    // for statt foreach: wir starten bei 1, weil teile[0] der Name ist
     for (int i = 1; i < teile.Length; i++)
     {
+        // Reparatur 🔧: ein leerer Bereich (z.B. durch ein ';' am Zeilenende) wird einfach uebersprungen
+        if (string.IsNullOrWhiteSpace(teile[i]))
+        {
+            continue;
+        }
+
         int dauer = DauerInMinuten(teile[i]);
 
         // Guard ❌: ein ungueltiger Bereich macht die ganze Zeile ungueltig
@@ -178,14 +206,30 @@ int SummiereZeiten(string[] teile)
             return -1;
         }
 
+        int start = ZeitInMinuten(teile[i].Split('-')[0]);
+
+        // Guard ❌: Bereich beginnt, bevor der vorige zu Ende ist (Ueberlappung)
+        if (start < letztesEnde)
+        {
+            return -1;
+        }
+
+        letztesEnde = start + dauer;
         summe += dauer;
+        anzahlBereiche++;
+    }
+
+    // Guard ❌: kein einziger gueltiger Zeitbereich
+    if (anzahlBereiche == 0)
+    {
+        return -1;
     }
 
     // gewuenschter Zustand ✅
     return summe;
 }
 
-// ======================= Aufgabe 4: Formatieren =======================
+// ======================= Schritt 5: Formatieren =======================
 
 // "  mÜLLER anna " -> "Müller Anna"
 string FormatiereName(string text)
@@ -207,4 +251,47 @@ string FormatiereDauer(int minuten)
     int h = minuten / 60;
     int m = minuten % 60;
     return h + ":" + m.ToString().PadLeft(2, '0');
+}
+
+// Laenge des laengsten Namens. Ist er laenger als MaxNamenLaenge (Tippfehler, Copy-Paste ...),
+// zaehlt stattdessen der zweitlaengste – sonst waere die Tabelle fuer alle unlesbar breit.
+// MaxNamenLaenge ist ein Default-Parameter: wer nichts angibt, bekommt 255.
+int BerechneSpaltenbreite(string[] namen, int MaxNamenLaenge = 255)
+{
+    int laengste = 0;
+    int zweitLaengste = 0;
+
+    foreach (string name in namen)
+    {
+        if (name.Length > laengste)
+        {
+            zweitLaengste = laengste;
+            laengste = name.Length;
+        }
+        else if (name.Length > zweitLaengste)
+        {
+            zweitLaengste = name.Length;
+        }
+    }
+
+    // Guard ❌: Ausreisser -> den zweitlaengsten Namen verwenden
+    if (laengste > MaxNamenLaenge)
+    {
+        return zweitLaengste;
+    }
+
+    return laengste;
+}
+
+// ("Müller Anna", 495, 12) -> "Müller Anna       8:15 h"
+// Namen laenger als breite werden abgeschnitten und bekommen "..."
+string FormatiereZeile(string name, int minuten, int breite)
+{
+    // Guard ❌: zu langer Name -> abschneiden und "..." anhaengen (dann ist er genau breite + 3 lang)
+    if (name.Length > breite)
+    {
+        name = name.Substring(0, breite) + "...";
+    }
+
+    return name.PadRight(breite + 3) + FormatiereDauer(minuten).PadLeft(6) + " h";
 }

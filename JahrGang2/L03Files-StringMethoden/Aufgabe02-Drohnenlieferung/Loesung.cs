@@ -36,15 +36,23 @@ string[] fehlerZeilen = new string[zeilen.Length];
 int anzahlBericht = 0;
 int anzahlFehler = 0;
 
-berichtZeilen[anzahlBericht++] = ErzeugeKopfzeile();
+berichtZeilen[anzahlBericht] = ErzeugeKopfzeile();
+anzahlBericht++;
 
 double gesamtUmsatz = 0;
 double laengsteStrecke = 0;
 string laengsteNummer = "-";
 
-for (int i = 0; i < zeilen.Length; i++)
+// Alle bisher gelesenen Auftragsnummern, um Doppelte zu erkennen
+string[] bekannteNummern = new string[zeilen.Length];
+int anzahlBekannt = 0;
+
+int zeilenNummer = 0;
+foreach (string rohZeile in zeilen)
 {
-    string zeile = zeilen[i].Trim();
+    // Zeilennummer selbst mitzaehlen – vor jedem continue!
+    zeilenNummer++;
+    string zeile = rohZeile.Trim();
 
     // Kommentare und Leerzeilen ueberspringen
     if (string.IsNullOrWhiteSpace(zeile) || zeile.StartsWith("#"))
@@ -54,13 +62,43 @@ for (int i = 0; i < zeilen.Length; i++)
 
     if (!TryParseAuftrag(zeile, out var auftrag, out string fehlergrund))
     {
-        fehlerZeilen[anzahlFehler++] = $"Zeile {i + 1}: {fehlergrund}";
+        fehlerZeilen[anzahlFehler] = $"Zeile {zeilenNummer}: {fehlergrund}";
+        anzahlFehler++;
         continue;
     }
 
+    // Guard ❌: dieselbe Nummer gab es schon -> welcher der beiden Auftraege gilt? Nicht raten, melden!
+    bool doppelt = false;
+    foreach (string bekannte in bekannteNummern)
+    {
+        if (bekannte == auftrag.Nummer)
+        {
+            doppelt = true;
+        }
+    }
+
+    if (doppelt)
+    {
+        fehlerZeilen[anzahlFehler] = $"Zeile {zeilenNummer}: {auftrag.Nummer} – doppelte Auftragsnummer";
+        anzahlFehler++;
+        continue;
+    }
+
+    bekannteNummern[anzahlBekannt] = auftrag.Nummer;
+    anzahlBekannt++;
+
     if (!IstImStadtplan(stadtplan, auftrag.Start) || !IstImStadtplan(stadtplan, auftrag.Ziel))
     {
-        fehlerZeilen[anzahlFehler++] = $"Zeile {i + 1}: {auftrag.Nummer} – Koordinate außerhalb des Stadtplans";
+        fehlerZeilen[anzahlFehler] = $"Zeile {zeilenNummer}: {auftrag.Nummer} – Koordinate außerhalb des Stadtplans";
+        anzahlFehler++;
+        continue;
+    }
+
+    // Guard ❌: Start und Ziel gleich -> es gibt nichts zu liefern
+    if (auftrag.Start == auftrag.Ziel)
+    {
+        fehlerZeilen[anzahlFehler] = $"Zeile {zeilenNummer}: {auftrag.Nummer} – Start und Ziel sind gleich";
+        anzahlFehler++;
         continue;
     }
 
@@ -68,13 +106,15 @@ for (int i = 0; i < zeilen.Length; i++)
 
     if (auftrag.GewichtKg > MaxGewichtKg)
     {
-        fehlerZeilen[anzahlFehler++] = $"Zeile {i + 1}: {auftrag.Nummer} – zu schwer ({auftrag.GewichtKg:F2} kg, max. {MaxGewichtKg:F2} kg)";
+        fehlerZeilen[anzahlFehler] = $"Zeile {zeilenNummer}: {auftrag.Nummer} – zu schwer ({auftrag.GewichtKg:F2} kg, max. {MaxGewichtKg:F2} kg)";
+        anzahlFehler++;
         continue;
     }
 
     if (streckeKm > MaxStreckeKm)
     {
-        fehlerZeilen[anzahlFehler++] = $"Zeile {i + 1}: {auftrag.Nummer} – Strecke zu lang ({streckeKm:F2} km)";
+        fehlerZeilen[anzahlFehler] = $"Zeile {zeilenNummer}: {auftrag.Nummer} – Strecke zu lang ({streckeKm:F2} km)";
+        anzahlFehler++;
         continue;
     }
 
@@ -86,14 +126,16 @@ for (int i = 0; i < zeilen.Length; i++)
     if (!frei)
     {
         Console.WriteLine("⛔ Route führt durch eine Sperrzone (X)!");
-        fehlerZeilen[anzahlFehler++] = $"Zeile {i + 1}: {auftrag.Nummer} – Route durch Sperrzone";
+        fehlerZeilen[anzahlFehler] = $"Zeile {zeilenNummer}: {auftrag.Nummer} – Route durch Sperrzone";
+        anzahlFehler++;
         continue;
     }
 
     double preis = BerechnePreis(streckeKm, auftrag.GewichtKg);
     Console.WriteLine($"✅ {streckeKm:F2} km, {preis:F2} €");
 
-    berichtZeilen[anzahlBericht++] = FormatiereBerichtZeile(auftrag.Nummer, auftrag.Kunde, streckeKm, auftrag.GewichtKg, preis);
+    berichtZeilen[anzahlBericht] = FormatiereBerichtZeile(auftrag.Nummer, auftrag.Kunde, streckeKm, auftrag.GewichtKg, preis);
+    anzahlBericht++;
     gesamtUmsatz += preis;
 
     if (streckeKm > laengsteStrecke)
@@ -103,9 +145,12 @@ for (int i = 0; i < zeilen.Length; i++)
     }
 }
 
-berichtZeilen[anzahlBericht++] = new string('-', ErzeugeKopfzeile().Length);
-berichtZeilen[anzahlBericht++] = $"Gesamtumsatz: {gesamtUmsatz:F2} €";
-berichtZeilen[anzahlBericht++] = $"Längste Strecke: {laengsteNummer} ({laengsteStrecke:F2} km)";
+berichtZeilen[anzahlBericht] = new string('-', ErzeugeKopfzeile().Length);
+anzahlBericht++;
+berichtZeilen[anzahlBericht] = $"Gesamtumsatz: {gesamtUmsatz:F2} €";
+anzahlBericht++;
+berichtZeilen[anzahlBericht] = $"Längste Strecke: {laengsteNummer} ({laengsteStrecke:F2} km)";
+anzahlBericht++;
 
 File.WriteAllLines(berichtPfad, Kuerze(berichtZeilen, anzahlBericht));
 File.WriteAllLines(fehlerPfad, Kuerze(fehlerZeilen, anzahlFehler));
@@ -113,7 +158,7 @@ File.WriteAllLines(fehlerPfad, Kuerze(fehlerZeilen, anzahlFehler));
 Console.WriteLine("\n" + string.Join("\n", Kuerze(berichtZeilen, anzahlBericht)));
 Console.WriteLine($"\n{anzahlFehler} fehlerhafte Aufträge -> fehler.txt");
 
-// ======================= Aufgabe 1: Auftrag zerlegen =======================
+// ======================= Schritt 2 + 4: Auftrag zerlegen =======================
 
 // Liest "schluessel=wert" und liefert den getrimmten Wert, wenn der Schluessel passt.
 bool TryLeseFeld(string teil, string schluessel, out string wert)
@@ -140,6 +185,9 @@ bool TryParseAuftrag(string zeile, out (string Nummer, (int X, int Y) Start, (in
 {
     auftrag = ("", (0, 0), (0, 0), 0, "");
     fehlergrund = "";
+
+    // Reparatur 🔧: ein ';' am Zeilenende wuerde ein leeres 6. Feld erzeugen -> abschneiden
+    zeile = zeile.TrimEnd(' ', ';');
 
     string[] teile = zeile.Split(';');
 
@@ -181,10 +229,11 @@ bool TryParseAuftrag(string zeile, out (string Nummer, (int X, int Y) Start, (in
     return true;
 }
 
-// ======================= Aufgabe 2: Felder umwandeln =======================
+// ======================= Schritt 3: Felder umwandeln =======================
 
 // "lf-7" -> "LF-0007"
-bool TryNormalisiereNummer(string text, out string nummer)
+// Default-Parameter: Nummern haben normalerweise 4 Stellen
+bool TryNormalisiereNummer(string text, out string nummer, int stellen = 4)
 {
     nummer = "";
     text = text.ToUpper();
@@ -195,7 +244,7 @@ bool TryNormalisiereNummer(string text, out string nummer)
     }
 
     string ziffern = text.Substring(3);
-    if (ziffern.Length == 0 || ziffern.Length > 4)
+    if (ziffern.Length == 0 || ziffern.Length > stellen)
     {
         return false;
     }
@@ -208,7 +257,7 @@ bool TryNormalisiereNummer(string text, out string nummer)
         }
     }
 
-    nummer = "LF-" + ziffern.PadLeft(4, '0');
+    nummer = "LF-" + ziffern.PadLeft(stellen, '0');
     return true;
 }
 
@@ -216,6 +265,9 @@ bool TryNormalisiereNummer(string text, out string nummer)
 bool TryParseKoordinate(string text, out (int X, int Y) punkt)
 {
     punkt = (0, 0);
+
+    // Reparatur 🔧: "(5|3)" ist eindeutig gemeint -> Klammern entfernen
+    text = text.Replace("(", "").Replace(")", "");
 
     if (!text.Contains('|'))
     {
@@ -240,13 +292,40 @@ bool TryParseGewicht(string text, out double gewicht)
     gewicht = 0;
     text = text.ToLower().Trim();
 
-    if (!text.EndsWith("kg"))
+    // Reparatur 🔧: Angaben in Gramm ("800g") in kg umrechnen.
+    // Achtung Reihenfolge: "kg" endet auch mit "g" -> zuerst auf "kg" pruefen!
+    double faktor = 1;
+    string zahl;
+    if (text.EndsWith("kg"))
+    {
+        zahl = text.Substring(0, text.Length - 2);
+    }
+    else if (text.EndsWith("g"))
+    {
+        zahl = text.Substring(0, text.Length - 1);
+        faktor = 0.001;
+    }
+    else
     {
         return false;
     }
 
-    string zahl = text.Substring(0, text.Length - 2).Replace(',', '.');
-    return double.TryParse(zahl, NumberStyles.Float, CultureInfo.InvariantCulture, out gewicht) && gewicht > 0;
+    zahl = zahl.Replace(',', '.');
+    if (!double.TryParse(zahl, NumberStyles.Float, CultureInfo.InvariantCulture, out gewicht))
+    {
+        return false;
+    }
+
+    gewicht = gewicht * faktor;
+
+    // Guard ❌: ein Gewicht muss positiv sein
+    if (gewicht <= 0)
+    {
+        gewicht = 0;
+        return false;
+    }
+
+    return true;
 }
 
 // "  mÜLLER gmbh" -> "Müller Gmbh"
@@ -263,7 +342,7 @@ string FormatiereKunde(string text)
     return string.Join(" ", woerter);
 }
 
-// ======================= Aufgabe 3: Strecke und Preis =======================
+// ======================= Schritt 5: Strecke und Preis =======================
 
 double BerechneDistanzFelder((int X, int Y) start, (int X, int Y) ziel)
 {
@@ -284,7 +363,7 @@ double BerechnePreis(double streckeKm, double gewichtKg)
     return Math.Round(preis, 2);
 }
 
-// ======================= Aufgabe 5: Stadtplan und Route =======================
+// ======================= Schritt 6: Stadtplan und Route =======================
 
 bool IstImStadtplan(string[] plan, (int X, int Y) p)
 {
@@ -367,22 +446,25 @@ void ZeichneKarte(string[] plan, (int X, int Y) start, (int X, int Y) ziel)
     }
 }
 
-// ======================= Aufgabe 6: Bericht =======================
+// ======================= Schritt 7: Bericht =======================
 
-string ErzeugeKopfzeile()
+// Default-Parameter: die Kundenspalte ist fuer 18 Zeichen ausgelegt (+2 Abstand)
+string ErzeugeKopfzeile(int maxKundenLaenge = 18)
 {
-    return "NUMMER".PadRight(9) + "KUNDE".PadRight(20) + "STRECKE".PadLeft(10) + "GEWICHT".PadLeft(10) + "PREIS".PadLeft(10);
+    return "NUMMER".PadRight(9) + "KUNDE".PadRight(maxKundenLaenge + 2) + "STRECKE".PadLeft(10) + "GEWICHT".PadLeft(10) + "PREIS".PadLeft(10);
 }
 
-string FormatiereBerichtZeile(string nummer, string kunde, double km, double kg, double preis)
+// Default-Parameter: wie in ErzeugeKopfzeile – beide muessen zusammenpassen!
+string FormatiereBerichtZeile(string nummer, string kunde, double km, double kg, double preis, int maxKundenLaenge = 18)
 {
-    if (kunde.Length > 18)
+    // Guard ❌: zu langer Kundenname -> kuerzen, das "…" ist das letzte erlaubte Zeichen
+    if (kunde.Length > maxKundenLaenge)
     {
-        kunde = kunde.Substring(0, 17) + "…";
+        kunde = kunde.Substring(0, maxKundenLaenge - 1) + "…";
     }
 
     return nummer.PadRight(9)
-         + kunde.PadRight(20)
+         + kunde.PadRight(maxKundenLaenge + 2)
          + $"{km:F2} km".PadLeft(10)
          + $"{kg:F2} kg".PadLeft(10)
          + $"{preis:F2} €".PadLeft(10);

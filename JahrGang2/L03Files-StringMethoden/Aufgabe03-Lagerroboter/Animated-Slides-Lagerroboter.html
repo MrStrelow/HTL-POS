@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lagerroboter – Schritt für Schritt</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020617; --panel: #0f172a; --line: #1e293b; --muted: #64748b; --text: #f1f5f9;
+    --accent: #38bdf8; --ok: #34d399; --bad: #fb7185; --warn: #fbbf24; --pkg: #f59e0b; --wall: #475569;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+  .mono { font-family: 'Fira Code', monospace; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 12px 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 20px; color: var(--accent); }
+  header small { color: var(--muted); }
+  nav { display: flex; flex-wrap: wrap; gap: 6px; }
+  nav button { background: #111827; color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; font: inherit; font-size: 13px; }
+  nav button.active { color: var(--accent); border-color: var(--accent); background: rgba(56,189,248,.1); }
+  main { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 20px 16px; gap: 16px; }
+  .title { text-align: center; max-width: 900px; }
+  .title h2 { margin: 0 0 6px; font-size: 22px; }
+  .title p { margin: 0; color: #cbd5e1; }
+  .stage { width: 100%; max-width: 1000px; min-height: 380px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; overflow-x: auto; }
+  .caption { min-height: 48px; max-width: 900px; text-align: center; font-size: 17px; padding: 10px 16px; border-radius: 10px; background: rgba(56,189,248,.08); border: 1px solid rgba(56,189,248,.3); }
+  .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .controls button { background: #1e293b; color: var(--text); border: 1px solid #334155; border-radius: 8px; padding: 8px 14px; cursor: pointer; font: inherit; }
+  .controls button:hover { border-color: var(--accent); }
+  .controls .counter { color: var(--muted); font-size: 14px; min-width: 70px; text-align: center; }
+  .speed { color: var(--muted); font-size: 13px; display: flex; gap: 6px; align-items: center; }
+
+  .row { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .ch { width: 30px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: #111827; border: 1.5px solid #334155; font-family: 'Fira Code', monospace; font-size: 18px; transition: all .35s ease; position: relative; }
+  .ch .idx { position: absolute; bottom: -16px; font-size: 10px; color: var(--muted); }
+  .ch.space { color: transparent; background: repeating-linear-gradient(45deg, #111827, #111827 4px, #1f2937 4px, #1f2937 8px); }
+  .ch.hl { border-color: var(--warn); background: rgba(251,191,36,.18); transform: translateY(-4px); }
+  .ch.gone { opacity: .15; transform: scale(.8); }
+  .ch.ok { border-color: var(--ok); background: rgba(52,211,153,.15); }
+  .ch.bad { border-color: var(--bad); background: rgba(251,113,133,.15); }
+  .ch.new { animation: pop .5s ease; border-color: var(--ok); background: rgba(52,211,153,.2); }
+  .chip { padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--accent); background: rgba(56,189,248,.12); font-family: 'Fira Code', monospace; font-size: 18px; animation: pop .45s ease; }
+  .chip.ok { border-color: var(--ok); background: rgba(52,211,153,.15); }
+  .chip.bad { border-color: var(--bad); background: rgba(251,113,133,.15); }
+  .chip.dim { opacity: .35; }
+  .badge { padding: 6px 12px; border-radius: 8px; font-weight: 700; animation: pop .45s ease; }
+  .badge.ok { color: var(--ok); border: 1.5px solid var(--ok); background: rgba(52,211,153,.12); }
+  .badge.bad { color: var(--bad); border: 1.5px solid var(--bad); background: rgba(251,113,133,.12); }
+  .label { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+  .arrow { color: var(--muted); font-size: 22px; }
+
+  .grid { display: grid; gap: 3px; }
+  .cell { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 18px; background: #111827; border: 1px solid #1f2937; transition: all .3s ease; position: relative; }
+  .cell.wall { background: var(--wall); border-color: #64748b; }
+  .cell.pkg::after { content: "📦"; }
+  .cell.goal { background: rgba(52,211,153,.15); border-color: var(--ok); }
+  .cell.goal::after { content: "🏁"; font-size: 15px; }
+  .cell.probe-ok { outline: 3px solid var(--ok); z-index: 2; }
+  .cell.probe-bad { outline: 3px solid var(--bad); z-index: 2; }
+  .cell.trail { background: rgba(56,189,248,.12); }
+  .robot { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; transition: transform .35s ease; z-index: 3; }
+  .robot .dir { position: absolute; font-size: 14px; color: var(--accent); font-weight: 700; }
+  .carry { position: absolute; top: -8px; right: -6px; font-size: 13px; }
+
+  .file { border: 1px solid #334155; border-radius: 10px; background: #0b1222; padding: 10px 14px; font-family: 'Fira Code', monospace; font-size: 13px; line-height: 1.55; min-width: 260px; }
+  .file .ln { color: var(--muted); display: inline-block; width: 24px; }
+  .file .cur { background: rgba(56,189,248,.15); border-radius: 4px; }
+  .file .err { color: var(--bad); }
+  .file .skip { color: #475569; }
+  .arr { display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; max-width: 900px; }
+  .arr .slot { min-width: 46px; height: 34px; padding: 0 6px; border: 1.5px solid #334155; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-family: 'Fira Code', monospace; font-size: 11px; color: #cbd5e1; animation: pop .35s ease; }
+  .cols { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; align-items: flex-start; }
+  .compass { position: relative; width: 220px; height: 220px; border-radius: 50%; border: 2px dashed #334155; }
+  .compass .d { position: absolute; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; background: #111827; border: 2px solid #334155; transition: all .3s; }
+  .compass .d.on { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,.18); transform: scale(1.15); }
+  .compass .bot { position: absolute; left: 50%; top: 50%; width: 60px; height: 60px; margin: -30px; display: flex; align-items: center; justify-content: center; font-size: 34px; transition: transform .5s ease; }
+  .compass .needle { position: absolute; left: 50%; top: 50%; width: 4px; height: 70px; margin-left: -2px; margin-top: -70px; background: var(--accent); border-radius: 2px; transform-origin: 50% 100%; transition: transform .5s ease; }
+  .log { font-family: 'Fira Code', monospace; font-size: 12px; background: #0b1222; border: 1px solid #334155; border-radius: 10px; padding: 8px 12px; min-width: 300px; min-height: 60px; white-space: pre; }
+  .log .e { color: var(--bad); }
+  .log .p { color: #cbd5e1; }
+  .log .new { animation: flash 1s ease; }
+  .stat { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  .stat div { background: #111827; border: 1px solid #334155; border-radius: 8px; padding: 6px 12px; }
+  .cell.route { background: rgba(56,189,248,.25); border-color: var(--accent); color: var(--accent); }
+  .cell.hit { background: rgba(251,113,133,.35); border-color: var(--bad); color: var(--bad); font-weight: 700; }
+  .cell { font-family: 'Fira Code', monospace; font-size: 14px; }
+  @keyframes pop { 0% { transform: scale(.6); opacity: 0; } 70% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes flash { 0% { background: rgba(251,191,36,.35); } 100% { background: transparent; } }
+  @media (max-width: 600px) { .cell { width: 24px; height: 24px; font-size: 13px; } .ch { width: 22px; height: 30px; font-size: 14px; } }
+  .stage { max-width: 1320px !important; align-items: stretch !important; }
+  .trace { display: flex; gap: 22px; flex-wrap: wrap; width: 100%; align-items: flex-start; justify-content: center; }
+  .tview { flex: 1 1 460px; display: flex; flex-direction: column; align-items: center; gap: 14px; min-width: 0; }
+  .tside { flex: 0 1 430px; min-width: 300px; display: flex; flex-direction: column; gap: 6px; }
+  .sig { font-family: 'Fira Code', monospace; font-size: 14px; color: var(--accent); font-weight: 600; }
+  .sig .call { display: block; color: #cbd5e1; font-weight: 400; font-size: 12px; margin-top: 2px; }
+  .steps { margin: 0 0 8px; padding-left: 26px; font-size: 13.5px; }
+  .steps li { padding: 4px 8px; margin: 2px 0; border-radius: 6px; color: #94a3b8; transition: all .25s; }
+  .steps li.cur { background: rgba(56,189,248,.16); color: #fff; outline: 1.5px solid var(--accent); }
+  .steps li.ok::after { content: "  ✔"; color: var(--ok); font-weight: 700; }
+  .steps li.bad::after { content: "  ✘"; color: var(--bad); font-weight: 700; }
+  .vars { border-collapse: collapse; font-family: 'Fira Code', monospace; font-size: 12.5px; width: 100%; }
+  .vars td { border-bottom: 1px solid #1e293b; padding: 4px 8px; vertical-align: top; word-break: break-all; }
+  .vars td:first-child { color: #94a3b8; width: 38%; word-break: normal; }
+  .vars tr.chg td { background: rgba(251,191,36,.16); }
+  .vars tr.chg td:first-child { color: var(--warn); }
+  .v-str { color: #fde68a; } .v-num { color: #93c5fd; } .v-raw { color: #c4b5fd; } .v-none { color: #475569; }
+  .v-true { color: var(--ok); font-weight: 700; } .v-false { color: var(--bad); font-weight: 700; }
+  .box { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .file.small { font-size: 11px; line-height: 1.45; min-width: 0; max-width: 100%; overflow-x: auto; }
+  .file .cur { outline: 1px solid var(--accent); }
+  .ch.sel { border-color: var(--accent); background: rgba(56,189,248,.22); }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🤖 Lagerroboter R2-L4G</h1>
+    <small>Die Musterlösung Schritt für Schritt an den echten Daten: Ablauf, Variablen, Entscheidungen (ohne Code)</small>
+  </div>
+  <nav id="nav"></nav>
+</header>
+<main>
+  <div class="title"><h2 id="slideTitle"></h2><p id="slideText"></p></div>
+  <div class="stage" id="stage"></div>
+  <div class="caption" id="caption"></div>
+  <div class="controls">
+    <button id="btnReset" title="Von vorne">↺</button>
+    <button id="btnPrev">◀ zurück</button>
+    <span class="counter" id="counter"></span>
+    <button id="btnNext">weiter ▶</button>
+    <button id="btnPlay">▶ Abspielen</button>
+    <label class="speed">Tempo <input id="speed" type="range" min="300" max="2500" step="100" value="1400"></label>
+  </div>
+</main>
+
+<script>
+// ===================== Trace-Engine: Ablauf der Musterlösung + Variablen =====================
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const R = t => ({ t });                       // Rohtext (z. B. Tupel, Array-Beschreibung)
+const P = (x, y) => R(`(${x}|${y})`);        // Position
+const fmt = n => n.toFixed(2).replace(".", ",");
+function val(v) {
+  if (v === null || v === undefined) return '<span class="v-none">—</span>';
+  if (typeof v === "string") return `<span class="v-str">"${esc(v).replace(/ /g, "·")}"</span>`;
+  if (typeof v === "boolean") return `<span class="${v ? "v-true" : "v-false"}">${v}</span>`;
+  if (Array.isArray(v)) return `[${v.map(val).join(", ")}]`;
+  if (typeof v === "object" && "t" in v) return `<span class="v-raw">${esc(v.t)}</span>`;
+  if (typeof v === "object" && "c" in v) return `<span class="v-str">'${esc(v.c)}'</span>`;
+  return `<span class="v-num">${esc(v)}</span>`;
+}
+const C = c => ({ c });                       // char
+function chars(text, cls = () => "", showIdx = true) {
+  return `<div class="row">${[...text].map((c, i) =>
+    `<div class="ch ${c === " " ? "space" : ""} ${cls(i, c)}">${esc(c === " " ? "·" : c === "	" ? "⇥" : c)}${showIdx ? `<span class="idx">${i}</span>` : ""}</div>`).join("") || '<div class="ch gone">∅</div>'}</div>`;
+}
+function fileView(lines, cur = -1, marks = {}, small = false) {
+  return `<div class="file ${small ? "small" : ""}">${lines.map(l => l.length > 80 ? l.slice(0, 80) + " … (" + l.length + " Zeichen)" : l).map((l, i) =>
+    `<div class="${i === cur ? "cur" : ""} ${marks[i] || ""}"><span class="ln">${i + 1}</span>${esc(l).replace(/	/g, "⇥&nbsp;&nbsp;").replace(/ /g, "&nbsp;") || "&nbsp;"}</div>`).join("")}</div>`;
+}
+const chip = (t, c = "") => `<span class="chip ${c}" style="white-space:pre">${esc(t)}</span>`;
+const box = (label, inner) => `<div class="box"><div class="label">${label}</div>${inner}</div>`;
+
+class Trace {
+  constructor(fn, steps) { this.fn = fn; this.steps = steps; this.frames = []; this.prev = {}; }
+  call(sig) { this.sig = sig; this.prev = {}; return this; }
+  // cur: aktiver Ablauf-Schritt, vars: Variablen, view: Daten-Ansicht, cap: Erklärung, mark: {Schritt: "ok"|"bad"}
+  f(cur, vars, view, cap, mark = {}) {
+    const rows = Object.entries(vars).map(([k, v]) => {
+      const chg = JSON.stringify(this.prev[k]) !== JSON.stringify(v) && v !== null && v !== undefined;
+      return `<tr class="${chg ? "chg" : ""}"><td>${esc(k)}</td><td>${val(v)}</td></tr>`;
+    }).join("");
+    this.prev = JSON.parse(JSON.stringify(vars));
+    const steps = this.steps.map((s, i) =>
+      `<li class="${i === cur ? "cur" : ""} ${mark[i] || ""}">${s}</li>`).join("");
+    this.frames.push({
+      caption: cap,
+      html: `<div class="trace"><div class="tview">${view}</div>
+        <div class="tside"><div class="sig">${esc(this.fn)}${this.sig ? `<span class="call">${esc(this.sig)}</span>` : ""}</div>
+        <div class="label">Ablauf der Musterlösung</div><ol class="steps">${steps}</ol>
+        <div class="label">Variablen</div><table class="vars">${rows}</table></div></div>`
+    });
+    return this;
+  }
+}
+const slideOf = (title, text, ...traces) => ({ title, text, frames: traces.flatMap(t => t.frames) });
+
+// ===================== Daten (wie in den Dateien) =====================
+const LAGER = ["############", "#....P.....#", "#..##......#", "#..##...P..#", "#..........#", "#.###..##..#", "#.....Z....#", "############"];
+const BEFEHLE = ["# Befehle fuer den Lagerroboter R2-L4G", "# Format: befehl [anzahl]", "# Befehle: vor, zurueck, links, rechts, nimm, ablegen",
+  "# Start: (1|1), Blick nach Osten (O)", "", "  VOR 4", "nimm        # Paket bei (5|1)", "Rechts", "vor   2", "ablegen", "vor 3", "LINKS",
+  "spring 2", "vor 1", "ablegen", "", "vor x", "vor", "Links", "VOR   3", "rechts", "vor 2", "nimm", "NIMM", "zurueck 2", "rechts", "vor 5", "ablegen",
+  "", "# Nachtschicht", "ZURÜCK 1", "ablegen", "nimm", "vor\t2", "vor -2", "links 2", "vor 1 2"];
+const RICHTUNGEN = "NOSW";
+const ARROW = { N: "⬆", O: "➡", S: "⬇", W: "⬅" };
+function grid(lager, o = {}) {
+  const { robot, dir, carry, probes = {}, trail = new Set() } = o;
+  let h = `<div class="grid" style="grid-template-columns: repeat(${lager[0].length}, auto)">`;
+  for (let y = 0; y < lager.length; y++) for (let x = 0; x < lager[y].length; x++) {
+    const c = lager[y][x];
+    let cls = c === "#" ? "wall" : c === "P" ? "pkg" : c === "Z" ? "goal" : "";
+    if (trail.has(x + "," + y)) cls += " trail";
+    if (probes[x + "," + y]) cls += " probe-" + probes[x + "," + y];
+    const r = robot && robot[0] === x && robot[1] === y
+      ? `<div class="robot">🤖${carry ? '<span class="carry">📦</span>' : ""}<span class="dir" style="${{ N: "top:-12px", S: "bottom:-12px", O: "right:-12px", W: "left:-12px" }[dir]}">${ARROW[dir]}</span></div>` : "";
+    h += `<div class="cell ${cls}" title="(${x}|${y})">${r}</div>`;
+  }
+  return h + "</div>";
+}
+// --- Musterlösung in JS (für die Werte) ---
+function bereinige(z) { const k = z.indexOf("#"); if (k !== -1) z = z.substring(0, k); z = z.split("\t").join(" "); const w = z.split(" ").filter(s => s); return w.length ? w.join(" ").toLowerCase().split("ü").join("ue") : null; }
+function drehe(r, seite) { const i = RICHTUNGEN.indexOf(r); return RICHTUNGEN[(i + (seite === "rechts" ? 1 : 3)) % 4]; }
+function naechstes(p, r, s) { return r === "N" ? [p[0], p[1] - s] : r === "S" ? [p[0], p[1] + s] : r === "O" ? [p[0] + s, p[1]] : [p[0] - s, p[1]]; }
+function begehbar(l, p) { return !(p[1] < 0 || p[1] >= l.length || p[0] < 0 || p[0] >= l[p[1]].length) && l[p[1]][p[0]] !== "#"; }
+
+// ===================== Schritt 1 =====================
+function s1() {
+  const t = new Trace("string[] LeseDatei(string pfad)", [
+    "Prüfen: gibt es eine Datei unter <b>pfad</b>?",
+    "Guard ❌: nein → leeres Array zurückgeben",
+    "✅ ja → alle Zeilen einlesen und das Array zurückgeben"]);
+  const arr = n => `<div class="arr">${BEFEHLE.slice(0, n).map((l, i) => `<div class="slot" title="${esc(l)}">[${i}]</div>`).join("")}</div>`;
+  t.call('LeseDatei("../../../befehle.txt")');
+  t.f(0, { pfad: "../../../befehle.txt", "Datei existiert": null, Rückgabe: null }, `<div style="font-size:64px">📄❓</div>`, "Aufruf mit dem Pfad zu <b>befehle.txt</b>. Als Erstes wird geprüft, ob es die Datei gibt.");
+  t.f(0, { pfad: "../../../befehle.txt", "Datei existiert": true, Rückgabe: null }, `<div style="font-size:64px">📄✅</div>`, "Die Datei existiert → der Guard greift <b>nicht</b>.", { 0: "ok" });
+  t.f(2, { pfad: "../../../befehle.txt", "Datei existiert": true, Rückgabe: R("string[37]") }, `${fileView(BEFEHLE, -1, {}, true)}${box("Rückgabe: string[37]", arr(37))}`, "Jede der 37 Zeilen wird ein Element – auch Kommentare (1–4, 30) und Leerzeilen (5, 16, 29). Die räumt erst Schritt 2 weg.", { 0: "ok" });
+  t.call('LeseDatei("../../../gibtsnicht.txt")');
+  t.f(0, { pfad: "../../../gibtsnicht.txt", "Datei existiert": false, Rückgabe: null }, `<div style="font-size:64px">📄❌</div>`, "Zweiter Aufruf mit einem falschen Pfad: Die Datei gibt es nicht.", { 0: "bad" });
+  t.f(1, { pfad: "../../../gibtsnicht.txt", "Datei existiert": false, Rückgabe: R("string[0]") }, `<div class="badge bad">Rückgabe: leeres Array, Length = 0</div>`, "Guard ❌ greift: <b>early exit</b> mit einem leeren Array. Das Hauptprogramm erkennt das an <b>Length == 0</b>.", { 0: "bad", 1: "bad" });
+  return slideOf("Schritt 1 – LeseDatei", "File.Exists als Guard, dann File.ReadAllLines.", t);
+}
+
+// ===================== Schritt 2 =====================
+function s2() {
+  const t = new Trace("bool TryBereinigeZeile(string zeile, out string befehl)", [
+    "befehl = \"\"; <b>kommentarStart</b> = Position des ersten '#' in zeile (sonst -1)",
+    "kommentarStart ≠ -1? → <b>zeile</b> = nur der Teil vor dem '#'",
+    "🔧 Reparatur: jeden Tabulator in zeile durch ' ' ersetzen",
+    "<b>woerter</b> = zeile an ' ' zerlegen, leere Teile weglassen",
+    "Guard ❌: woerter hat 0 Elemente → false",
+    "✅ <b>befehl</b> = woerter mit einem ' ' verbunden, klein geschrieben",
+    "🔧 Reparatur: in befehl \"ü\" durch \"ue\" ersetzen → true"]);
+  for (const nr of [6, 7, 9, 1, 5, 31, 34]) {
+    const orig = BEFEHLE[nr - 1];
+    let z = orig; const k = z.indexOf("#");
+    const v = { zeile: z, kommentarStart: null, woerter: null, befehl: "", Rückgabe: null };
+    const fv = (hl, extra = "") => `${fileView(BEFEHLE, nr - 1, {}, true)}${box("zeile", chars(z, hl))}${extra}`;
+    t.call(`TryBereinigeZeile(zeile, out befehl)  // Zeile ${nr}`);
+    t.f(-1, v, fv(() => ""), `Zeile <b>${nr}</b> der Datei wird übergeben.`);
+    v.kommentarStart = k;
+    t.f(0, v, fv(i => i === k ? "hl" : ""), k === -1 ? "Es gibt <b>kein</b> '#' → kommentarStart = -1." : `Das erste '#' steht an Index <b>${k}</b>.`);
+    if (k !== -1) {
+      t.f(1, v, fv(i => i >= k ? "gone" : "ok"), `Alles ab Index ${k} ist Kommentar und fällt weg.`, { 1: "ok" });
+      z = z.substring(0, k); v.zeile = z;
+      t.f(1, v, fv(() => "ok"), `zeile ist jetzt nur noch der Teil davor (${k} Zeichen).`, { 1: "ok" });
+    } else t.f(1, v, fv(() => ""), "kommentarStart ist -1 → zeile bleibt, wie sie ist.", { 1: "bad" });
+    if (z.includes("\t")) {
+      t.f(2, v, fv((i, c) => c === "\t" ? "bad" : ""), "In zeile steckt ein <b>Tabulator</b> (⇥). Split(' ') würde ihn nicht als Trenner erkennen – „vor⇥2“ wäre <b>ein</b> Wort!", { 2: "ok" });
+      z = z.split("\t").join(" "); v.zeile = z;
+      t.f(2, v, fv((i, c) => c === " " ? "new" : ""), "Repariert: Der Tabulator ist jetzt ein Leerzeichen. Es war eindeutig, was gemeint war.", { 2: "ok" });
+    } else t.f(2, v, fv(() => ""), "Kein Tabulator → nichts zu reparieren.", {});
+    const w = z.split(" ").filter(s => s); v.woerter = w;
+    t.f(3, v, fv((i, c) => c === " " ? "gone" : "ok", `<div class="row">${w.map(x => chip(x)).join("") || chip("(keine Wörter)", "dim")}</div>`), `Zerlegen an jedem Leerzeichen – leere Stücke fallen weg. woerter hat <b>${w.length}</b> Element(e).`);
+    if (!w.length) {
+      v.Rückgabe = false;
+      t.f(4, v, fv(() => "gone", `<div class="badge bad">❌ false</div>`), "Guard ❌: keine Wörter → <b>false</b>. Das Hauptprogramm überspringt die Zeile mit continue.", { 4: "bad" });
+      continue;
+    }
+    t.f(4, v, fv(() => ""), `woerter ist nicht leer → Guard greift nicht.`, { 4: "ok" });
+    v.befehl = w.join(" ").toLowerCase();
+    t.f(5, v, `${fileView(BEFEHLE, nr - 1, {}, true)}${box("befehl", chars(v.befehl, () => "new"))}`, `Verbinden mit <b>einem</b> Leerzeichen und klein schreiben → <b>"${v.befehl}"</b>.`, { 4: "ok" });
+    if (v.befehl.includes("ü")) {
+      t.f(6, v, `${fileView(BEFEHLE, nr - 1, {}, true)}${box("befehl", chars(v.befehl, (i, c) => c === "ü" ? "bad" : ""))}`, "„zurück“ mit ü – unser Befehl heißt aber „zurueck“. Eindeutig gemeint → reparieren. (Erst jetzt, nach ToLower – so ist auch „Ü“ schon ein „ü“.)", { 4: "ok", 6: "ok" });
+      v.befehl = v.befehl.split("ü").join("ue");
+    }
+    v.Rückgabe = true;
+    t.f(6, v, `${fileView(BEFEHLE, nr - 1, {}, true)}${box("befehl", chars(v.befehl, () => "ok"))}<div class="badge ok">✅ true</div>`, `Rückgabe true, befehl = <b>"${v.befehl}"</b>.`, { 4: "ok" });
+  }
+  return slideOf("Schritt 2 – TryBereinigeZeile", "Sieben echte Zeilen aus befehle.txt – darunter zwei, die repariert werden.", t);
+}
+
+// ===================== Schritt 3 =====================
+function s3() {
+  const t = new Trace("bool TryParseBefehl(string befehl, out (string Name, int Anzahl) ergebnis, out string fehlergrund)", [
+    "<b>teile</b> = befehl an ' ' zerlegen; <b>name</b> = teile[0]",
+    "<b>mitAnzahl</b> = name ist \"vor\"/\"zurueck\"; <b>ohneAnzahl</b> = name ist \"links\"/\"rechts\"/\"nimm\"/\"ablegen\"",
+    "Guard ❌: weder mitAnzahl noch ohneAnzahl → \"unbekannter Befehl\"",
+    "Guard ❌: ohneAnzahl und mehr als 1 Teil → \"braucht keine Anzahl\"",
+    "ohneAnzahl → ergebnis = (name, 1), true",
+    "Guard ❌: weniger als 2 Teile → \"fehlende Anzahl\"",
+    "Guard ❌: mehr als 2 Teile → \"zu viele Angaben\"",
+    "Guard ❌: teile[1] ist keine Zahl oder &lt; 1 → \"ungültige Anzahl\"",
+    "✅ ergebnis = (name, anzahl), true"]);
+  for (const nr of [6, 7, 13, 17, 18, 35, 37]) {
+    const b = bereinige(BEFEHLE[nr - 1]); const teile = b.split(" "), name = teile[0];
+    const mit = name === "vor" || name === "zurueck", ohne = ["links", "rechts", "nimm", "ablegen"].includes(name);
+    const v = { befehl: b, teile: null, name: null, mitAnzahl: null, ohneAnzahl: null, ergebnis: R('("", 0)'), fehlergrund: "", Rückgabe: null };
+    const view = (x = "") => `${fileView(BEFEHLE, nr - 1, {}, true)}${box("befehl (aus Schritt 2)", chars(b))}${x}`;
+    const parts = () => `<div class="row">${teile.map((p, i) => chip(`teile[${i}] = ${p}`, i === 0 ? "" : "ok")).join("")}</div>`;
+    t.call(`TryParseBefehl("${b}", ...)  // Zeile ${nr}`);
+    t.f(-1, v, view(), `Der bereinigte Befehl aus Zeile <b>${nr}</b>.`);
+    v.teile = teile; v.name = name;
+    t.f(0, v, view(parts()), `Zerlegt in <b>${teile.length}</b> Teil(e). Der erste Teil ist der Name: <b>${name}</b>.`);
+    v.mitAnzahl = mit; v.ohneAnzahl = ohne;
+    t.f(1, v, view(parts()), `"${name}" ist ${mit ? "ein Befehl <b>mit</b> Anzahl" : ohne ? "ein Befehl <b>ohne</b> Anzahl" : "<b>keiner</b> der 6 Befehle"}.`);
+    const m = {};
+    if (!mit && !ohne) { m[2] = "bad"; v.fehlergrund = `unbekannter Befehl '${name}'`; v.Rückgabe = false; t.f(2, v, view(`<div class="badge bad">❌ ${esc(v.fehlergrund)}</div>`), "Guard ❌ greift → fehlergrund setzen und sofort <b>return false</b>.", m); continue; }
+    m[2] = "ok"; t.f(2, v, view(parts()), "Bekannter Befehl → weiter.", m);
+    if (ohne) {
+      m[3] = "ok"; t.f(3, v, view(parts()), "Nur 1 Teil → keine überflüssige Anzahl.", m);
+      v.ergebnis = R(`("${name}", 1)`); v.Rückgabe = true; m[4] = "ok";
+      t.f(4, v, view(`<div class="badge ok">✅ (${name}, 1)</div>`), "Befehl ohne Anzahl → Anzahl ist <b>1</b>, fertig: return true.", m); continue;
+    }
+    t.f(3, v, view(parts()), "mitAnzahl → dieser Guard betrifft uns nicht.", m);
+    t.f(4, v, view(parts()), "Kein Befehl ohne Anzahl → weiter.", m);
+    if (teile.length < 2) { m[5] = "bad"; v.fehlergrund = `fehlende Anzahl bei '${name}'`; v.Rückgabe = false; t.f(5, v, view(`<div class="badge bad">❌ ${esc(v.fehlergrund)}</div>`), `Nur ${teile.length} Teil → Guard ❌ greift.`, m); continue; }
+    m[5] = "ok"; t.f(5, v, view(parts()), "Mindestens 2 Teile ✔.", m);
+    if (teile.length > 2) { m[6] = "bad"; v.fehlergrund = `zu viele Angaben bei '${name}'`; v.Rückgabe = false; t.f(6, v, view(parts() + `<div class="badge bad">❌ ${esc(v.fehlergrund)}</div>`), `${teile.length} Teile: War ${teile.slice(1).join(" oder ")} gemeint? Das Programm darf nicht raten → Guard ❌.`, m); continue; }
+    m[6] = "ok"; t.f(6, v, view(parts()), "Genau 2 Teile ✔.", m);
+    const n = /^-?\d+$/.test(teile[1]) ? parseInt(teile[1]) : null;
+    v.anzahl = n;
+    if (n === null || n < 1) { m[7] = "bad"; v.fehlergrund = `ungültige Anzahl '${teile[1]}'`; v.Rückgabe = false; t.f(7, v, view(`<div class="badge bad">❌ ${esc(v.fehlergrund)}</div>`), n === null ? `"${teile[1]}" lässt sich nicht in eine Zahl umwandeln → Guard ❌.` : `${n} ist zwar eine Zahl, aber kleiner als 1 → Guard ❌. (Heißt „vor -2“ vielleicht „2 zurück“? Raten wäre gefährlich.)`, m); continue; }
+    m[7] = "ok"; v.ergebnis = R(`("${name}", ${n})`); v.Rückgabe = true;
+    t.f(8, v, view(`<div class="badge ok">✅ (${name}, ${n})</div>`), `"${teile[1]}" → ${n} ✔. Alle Guards bestanden → return true.`, m);
+  }
+  return slideOf("Schritt 3 – TryParseBefehl", "Sieben bereinigte Befehle aus der Datei – jeder endet bei einem anderen Guard.", t);
+}
+
+// ===================== Schritt 4 =====================
+function s4() {
+  const t = new Trace("char Drehe(char richtung, string seite)", [
+    "<b>index</b> = Position von richtung in \"NOSW\"",
+    "seite ist \"rechts\"? → Zeichen an (index + 1) % 4 zurückgeben",
+    "sonst (\"links\") → Zeichen an (index + 3) % 4 zurückgeben"]);
+  for (const [nr, r, seite] of [[8, "O", "rechts"], [12, "S", "links"], [19, "O", "links"]]) {
+    const i = RICHTUNGEN.indexOf(r), ni = (i + (seite === "rechts" ? 1 : 3)) % 4;
+    const v = { richtung: C(r), seite, index: null, neuerIndex: null, Rückgabe: null };
+    t.call(`Drehe('${r}', "${seite}")  // Zeile ${nr}: ${BEFEHLE[nr - 1].trim()}`);
+    t.f(-1, v, box("Richtungen", chars(RICHTUNGEN, k => k === i ? "sel" : "")), `Zeile <b>${nr}</b>: Der Roboter schaut nach <b>${r}</b> und soll sich nach <b>${seite}</b> drehen.`);
+    v.index = i; t.f(0, v, box("Richtungen", chars(RICHTUNGEN, k => k === i ? "hl" : "")), `'${r}' steht in "NOSW" an Index <b>${i}</b>.`);
+    v.neuerIndex = ni; v.Rückgabe = C(RICHTUNGEN[ni]);
+    const calc = seite === "rechts" ? `(${i} + 1) % 4 = ${ni}` : `(${i} + 3) % 4 = ${ni}`;
+    t.f(seite === "rechts" ? 1 : 2, v, `${box("Richtungen", chars(RICHTUNGEN, k => k === i ? "sel" : k === ni ? "new" : ""))}<div class="row">${chip(calc, "ok")}</div>`,
+      seite === "rechts" ? `Rechts = im Uhrzeigersinn = Index + 1 → <b>${RICHTUNGEN[ni]}</b>.` : `Links = Index − 1. Damit nie etwas Negatives entsteht, rechnen wir <b>+ 3</b> und % 4 → <b>${RICHTUNGEN[ni]}</b>.`,
+      seite === "rechts" ? { 1: "ok" } : { 1: "bad", 2: "ok" });
+  }
+  const n = new Trace("(int X, int Y) NaechstesFeld((int X, int Y) pos, char richtung, int schritt = 1)", [
+    "richtung 'N'? → (pos.X, pos.Y − schritt)", "richtung 'S'? → (pos.X, pos.Y + schritt)",
+    "richtung 'O'? → (pos.X + schritt, pos.Y)", "sonst ('W') → (pos.X − schritt, pos.Y)"]);
+  for (const [nr, p, r, s] of [[6, [1, 1], "O", 1], [20, [6, 6], "N", 1], [25, [8, 3], "O", -1]]) {
+    const q = naechstes(p, r, s), idx = { N: 0, S: 1, O: 2, W: 3 }[r], m = {};
+    for (let k = 0; k < idx; k++) m[k] = "bad"; m[idx] = "ok";
+    n.call(s === 1 ? `NaechstesFeld((${p}), '${r}')  // Zeile ${nr}: ${BEFEHLE[nr - 1].trim()} – schritt weggelassen → Default 1` : `NaechstesFeld((${p}), '${r}', ${s})  // Zeile ${nr}: ${BEFEHLE[nr - 1].trim()}`);
+    n.f(-1, { pos: P(...p), richtung: C(r), schritt: s, Rückgabe: null }, grid(LAGER, { robot: p, dir: r }), `Zeile <b>${nr}</b>: Roboter auf (${p[0]}|${p[1]}), Blick ${r}, schritt = ${s}${s < 0 ? " (zurueck: rückwärts fahren, nicht umdrehen!)" : " (vor)"}.`);
+    n.f(idx, { pos: P(...p), richtung: C(r), schritt: s, Rückgabe: P(...q) }, grid(LAGER, { robot: p, dir: r, probes: { [q.join(",")]: "ok" } }), `Die Prüfungen laufen von oben nach unten, bis '${r}' passt → nächstes Feld <b>(${q[0]}|${q[1]})</b>.`, m);
+  }
+  return slideOf("Schritt 4 – Drehe und NaechstesFeld", "Echte Dreh- und Fahrbefehle aus der Datei.", t, n);
+}
+
+// ===================== Schritt 5 =====================
+function s5() {
+  const t = new Trace("bool IstBegehbar(string[] lager, (int X, int Y) p)", [
+    "Guard ❌: p.Y &lt; 0 oder p.Y ≥ lager.Length (Anzahl Zeilen) → false",
+    "Guard ❌: p.X &lt; 0 oder p.X ≥ lager[p.Y].Length (Länge der Zeile) → false",
+    "✅ Rückgabe: lager[p.Y][p.X] ist nicht '#'"]);
+  for (const [p, info] of [[[2, 1], "Zeile 6, vor 4: 1. Feld"], [[3, 2], "Testfall: Feld im Regalblock"], [[6, 7], "Zeile 27, vor 5: 4. Feld"], [[20, 3], "Testfall: weit rechts außerhalb"], [[-1, 0], "Testfall: links außerhalb"]]) {
+    const v = { p: P(...p), "lager.Length": 8, "lager[p.Y].Length": null, zeichen: null, Rückgabe: null };
+    t.call(`IstBegehbar(lager, (${p}))  // ${info}`);
+    const yIn = p[1] >= 0 && p[1] < 8;
+    t.f(0, v, grid(LAGER, { probes: yIn && p[0] >= 0 && p[0] < 12 ? { [p.join(",")]: "ok" } : {} }), `Prüfe zuerst die <b>Zeile</b>: ${p[1]} liegt ${yIn ? "zwischen 0 und 7 ✔" : "außerhalb"}.`, { 0: yIn ? "ok" : "bad" });
+    v["lager[p.Y].Length"] = 12;
+    const xIn = p[0] >= 0 && p[0] < 12;
+    if (!xIn) { v.Rückgabe = false; t.f(1, v, `${grid(LAGER)}<div class="badge bad">❌ x = ${p[0]} außerhalb → false</div>`, `Spalte ${p[0]} liegt außerhalb von 0–11 → <b>false</b>. Erst <b>nach</b> beiden Grenz-Guards darf lager[p.Y][p.X] gelesen werden, sonst gäbe es einen Absturz.`, { 0: "ok", 1: "bad" }); continue; }
+    const z = LAGER[p[1]][p[0]]; v.zeichen = C(z); v.Rückgabe = z !== "#";
+    t.f(2, v, `${grid(LAGER, { probes: { [p.join(",")]: z === "#" ? "bad" : "ok" } })}${box(`lager[${p[1]}]`, chars(LAGER[p[1]], i => i === p[0] ? (z === "#" ? "bad" : "ok") : ""))}`,
+      `Innerhalb ✔. lager[${p[1]}][${p[0]}] ist <b>'${z}'</b> → ${z === "#" ? "Wand → <b>false</b>" : "keine Wand → <b>true</b>"}.`, { 0: "ok", 1: "ok", 2: z === "#" ? "bad" : "ok" });
+  }
+  return slideOf("Schritt 5 – IstBegehbar", "Zuerst die Grenzen, dann das Zeichen.", t);
+}
+
+// ===================== Schritt 6 =====================
+function s6() {
+  const t = new Trace("void SetzeZeichen(string[] lager, (int X, int Y) p, char zeichen)", [
+    "<b>zeile</b> = lager[p.Y]",
+    "<b>vorne</b> = die ersten p.X Zeichen von zeile",
+    "<b>hinten</b> = alles ab Index p.X + 1",
+    "lager[p.Y] = vorne + zeichen + hinten (ins Array zurückschreiben)"]);
+  const p = [5, 1], z = LAGER[1];
+  t.call("SetzeZeichen(lager, (5, 1), '.')  // Zeile 7: nimm");
+  const v = { p: P(5, 1), zeichen: C("."), zeile: null, vorne: null, hinten: null, "lager[1]": z };
+  t.f(-1, v, grid(LAGER, { robot: p, dir: "O" }), "Zeile 7 (nimm): Der Roboter steht auf dem Paket bei (5|1). Aus 'P' soll '.' werden – aber ein String ist unveränderlich.");
+  v.zeile = z; t.f(0, v, box("zeile", chars(z, i => i === 5 ? "hl" : "")), "Die ganze Zeile 1 holen.");
+  v.vorne = z.substring(0, 5); t.f(1, v, box("zeile", chars(z, i => i < 5 ? "ok" : "gone")), "Die ersten <b>5</b> Zeichen (Index 0–4) sind <b>vorne</b>.");
+  v.hinten = z.substring(6); t.f(2, v, box("zeile", chars(z, i => i > 5 ? "ok" : i === 5 ? "bad" : "gone")), "Alles ab Index <b>6</b> ist <b>hinten</b>. Index 5 (das P) lassen wir aus.");
+  const neu = v.vorne + "." + v.hinten; v["lager[1]"] = neu;
+  const L2 = [LAGER[0], neu, ...LAGER.slice(2)];
+  t.f(3, v, `<div class="row">${chars(v.vorne, () => "ok", false)}<span class="arrow">+</span>${chars(".", () => "new", false)}<span class="arrow">+</span>${chars(v.hinten, () => "ok", false)}</div>${grid(L2, { robot: p, dir: "O", carry: true })}`,
+    "Die <b>neue</b> Zeile wird in lager[1] gespeichert. lager ist ein Referenztyp → das Hauptprogramm sieht die Änderung.");
+
+  const k = new Trace("string[] ErzeugeKarte(string[] lager, (int X, int Y) pos, char richtung)", [
+    "<b>karte</b> = neues Array mit lager.Length Plätzen",
+    "für jede Zeile y: <b>zeile</b> = \"\"",
+    "  für jedes x: (x|y) ist pos? → RoboterSymbol(richtung) anhängen",
+    "  sonst → lager[y][x] anhängen",
+    "  karte[y] = zeile",
+    "Rückgabe karte"]);
+  const LE = [LAGER[0], "#..........#", LAGER[2], "#..##......#", ...LAGER.slice(4)];
+  const pos = [6, 6], sym = "v";
+  k.call("ErzeugeKarte(lager, (6, 6), 'S')  // nach der letzten Zeile");
+  const karte = Array(8).fill(null);
+  const kv = (y, x, z) => ({ pos: P(6, 6), richtung: C("S"), y, x, zeile: z, karte: R(`[${karte.map(r => r === null ? "null" : '"' + r + '"').join(", ")}]`) });
+  k.f(0, kv(null, null, null), grid(LE, { robot: pos, dir: "S" }), "Am Ende steht der Roboter auf (6|6) und schaut nach Süden. Die Karte ist eine <b>Kopie</b> – lager bleibt unverändert.");
+  for (let y = 0; y < 8; y++) {
+    if (y === 6) {
+      let z = "";
+      k.f(1, kv(6, null, ""), box("lager[6]", chars(LE[6])), "Zeile 6 – hier steht der Roboter. Wir gehen Zeichen für Zeichen durch.");
+      for (let x = 0; x < 12; x++) {
+        const isR = x === 6; z += isR ? sym : LE[6][x];
+        if (x >= 4 && x <= 7) k.f(isR ? 2 : 3, kv(6, x, z), `${box("lager[6]", chars(LE[6], i => i === x ? (isR ? "hl" : "sel") : ""))}${box("zeile", chars(z, i => i === x ? "new" : "ok"))}`,
+          isR ? `x = 6: (6|6) ist die Roboter-Position → <b>'v'</b> (Süden) anhängen.` : `x = ${x}: nicht die Roboter-Position → '${LE[6][x]}' aus lager anhängen.`, isR ? { 2: "ok" } : { 2: "bad", 3: "ok" });
+      }
+      karte[6] = z; k.f(4, kv(6, 11, z), box("karte[6]", chars(z, i => i === 6 ? "new" : "ok")), "Zeile fertig → karte[6] = zeile.");
+    } else { karte[y] = LE[y]; if (y === 0 || y === 7) k.f(4, kv(y, 11, LE[y]), box(`karte[${y}]`, chars(LE[y], () => "ok")), `Zeile ${y}: kein Roboter darin → alle Zeichen werden einfach kopiert.`); }
+  }
+  k.f(5, kv(7, 11, karte[7]), `<div class="file">${karte.map(r => esc(r)).join("<br>")}</div>`, "Rückgabe: die fertige Karte. Das Hauptprogramm gibt sie Zeile für Zeile aus.");
+  return slideOf("Schritt 6 – SetzeZeichen und ErzeugeKarte", "Ein Zeichen „ändern“ = Zeile neu bauen; Karte = Kopie mit Roboter.", t, k);
+}
+
+// ===================== Schritt 7 =====================
+function s7() {
+  const t = new Trace("string ErzeugeProtokollZeile(int nr, string befehl, (int X, int Y) pos, char richtung, int befehlBreite = 10)", [
+    "<b>position</b> = \"(\" + pos.X + \"|\" + pos.Y + \")\"",
+    "nr als Text, <b>links</b> mit '0' auf 2 Zeichen auffüllen",
+    "befehl <b>rechts</b> mit Leerzeichen auf <b>befehlBreite</b> Zeichen auffüllen (Default 10)",
+    "position <b>links</b> mit Leerzeichen auf 6 Zeichen auffüllen",
+    "Rückgabe: \"Zeile \" + nr + \" | \" + befehl + \" | \" + position + \" \" + richtung"]);
+  for (const [nr, b, p, r] of [[6, "vor 4", [5, 1], "O"], [25, "zurueck 2", [6, 3], "O"]]) {
+    const v = { nr, befehl: b, pos: P(...p), richtung: C(r), position: null, nrText: null, befehlText: null, positionText: null, Rückgabe: null };
+    t.call(`ErzeugeProtokollZeile(${nr}, "${b}", (${p}), '${r}')  // Zeile ${nr}`);
+    t.f(-1, v, fileView(BEFEHLE, nr - 1, {}, true), `Zeile ${nr} wurde ausgeführt. Jetzt wird die Protokollzeile gebaut.`);
+    v.position = `(${p[0]}|${p[1]})`; t.f(0, v, box("position", chars(v.position)), "Position als Text.");
+    v.nrText = String(nr).padStart(2, "0"); t.f(1, v, box("nrText", chars(v.nrText, (i) => String(nr).length < 2 && i === 0 ? "new" : "ok")), nr < 10 ? "Nur 1 Ziffer → links eine <b>0</b> davor." : "Schon 2 Ziffern → nichts aufzufüllen.");
+    v.befehlText = b.padEnd(10); t.f(2, v, box("befehlText", chars(v.befehlText, i => i >= b.length ? "new" : "ok")), `"${b}" hat ${b.length} Zeichen → ${10 - b.length} Leerzeichen hinten dazu.`);
+    v.positionText = v.position.padStart(6); t.f(3, v, box("positionText", chars(v.positionText, i => i < 6 - v.position.length ? "new" : "ok")), `"${v.position}" hat ${v.position.length} Zeichen → ${6 - v.position.length} Leerzeichen vorne dazu.`);
+    v.Rückgabe = `Zeile ${v.nrText} | ${v.befehlText} | ${v.positionText} ${r}`;
+    t.f(4, v, box("Rückgabe", `<div class="log"><span class="p">${esc(v.Rückgabe)}</span></div>`), "Zusammengesetzt – durch das Auffüllen stehen die | in jeder Zeile genau untereinander.");
+  }
+  const k = new Trace("string[] Kuerze(string[] array, int anzahl)", [
+    "<b>ergebnis</b> = neues Array mit anzahl Plätzen",
+    "für i von 0 bis anzahl − 1: ergebnis[i] = array[i]",
+    "Rückgabe ergebnis"]);
+  const fehler = ["Zeile 10: kein Ablageplatz bei (5|3)", "Zeile 13: unbekannter Befehl 'spring'", "Zeile 17: ungültige Anzahl 'x'", "Zeile 18: fehlende Anzahl bei 'vor'", "Zeile 24: trägt bereits ein Paket", "Zeile 27: Wand bei (6|7) – nur 3 von 5 Feldern gefahren", "Zeile 32: kein Paket geladen", "Zeile 33: kein Paket bei (6|5)", "Zeile 34: Wand bei (6|7) – nur 1 von 2 Feldern gefahren", "Zeile 35: ungültige Anzahl '-2'", "Zeile 36: 'links' braucht keine Anzahl", "Zeile 37: zu viele Angaben bei 'vor'"];
+  const slots = (n, fill, cur) => `<div class="arr">${Array.from({ length: n }, (_, i) => `<div class="slot" style="${i === cur ? "border-color:var(--warn)" : ""}${i < fill ? ";color:#fca5a5" : ";opacity:.35"}">[${i}]${i < fill ? " ✉" : ""}</div>`).join("")}</div>`;
+  k.call("Kuerze(fehler, anzahlFehler)  // anzahlFehler = 12");
+  k.f(-1, { "array.Length": 37, anzahl: 12, i: null, ergebnis: null }, box("fehler – 37 Plätze, nur 12 befüllt", slots(37, 12)), "Im Hauptprogramm wurde fehler mit 37 Plätzen angelegt (so viele Zeilen hat die Datei), aber nur 12 wurden befüllt. Der Rest ist null.");
+  k.f(0, { "array.Length": 37, anzahl: 12, i: null, ergebnis: R("string[12] (leer)") }, box("ergebnis", slots(12, 0)), "Neues Array mit genau 12 Plätzen.");
+  for (let i = 0; i < 12; i++) k.f(1, { "array.Length": 37, anzahl: 12, i, ergebnis: R(`string[12] – ${i + 1} befüllt`) }, `${box("array", slots(37, 12, i))}${box("ergebnis", slots(12, i + 1, i))}<div class="log"><span class="e">${esc(fehler[i])}</span></div>`, `i = ${i}: ergebnis[${i}] = array[${i}]`);
+  k.f(2, { "array.Length": 37, anzahl: 12, i: 11, ergebnis: R("string[12]") }, `<div class="log">${fehler.map(e => `<span class="e">${esc(e)}</span>`).join("\n")}</div>`, "Rückgabe: genau die 12 Fehlerzeilen – so werden sie mit WriteAllLines in fehler.txt geschrieben.");
+  return slideOf("Schritt 7 – ErzeugeProtokollZeile und Kuerze", "Auffüllen für saubere Spalten; Kuerze schneidet die leeren Plätze ab.", t, k);
+}
+
+// ===================== Schritt 8 =====================
+function s8() {
+  const t = new Trace("Hauptprogramm", [
+    "zeilen, lager einlesen; Guard ❌: eines leer → Abbruch",
+    "position = (1|1), richtung = 'O', traegtPaket = false",
+    "foreach über alle Zeilen: <b>nr</b> um 1 erhöhen (Zeilennummer selbst mitzählen)",
+    "TryBereinigeZeile – Guard ❌ false → continue",
+    "TryParseBefehl – Guard ❌ false → Fehler merken, continue",
+    "links/rechts → richtung = Drehe(richtung, name)",
+    "vor/zurueck → Anzahl-mal: naechstes = NaechstesFeld; nicht IstBegehbar → Fehler, break; sonst position = naechstes",
+    "nimm → Guards ❌ trägt schon / kein 'P' → Fehler, continue; ✅ SetzeZeichen '.', traegtPaket = true",
+    "ablegen → Guards ❌ kein Paket / kein 'Z' → Fehler, continue; ✅ traegtPaket = false, zugestellt++",
+    "protokoll[anzahlProtokoll] = ErzeugeProtokollZeile(...)<br>danach <b>anzahlProtokoll</b> um 1 erhöhen",
+    "Kuerze, Karte + Zusammenfassung ausgeben, Dateien schreiben"]);
+  const lager = [...LAGER]; let pos = [1, 1], dir = "O", carry = false, zug = 0, gef = 0;
+  const prot = [], err = [], marks = {}, trail = new Set(["1,1"]);
+  const V = (i, b, extra = {}) => ({ nr: i === null ? null : i + 1, befehl: b, position: P(...pos), richtung: C(dir), traegtPaket: carry, zugestellt: zug, gefahreneFelder: gef, anzahlProtokoll: prot.length, anzahlFehler: err.length, ...extra });
+  const view = cur => `<div class="cols">${fileView(BEFEHLE, cur, marks, true)}<div class="box">${grid(lager, { robot: pos, dir, carry, trail })}
+    ${box("protokoll", `<div class="log" style="font-size:11px">${prot.slice(-4).map((p, k, a) => `<span class="p ${k === a.length - 1 ? "new" : ""}">${esc(p)}</span>`).join("\n")}</div>`)}
+    ${box("fehler", `<div class="log" style="font-size:11px">${err.slice(-3).map(e => `<span class="e">${esc(e)}</span>`).join("\n")}</div>`)}</div></div>`;
+  t.call("");
+  t.f(0, V(null, null), view(-1), "Beide Dateien eingelesen (37 Zeilen, 8 Zeilen Lager) → kein Abbruch.", { 0: "ok" });
+  t.f(1, V(null, null), view(-1), "Startzustand des Roboters.", { 0: "ok" });
+  BEFEHLE.forEach((raw, i) => {
+    const b = bereinige(raw), nr = i + 1;
+    if (b === null) { marks[i] = "skip"; t.f(3, V(i, null), view(i), `Zeile ${nr}: nach dem Bereinigen bleibt nichts → <b>continue</b>.`, { 3: "bad" }); return; }
+    const teile = b.split(" "), name = teile[0];
+    const mit = name === "vor" || name === "zurueck", ohne = ["links", "rechts", "nimm", "ablegen"].includes(name);
+    let g = null;
+    if (!mit && !ohne) g = `unbekannter Befehl '${name}'`;
+    else if (ohne && teile.length !== 1) g = `'${name}' braucht keine Anzahl`;
+    else if (mit && teile.length < 2) g = `fehlende Anzahl bei '${name}'`;
+    else if (mit && teile.length > 2) g = `zu viele Angaben bei '${name}'`;
+    else if (mit && (!/^\d+$/.test(teile[1]) || +teile[1] < 1)) g = `ungültige Anzahl '${teile[1]}'`;
+    const fail = (step, msg, extra) => { err.push(`Zeile ${nr}: ${msg}`); marks[i] = "err"; t.f(step, V(i, b, extra), view(i), `Zeile ${nr}: ❌ <b>${esc(msg)}</b> → in fehler merken, <b>continue</b>.`, { 3: "ok", [step]: "bad" }); };
+    if (g) return fail(4, g, { name });
+    const anzahl = mit ? +teile[1] : 1;
+    const ex = { name, Anzahl: anzahl };
+    if (name === "links" || name === "rechts") {
+      const alt = dir; dir = drehe(dir, name);
+      t.f(5, V(i, b, ex), view(i), `Zeile ${nr}: <b>${b}</b> → Drehe('${alt}', "${name}") = '${dir}'.`, { 3: "ok", 4: "ok", 5: "ok" });
+    } else if (mit) {
+      const s = name === "vor" ? 1 : -1; let gef1 = 0;
+      for (let k = 0; k < anzahl; k++) {
+        const q = naechstes(pos, dir, s);
+        if (!begehbar(lager, q)) { err.push(`Zeile ${nr}: Wand bei (${q[0]}|${q[1]}) – nur ${gef1} von ${anzahl} Feldern gefahren`); marks[i] = "err";
+          t.f(6, V(i, b, { ...ex, s: k, naechstes: P(...q), gefahren: gef1 }), view(i), `s = ${k}: naechstes = (${q[0]}|${q[1]}) ist <b>nicht begehbar</b> (Wand) → Fehler merken und <b>break</b>. Der Roboter bleibt stehen.`, { 3: "ok", 4: "ok", 6: "bad" }); break; }
+        pos = q; gef1++; gef++; trail.add(q.join(","));
+        t.f(6, V(i, b, { ...ex, s: k, naechstes: P(...q), gefahren: gef1 }), view(i), `Zeile ${nr} <b>${b}</b>, s = ${k}: naechstes = (${q[0]}|${q[1]}) ist begehbar → position = naechstes.`, { 3: "ok", 4: "ok", 6: "ok" });
+      }
+    } else if (name === "nimm") {
+      if (carry) return fail(7, "trägt bereits ein Paket", ex);
+      if (lager[pos[1]][pos[0]] !== "P") return fail(7, `kein Paket bei (${pos[0]}|${pos[1]})`, ex);
+      lager[pos[1]] = lager[pos[1]].substring(0, pos[0]) + "." + lager[pos[1]].substring(pos[0] + 1); carry = true;
+      t.f(7, V(i, b, ex), view(i), `Zeile ${nr}: Unter dem Roboter liegt ein 'P' → SetzeZeichen(lager, (${pos}), '.'), traegtPaket = true.`, { 3: "ok", 4: "ok", 7: "ok" });
+    } else {
+      if (!carry) return fail(8, "kein Paket geladen", ex);
+      if (lager[pos[1]][pos[0]] !== "Z") return fail(8, `kein Ablageplatz bei (${pos[0]}|${pos[1]})`, ex);
+      carry = false; zug++;
+      t.f(8, V(i, b, ex), view(i), `Zeile ${nr}: Roboter steht auf 'Z' und trägt ein Paket → abgeben, zugestellt = ${zug}.`, { 3: "ok", 4: "ok", 8: "ok" });
+    }
+    prot.push(`Zeile ${String(nr).padStart(2, "0")} | ${b.padEnd(10)} | ${("(" + pos[0] + "|" + pos[1] + ")").padStart(6)} ${dir}`);
+    t.f(9, V(i, b, ex), view(i), `Protokollzeile für Zeile ${nr} merken (anzahlProtokoll = ${prot.length}).`, { 9: "ok" });
+  });
+  t.f(10, V(null, null), view(-1), `Fertig: ${zug} Pakete zugestellt, ${gef} Felder gefahren, ${err.length} Fehler, ${prot.length} Protokollzeilen → Kuerze und in die Dateien schreiben.`);
+  return slideOf("Schritt 8 – Hauptprogramm", "Die ganze befehle.txt, Zeile für Zeile, so wie die Musterlösung sie abarbeitet.", t);
+}
+const slides = [s8(), s1(), s2(), s3(), s4(), s5(), s6(), s7()];
+
+// ===================== Steuerung =====================
+let s = 0, f = 0, timer = null;
+const $ = id => document.getElementById(id);
+
+const nrOf = sl => +(sl.title.match(/Schritt (\d+)/) || [0, 0])[1];
+$("nav").innerHTML = slides.map((sl, i) => (i === 1 ? '<span style="color:var(--muted);align-self:center;font-size:13px">danach die Methoden:</span>' : "") +
+  `<button data-i="${i}">${i === 0 ? "1. Gesamtablauf (Schritt " + nrOf(sl) + ")" : "Schritt " + nrOf(sl)}</button>`).join("");
+$("nav").addEventListener("click", e => { if (e.target.dataset.i) { stop(); s = +e.target.dataset.i; f = 0; render(); } });
+
+function render() {
+  const sl = slides[s], fr = sl.frames[f];
+  $("slideTitle").textContent = sl.title;
+  $("slideText").textContent = sl.text;
+  $("stage").innerHTML = fr.html;
+  $("caption").innerHTML = fr.caption;
+  $("counter").textContent = `${f + 1} / ${sl.frames.length}`;
+  [...$("nav").querySelectorAll("button")].forEach((b, i) => b.classList.toggle("active", i === s));
+  try { history.replaceState(null, "", "#schritt" + nrOf(slides[s])); } catch (e) {}
+}
+function next() {
+  if (f < slides[s].frames.length - 1) f++;
+  else if (s < slides.length - 1) { s++; f = 0; }
+  else stop();
+  render();
+}
+function prev() { if (f > 0) f--; else if (s > 0) { s--; f = slides[s].frames.length - 1; } render(); }
+function play() { if (timer) return stop(); $("btnPlay").textContent = "⏸ Pause"; timer = setInterval(() => {
+  if (f === slides[s].frames.length - 1) stop(); else next(); }, +$("speed").value); }
+function stop() { clearInterval(timer); timer = null; $("btnPlay").textContent = "▶ Abspielen"; }
+
+$("btnNext").onclick = () => { stop(); next(); };
+$("btnPrev").onclick = () => { stop(); prev(); };
+$("btnReset").onclick = () => { stop(); f = 0; render(); };
+$("btnPlay").onclick = play;
+$("speed").oninput = () => { if (timer) { stop(); play(); } };
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight") { stop(); next(); }
+  if (e.key === "ArrowLeft") { stop(); prev(); }
+  if (e.key === " ") { e.preventDefault(); play(); }
+});
+
+const m = location.hash.match(/schritt(\d)/);
+if (m) { const k = slides.findIndex(sl => nrOf(sl) === +m[1]); if (k >= 0) s = k; }
+render();
+</script>
+</body>
+</html>
