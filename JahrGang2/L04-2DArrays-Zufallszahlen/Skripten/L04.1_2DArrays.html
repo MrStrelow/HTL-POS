@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2D-Arrays</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020617; --panel: #0f172a; --panel2: #1e293b; --line: #334155;
+    --text: #f8fafc; --muted: #94a3b8; --accent: #38bdf8; --x: #f59e0b; --y: #a855f7;
+    --ok: #10b981; --bad: #ef4444; --kw: #c084fc; --str: #fbbf24; --num: #34d399; --com: #64748b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; overflow: hidden; }
+  .mono { font-family: 'Fira Code', monospace; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 19px; color: var(--accent); }
+  header p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+  #tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  #tabs button { background: var(--panel2); color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  #tabs button.active { background: #0284c7; color: #fff; border-color: var(--accent); }
+  main { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; overflow: hidden; min-height: 0; }
+  #titlebar { display: flex; align-items: baseline; gap: 12px; }
+  #title { font-size: 22px; font-weight: 700; margin: 0; }
+  #counter { color: var(--muted); font-size: 13px; }
+  #content { flex: 1; min-height: 0; display: flex; gap: 12px; }
+  .pane { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+  .panehead { background: #020617; border-bottom: 1px solid var(--line); padding: 6px 14px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  #left { width: 40%; }
+  #right { width: 60%; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  #codebox { flex: 1; overflow: auto; padding: 10px 0; font-size: 15px; line-height: 1.7; }
+  #stage { flex: 1.9; min-height: 0; background: radial-gradient(circle at center, #0b1430 0%, #020617 75%); display: flex; align-items: center; justify-content: center; position: relative; overflow: auto; padding: 16px; }
+  #text { flex: 1; min-height: 0; overflow: auto; padding: 10px 16px; font-size: 15px; line-height: 1.55; }
+  #text p { margin: 6px 0; }
+  #text code { font-family: 'Fira Code', monospace; background: var(--panel2); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+  .cl { padding: 0 14px; border-left: 4px solid transparent; white-space: pre; }
+  .cl.hl { background: rgba(56,189,248,.18); border-left-color: var(--accent); }
+  .cl.blink { animation: blink .5s ease 2; border-left-color: var(--x); }
+  @keyframes blink { 0%, 100% { background: rgba(56,189,248,.18); } 50% { background: rgba(245,158,11,.6); } }
+  .tk-kw { color: var(--kw); } .tk-str { color: var(--str); } .tk-num { color: var(--num); } .tk-com { color: var(--com); font-style: italic; } .tk-ty { color: #38bdf8; }
+  nav { display: flex; gap: 8px; align-items: center; justify-content: center; }
+  nav button { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 18px; font-size: 15px; cursor: pointer; }
+  nav button:hover { border-color: var(--accent); }
+  nav button:disabled { opacity: .35; cursor: default; }
+  nav button#autoBtn:not(:disabled) { border-color: var(--ok); color: var(--ok); }
+  .brow { display: flex; align-items: center; gap: 10px; }
+  .brow .lbl { min-width: 150px; text-align: right; font-size: 13px; color: var(--muted); }
+  .bgrp { display: inline-flex; flex-direction: column; align-items: center; margin: 0 4px; gap: 2px; }
+  .bgrp .bb { display: flex; gap: 1px; }
+  .bit { font-family: 'Fira Code', monospace; font-size: 14px; width: 16px; text-align: center; border: 1px solid var(--line); border-radius: 3px; background: var(--panel); }
+  .bit.p { color: #a855f7; border-color: #a855f7; } .bit.o { color: #f59e0b; border-color: #f59e0b; } .bit.g { color: #475569; border-style: dashed; } .bit.k { color: #38bdf8; border-color: #38bdf8; } .bit.r { color: #ef4444; border-color: #ef4444; background: rgba(239,68,68,.15); }
+  .bgrp .hx { font-family: 'Fira Code', monospace; font-size: 14px; font-weight: 700; color: var(--text); }
+  .hexcheat { display: grid; grid-template-columns: repeat(8, auto); gap: 2px 10px; font-family: 'Fira Code', monospace; font-size: 12px; color: var(--muted); }
+  .hexcheat b { color: var(--accent); }
+  .ptr { outline: 3px solid var(--accent); outline-offset: 2px; }
+  nav span { color: var(--muted); font-size: 12px; }
+
+  .col { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .row { display: flex; align-items: center; gap: 14px; }
+  .label { color: var(--muted); font-size: 14px; }
+  .arr { display: flex; gap: 4px; }
+  .cell { width: 54px; height: 54px; border: 2px solid var(--line); border-radius: 8px; background: var(--panel); display: flex; align-items: center; justify-content: center; font-size: 26px; position: relative; transition: all .45s cubic-bezier(.2,.8,.3,1.2); }
+  .cell.small { width: 44px; height: 44px; font-size: 22px; }
+  .cell.txt { width: auto; min-width: 92px; padding: 0 8px; font-size: 13px; font-family: 'Fira Code', monospace; }
+  .cell.null { color: var(--com); font-size: 12px; font-family: 'Fira Code', monospace; }
+  .cell.hot { border-color: var(--ok); background: rgba(16,185,129,.25); transform: scale(1.08); }
+  .cell.rowhot { border-color: var(--y); background: rgba(168,85,247,.18); }
+  .cell.colhot { border-color: var(--x); background: rgba(245,158,11,.18); }
+  .cell.both { border-color: var(--ok); background: rgba(16,185,129,.35); }
+  .cell.dim { opacity: .3; }
+  .idx { font-family: 'Fira Code', monospace; font-size: 12px; color: var(--muted); text-align: center; }
+  .idx.x { color: var(--x); } .idx.y { color: var(--y); }
+  .grid { display: grid; gap: 4px; }
+  .pop { animation: pop .45s cubic-bezier(.2,.8,.3,1.3) both; }
+  @keyframes pop { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
+  .fade { animation: fade .6s ease both; }
+  @keyframes fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .stack { display: flex; flex-direction: column; gap: 26px; transition: gap .8s ease; }
+  .stack.merged { gap: 4px; }
+  .stack .tag { font-family: 'Fira Code', monospace; font-size: 13px; color: var(--muted); width: 70px; text-align: right; transition: opacity .5s; }
+  .stack.merged .tag { opacity: 0; }
+  .frame { border: 2px dashed transparent; border-radius: 12px; padding: 8px; transition: border-color .8s; }
+  .frame.on { border-color: var(--accent); }
+  .pill { font-family: 'Fira Code', monospace; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 15px; }
+  .pill.x { border-color: var(--x); color: var(--x); } .pill.y { border-color: var(--y); color: var(--y); } .pill.ok { border-color: var(--ok); color: var(--ok); } .pill.bad { border-color: var(--bad); color: var(--bad); }
+  .file { background: #0b1220; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-family: 'Fira Code', monospace; font-size: 22px; line-height: 1.35; }
+  .file .ln { display: flex; gap: 12px; align-items: center; border-radius: 6px; padding: 0 6px; transition: background .3s; }
+  .file .ln b { font-size: 12px; color: var(--muted); width: 18px; }
+  .file .ln.hl { background: rgba(245,158,11,.18); }
+  .ch { display: inline-block; border-radius: 4px; transition: background .2s; }
+  .ch.hl { background: rgba(16,185,129,.45); outline: 2px solid var(--ok); }
+  .table th { font-size: 12px; color: var(--x); font-family: 'Fira Code', monospace; font-weight: 600; padding: 2px 4px; }
+  .table td.ri { font-size: 12px; color: var(--y); font-family: 'Fira Code', monospace; padding-right: 6px; }
+  table.uni { border-collapse: collapse; font-family: 'Fira Code', monospace; font-size: 14px; }
+  table.uni th, table.uni td { border: 1px solid var(--line); padding: 6px 10px; text-align: center; }
+  table.uni th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  table.uni td.big { font-size: 26px; }
+  .unit { font-family: 'Fira Code', monospace; font-size: 13px; padding: 6px 8px; border-radius: 6px; border: 2px solid var(--line); background: var(--panel); transition: all .3s; }
+  .unit.hi { border-color: var(--y); color: #e9d5ff; } .unit.lo { border-color: var(--x); color: #fde68a; } .unit.bmp { border-color: var(--ok); color: #a7f3d0; }
+  .unit.sel { background: rgba(239,68,68,.35); border-color: var(--bad); transform: translateY(-6px); }
+  .bits { font-family: 'Fira Code', monospace; font-size: 17px; letter-spacing: 1px; }
+  .chip { font-family: 'Fira Code', monospace; font-size: 15px; padding: 4px 8px; border-radius: 6px; background: var(--panel2); border: 1px solid var(--line); transition: opacity .4s; }
+  .warn { color: var(--x); }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>2D-Arrays: vom 1D-Array zur Weltkarte</h1>
+    <p>Weiter: Pfeiltasten ← → oder Leertaste · Mehrdimensionale Arrays <code class="mono">string[,]</code> (keine jagged Arrays)</p>
+  </div>
+  <div id="tabs"></div>
+</header>
+<main>
+  <div id="titlebar"><h2 id="title"></h2><span id="counter"></span></div>
+  <div id="content">
+    <section id="left" class="pane"><div class="panehead">📄 Code</div><div id="codebox" class="mono"></div></section>
+    <div id="right">
+      <section class="pane" style="flex:1.9"><div class="panehead">🎬 Animation</div><div id="stage"></div></section>
+      <section class="pane" style="flex:1"><div class="panehead">💡 Erklärung</div><div id="text"></div></section>
+    </div>
+  </div>
+  <nav>
+    <button onclick="go(-1)">◀ zurück</button>
+    <button onclick="replay()">↻ nochmal</button>
+    <button onclick="go(1)">weiter ▶</button>
+    <button id="autoBtn" onclick="runAuto()" disabled>⏩ automatisch</button>
+    <span>Taste R = Animation wiederholen</span>
+  </nav>
+</main>
+
+<script>
+// ===================== kleine Helfer =====================
+const $ = (id) => document.getElementById(id);
+let timers = [];
+function later(ms, fn) { timers.push(setTimeout(fn, ms)); }
+function every(ms, fn) { timers.push(setInterval(fn, ms)); }
+function clearTimers() { timers.forEach(t => { clearTimeout(t); clearInterval(t); }); timers = []; }
+function el(tag, cls, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; }
+const hex = (n, w) => n.toString(16).toUpperCase().padStart(w || 4, '0');
+
+function highlight(line) {
+  const re = /(\/\/.*$)|("(?:[^"\\]|\\.)*")|(\b(?:new|for|while|if|else|return|int|string|double|bool|void|char)\b)|(\b(?:File|Console|Random)\b)|(\b\d+\b)/g;
+  let out = '', last = 0, m;
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  while ((m = re.exec(line)) !== null) {
+    out += esc(line.slice(last, m.index));
+    const cls = m[1] ? 'tk-com' : m[2] ? 'tk-str' : m[3] ? 'tk-kw' : m[4] ? 'tk-ty' : 'tk-num';
+    out += `<span class="${cls}">${esc(m[0])}</span>`;
+    last = re.lastIndex;
+  }
+  return out + esc(line.slice(last));
+}
+function renderCode(lines, hl) {
+  const box = $('codebox'); box.innerHTML = '';
+  (lines || []).forEach((l, i) => {
+    const d = el('div', 'cl' + ((hl || []).includes(i) ? ' hl' : ''), highlight(l) || ' ');
+    d.id = 'code-' + i; box.appendChild(d);
+  });
+}
+function setHl(hl) { document.querySelectorAll('.cl').forEach((d, i) => { d.classList.toggle('hl', hl.includes(i)); if (!hl.includes(i)) d.classList.remove('blink'); }); }
+// Schleifenkopf blinkt, wenn die Schleife (weiter)laeuft
+function blink(i) { const d = $('code-' + i); if (!d) return; d.classList.add('hl'); d.classList.remove('blink'); void d.offsetWidth; d.classList.add('blink'); }
+
+function arr1D(values, opts = {}) {
+  const wrap = el('div', 'col'); wrap.style.gap = '6px';
+  const a = el('div', 'arr'), idx = el('div', 'arr');
+  const w = opts.txt ? 92 : opts.small ? 44 : 54;
+  values.forEach((v, i) => {
+    const c = el('div', 'cell' + (opts.small ? ' small' : '') + (opts.txt ? ' txt' : '') + (v === null ? ' null' : ''), v === null ? 'null' : v);
+    if (opts.pop) { c.classList.add('pop'); c.style.animationDelay = (i * 0.12) + 's'; }
+    c.id = (opts.id || 'a') + '-' + i; a.appendChild(c);
+    const ix = el('div', 'idx ' + (opts.idxCls || 'x'), '[' + i + ']'); ix.style.width = w + 'px'; ix.style.minWidth = w + 'px'; idx.appendChild(ix);
+  });
+  wrap.appendChild(a); if (!opts.noIdx) wrap.appendChild(idx);
+  return wrap;
+}
+function grid2D(data, opts = {}) {
+  const rows = data.length, cols = data[0].length;
+  const g = el('div', 'grid');
+  g.style.gridTemplateColumns = `40px repeat(${cols}, auto)`;
+  g.appendChild(el('div'));
+  for (let x = 0; x < cols; x++) g.appendChild(el('div', 'idx x', String(x)));
+  for (let y = 0; y < rows; y++) {
+    const ri = el('div', 'idx y', String(y)); ri.style.alignSelf = 'center'; g.appendChild(ri);
+    for (let x = 0; x < cols; x++) {
+      const v = data[y][x];
+      const c = el('div', 'cell' + (opts.small ? ' small' : '') + (opts.txt ? ' txt' : '') + (v === null ? ' null' : ''), v === null ? 'null' : v);
+      c.id = (opts.id || 'g') + '-' + y + '-' + x;
+      if (opts.pop) { c.classList.add('pop'); c.style.animationDelay = ((y * cols + x) * 0.04) + 's'; }
+      g.appendChild(c);
+    }
+  }
+  return g;
+}
+function cell(id, y, x) { return $(id + '-' + y + '-' + x); }
+function setCell(c, v) { if (!c) return; c.classList.remove('null'); c.innerHTML = v; c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); }
+function clearHot() { document.querySelectorAll('#stage .cell.hot').forEach(e => e.classList.remove('hot')); }
+
+// ===================== Daten =====================
+const W = '🟦', T = '🌳', S = '🗻';
+const mini = [[W, W, T, S], [W, T, T, S], [W, W, T, T]];
+const welt = ['🟦🟦🟦🌳🌳🗻🗻🗻', '🟦🟦🌳🌳🌳🌳🗻🗻', '🟦🟦🟦🌳🌳🌳🌳🗻', '🟦🟦🟦🟦🌳🌳🟦🟦', '🟦🟦🟦🟦🟦🟦🟦🟦'];
+const weltArr = welt.map(z => Array.from(z));
+const personen = [
+  ['Anna', 'Huber', 'Hauptplatz 1', '6020', 'Innsbruck', '0660 111'],
+  ['Max', 'Gruber', 'Bahnweg 7', '6060', 'Hall', '0664 222'],
+  ['Lisa', 'Kaya', 'Seeufer 3', '6200', 'Jenbach', '0676 333']
+];
+const merkmale = ['Vorname', 'Nachname', 'Strasse', 'PLZ', 'Ort', 'Telefon'];
+
+// ===================== Code =====================
+const code1D = ['string[] zeile = new string[4];', 'zeile[0] = "🟦";', 'zeile[1] = "🟦";', 'zeile[2] = "🌳";', 'zeile[3] = "🗻";'];
+const code1DKl = [
+  '// Werte direkt angeben - die Laenge zaehlt C# selbst',
+  'string[] zeile = new string[] { "🟦", "🟦", "🌳", "🗻" };',
+  '',
+  '// Kurzform (nur direkt bei der Deklaration):',
+  'string[] zeile = { "🟦", "🟦", "🌳", "🗻" };',
+  '',
+  'int anzahl = zeile.Length;   // 4'
+];
+const code3x1D = [
+  'string[] zeile0 = { "🟦", "🟦", "🌳", "🗻" };',
+  'string[] zeile1 = { "🟦", "🌳", "🌳", "🗻" };',
+  'string[] zeile2 = { "🟦", "🟦", "🌳", "🌳" };',
+  '',
+  '// Alles in EINER Variable? -> 2D-Array',
+  'string[,] karte = new string[3, 4];   // [Zeilen, Spalten]'
+];
+const codeAchsen = [
+  'string[,] karte =',
+  '{',
+  '    { "🟦", "🟦", "🌳", "🗻" },   // y = 0',
+  '    { "🟦", "🌳", "🌳", "🗻" },   // y = 1',
+  '    { "🟦", "🟦", "🌳", "🌳" }    // y = 2',
+  '};',
+  '',
+  'int hoehe  = karte.GetLength(0);   // 3 Zeilen  (y)',
+  'int breite = karte.GetLength(1);   // 4 Spalten (x)',
+  'int felder = karte.Length;         // 12 = 3 * 4',
+  '',
+  'karte[1, 2] = "🗻";                // karte[y, x] !'
+];
+const codeSchleife = [
+  'for (int y = 0; y < karte.GetLength(0); y++)      // Zeilen',
+  '{',
+  '    for (int x = 0; x < karte.GetLength(1); x++)  // Spalten',
+  '    {',
+  '        Console.Write(karte[y, x]);',
+  '    }',
+  '    Console.WriteLine();',
+  '}'
+];
+const codeTabA = [
+  '// Schreibweise 1: Groesse angeben, dann befuellen',
+  'string[,] personen = new string[3, 6];   // 3 Personen, 6 Merkmale',
+  '',
+  'personen[0, 0] = "Anna";',
+  'personen[0, 1] = "Huber";',
+  'personen[0, 4] = "Innsbruck";',
+  'personen[1, 0] = "Max";',
+  'personen[2, 5] = "0676 333";'
+];
+const codeTabB = [
+  '// Schreibweise 2: Werte direkt angeben',
+  'string[,] personen = new string[,]',
+  '{',
+  '    { "Anna", "Huber",  "Hauptplatz 1", "6020", "Innsbruck", "0660 111" },',
+  '    { "Max",  "Gruber", "Bahnweg 7",    "6060", "Hall",      "0664 222" },',
+  '    { "Lisa", "Kaya",   "Seeufer 3",    "6200", "Jenbach",   "0676 333" }',
+  '};',
+  '',
+  '// Kurzform (nur direkt bei der Deklaration erlaubt):',
+  '// string[,] personen = { { "Anna", ... }, { "Max", ... }, ... };'
+];
+const codeSpalte = [
+  '// Alle Orte ausgeben: Spalte x = 4 bleibt fix, y laeuft',
+  'for (int y = 0; y < personen.GetLength(0); y++)',
+  '{',
+  '    Console.WriteLine(personen[y, 4]);',
+  '}',
+  '',
+  '// Alles ueber Anna: Zeile y = 0 bleibt fix, x laeuft',
+  'for (int x = 0; x < personen.GetLength(1); x++)',
+  '{',
+  '    Console.Write(personen[0, x] + " ");',
+  '}'
+];
+const codeSpalte1D = [
+  '// Spalte 4 (alle Orte) als 1D-Array speichern',
+  'string[] orte = new string[personen.GetLength(0)];   // so viele wie ZEILEN',
+  '',
+  'for (int y = 0; y < personen.GetLength(0); y++)',
+  '{',
+  '    orte[y] = personen[y, 4];',
+  '}'
+];
+const codeZeile1D = [
+  '// Zeile 0 (alles ueber Anna) als 1D-Array speichern',
+  'string[] anna = new string[personen.GetLength(1)];   // so viele wie SPALTEN',
+  '',
+  'for (int x = 0; x < personen.GetLength(1); x++)',
+  '{',
+  '    anna[x] = personen[0, x];',
+  '}'
+];
+const codeWelt = [
+  'string[] zeilen = File.ReadAllLines("../../../weltkarte.txt");',
+  '',
+  '// Ein Emoji besteht aus ZWEI char: "🟦".Length == 2',
+  'int hoehe  = zeilen.Length;',
+  'int breite = zeilen[0].Length / 2;',
+  '',
+  'string[,] karte = new string[hoehe, breite];',
+  '',
+  'for (int y = 0; y < hoehe; y++)',
+  '{',
+  '    for (int x = 0; x < breite; x++)',
+  '    {',
+  '        karte[y, x] = zeilen[y].Substring(x * 2, 2);',
+  '    }',
+  '}'
+];
+const codeUni = [
+  '// char = 16 Bit -> nur 65 536 verschiedene Werte',
+  '// Unicode kennt ueber 1,1 Millionen Zeichen (bis U+10FFFF, 21 Bit)',
+  '',
+  'Console.WriteLine("A".Length);    // 1   U+0041',
+  'Console.WriteLine("ü".Length);    // 1   U+00FC',
+  'Console.WriteLine("⬜".Length);   // 1   U+2B1C  passt in 16 Bit!',
+  'Console.WriteLine("🟦".Length);   // 2   U+1F7E6 braucht 17 Bit',
+  'Console.WriteLine("🌳".Length);   // 2   U+1F333'
+];
+const codeSurr = [
+  'string s = "🟦";                       // U+1F7E6',
+  '',
+  '// 1 Hex-Ziffer = 4 Bit: 1 F 7 E 6 -> 0001 1111 0111 1110 0110',
+  '// 1) 0x1F7E6 - 0x10000 = 0x0F7E6  (20 Bit bleiben)',
+  '// 2) obere 10 Bit = 0x03D, untere 10 Bit = 0x3E6',
+  '// 3) High = 0xD800 + 0x03D = 0xD83D,  Low = 0xDC00 + 0x3E6 = 0xDFE6',
+  '',
+  'Console.WriteLine(s.Length);                    // 2',
+  'Console.WriteLine((int)s[0]);                   // 55357 = 0xD83D',
+  'Console.WriteLine((int)s[1]);                   // 57318 = 0xDFE6',
+  'Console.WriteLine(char.IsHighSurrogate(s[0]));  // True',
+  'Console.WriteLine(char.ConvertToUtf32(s, 0));   // 128998 = 0x1F7E6',
+  '',
+  '// Im File (UTF-8) steht 🟦 als 4 Byte: F0 9F 9F A6',
+  '// File.ReadAllLines wandelt UTF-8 -> UTF-16 (char) um'
+];
+const codeIsHigh = [
+  'int ZaehleSymbole(string zeile)',
+  '{',
+  '    int anzahl = 0;',
+  '    int i = 0;',
+  '    while (i < zeile.Length)',
+  '    {',
+  '        if (char.IsHighSurrogate(zeile[i]))',
+  '        {',
+  '            i = i + 2;     // Emoji: High + Low Surrogate',
+  '        }',
+  '        else',
+  '        {',
+  '            i = i + 1;     // z.B. ⬜: nur ein char',
+  '        }',
+  '        anzahl++;',
+  '    }',
+  '    return anzahl;',
+  '}',
+  '',
+  '// Symbol herausschneiden: Substring(i, 2) bzw. Substring(i, 1)'
+];
+const codeWeiss = [
+  'string zeile = "🟦⬜🌳";',
+  '',
+  'Console.WriteLine(zeile.Length);          // 5 (nicht 6!)',
+  'Console.WriteLine(zeile.Length / 2);      // 2 -> eine Spalte fehlt',
+  'Console.WriteLine(zeile.Substring(2, 2)); // "⬜" + halbes 🌳 -> kaputt',
+  '',
+  '// Loesung 1: nur Emojis mit 2 char verwenden (🟦🟫🗻🌳🌲🌴🟨)',
+  '// Loesung 2: Trennzeichen ins File: "🟦;⬜;🌳" -> Split(\';\')',
+  '// Loesung 3: char.IsHighSurrogate abfragen -> naechste Folie',
+  '// Guard: if (zeile.Length % 2 != 0) -> Warnung ausgeben'
+];
+
+// ===================== Schritte =====================
+const chapters = ['1D → 2D', 'x- und y-Achse', 'Tabelle', 'Schreibweisen', 'Zeile & Spalte → 1D', 'Weltkarte-File', 'Exkurs: UTF-16 & UTF-8', 'Weltkarte → 2D'];
+const steps = [
+  // ---------- 0: 1D -> 2D ----------
+  { ch: 0, title: 'Ein 1D-Array: eine Reihe von Kästchen', code: code1D, hl: [0],
+    text: '<p>Ein <b>1D-Array</b> ist eine Reihe von Kästchen. Mit <code>new string[4]</code> bekommen wir <b>4</b> Kästchen, am Anfang steht überall <code>null</code>.</p><p>Jedes Kästchen hat einen <b>Index</b>: <code>0</code> bis <code>Length - 1</code>.</p>',
+    render(st) { st.appendChild(arr1D([null, null, null, null], { pop: true, id: 'z' })); } },
+  { ch: 0, title: 'Befüllen über den Index', code: code1D, hl: [1, 2, 3, 4],
+    text: '<p>Mit <code>zeile[index] = wert;</code> schreiben wir in ein Kästchen.</p>',
+    render(st) {
+      st.appendChild(arr1D([null, null, null, null], { id: 'z' }));
+      [W, W, T, S].forEach((v, i) => later(400 + i * 600, () => { setHl([i + 1]); setCell($('z-' + i), v); }));
+    } },
+  { ch: 0, title: 'Schreibweise mit { }: Werte direkt angeben', code: code1DKl, hl: [1],
+    text: '<p>Kennen wir die Werte schon, schreiben wir sie in <code>{ }</code>. Die <b>Länge</b> zählt C# selbst: 4 Werte → <code>Length</code> ist 4.</p><p>Die Kurzform ohne <code>new string[]</code> geht nur direkt bei der Deklaration.</p><p>Eine Reihe reicht für <b>eine Zeile</b> einer Karte. Aber eine Karte hat viele Zeilen …</p>',
+    render(st) {
+      const c = el('div', 'col');
+      const brace = el('div', 'row'); brace.style.gap = '6px';
+      brace.appendChild(el('span', 'chip', '{'));
+      const chips = [W, W, T, S].map(v => { const ch = el('span', 'chip pop', '"' + v + '"'); brace.appendChild(ch); return ch; });
+      brace.appendChild(el('span', 'chip', '}'));
+      c.append(brace, arr1D([null, null, null, null], { id: 'z' }));
+      const len = el('div', 'pill ok fade', 'zeile.Length = 4'); len.style.animationDelay = '3.2s';
+      c.appendChild(len); st.appendChild(c);
+      [W, W, T, S].forEach((v, i) => later(800 + i * 500, () => { chips[i].style.opacity = .3; setCell($('z-' + i), v); }));
+      later(3200, () => setHl([6]));
+      later(4600, () => setHl([4]));
+    } },
+  { ch: 0, title: 'Viele Zeilen = viele 1D-Arrays?', code: code3x1D, hl: [0, 1, 2],
+    text: '<p>Für 3 Zeilen bräuchten wir 3 Variablen: <code>zeile0</code>, <code>zeile1</code>, <code>zeile2</code>.</p><p class="warn">Bei 32 Zeilen? 1000 Zeilen? Das wird unhandlich – und mit einer Schleife kommen wir nicht an „die nächste Variable“.</p>',
+    render(st) {
+      const s = el('div', 'stack');
+      mini.forEach((r, i) => {
+        const row = el('div', 'row fade'); row.style.animationDelay = (i * 0.3) + 's';
+        row.appendChild(el('div', 'tag', 'zeile' + i)); row.appendChild(arr1D(r, { noIdx: true }));
+        s.appendChild(row);
+      });
+      st.appendChild(s);
+    } },
+  { ch: 0, title: 'Zusammenschieben: das 2D-Array', code: code3x1D, hl: [5],
+    text: '<p>Wir schieben die Reihen zu <b>einem</b> Block zusammen: <code>string[,] karte = new string[3, 4];</code></p><p>Der <b>Beistrich</b> in <code>[,]</code> sagt: dieses Array hat <b>2 Dimensionen</b>. Es ist <b>ein</b> rechteckiger Block (kein Array von Arrays).</p>',
+    render(st) {
+      const f = el('div', 'frame'), s = el('div', 'stack');
+      mini.forEach((r, i) => { const row = el('div', 'row'); row.appendChild(el('div', 'tag', 'zeile' + i)); row.appendChild(arr1D(r, { noIdx: true })); s.appendChild(row); });
+      f.appendChild(s); st.appendChild(f);
+      later(500, () => s.classList.add('merged'));
+      later(1300, () => f.classList.add('on'));
+    } },
+  // ---------- 1: Achsen ----------
+  { ch: 1, title: 'Zwei Indices: Zeile (y) und Spalte (x)', code: codeAchsen, hl: [0, 1, 2, 3, 4, 5],
+    text: '<p>Jedes Kästchen hat jetzt <b>zwei</b> Indices.</p><p><span style="color:var(--x)"><b>x</b> → Spalte</span>: wie weit nach <b>rechts</b>.<br><span style="color:var(--y)"><b>y</b> ↓ Zeile</span>: wie weit nach <b>unten</b>.</p><p class="warn">Anders als in Mathe zeigt y nach <b>unten</b> – wie Zeilen in einem Text.</p>',
+    render(st) {
+      const wrap = el('div', 'grid'); wrap.style.gridTemplateColumns = 'auto auto'; wrap.style.gap = '8px';
+      const xa = el('div', 'row fade', '<div style="flex:1;height:3px;background:var(--x)"></div><span class="mono" style="color:var(--x);font-weight:700">▶ x (Spalten)</span>');
+      xa.style.gap = '0'; xa.style.marginLeft = '44px'; xa.style.animationDelay = '.8s';
+      const ya = el('div', 'col fade', '<div style="flex:1;width:3px;background:var(--y)"></div><span class="mono" style="color:var(--y);font-weight:700">▼<br>y</span>');
+      ya.style.gap = '0'; ya.style.marginTop = '24px'; ya.style.animationDelay = '1.3s';
+      wrap.append(el('div'), xa, ya, grid2D(mini, { id: 'k', pop: true }));
+      st.appendChild(wrap);
+    } },
+  { ch: 1, title: 'GetLength(0), GetLength(1) und Length', code: codeAchsen, hl: [7],
+    text: '<p><code>GetLength(0)</code> = Anzahl <b style="color:var(--y)">Zeilen</b> (1. Index)<br><code>GetLength(1)</code> = Anzahl <b style="color:var(--x)">Spalten</b> (2. Index)<br><code>Length</code> = Anzahl <b>aller</b> Kästchen = 3 · 4 = 12</p><p>Für Schleifen über Zeilen und Spalten brauchen wir <code>GetLength</code>, nicht <code>Length</code>!</p>',
+    render(st) {
+      const c = el('div', 'col');
+      c.appendChild(grid2D(mini, { id: 'k' }));
+      const r = el('div', 'row');
+      const p0 = el('div', 'pill y fade', 'GetLength(0) = 3'); p0.style.animationDelay = '.3s';
+      const p1 = el('div', 'pill x fade', 'GetLength(1) = 4'); p1.style.animationDelay = '1.5s';
+      const p2 = el('div', 'pill ok fade', 'Length = 12'); p2.style.animationDelay = '2.7s';
+      r.append(p0, p1, p2); c.appendChild(r); st.appendChild(c);
+      later(300, () => { for (let y = 0; y < 3; y++) cell('k', y, 0).classList.add('rowhot'); });
+      later(1500, () => { setHl([8]); for (let x = 0; x < 4; x++) cell('k', 0, x).classList.add('colhot'); });
+      later(2700, () => { setHl([9]); document.querySelectorAll('#stage .cell').forEach(e => { e.classList.remove('rowhot', 'colhot'); e.classList.add('both'); }); });
+    } },
+  { ch: 1, title: 'Zugriff: karte[y, x] – zuerst die Zeile!', code: codeAchsen, hl: [11],
+    text: '<p><code>karte[1, 2]</code> heißt: <b style="color:var(--y)">Zeile 1</b>, dann <b style="color:var(--x)">Spalte 2</b>.</p><p>Merksatz: <b>erst runter, dann rüber</b> – genau wie die Reihenfolge in <code>new string[Zeilen, Spalten]</code>.</p>',
+    render(st) {
+      st.appendChild(grid2D(mini, { id: 'k' }));
+      later(500, () => { for (let x = 0; x < 4; x++) cell('k', 1, x).classList.add('rowhot'); });
+      later(1400, () => { for (let y = 0; y < 3; y++) cell('k', y, 2).classList.add('colhot'); });
+      later(2300, () => { const c = cell('k', 1, 2); c.className = 'cell both'; setCell(c, S); });
+    } },
+  { ch: 1, title: 'Alle Felder: verschachtelte for-Schleife', code: codeSchleife, hl: [],
+    text: '<p>Die <b>äußere</b> Schleife wandert die Zeilen ab (<span style="color:var(--y)">y</span>), die <b>innere</b> in jeder Zeile alle Spalten (<span style="color:var(--x)">x</span>).</p><p>Ein <b style="color:var(--x)">Blinken</b> im Code zeigt: diese Schleife macht den nächsten Durchlauf. Die innere Schleife läuft <b>komplett</b> durch, bevor die äußere weitergeht.</p><p id="loopinfo" class="mono"></p>',
+    render(st) {
+      const c = el('div', 'col');
+      c.appendChild(grid2D(mini, { id: 'k' }));
+      const out = el('div', 'file'); out.style.fontSize = '20px'; out.style.minWidth = '160px'; out.style.minHeight = '96px';
+      c.append(el('div', 'label', 'Konsole:'), out); st.appendChild(c);
+      let y = 0, x = 0, done = '', line = '';
+      every(750, () => {
+        clearHot();
+        if (y >= 3) { setHl([]); return; }
+        setHl([4]);
+        if (x === 0) blink(0);
+        blink(2);
+        cell('k', y, x).classList.add('hot');
+        line += mini[y][x]; out.innerHTML = done + line;
+        const info = $('loopinfo'); if (info) info.innerHTML = `<span style="color:var(--y)">y = ${y}</span> &nbsp; <span style="color:var(--x)">x = ${x}</span>`;
+        x++;
+        if (x === 4) { done += line + '<br>'; line = ''; x = 0; y++; later(380, () => setHl([6])); }
+      });
+    } },
+  // ---------- 2: Tabelle ----------
+  { ch: 2, title: 'Daten ohne Bild: eine Tabelle', code: ['// Jede ZEILE ist eine Person (Datensatz)', '// Jede SPALTE ist ein Merkmal', '//   0 Vorname | 1 Nachname | 2 Strasse', '//   3 PLZ     | 4 Ort      | 5 Telefon'], hl: [0, 1, 2, 3],
+    text: '<p>2D-Arrays sind nicht nur für Bilder da. Jede Person hat <b>6 Merkmale</b>: Vorname, Nachname, Straße, PLZ, Ort, Telefon.</p><p>Trotzdem bleibt das Array <b>2-dimensional</b>: <b style="color:var(--y)">welche Person</b> (Zeile) und <b style="color:var(--x)">welches Merkmal</b> (Spalte). 6 Merkmale = 6 Spalten, nicht 6 Dimensionen!</p>',
+    render(st) {
+      const t = el('table', 'table'); t.style.borderSpacing = '4px';
+      let h = '<tr><th></th>' + merkmale.map((m, i) => `<th>${i}<br>${m}</th>`).join('') + '</tr>';
+      personen.forEach((p, y) => { h += `<tr><td class="ri">${y}</td>` + p.map((v, x) => `<td><div class="cell txt pop" style="animation-delay:${(y * 6 + x) * 0.06}s">${v}</div></td>`).join('') + '</tr>'; });
+      t.innerHTML = h; st.appendChild(t);
+    } },
+  // ---------- 3: Schreibweisen ----------
+  { ch: 3, title: 'Schreibweise 1: new string[3, 6] – erst Größe, dann Werte', code: codeTabA, hl: [1],
+    text: '<p><code>new string[3, 6]</code> legt <b>3 · 6 = 18</b> leere Kästchen an (alle <code>null</code>).</p><p>Danach befüllen wir einzeln mit <code>personen[y, x] = …</code>. Praktisch, wenn die Werte erst später kommen (z.B. aus einem File).</p>',
+    render(st) {
+      st.appendChild(grid2D(personen.map(r => r.map(() => null)), { id: 'p', txt: true, pop: true }));
+      [[3, 0, 0, 'Anna'], [4, 0, 1, 'Huber'], [5, 0, 4, 'Innsbruck'], [6, 1, 0, 'Max'], [7, 2, 5, '0676 333']].forEach((s, i) => later(1200 + i * 800, () => {
+        setHl([s[0]]); const c = cell('p', s[1], s[2]); c.classList.add('hot'); setCell(c, s[3]); later(500, () => c.classList.remove('hot'));
+      }));
+    } },
+  { ch: 3, title: 'Schreibweise 2: new string[,] { {…}, {…} } – Werte direkt', code: codeTabB, hl: [1, 2, 6],
+    text: '<p>Jede innere <code>{ … }</code> ist <b>eine Zeile</b>. Die Größe <b>[3, 6]</b> zählt C# selbst: 3 innere Klammern, je 6 Werte.</p><p class="warn">Alle Zeilen müssen gleich lang sein – sonst Compilerfehler (es ist ja ein Rechteck).</p>',
+    render(st) {
+      st.appendChild(grid2D(personen.map(r => r.map(() => '')), { id: 'p', txt: true }));
+      personen.forEach((p, y) => later(700 + y * 1100, () => {
+        setHl([1, 2, 3 + y, 6]);
+        p.forEach((v, x) => later(x * 90, () => setCell(cell('p', y, x), v)));
+      }));
+    } },
+  // ---------- 4: Zeile & Spalte ----------
+  { ch: 4, title: 'Eine Spalte oder eine Zeile durchlaufen', code: codeSpalte, hl: [],
+    text: '<p><b>Spalte</b> lesen (alle Orte): <code>x = 4</code> bleibt fix, <code>y</code> läuft.</p><p><b>Zeile</b> lesen (alles über Anna): <code>y = 0</code> bleibt fix, <code>x</code> läuft.</p><p>Eine Schleife reicht – zwei brauchen wir nur für <b>alle</b> Felder.</p>',
+    render(st) {
+      st.appendChild(grid2D(personen, { id: 'p', txt: true }));
+      for (let y = 0; y < 3; y++) later(500 + y * 800, () => { setHl([3]); blink(1); cell('p', y, 4).classList.add('colhot'); });
+      for (let x = 0; x < 6; x++) later(3300 + x * 650, () => { setHl([9]); blink(7); cell('p', 0, x).classList.add('rowhot'); });
+    } },
+  { ch: 4, title: 'Eine Spalte als 1D-Array speichern', code: codeSpalte1D, hl: [1],
+    text: '<p>Wir kopieren Spalte 4 in ein neues <code>string[]</code>.</p><p class="warn">Wie lang ist das neue Array? Eine Spalte hat so viele Felder, wie es <b>Zeilen</b> gibt → <code>GetLength(0)</code>.</p><p>Der Index im neuen Array ist <code>y</code> – die Zeile, aus der der Wert kommt.</p>',
+    render(st) {
+      const c = el('div', 'col');
+      c.append(grid2D(personen, { id: 'p', txt: true }), el('div', 'label', 'string[] orte'), arr1D([null, null, null], { id: 'o', txt: true, idxCls: 'y' }));
+      st.appendChild(c);
+      for (let y = 0; y < 3; y++) later(1200 + y * 1000, () => {
+        clearHot(); setHl([5]); blink(3);
+        const src = cell('p', y, 4); src.classList.add('colhot', 'hot');
+        const dst = $('o-' + y); setCell(dst, personen[y][4]); dst.classList.add('hot');
+      });
+      later(4400, () => { clearHot(); setHl([]); });
+    } },
+  { ch: 4, title: 'Eine Zeile als 1D-Array speichern', code: codeZeile1D, hl: [1],
+    text: '<p>Genauso mit einer Zeile: alles über Anna in <code>string[] anna</code>.</p><p class="warn">Eine Zeile hat so viele Felder, wie es <b>Spalten</b> gibt → <code>GetLength(1)</code>.</p><p>Der Index im neuen Array ist jetzt <code>x</code>.</p>',
+    render(st) {
+      const c = el('div', 'col');
+      c.append(grid2D(personen, { id: 'p', txt: true }), el('div', 'label', 'string[] anna'), arr1D([null, null, null, null, null, null], { id: 'n', txt: true }));
+      st.appendChild(c);
+      for (let x = 0; x < 6; x++) later(1200 + x * 800, () => {
+        clearHot(); setHl([5]); blink(3);
+        const src = cell('p', 0, x); src.classList.add('rowhot', 'hot');
+        const dst = $('n-' + x); setCell(dst, personen[0][x]); dst.classList.add('hot');
+      });
+      later(6100, () => { clearHot(); setHl([]); });
+    } },
+  // ---------- 5: Weltkarte File ----------
+  { ch: 5, title: 'Ein Muster im Textfile: weltkarte.txt', code: codeWelt, hl: [],
+    text: '<p>Unsere Welt steht in einem Textfile. Jede <b>Zeile</b> im File ist eine Zeile der Karte, jedes <b>Emoji</b> ein Feld.</p><p>🟦 Wasser · 🌳 Wald · 🗻 Stein</p>',
+    render(st) {
+      const f = el('div', 'file');
+      welt.forEach((z, i) => { const l = el('div', 'ln fade', `<b>${i + 1}</b><span>${z}</span>`); l.style.animationDelay = (i * .2) + 's'; f.appendChild(l); });
+      const c = el('div', 'col'); c.append(el('div', 'label', '📄 weltkarte.txt'), f); st.appendChild(c);
+    } },
+  { ch: 5, title: 'File.ReadAllLines liefert ein 1D-Array', code: codeWelt, hl: [0],
+    text: '<p><code>File.ReadAllLines</code> kennen wir aus L03: Es liefert ein <b>string[]</b> – ein Element pro Zeile.</p><p>Das ist noch <b>1D</b>: <code>zeilen[2]</code> ist eine ganze Zeile, nicht ein einzelnes Feld.</p>',
+    render(st) {
+      const c = el('div', 'col');
+      welt.forEach((z, i) => {
+        const r = el('div', 'row fade'); r.style.animationDelay = (i * .25) + 's';
+        r.appendChild(el('div', 'idx', `zeilen[${i}]`));
+        const cc = el('div', 'cell txt', '"' + z + '"'); cc.style.fontSize = '20px'; cc.style.minWidth = '260px';
+        r.appendChild(cc); c.appendChild(r);
+      });
+      st.appendChild(c);
+    } },
+  { ch: 5, title: 'Achtung: ein Emoji = zwei char', code: codeWelt, hl: [2, 3, 4],
+    text: '<p>Für <b>ein</b> Emoji braucht C# <b>zwei</b> <code>char</code>: <code>"🟦".Length == 2</code>. Warum? → nächstes Kapitel.</p><p>Die Zeile hat also 16 <code>char</code>, aber nur <b>8</b> Felder → <code>breite = zeilen[0].Length / 2</code>.</p><p>Das x-te Emoji beginnt bei Index <code>x * 2</code>: <code>Substring(x * 2, 2)</code>.</p>',
+    render(st) {
+      const c = el('div', 'col'), r = el('div', 'arr');
+      Array.from(welt[0]).forEach((e, i) => {
+        const box = el('div', 'col'); box.style.gap = '4px';
+        const em = el('div', 'cell pop', e); em.style.width = '76px'; em.style.animationDelay = (i * .1) + 's';
+        box.append(em, el('div', 'idx', `char ${i * 2}, ${i * 2 + 1}`), el('div', 'idx x', `x = ${i}`)); r.appendChild(box);
+      });
+      const p = el('div', 'pill ok fade', 'zeilen[0].Length = 16 → breite = 16 / 2 = 8'); p.style.animationDelay = '1.2s';
+      c.append(r, p); st.appendChild(c);
+    } },
+  // ---------- 6: Exkurs UTF ----------
+  { ch: 6, title: 'char hat 16 Bit – Emojis brauchen mehr', code: codeUni, hl: [0, 1],
+    text: '<p>Jedes Zeichen hat in <b>Unicode</b> eine Nummer, den <b>Code Point</b> (z.B. <code>U+0041</code> für A).</p><p>Ein C#-<code>char</code> hat <b>16 Bit</b> → höchstens <code>U+FFFF</code>. Viele Emojis liegen darüber (<code>U+1F7E6</code> braucht 17 Bit) → C# speichert sie als <b>zwei</b> <code>char</code>. Das heißt <b>UTF-16</b>: 16 oder 32 Bit pro Zeichen.</p><p>Im <b>File</b> steht meist <b>UTF-8</b>: 1, 2, 3 oder 4 Byte (8/16/24/32 Bit) pro Zeichen.</p>',
+    render(st) {
+      const samples = [['A', 'Buchstabe'], ['ü', 'Umlaut'], ['⬜', 'weißes Quadrat'], ['🟦', 'Wasser'], ['🌳', 'Baum']];
+      const t = el('table', 'uni');
+      t.innerHTML = '<tr><th>Zeichen</th><th>Code Point</th><th>Bit nötig</th><th>C# char (UTF-16)<br>je 16 Bit</th><th>Length</th><th>Bytes im File<br>(UTF-8)</th></tr>';
+      samples.forEach(([s, name], i) => {
+        const cp = s.codePointAt(0);
+        const units = []; for (let k = 0; k < s.length; k++) units.push(hex(s.charCodeAt(k)));
+        const bytes = Array.from(new TextEncoder().encode(s)).map(b => hex(b, 2));
+        const tr = el('tr', 'fade', `<td class="big" title="${name}">${s}</td><td>U+${hex(cp)}</td><td>${cp.toString(2).length}</td><td>${units.map(u => `<span class="unit ${s.length > 1 ? (u.startsWith('D8') ? 'hi' : 'lo') : 'bmp'}">${u}</span>`).join(' ')}</td><td>${s.length}</td><td>${bytes.join(' ')} <span style="color:var(--muted)">(${bytes.length * 8} Bit)</span></td>`);
+        tr.style.animationDelay = (i * .8) + 's'; t.appendChild(tr);
+        later(i * 800, () => setHl([3 + i]));
+      });
+      st.appendChild(t);
+    } },
+  { ch: 6, title: 'Surrogate Pair: ein Emoji in zwei char aufteilen', code: codeSurr, hl: [0],
+    text: '<p>Liegt ein Code Point über <code>U+FFFF</code>, passt er nicht in ein <code>char</code> (16 Bit). Er wird in <b>zwei</b> <code>char</code> zerlegt – ein <b>Surrogate Pair</b>. Wir rechnen es Bit für Bit nach.</p><p>Wichtigster Trick: <b>1 Hex-Ziffer = genau 4 Bit</b> (Tabelle). Darum kann man Hex-Zahlen ziffernweise in Bit umschreiben und zurück.</p><p class="hint">→ = nächster Rechenschritt · ⏩ = automatisch</p><p id="surrinfo"></p>',
+    render(st) {
+      const s = '🟦', cp = s.codePointAt(0), v = cp - 0x10000;
+      const hi = 0xD800 + (v >> 10), lo = 0xDC00 + (v & 0x3FF);
+      const bin = (n, w) => n.toString(2).padStart(w, '0');
+      // Bits in 4er-Gruppen mit Hex-Ziffer darunter; cls(i) gibt die Farbe des i-ten Bits
+      const grp = (bits, cls, hexOn = true) => {
+        let h = '';
+        for (let g = 0; g < bits.length; g += 4) {
+          const part = bits.slice(g, g + 4);
+          h += `<span class="bgrp"><span class="bb">${part.split('').map((b, k) => `<span class="bit ${cls ? cls(g + k) : ''}">${b}</span>`).join('')}</span>${hexOn ? `<span class="hx">${parseInt(part, 2).toString(16).toUpperCase()}</span>` : ''}</span>`;
+        }
+        return h;
+      };
+      const row = (label, html) => { const r = el('div', 'brow fade', `<span class="lbl">${label}</span><span>${html}</span>`); c.appendChild(r); r.scrollIntoView({ block: 'nearest' }); return r; };
+      const info = h => { const e = $('surrinfo'); if (e) e.innerHTML = h; };
+      const c = el('div', 'col'); c.style.gap = '8px'; c.style.alignItems = 'flex-start'; c.style.maxHeight = '100%'; c.style.overflow = 'auto';
+      const head = el('div', 'row'); head.style.gap = '24px';
+      const cheat = el('div', 'hexcheat', Array.from({ length: 16 }, (_, i) => `<span><b>${i.toString(16).toUpperCase()}</b> = ${bin(i, 4)}</span>`).join(''));
+      head.append(el('div', '', `<span style="font-size:34px">${s}</span> &nbsp; <span class="pill">U+${hex(cp, 5)}</span>`), cheat);
+      c.appendChild(head); st.appendChild(c);
+      const b21 = bin(cp, 20), b20 = bin(v, 20), hb = bin(v >> 10, 10), lb = bin(v & 0x3FF, 10);
+      const phases = [
+        () => { setHl([2]); row('U+1F7E6 in Bit', grp(b21, i => i === 3 ? 'k' : '')); info('Jede Hex-Ziffer wird zu 4 Bit: <code>1 → 0001</code>, <code>F → 1111</code>, <code>7 → 0111</code>, <code>E → 1110</code>, <code>6 → 0110</code>. Das sind 17 Bit – zu viel für ein <code>char</code>.'); },
+        () => { setHl([3]); row('− 0x10000', grp(b20, i => i === 3 ? 'r' : '')); info('<code>0x10000</code> ist eine 1 mit 16 Nullen. Abziehen löscht genau dieses Bit (rot) → es bleiben <b>20 Bit</b>: <code>0x0F7E6</code>.'); },
+        () => { setHl([4]); row('in 2 × 10 Bit teilen', `<span class="bgrp"><span class="bb">${hb.split('').map(b => `<span class="bit p">${b}</span>`).join('')}</span><span class="hx" style="color:#a855f7">obere 10 Bit</span></span> <span class="bgrp"><span class="bb">${lb.split('').map(b => `<span class="bit o">${b}</span>`).join('')}</span><span class="hx" style="color:#f59e0b">untere 10 Bit</span></span>`); info('20 Bit werden in die <b style="color:var(--y)">oberen</b> und die <b style="color:var(--x)">unteren</b> 10 Bit geteilt.'); },
+        () => { setHl([4]); row('obere 10 Bit als Hex', grp('00' + hb, i => i < 2 ? 'g' : 'p') + ` = 0x${hex(v >> 10, 3)}`); row('untere 10 Bit als Hex', grp('00' + lb, i => i < 2 ? 'g' : 'o') + ` = 0x${hex(v & 0x3FF, 3)}`); info('Zum Ablesen als Hex <b>von rechts</b> in 4er-Gruppen teilen und vorne mit grauen Nullen auffüllen: <code>00 0011 1101 = 0x03D</code>, <code>11 1110 0110 = 0x3E6</code>.'); },
+        () => { setHl([5]); row('High: 110110 + obere', grp(bin(hi, 16), i => i < 6 ? 'k' : 'p') + ` = 0x${hex(hi)}`); row('Low: 110111 + untere', grp(bin(lo, 16), i => i < 6 ? 'k' : 'o') + ` = 0x${hex(lo)}`); info('<code>0xD800</code> = <code style="color:#38bdf8">110110</code><code>0000000000</code> → plus 0x03D setzt die 10 Bit hinten ein. <code>0xDC00</code> = <code style="color:#38bdf8">110111</code><code>0000000000</code>. Die <b style="color:var(--accent)">blauen Bits vorne</b> markieren: „ich bin die erste bzw. zweite Hälfte“.'); },
+        () => { setHl([7, 8, 9, 10]); row('"🟦" in C#', `<span class="unit hi">[0] ${hex(hi)} = ${hi}</span> <span class="unit lo">[1] ${hex(lo)} = ${lo}</span> → Length = 2`); info('Genau diese zwei Zahlen stehen im <code>string</code>. <code>char.IsHighSurrogate</code> prüft, ob ein <code>char</code> mit <code style="color:#38bdf8">110110</code> beginnt (0xD800 … 0xDBFF).'); },
+        () => {
+          setHl([13]);
+          const b = bin(cp, 21), parts = [b.slice(0, 3), b.slice(3, 9), b.slice(9, 15), b.slice(15)], pre = ['11110', '10', '10', '10'];
+          const bytes = parts.map((p, i) => pre[i] + p);
+          row('UTF-8: 21 Bit → 3|6|6|6', bytes.map((by, i) => `<span class="bgrp"><span class="bb">${by.split('').map((x, k) => `<span class="bit ${k < pre[i].length ? 'k' : 'p'}">${x}</span>`).join('')}</span><span class="hx">${hex(parseInt(by, 2), 2)}</span></span>`).join(''));
+          info('Im File (UTF-8) wird anders verpackt: Die 21 Bit von U+1F7E6 kommen in 4 Byte. Das erste Byte beginnt mit <code style="color:#38bdf8">11110</code> („4 Byte lang“), die anderen mit <code style="color:#38bdf8">10</code> („Fortsetzung“) → <b>F0 9F 9F A6</b>.');
+        }
+      ];
+      return stepper(phases.length, i => phases[i](), 2600);
+    } },
+  { ch: 6, title: 'Und das weiße Quadrat ⬜? Nur ein char!', code: codeWeiss, hl: [0],
+    text: '<p>Richtig: <code>⬜</code> ist <code>U+2B1C</code> – das passt in <b>16 Bit</b>, also <b>ein</b> <code>char</code> (im File aber 3 Byte UTF-8).</p><p class="warn">Mischen wir es mit 🟦 und 🌳, stimmt <code>Length / 2</code> nicht mehr, und <code>Substring(x * 2, 2)</code> schneidet ein Emoji in der Mitte durch.</p><p>Darum verwenden wir in der Karte nur Emojis, die genau 2 <code>char</code> lang sind – oder Trennzeichen und <code>Split</code> – oder wir fragen das Surrogate Pair ab (nächste Folie).</p>',
+    render(st) {
+      const z = '🟦⬜🌳';
+      const c = el('div', 'col');
+      const r = el('div', 'row'); r.style.gap = '6px';
+      const units = [];
+      let k = 0;
+      Array.from(z).forEach(e => {
+        const box = el('div', 'col'); box.style.gap = '4px';
+        box.appendChild(el('div', '', `<span style="font-size:30px">${e}</span>`));
+        const ur = el('div', 'row'); ur.style.gap = '4px';
+        for (let j = 0; j < e.length; j++) {
+          const code = z.charCodeAt(k);
+          const u = el('div', 'unit ' + (e.length === 1 ? 'bmp' : j === 0 ? 'hi' : 'lo'), `[${k}] ${hex(code)}`);
+          units.push(u); ur.appendChild(u); k++;
+        }
+        box.appendChild(ur); r.appendChild(box);
+      });
+      const p1 = el('div', 'pill bad fade', 'zeile.Length = 5 → 5 / 2 = 2 Spalten (es sind aber 3!)'); p1.style.animationDelay = '1.2s';
+      const p2 = el('div', 'pill bad fade', 'Substring(2, 2) = "⬜" + halber Baum → �'); p2.style.animationDelay = '3s';
+      c.append(r, p1, p2); st.appendChild(c);
+      later(1200, () => setHl([2, 3]));
+      later(3000, () => { setHl([4]); units[2].classList.add('sel'); units[3].classList.add('sel'); });
+      later(4800, () => setHl([6, 7, 8]));
+    } },
+  { ch: 6, title: 'Lösung: das Surrogate Pair abfragen', code: codeIsHigh, hl: [0],
+    text: '<p>Wenn ein File Symbole mit <b>1 und 2</b> <code>char</code> mischt, dürfen wir nicht blind <code>Substring(x * 2, 2)</code> rechnen. Stattdessen fragen wir jedes <code>char</code>: <b>Bist du die erste Hälfte eines Emojis?</b> → <code>char.IsHighSurrogate(zeile[i])</code></p><p>Ja → das Symbol ist <b>2</b> <code>char</code> lang, sonst <b>1</b>. Der Index <code>i</code> springt entsprechend weiter.</p><p>Das brauchst du in der <b>Aufgabe 5</b>: eine Winterkarte mit Schnee ⬜ laden.</p><p class="hint">→ = ein Schleifendurchlauf · ⏩ = automatisch</p><p id="hiinfo" class="mono"></p>',
+    render(st) {
+      const z = '🟦⬜🌳⬜🟦';
+      const c = el('div', 'col'); c.style.gap = '16px';
+      const lbl1 = el('div', 'label', `string zeile (Length = ${z.length})`);
+      const ur = el('div', 'row'); ur.style.gap = '4px'; ur.style.flexWrap = 'nowrap';
+      const units = [];
+      for (let k = 0; k < z.length; k++) {
+        const code = z.charCodeAt(k), h = code >= 0xD800 && code <= 0xDBFF, l = code >= 0xDC00 && code <= 0xDFFF;
+        const u = el('div', 'unit ' + (h ? 'hi' : l ? 'lo' : 'bmp'), `[${k}]<br>${hex(code)}`); u.style.textAlign = 'center';
+        units.push(u); ur.appendChild(u);
+      }
+      const lbl2 = el('div', 'label', 'Symbole');
+      const sr = el('div', 'row'); sr.style.gap = '8px'; sr.style.minHeight = '58px';
+      const cnt = el('div', 'pill', 'anzahl = 0');
+      c.append(lbl1, ur, lbl2, sr, cnt); st.appendChild(c);
+      let i = 0, n = 0;
+      const info = h => { const e = $('hiinfo'); if (e) e.innerHTML = h; };
+      info('i = 0, anzahl = 0');
+      const total = Array.from(z).length;
+      return stepper(total + 1, () => {
+        units.forEach(u => u.classList.remove('ptr', 'sel'));
+        if (i >= z.length) { setHl([16]); cnt.className = 'pill ok'; cnt.innerHTML = `return ${n}; &nbsp; (Length = ${z.length}, aber ${n} Symbole)`; info(`i = ${i} ist nicht mehr &lt; ${z.length} → Schleife fertig`); return; }
+        blink(4);
+        const code = z.charCodeAt(i), high = code >= 0xD800 && code <= 0xDBFF, len = high ? 2 : 1;
+        units[i].classList.add('ptr'); for (let k = 0; k < len; k++) units[i + k].classList.add('sel');
+        setHl(high ? [6, 8, 14] : [6, 10, 12, 14]);
+        const sym = z.substr(i, len);
+        sr.appendChild(el('div', 'unit pop ' + (high ? 'hi' : 'bmp'), `<span style="font-size:24px">${sym}</span>`));
+        n++;
+        info(`i = ${i}: 0x${hex(code)} ${high ? 'ist High Surrogate (0xD800 … 0xDBFF) → Substring(' + i + ', 2)' : 'ist KEIN High Surrogate → Substring(' + i + ', 1)'} = ${sym} → i = ${i + len}`);
+        cnt.innerHTML = `anzahl = ${n}`;
+        i += len;
+      }, 1600);
+    } },
+  // ---------- 7: Weltkarte -> 2D ----------
+  { ch: 7, title: '1D-Zeilen → 2D-Karte', code: codeWelt, hl: [6],
+    text: '<p>Für jede Zeile <span style="color:var(--y)">y</span> und jede Spalte <span style="color:var(--x)">x</span> schneiden wir mit <code>Substring(x * 2, 2)</code> ein Emoji heraus und legen es in <code>karte[y, x]</code>.</p><p>Blinken = die Schleife macht den nächsten Durchlauf.</p><p id="loopinfo" class="mono"></p>',
+    render(st) {
+      const r = el('div', 'row'); r.style.gap = '30px'; r.style.flexWrap = 'wrap'; r.style.justifyContent = 'center';
+      const f = el('div', 'file'); f.style.fontSize = '20px';
+      welt.forEach((z, y) => {
+        const l = el('div', 'ln'); l.id = 'ln-' + y; l.innerHTML = `<b>${y}</b>` + Array.from(z).map((e, x) => `<span class="ch" id="ch-${y}-${x}">${e}</span>`).join('');
+        f.appendChild(l);
+      });
+      const left = el('div', 'col'); left.append(el('div', 'label', 'string[] zeilen (1D)'), f);
+      const right = el('div', 'col'); right.append(el('div', 'label', 'string[,] karte (2D)'), grid2D(weltArr.map(z => z.map(() => '')), { id: 'w', small: true }));
+      r.append(left, right); st.appendChild(r);
+      let y = 0, x = 0;
+      every(420, () => {
+        document.querySelectorAll('.ch.hl, .ln.hl').forEach(e => e.classList.remove('hl')); clearHot();
+        if (y >= welt.length) { setHl([]); return; }
+        setHl([12]);
+        if (x === 0) blink(8);
+        blink(10);
+        $('ln-' + y).classList.add('hl'); $('ch-' + y + '-' + x).classList.add('hl');
+        const c = cell('w', y, x); setCell(c, weltArr[y][x]); c.classList.add('hot');
+        const info = $('loopinfo'); if (info) info.innerHTML = `<span style="color:var(--y)">y = ${y}</span> &nbsp; <span style="color:var(--x)">x = ${x}</span> &nbsp; Substring(${x * 2}, 2)`;
+        x++; if (x === weltArr[0].length) { x = 0; y++; }
+      });
+    } },
+  { ch: 7, title: 'Geschafft: die Welt als string[,]', code: ['karte[2, 6]          // "🌳"', 'karte[0, 7]          // "🗻"', 'karte.GetLength(0)   // 5 Zeilen', 'karte.GetLength(1)   // 8 Spalten', 'karte.Length         // 40 Felder', '', '// Wie viele Baeume? -> alle Felder ansehen und zaehlen'], hl: [0, 1, 2, 3, 4],
+    text: '<p>Jetzt können wir mit der Karte arbeiten: einzelne Felder lesen und ändern, Bäume zählen, zufällig neue Bäume pflanzen 🌳 (→ Zufallszahlen).</p><p>Und speichern? Genau umgekehrt: jede Zeile des 2D-Arrays wieder zu einem <code>string</code> zusammenbauen → <code>string[]</code> → <code>File.WriteAllLines</code>.</p>',
+    render(st) {
+      st.appendChild(grid2D(weltArr, { id: 'w', pop: true }));
+      later(1500, () => cell('w', 2, 6).classList.add('hot'));
+      later(2300, () => cell('w', 0, 7).classList.add('hot'));
+    } }
+];
+
+// ===================== Navigation =====================
+let cur = 0, ctrl = null;
+function stepper(n, step, delay) {
+  let i = 0;
+  return {
+    next() { if (i >= n) return false; clearTimers(); step(i); i++; return true; },
+    auto() { const tick = () => { if (this.next()) timers.push(setTimeout(tick, delay)); }; tick(); }
+  };
+}
+function buildTabs() {
+  chapters.forEach((c, i) => {
+    const b = el('button', '', (i + 1) + '. ' + c);
+    b.onclick = () => show(steps.findIndex(s => s.ch === i));
+    $('tabs').appendChild(b);
+  });
+}
+function show(i) {
+  clearTimers();
+  cur = Math.max(0, Math.min(steps.length - 1, i));
+  const s = steps[cur];
+  document.querySelectorAll('#tabs button').forEach((b, k) => b.classList.toggle('active', k === s.ch));
+  $('title').textContent = s.title;
+  $('counter').textContent = `Schritt ${cur + 1} / ${steps.length}`;
+  $('text').innerHTML = s.text;
+  renderCode(s.code, s.hl);
+  const st = $('stage'); st.innerHTML = '';
+  ctrl = s.render(st) || null;
+  $("autoBtn").disabled = !(ctrl && ctrl.auto);
+}
+function go(d) { if (d > 0 && ctrl && ctrl.next && ctrl.next()) return; show(cur + d); }
+function runAuto() { if (ctrl && ctrl.auto) { $("autoBtn").disabled = true; ctrl.auto(); } }
+function replay() { show(cur); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+  if (e.key === 'r' || e.key === 'R') replay();
+});
+buildTabs();
+show(0);
+</script>
+</body>
+</html>

@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zufallszahlen</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020617; --panel: #0f172a; --panel2: #1e293b; --line: #334155;
+    --text: #f8fafc; --muted: #94a3b8; --accent: #38bdf8; --x: #f59e0b; --y: #a855f7;
+    --ok: #10b981; --bad: #ef4444; --kw: #c084fc; --str: #fbbf24; --num: #34d399; --com: #64748b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; overflow: hidden; }
+  .mono { font-family: 'Fira Code', monospace; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 19px; color: var(--accent); }
+  header p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+  #tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  #tabs button { background: var(--panel2); color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  #tabs button.active { background: #0284c7; color: #fff; border-color: var(--accent); }
+  main { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; overflow: hidden; min-height: 0; }
+  #titlebar { display: flex; align-items: baseline; gap: 12px; }
+  #title { font-size: 22px; font-weight: 700; margin: 0; }
+  #counter { color: var(--muted); font-size: 13px; }
+  #content { flex: 1; min-height: 0; display: flex; gap: 12px; }
+  .pane { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+  .panehead { background: #020617; border-bottom: 1px solid var(--line); padding: 6px 14px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  #left { width: 40%; }
+  #right { width: 60%; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  #codebox { flex: 1; overflow: auto; padding: 4px 0 10px; font-size: 14px; line-height: 1.6; }
+  .sec { margin: 8px 10px 4px; padding: 3px 8px; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; border-radius: 6px; }
+  .sec.own { color: var(--x); background: rgba(245,158,11,.1); }
+  .sec.rnd { color: var(--ok); background: rgba(16,185,129,.1); }
+  #stage { flex: 1; min-height: 0; background: radial-gradient(circle at center, #0b1430 0%, #020617 75%); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; padding: 10px; }
+  #text { flex: 1; min-height: 0; overflow: auto; padding: 10px 16px; font-size: 15px; line-height: 1.55; }
+  #text p { margin: 6px 0; }
+  #text code { font-family: 'Fira Code', monospace; background: var(--panel2); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+  .cl { padding: 0 14px; border-left: 4px solid transparent; white-space: pre; }
+  .cl.hl { background: rgba(56,189,248,.18); border-left-color: var(--accent); }
+  .cl.blink { animation: blink .5s ease 2; border-left-color: var(--x); }
+  @keyframes blink { 0%, 100% { background: rgba(56,189,248,.18); } 50% { background: rgba(245,158,11,.6); } }
+  .tk-kw { color: var(--kw); } .tk-str { color: var(--str); } .tk-num { color: var(--num); } .tk-com { color: var(--com); font-style: italic; } .tk-ty { color: #38bdf8; }
+  nav { display: flex; gap: 8px; align-items: center; justify-content: center; }
+  nav button { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 18px; font-size: 15px; cursor: pointer; }
+  nav button:hover { border-color: var(--accent); }
+  nav button:disabled { opacity: .35; cursor: default; }
+  nav button#autoBtn:not(:disabled) { border-color: var(--ok); color: var(--ok); }
+  nav span { color: var(--muted); font-size: 12px; }
+
+  .col { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; min-width: 230px; }
+  .card h3 { margin: 0 0 8px; font-size: 16px; }
+  .card p { margin: 4px 0; font-size: 14px; color: var(--muted); }
+  .pill { font-family: 'Fira Code', monospace; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; font-size: 14px; }
+  .pill.ok { border-color: var(--ok); color: var(--ok); } .pill.x { border-color: var(--x); color: var(--x); } .pill.y { border-color: var(--y); color: var(--y); } .pill.bad { border-color: var(--bad); color: var(--bad); }
+  .seq { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; max-width: 640px; }
+  .num { font-family: 'Fira Code', monospace; min-width: 32px; height: 28px; padding: 0 6px; border-radius: 7px; border: 2px solid var(--line); background: var(--panel); display: flex; align-items: center; justify-content: center; font-size: 13px; }
+  .num.same { border-color: var(--y); } .num.diff { border-color: var(--x); } .num.ok { border-color: var(--ok); } .num.bad { border-color: var(--bad); }
+  table.lcg { border-collapse: collapse; font-family: 'Fira Code', monospace; font-size: 13px; margin-top: 6px; }
+  table.lcg th, table.lcg td { border: 1px solid var(--line); padding: 2px 9px; text-align: center; }
+  table.lcg th { color: var(--muted); font-weight: 500; }
+  table.lcg td.res { color: var(--ok); font-weight: 700; }
+  table.par { border-collapse: collapse; font-size: 14px; max-width: 100%; }
+  table.par th, table.par td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
+  table.par th { color: var(--muted); font-weight: 600; font-size: 12px; background: #020617; }
+  table.par td:first-child { font-family: 'Fira Code', monospace; font-size: 18px; text-align: center; font-weight: 700; }
+  .pop { animation: pop .45s cubic-bezier(.2,.8,.3,1.3) both; }
+  @keyframes pop { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
+  .fade { animation: fade .6s ease both; }
+  @keyframes fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .warn { color: var(--x); }
+  svg text { font-family: 'Fira Code', monospace; }
+  .draw { transition: stroke-dashoffset .6s ease; }
+  .bar { display: flex; height: 46px; width: 520px; max-width: 90%; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); }
+  .bar div { display: flex; align-items: center; justify-content: center; font-family: 'Fira Code', monospace; font-size: 13px; color: #0b1220; font-weight: 700; }
+  .hint { font-size: 13px; color: var(--ok); }
+  .px { display: grid; gap: 1px; background: #334155; border: 1px solid #334155; position: relative; }
+  .px div { width: 12px; height: 12px; }
+  .lab { display: grid; grid-template-columns: auto auto; gap: 6px 10px; align-items: center; font-family: 'Fira Code', monospace; font-size: 14px; }
+  .lab input { width: 70px; background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; font-family: 'Fira Code', monospace; font-size: 14px; }
+  .cond { font-size: 13px; line-height: 1.7; }
+  .cond .y { color: var(--ok); } .cond .n { color: var(--bad); }
+  a.jump { color: var(--accent); cursor: pointer; text-decoration: underline; }
+  .pixel { width: 54px; height: 54px; border-radius: 8px; border: 2px solid #94a3b8; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Zufallszahlen: Wie würfelt ein Computer?</h1>
+    <p>Weiter: Pfeiltasten ← → oder Leertaste · Linearer Kongruenzgenerator, Seed, <code class="mono">Random</code> in C#</p>
+  </div>
+  <div id="tabs"></div>
+</header>
+<main>
+  <div id="titlebar"><h2 id="title"></h2><span id="counter"></span></div>
+  <div id="content">
+    <section id="left" class="pane"><div class="panehead">📄 Code</div><div id="codebox" class="mono"></div></section>
+    <div id="right">
+      <section class="pane" style="flex:2"><div class="panehead">🎬 Animation</div><div id="stage"></div></section>
+      <section class="pane" style="flex:1"><div class="panehead">💡 Erklärung</div><div id="text"></div></section>
+    </div>
+  </div>
+  <nav>
+    <button onclick="go(-1)">◀ zurück</button>
+    <button onclick="replay()">↻ nochmal</button>
+    <button onclick="go(1)">weiter ▶</button>
+    <button onclick="toChapterEnd()" title="zur letzten Folie dieses Kapitels">⏭ Kapitelende</button>
+    <button id="autoBtn" onclick="runAuto()" disabled>⏩ automatisch</button>
+    <span>Bei Folien mit Einzelschritten macht → einen Schritt · R = von vorne</span>
+  </nav>
+</main>
+
+<script>
+// ===================== Helfer =====================
+const $ = (id) => document.getElementById(id);
+let timers = [];
+function later(ms, fn) { timers.push(setTimeout(fn, ms)); }
+function every(ms, fn) { timers.push(setInterval(fn, ms)); }
+function clearTimers() { timers.forEach(t => { clearTimeout(t); clearInterval(t); }); timers = []; }
+function el(tag, cls, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; }
+const NS = 'http://www.w3.org/2000/svg';
+function sv(tag, attrs, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+function txt(parent, x, y, s, attrs = {}) { const t = sv('text', Object.assign({ x, y, fill: '#94a3b8', 'font-size': 11 }, attrs), parent); t.textContent = s; return t; }
+function svgBox(w, h) { return sv('svg', { viewBox: `0 0 ${w} ${h}`, preserveAspectRatio: 'xMidYMid meet' }); }
+// Groesse relativ zur Buehne
+function fit(svg, wFrac, hFrac) {
+  const st = $('stage');
+  svg.style.width = Math.floor((st.clientWidth - 24) * (wFrac || 1)) + 'px';
+  svg.style.height = Math.floor((st.clientHeight - 24) * (hFrac || 1)) + 'px';
+}
+function drawLine(parent, x1, y1, x2, y2, attrs = {}) {
+  const l = sv('line', Object.assign({ x1, y1, x2, y2, stroke: '#38bdf8', 'stroke-width': 2 }, attrs), parent);
+  const len = Math.hypot(x2 - x1, y2 - y1) || 1;
+  l.style.strokeDasharray = len; l.style.strokeDashoffset = len; l.classList.add('draw');
+  requestAnimationFrame(() => requestAnimationFrame(() => l.style.strokeDashoffset = 0));
+  return l;
+}
+function drawPath(parent, d, attrs = {}) {
+  const p = sv('path', Object.assign({ d, fill: 'none', stroke: '#10b981', 'stroke-width': 2 }, attrs), parent);
+  const len = p.getTotalLength ? p.getTotalLength() : 500;
+  p.style.strokeDasharray = len; p.style.strokeDashoffset = len; p.style.transition = 'stroke-dashoffset .8s ease';
+  requestAnimationFrame(() => requestAnimationFrame(() => p.style.strokeDashoffset = 0));
+  return p;
+}
+function arrowDefs(svg) {
+  const d = sv('defs', {}, svg);
+  [['ah-x', '#f59e0b'], ['ah-y', '#a855f7'], ['ah-ok', '#10b981'], ['ah-b', '#38bdf8']].forEach(([id, c]) => {
+    const m = sv('marker', { id, viewBox: '0 0 10 10', markerWidth: 3.2, markerHeight: 3.2, refX: 8, refY: 5, orient: 'auto' }, d);
+    sv('path', { d: 'M0,0 L10,5 L0,10 z', fill: c }, m);
+  });
+}
+// alte Schritte: Pfeilspitzen weg, Linien bleiben duenn und blass stehen
+function fadeOld(g) { g.querySelectorAll('[marker-end]').forEach(e => e.removeAttribute('marker-end')); g.querySelectorAll('line, path').forEach(e => { e.setAttribute('stroke-width', 1.3); e.style.opacity = .45; }); g.querySelectorAll('text').forEach(e => e.style.opacity = .4); }
+
+function highlight(line) {
+  const re = /(\/\/.*$)|("(?:[^"\\]|\\.)*")|(\b(?:new|for|while|if|else|return|int|long|string|double|bool|void|break)\b)|(\b(?:Random|Console|Math)\b)|(\b\d+(?:\.\d+)?\b)/g;
+  let out = '', last = 0, m;
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  while ((m = re.exec(line)) !== null) {
+    out += esc(line.slice(last, m.index));
+    const cls = m[1] ? 'tk-com' : m[2] ? 'tk-str' : m[3] ? 'tk-kw' : m[4] ? 'tk-ty' : 'tk-num';
+    out += `<span class="${cls}">${esc(m[0])}</span>`;
+    last = re.lastIndex;
+  }
+  return out + esc(line.slice(last));
+}
+function renderCode(s) {
+  const box = $('codebox'); box.innerHTML = '';
+  const part = (title, cls, lines, key) => {
+    if (!lines || !lines.length) return;
+    box.appendChild(el('div', 'sec ' + cls, title));
+    lines.forEach((l, i) => { const d = el('div', 'cl', highlight(l) || ' '); d.id = `code-${key}-${i}`; box.appendChild(d); });
+  };
+  part(s.ownTitle || '✍️ selbst programmiert', 'own', s.own, 'o');
+  part(s.rndTitle || '🎲 mit der Random-Klasse', 'rnd', s.rnd, 'r');
+  setHl(s.hl || {});
+}
+function setHl(h) {
+  document.querySelectorAll('.cl').forEach(d => {
+    const [, key, i] = d.id.split('-');
+    const on = (h[key] || []).includes(+i);
+    d.classList.toggle('hl', on); if (!on) d.classList.remove('blink');
+  });
+}
+function blink(key, i) { const d = $(`code-${key}-${i}`); if (!d) return; d.classList.add('hl'); d.classList.remove('blink'); void d.offsetWidth; d.classList.add('blink'); }
+
+function lcgF(f, seed, n) { const o = []; let x = seed; for (let i = 0; i < n; i++) { x = f(x); o.push(x); } return o.join(' ') + ' ...'; }
+function lcg(k, d, m, seed, n) { const out = []; let x = seed; for (let i = 0; i < n; i++) { x = (k * x + d) % m; out.push(x); } return out; }
+
+// Kreis mit m Positionen (wie eine Uhr)
+function circle(m, opts = {}) {
+  const size = opts.size || 300, r = size / 2 - 26, cx = size / 2, cy = size / 2;
+  const dotR = Math.min(12, Math.PI * r / m - 2);
+  const svg = svgBox(size, size);
+  sv('circle', { cx, cy, r, fill: 'none', stroke: '#334155', 'stroke-width': 2 }, svg);
+  const chords = sv('g', {}, svg);
+  const pos = [];
+  for (let i = 0; i < m; i++) {
+    const a = -Math.PI / 2 + i * 2 * Math.PI / m;
+    const p = { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) }; pos.push(p);
+    sv('circle', { cx: p.x, cy: p.y, r: dotR, fill: '#0f172a', stroke: '#475569', 'stroke-width': 2, id: (opts.id || 'c') + '-dot-' + i }, svg);
+    txt(svg, p.x, p.y + 4, String(i), { 'text-anchor': 'middle', fill: '#e2e8f0', 'font-size': Math.min(11, dotR) });
+  }
+  const top = sv('g', {}, svg);
+  return { svg, pos, chords, top, id: opts.id || 'c', cx, cy, r, m };
+}
+function lightDot(c, i, color) { const d = document.getElementById(c.id + '-dot-' + i); if (d) { d.setAttribute('fill', color); d.setAttribute('stroke', color); } }
+function chord(c, a, b, color, width) { const p = c.pos[a], q = c.pos[b]; return drawLine(c.chords, p.x, p.y, q.x, q.y, { stroke: color || '#38bdf8', 'stroke-width': width || 2, opacity: .85 }); }
+function angPos(c, t) { const a = -Math.PI / 2 + t * 2 * Math.PI / c.m; return { x: c.cx + c.r * Math.cos(a), y: c.cy + c.r * Math.sin(a) }; }
+
+// Graph f(x) = 5x + 3 fuer den LCG mit Streifen (je 16 = eine Runde) - flach wie auf Folie 2
+function lcgGraph(W, H, opts = {}) {
+  const pad = 34, top = 10, bottom = H - 24, right = opts.labels ? 70 : 8;
+  const X = v => pad + v / 16 * (W - pad - right), Y = v => bottom - v / 80 * (bottom - top);
+  const svg = svgBox(W, H); arrowDefs(svg);
+  const id = opts.id || 'gr';
+  const bandCol = ['#0b1430', '#111c38'];
+  for (let b = 0; b < 5; b++) {
+    sv('rect', { x: pad, y: Y((b + 1) * 16), width: W - pad - 4, height: Y(b * 16) - Y((b + 1) * 16), fill: bandCol[b % 2], id: id + '-band-' + b }, svg);
+    if (opts.labels) txt(svg, W - 6, Y(b * 16 + 8) + 4, `${b + 1}. Runde`, { 'text-anchor': 'end', 'font-size': 10 });
+  }
+  for (let v = 16; v <= 80; v += 16) { sv('line', { x1: pad, y1: Y(v), x2: W - 4, y2: Y(v), stroke: '#334155', 'stroke-dasharray': '4 4' }, svg); txt(svg, pad - 4, Y(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 10 }); }
+  sv('line', { x1: pad, y1: bottom, x2: W - 4, y2: bottom, stroke: '#475569' }, svg);
+  sv('line', { x1: pad, y1: top, x2: pad, y2: bottom, stroke: '#475569' }, svg);
+  for (let v = 0; v < 16; v += 3) txt(svg, X(v), bottom + 14, String(v), { 'text-anchor': 'middle', 'font-size': 10 });
+  sv('line', { x1: X(0), y1: Y(3), x2: X(15.4), y2: Y(5 * 15.4 + 3), stroke: '#38bdf8', 'stroke-width': 2.5 }, svg);
+  const oldG = sv('g', {}, svg), curG = sv('g', {}, svg);
+  return {
+    svg, X, Y, pad, bottom, oldG, curG,
+    resetBands() { for (let b = 0; b < 5; b++) $(id + '-band-' + b).setAttribute('fill', bandCol[b % 2]); },
+    band(b, color) { const e = $(id + '-band-' + Math.min(4, b)); if (e) e.setAttribute('fill', color); },
+    newStep() { while (curG.firstChild) oldG.appendChild(curG.firstChild); fadeOld(oldG); this.resetBands(); }
+  };
+}
+function numberLine(min, max, a, b, opts = {}) {
+  const w = opts.w || 560, h = 90, pad = 30;
+  const X = v => pad + (v - min) / (max - min) * (w - 2 * pad);
+  const svg = svgBox(w, h); svg.style.width = Math.min(w, $('stage').clientWidth - 30) + 'px';
+  sv('line', { x1: pad - 10, y1: 50, x2: w - pad + 10, y2: 50, stroke: '#475569', 'stroke-width': 2 }, svg);
+  for (let v = min; v <= max + 1e-9; v += (opts.tick || 1)) {
+    sv('line', { x1: X(v), y1: 44, x2: X(v), y2: 56, stroke: '#475569' }, svg);
+    txt(svg, X(v), 76, String(+v.toFixed(2)), { 'text-anchor': 'middle' });
+  }
+  if (opts.valid) sv('rect', { x: X(opts.valid[0]) - 3, y: 59, width: X(opts.valid[1]) - X(opts.valid[0]) + 6, height: 5, rx: 2, fill: '#10b981' }, svg);
+  const seg = sv('rect', { x: X(a), y: 42, width: Math.max(0, X(b) - X(a)), height: 16, rx: 4, fill: opts.color || '#10b981', opacity: .55 }, svg);
+  seg.style.transition = 'all .9s ease';
+  const l = txt(svg, X(a), 30, '[', { 'text-anchor': 'middle', fill: '#10b981', 'font-size': 18, 'font-weight': 700 });
+  const r = txt(svg, X(b), 30, ')', { 'text-anchor': 'middle', fill: '#ef4444', 'font-size': 18, 'font-weight': 700 });
+  l.style.transition = r.style.transition = 'all .9s ease';
+  return { svg, X, move(na, nb) { seg.setAttribute('x', X(na)); seg.setAttribute('width', Math.max(0, X(nb) - X(na))); l.setAttribute('x', X(na)); r.setAttribute('x', X(nb)); }, color(c) { seg.setAttribute('fill', c); } };
+}
+function stepper(n, step, delay) {
+  let i = 0;
+  return {
+    next() { if (i >= n) return false; clearTimers(); step(i); i++; return true; },
+    auto() { const tick = () => { if (this.next()) timers.push(setTimeout(tick, delay)); }; tick(); }
+  };
+}
+const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);
+function primes(n) { const p = []; for (let f = 2; f * f <= n; f++) { if (n % f === 0) { p.push(f); while (n % f === 0) n /= f; } } if (n > 1) p.push(n); return p; }
+
+// ===================== Schritte =====================
+// ===================== Helfer fuer die "Whoaaa"-Anwendungen =====================
+function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+// Box-Muller: zwei gleichverteilte Zufallszahlen -> eine normalverteilte
+const gaussR = r => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
+const mMul = (X, Y) => X.map(r => Y[0].map((_, j) => r.reduce((s, x, k) => s + x * Y[k][j], 0)));
+const mT = X => X[0].map((_, j) => X.map(r => r[j]));
+const mVec = (X, v) => X.map(r => r.reduce((s, x, k) => s + x * v[k], 0));
+function inv3(m) { const [a, b, c] = m[0], [d, e, f] = m[1], [g, h, i] = m[2]; const A = e * i - f * h, B = -(d * i - f * g), C = d * h - e * g, det = a * A + b * B + c * C; return [[A, -(b * i - c * h), b * f - c * e], [B, a * i - c * g, -(a * f - c * d)], [C, -(a * h - b * g), a * e - b * d]].map(r => r.map(x => x / det)); }
+function cholesky(S) { const n = S.length, L = S.map(r => r.map(() => 0)); for (let i = 0; i < n; i++) for (let j = 0; j <= i; j++) { let s = S[i][j]; for (let k = 0; k < j; k++) s -= L[i][k] * L[j][k]; L[i][j] = i === j ? Math.sqrt(Math.max(s, 1e-12)) : s / L[j][j]; } return L; }
+function interp1(xs, ys, x) { let lo = 0, hi = xs.length - 1; if (x <= xs[0]) { lo = 0; hi = 1; } else if (x >= xs[hi]) { lo = hi - 1; } else { while (hi - lo > 1) { const m = (lo + hi) >> 1; if (xs[m] > x) hi = m; else lo = m; } } return ys[lo] + (ys[hi] - ys[lo]) * (x - xs[lo]) / (xs[hi] - xs[lo]); }
+// Canvas in Buehnen-Pixeln (scharf auf HiDPI)
+function mkCanvas(w, h) { const c = document.createElement('canvas'), d = window.devicePixelRatio || 1; c.width = Math.max(10, w * d); c.height = Math.max(10, h * d); c.style.width = w + 'px'; c.style.height = h + 'px'; const x = c.getContext('2d'); x.scale(d, d); x.W = w; x.H = h; return { c, x }; }
+function axes(x, l, t, w, h, opt = {}) {
+  x.strokeStyle = '#475569'; x.lineWidth = 1; x.beginPath(); x.moveTo(l, t); x.lineTo(l, t + h); x.lineTo(l + w, t + h); x.stroke();
+  x.fillStyle = '#94a3b8'; x.font = '10px Fira Code'; if (opt.title) { x.fillStyle = opt.color || '#e2e8f0'; x.font = '600 12px Inter'; x.fillText(opt.title, l + 4, t + 12); }
+}
+const quant = (arr, p) => { const s = Float64Array.from(arr).sort(); return s[Math.min(s.length - 1, Math.floor(p * (s.length - 1)))]; };
+const normCdf = x => { const t = 1 / (1 + 0.2316419 * Math.abs(x)), d = 0.3989423 * Math.exp(-x * x / 2), p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274)))); return x > 0 ? 1 - p : p; };
+
+// ===================== Aiyagari-COVID-Modell (wird im Hintergrund gerechnet und gecacht) =====================
+      // ======================= Modell loesen (einmal, danach im Cache) =======================
+async function aiySolve(progress, scn, lock) {
+  // Variante: 'normal' (15 % der Infizierten sterben je Periode) oder 'toedlich' (doppelt so toedlich: 30 %, doppelte Angst)
+  const lethal = scn === 'toedlich', pD = lethal ? .3 : .15, fearK = lethal ? 12 : 6;
+  // kurze Pause fuer den Browser: MessageChannel wird nicht wie setTimeout gedrosselt; hoechstens alle 40 ms
+  const chan = new MessageChannel(); let lastY = performance.now();
+  const tick = async msg => { if (performance.now() - lastY < 40) return; if (progress) progress(msg); await new Promise(r => { chan.port1.onmessage = () => r(); chan.port2.postMessage(0); }); lastY = performance.now(); };
+  // Einkommen: 24 Zustaende - e1 arbeitslos, e2..e23 Lohnstufen (AR(1), Tauchen), e24 Superstar; angezeigt in 3 Gruppen zu je 8
+  const NE = 22, rho = .97, sig = .12, sdv = sig / Math.sqrt(1 - rho * rho), gr = [...Array(NE)].map((_, i) => -2.5 * sdv + i * 5 * sdv / (NE - 1)), stp = gr[1] - gr[0];
+  const T6 = gr.map(x0 => gr.map((y, j) => { const m = rho * x0; return j === 0 ? normCdf((y - m + stp / 2) / sig) : j === NE - 1 ? 1 - normCdf((y - m - stp / 2) / sig) : normCdf((y - m + stp / 2) / sig) - normCdf((y - m - stp / 2) / sig); }));
+  let pi6 = new Array(NE).fill(1 / NE); for (let k = 0; k < 400; k++) { const n = new Array(NE).fill(0); for (let i = 0; i < NE; i++) for (let j = 0; j < NE; j++) n[j] += pi6[i] * T6[i][j]; pi6 = n; }
+  const uIn = .0009, uStay = .99, pS = .0005, sStay = .9, NZ = NE + 2, ZS = [...Array(NZ).keys()];
+  const E = [.02, ...gr.map(Math.exp), 40];
+  const PZ = [[uStay, ...pi6.map(p => p * (1 - uStay)), 0], ...T6.map(r => [uIn, ...r.map(p => p * (1 - uIn - pS)), pS]), ZS.map(j => j === NZ - 1 ? sStay : j === Math.round(NZ / 2) ? 1 - sStay : 0)];
+  const NZL = PZ.map(r => r.map((p, j) => [j, p]).filter(([, p]) => p > 1e-7));   // nur Uebergaenge > 0 (schneller)
+  const CZ = PZ.map(r => { let s = 0; return r.map(p => s += p); });
+  const beta = .86, gm = 2.5, phi = .5, chi = 1, R = 1.1, b = .1, NA = 500, amax = 4000, N = 1000000, NT = 4000;
+  const AG = [...Array(NA)].map((_, i) => amax * (i / (NA - 1)) ** 2.5);
+  const ip = (ys, a) => { if (a <= 0) return ys[0]; const f = Math.pow(Math.min(a, amax) / amax, 1 / 2.5) * (NA - 1), i = Math.min(NA - 2, Math.floor(f)); return ys[i] + (ys[i + 1] - ys[i]) * (a - AG[i]) / (AG[i + 1] - AG[i]); };
+  // Pandemie ohne Lockdown und ohne Impfung (SIR mit Todesfaellen wie in der Arbeit)
+  // Lockdown-Modus: 10 Perioden Lockdown von Periode 10 bis 20, davor und danach normal (kein Social Distancing)
+  const LOCK = lock ? [[10, 19]] : [], inLock = t => LOCK.some(([a, b]) => t >= a && t <= b);
+  const contact = t => inLock(t) ? .35 : 1;
+  const thT = t => inLock(t) ? .5 : 1;   // im Lockdown bringt Konsum nur halb so viel Nutzen -> Zwangssparen
+  const Sh = [.997], Ih = [.003], tau = []; for (let t = 0; t < 200; t++) { const tt = (.01 + 1.2 * contact(t)) * Ih[t]; tau.push(tt); const Tn = tt * Sh[t]; Sh.push(Sh[t] - Tn); Ih.push(Ih[t] + Tn - .82 * Ih[t]); }
+  const Ipk = Math.max(...Ih), tPeak = Ih.indexOf(Ipk); let tEnd = tPeak; while (Ih[tEnd] > 1e-4) tEnd++;
+  const T = Math.min(80, tEnd + 4), TL = T + 40;
+  // Arbeitszeit aus der Bedingung  chi * n^(1/phi) = e * c^(-gamma);  gesunde S arbeiten aus Angst weniger
+  const chiT = (t, s) => s === 0 && t < tEnd ? chi * (1 + fearK * Ih[t] / Ipk) : chi;
+  const ub = .035;   // Arbeitslosengeld: Arbeitslose (e1) arbeiten nicht
+  const nOf = (t, z, s, c) => s === 1 || z === 0 ? 0 : Math.min(2, (E[z] * thT(t) * c ** -gm / chiT(t, s)) ** phi);
+  const yOf = (t, z, s, c) => s === 1 ? b : z === 0 ? ub : E[z] * nOf(t, z, s, c);
+  const PS = (t, s) => s === 0 ? [1 - (tau[t] || 0), tau[t] || 0, 0] : s === 1 ? [0, .2, .8 - pD] : [0, 0, 1];   // pD der Infizierten sterben
+  const egm = (cn, t, stat) => { const MU = (stat ? [cn] : cn).map(cs => cs.map(r => r.map(c => c ** -gm)));   // Grenznutzen einmal vorrechnen
+    return (stat ? [0] : [0, 1, 2]).map(s => ZS.map(z => {
+    const cE = [], aE = [], ps = stat ? [1, 0, 0] : PS(t, s), tt = stat ? 999 : t, th0 = stat ? 1 : thT(t), th1 = stat ? 1 : thT(t + 1);
+    for (let i = 0; i < NA; i++) { let e = 0; for (let s2 = 0; s2 < 3; s2++) { if (!ps[s2]) continue; const mu = MU[stat ? 0 : s2]; for (const [z2, pz] of NZL[z]) e += ps[s2] * pz * mu[z2][i]; } const c = (beta * R * e * th1 / th0) ** (-1 / gm); cE.push(c); aE.push((c + AG[i] - yOf(tt, z, s, c)) / R); }
+    return AG.map(a => { if (a >= aE[0]) return interp1(aE, cE, a); let c = R * a + (s === 1 ? b : z === 0 ? ub : E[z]); for (let k = 0; k < 25; k++) { const n = nOf(tt, z, s, c), f = c - R * a - yOf(tt, z, s, c), df = 1 + (s === 1 || n >= 2 ? 0 : E[z] * gm * phi * n / c); c = Math.max(1e-6, c - f / df); } return c; });
+  })); };
+  let css = ZS.map(z => AG.map(a => (R - 1) * a + E[z])); for (let it = 0; it < 500; it++) { const nw = egm(css, 0, true)[0]; let d = 0; for (let z = 0; z < NZ; z++) for (let i = 0; i < NA; i += 7) d = Math.max(d, Math.abs(nw[z][i] - css[z][i])); css = nw; if (it % 25 === 0) await tick(`Haushaltsproblem lösen … ${Math.round(it / 5)} %`); if (d < 1e-7) break; }
+  const pol = []; { let cn = [css, css, css]; for (let t = TL - 1; t >= 0; t--) { cn = egm(cn, t, false); if (t < T) pol[t] = cn; await tick(`Pandemie rückwärts lösen … t = ${t}`); } }
+  // stationaere Verteilung (Histogramm-Methode), daraus 1 000 000 Haushalte ziehen
+  let lam = ZS.map(() => new Float64Array(NA)); lam[Math.round(NZ / 2)][0] = 1;
+  const aNx = ZS.map(z => AG.map(a => { const c = ip(css[z], a); return Math.max(0, R * a + yOf(999, z, 0, c) - c); }));
+  for (let it = 0; it < 1500; it++) { if (it % 100 === 0) await tick(`stationäre Verteilung … ${Math.round(it / 15)} %`); const nl = ZS.map(() => new Float64Array(NA)); for (let z = 0; z < NZ; z++) for (let i = 0; i < NA; i++) { const m = lam[z][i]; if (m < 1e-15) continue; const an = aNx[z][i], f = Math.pow(Math.min(an, amax) / amax, 1 / 2.5) * (NA - 1), j = Math.min(NA - 2, Math.floor(f)); let w = an <= 0 ? 0 : (an - AG[j]) / (AG[j + 1] - AG[j]); w = Math.max(0, Math.min(1, w)); for (const [z2, pz] of NZL[z]) { const p = pz * m; nl[z2][j] += p * (1 - w); nl[z2][j + 1] += p * w; } } lam = nl; }
+  const rng = mulberry(7), A = new Float32Array(N), Zs = new Int8Array(N), H = new Int8Array(N);
+  { const cdf = []; let s = 0; for (let z = 0; z < NZ; z++) for (let i = 0; i < NA; i++) { s += lam[z][i]; cdf.push(s); }
+    for (let n = 0; n < N; n++) { const u = rng() * s; let lo = 0, hi = cdf.length - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (cdf[m] < u) lo = m + 1; else hi = m; } const z = Math.floor(lo / NA), i = lo % NA; Zs[n] = z; A[n] = i === 0 ? 0 : AG[i - 1] + (AG[Math.min(NA - 1, i + 1)] - AG[i - 1]) * (.25 + .5 * rng()); }
+    for (let k = 0; k < N * .003; k++) H[Math.floor(NT + rng() * (N - NT))] = 1; }
+  const sA = Float32Array.from(A.subarray(0, 100000)).sort();
+  const AMAX = Math.ceil(sA[Math.floor(sA.length * .96)] * 1.4), NB = 50, bw = AMAX / NB, MIL = Math.round(1e6 / 7e4 * 10) / 10;   // 1 Einheit ~ 70 000 EUR (Median ~ 1)
+  const NBn = 40, NMAX = 2, NBc = 40; let CMAX = 0;
+  { const cs = []; for (let n = 0; n < 50000; n++) cs.push(ip(css[Zs[n]], A[n])); cs.sort((p, q) => p - q); CMAX = cs[Math.floor(cs.length * .985)] * 1.2; }
+  const K = 3 * NZ, hist = [], hn = [], hc = [], cover = [], track = [], deaths = [], mils = [];
+  const snap = (t, C, Nn) => {
+    const ha = new Uint32Array(K * (NB + 2)), hN = new Uint32Array(K * NBn), hC = new Uint32Array(K * NBc), cO = new Uint32Array(K); let dead = 0, mil = 0;
+    for (let n = 0; n < N; n++) { const s = H[n]; if (s === 3) { dead++; continue; } if (A[n] > MIL) mil++; const k = s * NZ + Zs[n], a = A[n]; ha[k * (NB + 2) + (a < 1e-3 ? 0 : a >= AMAX ? NB + 1 : 1 + Math.floor(a / bw))]++; hN[k * NBn + Math.min(NBn - 1, Math.floor(Nn[n] / NMAX * NBn))]++; if (C[n] >= CMAX) cO[k]++; else hC[k * NBc + Math.floor(C[n] / CMAX * NBc)]++; }
+    hist.push(ha); hn.push(hN); hc.push(hC); cover.push(cO); deaths.push(dead); mils.push(mil); track.push({ a: A.slice(0, NT), z: Zs.slice(0, NT), h: H.slice(0, NT) });
+  };
+  const C = new Float32Array(N), Nn = new Float32Array(N);
+  const decide = t => { for (let n = 0; n < N; n++) { const s = H[n]; if (s === 3) continue; const z = Zs[n], c = ip(t < 0 ? css[z] : pol[t][s][z], A[n]); C[n] = c; Nn[n] = nOf(t < 0 ? 999 : t, z, s, c); } };
+  // 25 normale Perioden vorweg: Haushalte loesen sich von den Gitterpunkten (glattere Verteilung)
+  for (let t = 0; t < 25; t++) { if (t % 5 === 0) await tick(`stationäre Verteilung glätten … ${t * 4} %`); for (let n = 0; n < N; n++) { const z = Zs[n], c = ip(css[z], A[n]), y = z === 0 ? ub : E[z] * nOf(999, z, 0, c); A[n] = Math.max(0, R * A[n] + y - c); const u = rng(), row = CZ[z]; let z2 = 0; while (z2 < NZ - 1 && u >= row[z2]) z2++; Zs[n] = z2; } }
+  decide(-1); snap(0, C, Nn);
+  // die ersten 6 verfolgten Haushalte stecken sich frueh an (damit man S -> I -> R sieht)
+  for (let t = 0; t < T; t++) {
+    await tick(`1 000 000 Haushalte simulieren … t = ${t} / ${T}`);
+    decide(t);
+    for (let n = 0; n < N; n++) {
+      const s = H[n]; if (s === 3) continue; const z = Zs[n], c = C[n], y = s === 1 ? b : z === 0 ? ub : E[z] * Nn[n];
+      A[n] = Math.max(0, R * A[n] + y - c);
+      const u = rng(), row = CZ[z]; let z2 = 0; while (z2 < NZ - 1 && u >= row[z2]) z2++; Zs[n] = z2;
+      if (s === 0) { if (rng() < tau[t] || (n < 40 && t === tPeak - 4)) H[n] = 1; } else if (s === 1) { const v = rng(); if (v < .8 - pD) H[n] = 2; else if (v < .8) H[n] = 3; }
+    }
+    decide(Math.min(T - 1, t + 1)); snap(t + 1, C, Nn);
+  }
+  // fester Haushalt: zuerst S, dann I, dann R (ueberlebt), mittleres Vermoegen
+  let fixed = 0; for (let i = 0; i < NT; i++) { const hs = track.map(f => f.h[i]); const fi = hs.indexOf(1), fr = hs.indexOf(2); if (fi > 2 && fr > fi && hs[hs.length - 1] === 2 && track[0].z[i] >= 9 && track[0].z[i] <= 14) { fixed = i; break; } }
+  return { lockAt: inLock, LOCK, NZ, ZS, E, T, tPeak, tEnd, R, b, ub, pol, ip, nOf, hist, hn, hc, cover, track, deaths, mils, AMAX, NB, bw, NBn, NMAX, NBc, CMAX, MIL, N, NT, fixed };
+}
+
+
+window.__aiyCaches = window.__aiyCaches || {}; window.__aiyPromises = window.__aiyPromises || {};
+function aiyStart(key) { key = key || aiyKey(); const [scn, lk] = key.split('|'); if (!window.__aiyPromises[key]) window.__aiyPromises[key] = aiySolve(m => { window.__aiyMsg = m; if (window.__aiyProgress) window.__aiyProgress(m); }, scn, lk === 'L').then(M => { window.__aiyCaches[key] = M; if (key === 'normal|-') window.__aiyCache = M; return M; }); return window.__aiyPromises[key]; }
+function aiyKey() { return (window.__aiyScn || 'normal') + '|' + (window.__aiyLock ? 'L' : '-'); }
+
+const SUP = n => String(n).split('').map(c => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+c]).join('');
+const fmt = v => Math.round(v).toLocaleString('de-AT');
+// Gleicher Aufbau fuer alle "Wiederholen"-Folien: Balken = x nach jedem Schleifendurchlauf
+function repeatChart(st, cfg) {
+  const W = 560, H = 290, pad = 62, bottom = H - 28, top = 18, n = cfg.n;
+  const wrap = el('div', 'col'); wrap.style.gap = '8px';
+  const host = el('div', '');
+  const pill = el('div', 'pill', cfg.startText); pill.style.fontSize = '16px';
+  const seq = el('div', 'seq'); seq.appendChild(el('div', 'num pop', String(cfg.start)));
+  wrap.append(host, pill, seq);
+  if (cfg.below) pill.style.display = 'none';
+  let mid = null;
+  if (cfg.below) { mid = el('div', 'col'); mid.style.cssText = 'gap:8px;align-items:stretch;flex:0 0 30%;min-width:0;align-self:center'; mid.append(...cfg.below); }
+  if (cfg.side) {
+    // breite, niedrige Buehne: drei Spalten nebeneinander (Diagramm | Formeln | Rechenschritte)
+    const row = el('div', 'row'); row.style.cssText = 'flex-wrap:nowrap;align-items:center;gap:14px;width:100%;height:100%;justify-content:space-between';
+    wrap.style.flex = '0 0 34%'; wrap.style.minWidth = '0';
+    cfg.side.style.flex = '1 1 0'; cfg.side.style.minWidth = '0';
+    row.append(wrap); if (mid) row.append(mid); row.append(cfg.side); st.appendChild(row);
+  } else st.appendChild(wrap);
+  const vals = [cfg.start];
+  const slot = (W - pad - 10) / (n + 1), bw = slot * .58;
+  const X = i => pad + (i + .5) * slot;
+  let maxY = cfg.fixedMax || Math.max(10, cfg.start * 1.25);
+  function draw(mY, extra) {
+    host.innerHTML = '';
+    const svg = svgBox(W, H);
+    const Y = v => bottom - v / mY * (bottom - top);
+    sv('line', { x1: pad, y1: bottom, x2: W - 6, y2: bottom, stroke: '#475569' }, svg);
+    sv('line', { x1: pad, y1: top - 6, x2: pad, y2: bottom, stroke: '#475569' }, svg);
+    for (let k = 1; k <= 4; k++) { const v = mY * k / 4; sv('line', { x1: pad, y1: Y(v), x2: W - 6, y2: Y(v), stroke: '#1e293b' }, svg); txt(svg, pad - 6, Y(v) + 4, fmt(v), { 'text-anchor': 'end', 'font-size': 10 }); }
+    txt(svg, pad - 6, top - 8, 'x', { 'text-anchor': 'end', fill: '#a855f7', 'font-size': 13 });
+    txt(svg, W - 8, bottom + 22, 'Durchlauf i', { 'text-anchor': 'end', fill: '#f59e0b', 'font-size': 11 });
+    if (cfg.band) {
+      sv('rect', { x: pad, y: Y(cfg.band), width: W - 6 - pad, height: bottom - Y(cfg.band), fill: 'rgba(16,185,129,.1)' }, svg);
+      sv('line', { x1: pad, y1: Y(cfg.band), x2: W - 6, y2: Y(cfg.band), stroke: '#10b981', 'stroke-dasharray': '5 4' }, svg);
+      txt(svg, W - 8, Y(cfg.band) - 5, `m = ${cfg.band}: nur 0 … ${cfg.band - 1}`, { 'text-anchor': 'end', fill: '#10b981', 'font-size': 11 });
+    }
+    for (let i = 0; i <= n; i++) txt(svg, X(i), bottom + 14, String(i), { 'text-anchor': 'middle', 'font-size': 10 });
+    const bar = (i, v, color, label, op) => {
+      const h = Math.max(1, bottom - Y(v));
+      sv('rect', { x: X(i) - bw / 2, y: bottom - h, width: bw, height: h, rx: 3, fill: color, opacity: op || 1 }, svg);
+      if (label) txt(svg, X(i), bottom - h - 5, label, { 'text-anchor': 'middle', fill: '#e2e8f0', 'font-size': 11 });
+    };
+    vals.forEach((v, i) => bar(i, v, i === 0 ? '#a855f7' : cfg.color, fmt(v)));
+    if (cfg.ghosts) cfg.ghosts.forEach((g, i) => sv('rect', { x: X(i + 1) - bw / 2, y: Y(g), width: bw, height: bottom - Y(g), rx: 3, fill: 'none', stroke: '#64748b', 'stroke-dasharray': '3 3' }, svg));
+    if (extra) bar(vals.length, extra.v, extra.color, extra.label, extra.op);
+    host.appendChild(svg); fit(svg, cfg.side ? .34 : 1, cfg.side ? .8 : .7);
+  }
+  draw(maxY);
+  // Wert v wachsen lassen (und dabei die y-Achse mitzoomen)
+  function grow(from, to, color, ms, done) {
+    const m0 = maxY, m1 = cfg.fixedMax || Math.max(maxY, to * 1.15);
+    const t0 = performance.now(); let t = 0; const iv = setInterval(() => {
+      t = Math.min(1, (performance.now() - t0) / ms); const e = t * t * (3 - 2 * t);
+      maxY = m0 + (m1 - m0) * e;
+      draw(maxY, { v: from + (to - from) * e, color, label: t >= 1 ? fmt(to) : '' });
+      if (t >= 1) { clearInterval(iv); done && done(); }
+    }, 30); timers.push(iv);
+  }
+  let pending = null;   // laufender Schritt, falls → schneller gedrueckt wird als die Animation
+  const settle = () => { if (pending) { const f = pending; pending = null; f(); } };
+  return stepper(n, (i) => {
+    settle();
+    const old = vals[vals.length - 1];
+    setHl({ o: [cfg.line] }); blink('o', cfg.loop);
+    if (cfg.onStep) cfg.onStep(vals.length, old, cfg.f ? cfg.f(old) : 0);
+    const finish = (v) => {
+      vals.push(v); draw(maxY);
+      seq.appendChild(el('div', 'num pop ok', fmt(v)));
+      pill.innerHTML = cfg.expr(vals.length - 1, v, old); setHl({ o: [cfg.line, cfg.line + 1] });
+    };
+    if (cfg.squash) {
+      const g = cfg.raw(old), v = g % cfg.band;
+      cfg.ghosts = cfg.ghosts || [];
+      pill.innerHTML = `${cfg.rawText(old)} = <b>${g}</b>`;
+      grow(0, g, '#64748b', 700, () => later(250, () => { pill.innerHTML = `${g} % ${cfg.band} = <b style="color:var(--ok)">${v}</b> (Rest)`; grow(g, v, cfg.color, 700, settle); }));
+      pending = () => { cfg.ghosts.push(g); finish(v); };
+    } else {
+      const v = cfg.f(old);
+      pending = () => finish(v);
+      grow(0, v, cfg.color, 800, settle);
+    }
+  }, cfg.delay || (cfg.squash ? 2400 : 1500));
+}
+
+// Gitter-Strahlen vs. zufaellige Strahlen auf einem 2D-Muster
+function samplingDemo(st, cfg) {
+  const { N, cell } = cfg, step = cell + 1;
+  const mk = (title, cls) => {
+    const col = el('div', 'col'); col.style.gap = '6px';
+    const g = el('div', 'px'); g.style.gridTemplateColumns = `repeat(${N}, ${cell}px)`;
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const d = el('div'); d.style.width = d.style.height = cell + 'px'; d.style.background = cfg.white(y, x) ? '#e2e8f0' : '#0f172a'; g.appendChild(d); }
+    const res = el('div', 'pill ' + cls, title);
+    const out = el('div', 'row'); out.style.gap = '8px';
+    const pixel = el('div', 'pixel'); pixel.style.background = '#000';
+    out.append(el('span', 'mono', 'Pixel →'), pixel);
+    col.append(res, g, out);
+    return { col, g, res, pixel, hell: 0, n: 0, title };
+  };
+  let real = 0; for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (cfg.white(y, x)) real++;
+  const G = mk('gleichmäßig', 'x'), R = mk('zufällig', 'ok');
+  const r = el('div', 'row'); r.style.gap = '40px'; r.append(G.col, R.col); st.appendChild(r);
+  const sol = el('div', 'mono'); sol.style.cssText = 'font-size:12px;color:var(--muted);text-align:center';
+  sol.innerHTML = `richtig wären ${real} / ${N * N} hell = ${(real / N / N * 100).toFixed(0)}%`;
+  const wrap = el('div', 'col'); st.innerHTML = ''; wrap.append(r, sol); st.appendChild(wrap);
+  const mark = (o, y, x, color) => { const m = el('div', ''); const s = Math.max(5, cell - 5); Object.assign(m.style, { position: 'absolute', left: (x * step + 1 + (cell - s) / 2) + 'px', top: (y * step + 1 + (cell - s) / 2) + 'px', width: s + 'px', height: s + 'px', borderRadius: '50%', background: color, border: '1px solid #020617' }); o.g.appendChild(m); };
+  const update = () => [G, R].forEach(o => { const v = o.n ? o.hell / o.n : 0; const gv = Math.round(v * 255); o.pixel.style.background = `rgb(${gv},${gv},${gv})`; o.res.innerHTML = `${o.title}: ${o.hell} / ${o.n} hell = ${(v * 100).toFixed(0)}%`; });
+  update();
+  const k = Math.ceil(cfg.grid.length / cfg.perStep);
+  return stepper(k + (cfg.tile ? 1 : 0), (s) => {
+    if (s >= k) {   // Kacheln einzeichnen: Muster und Gitter wiederholen sich im selben Takt
+      setHl({});
+      [G, R].forEach(o => { for (let t = cfg.tile; t < N; t += cfg.tile) {
+        const v = el('div', ''); Object.assign(v.style, { position: 'absolute', left: (t * step) + 'px', top: 0, bottom: 0, borderLeft: '2px dashed #f59e0b', width: 0, height: '100%' }); o.g.appendChild(v);
+        const h = el('div', ''); Object.assign(h.style, { position: 'absolute', top: (t * step) + 'px', left: 0, right: 0, borderTop: '2px dashed #f59e0b', height: 0, width: '100%' }); o.g.appendChild(h);
+      } });
+      sol.innerHTML += ` · Das Kreuz teilt das Muster in ${(N / cfg.tile) ** 2} gleiche Kacheln (je ${cfg.tile} × ${cfg.tile}): Das Gitter trifft in jeder Kachel genau dieselben Stellen`;
+      return;
+    }
+    cfg.hlStep();
+    for (let i = 0; i < cfg.perStep; i++) {
+      const p = cfg.grid[s * cfg.perStep + i]; if (!p) break;
+      G.n++; if (cfg.white(p[0], p[1])) G.hell++; mark(G, p[0], p[1], '#f59e0b');
+      const ry = Math.floor(Math.random() * N), rx = Math.floor(Math.random() * N); R.n++; if (cfg.white(ry, rx)) R.hell++; mark(R, ry, rx, '#10b981');
+    }
+    update();
+  }, 800);
+}
+
+const chapters = ['Zufall?', 'LCG', 'Seed', 'Parameter', 'Random in C#', 'Fehler', 'Anwendungen'];
+const steps = [
+  { ch: 0, title: 'Kann ein Computer würfeln?',
+    own: ['// Formel + Startwert', 'int x = 7;                  // Startwert (Seed)', 'x = (5 * x + 3) % 16;       // naechste "Zufallszahl"'],
+    rnd: ['Random generator = new Random(7);   // Startwert (Seed)', 'int zahl = generator.Next(16);      // naechste Zufallszahl'],
+    hl: { o: [1, 2], r: [0, 1] },
+    text: '<p>Ein Computer ist <b>deterministisch</b>: gleicher Input → <b>immer</b> gleicher Output.</p><p><b>Echter Zufall</b> kommt aus der Physik (Rauschen, radioaktiver Zerfall, Mausbewegungen). <b>Pseudo-Zufall</b> wird mit einer <b>Formel</b> aus einem Startwert berechnet.</p><p>Links siehst du ab jetzt immer beides: wie wir es <b style="color:var(--x)">selbst programmieren</b> und wie es mit <b style="color:var(--ok)">Random</b> geht.</p>',
+    render(st) {
+      const r = el('div', 'row');
+      const a = el('div', 'card fade', '<h3>🎲 Echter Zufall</h3><p>Physikalische Messung</p><p>nicht vorhersagbar</p><p>langsam</p>');
+      const b = el('div', 'card fade', '<h3>🧮 Pseudo-Zufall</h3><p>Formel + Startwert (Seed)</p><p>berechenbar</p><p>schnell → <code class="mono">Random</code></p>'); b.style.animationDelay = '.5s';
+      r.append(a, b); st.appendChild(r);
+    } },
+  { ch: 1, title: 'Einsetzen und aufrollen: f(7) = 38 → 38 % 16 = 6',
+    own: ['int k = 5, d = 3, m = 16;', 'int x = 7;                  // Seed', '', 'int y = k * x + d;          // 1) in die Gerade einsetzen: f(7) = 38', 'x = y % m;                  // 2) Zahlenstrahl zum Kreis aufrollen:', '                            //    38 % 16 = 6'],
+    rnd: ['Random generator = new Random(7);', 'int zahl = generator.Next(16);   // auch immer 0 ... 15'],
+    hl: { o: [0, 1] },
+    text: '<p><b>1)</b> Wir setzen den Seed <code>x = 7</code> in die <b>lineare Funktion</b> <code>f(x) = 5·x + 3</code> ein: hinauf zur Geraden, links ablesen → <b>38</b>.</p><p><b>2)</b> 38 ist zu groß – wir wollen nur <b>0 … 15</b>. Idee: Wir nehmen einen <b>Zahlenstrahl</b> und <b>rollen ihn zu einem Kreis</b> mit 16 Stellen auf. Dann liegt 16 wieder auf 0, 32 auch.</p><p><b>3)</b> Jetzt suchen wir 38 am Kreis: zwei volle Runden (32) und noch 6 weiter → <b>38 % 16 = 6</b>. Das ist das neue x. Auf der nächsten Folie geht es so weiter.</p><p class="hint">→ = nächster Schritt · ⏩ = automatisch</p>',
+    render(st) {
+      const row = el('div', 'row'); row.style.cssText = 'flex-wrap:nowrap;gap:16px;align-items:center';
+      // --- linke Seite: Gerade ---
+      const GW = 440, GH = 300, gp = 46, gb = GH - 34, gt = 14;
+      const g = svgBox(GW, GH); arrowDefs(g);
+      const X = v => gp + v / 9 * (GW - gp - 14), Y = v => gb - v / 50 * (gb - gt);
+      sv('line', { x1: gp, y1: gb, x2: GW - 6, y2: gb, stroke: '#475569' }, g); sv('line', { x1: gp, y1: gt, x2: gp, y2: gb, stroke: '#475569' }, g);
+      for (let v = 0; v <= 9; v += 1) txt(g, X(v), gb + 15, String(v), { 'text-anchor': 'middle' });
+      for (let v = 0; v <= 50; v += 10) txt(g, gp - 7, Y(v) + 4, String(v), { 'text-anchor': 'end' });
+      txt(g, GW - 8, gb - 6, 'x', { fill: '#f59e0b', 'font-size': 14, 'text-anchor': 'end' }); txt(g, gp + 6, gt + 10, 'f(x)', { fill: '#a855f7', 'font-size': 14 });
+      sv('line', { x1: X(0), y1: Y(3), x2: X(9), y2: Y(48), stroke: '#38bdf8', 'stroke-width': 3 }, g);
+      txt(g, X(5.6), Y(40), 'f(x) = 5·x + 3', { fill: '#38bdf8', 'font-size': 14 });
+      sv('circle', { cx: X(7), cy: gb, r: 5, fill: '#f59e0b' }, g); txt(g, X(7), gb + 15, '7', { 'text-anchor': 'middle', fill: '#f59e0b', 'font-size': 13, 'font-weight': 700 });
+      // --- rechte Seite: Zahlenstrahl -> Kreis ---
+      const CW = 400, CH = 330, cx = CW / 2, cy = CH / 2 + 4, Rc = 118, u1 = 2 * Math.PI * Rc / 16, VMAX = 40, u0 = (CW - 40) / VMAX;
+      const c = svgBox(CW, CH); const cg = sv('g', {}, c);
+      row.append(g, c); st.appendChild(row); fit(g, .5, .95); fit(c, .46, .95);
+      const lapCol = ['#38bdf8', '#a855f7', '#f59e0b'];
+      // Punkt mit Abstand s vom Anfang auf einer Kurve mit Kruemmung k (k = 0: gerade)
+      const pt = (s, k, x0, y0) => k < 1e-6 ? [x0 + s, y0] : [x0 + Math.sin(k * s) / k, y0 + (1 - Math.cos(k * s)) / k];
+      function drawCoil(e, dotV, note) {
+        while (cg.firstChild) cg.removeChild(cg.firstChild);
+        const u = u0 + (u1 - u0) * e, x0 = (cx - VMAX * u0 / 2) * (1 - e) + cx * e, y0 = (cy) * (1 - e) + (cy - Rc) * e;
+        const kk = e * 2 * Math.PI / (16 * u);
+        for (let lap = 0; lap < 3; lap++) {
+          const a = lap * 16, b = Math.min(VMAX, a + 16); if (a >= VMAX) break;
+          let d = ''; for (let v = a; v <= b + 1e-9; v += .25) { const [px, py] = pt(v * u, kk, x0, y0); d += (v === a ? 'M' : 'L') + px.toFixed(1) + ' ' + py.toFixed(1); }
+          sv('path', { d, fill: 'none', stroke: e >= 1 ? '#38bdf8' : lapCol[lap], 'stroke-width': e >= 1 ? 4 : lap === 0 ? 4 : 3, opacity: e >= 1 || lap === 0 ? 1 : .75 }, cg);   // aufgerollt: ein Kreis, eine Farbe
+        }
+        for (let v = 0; v <= VMAX; v++) {
+          const [px, py] = pt(v * u, kk, x0, y0), ang = kk * v * u;
+          const nX = Math.sin(ang), nY = -Math.cos(ang);   // Normale, zeigt nach aussen (gerade: nach oben)
+          sv('line', { x1: px, y1: py, x2: px + nX * 6, y2: py + nY * 6, stroke: '#94a3b8' }, cg);
+          const showLbl = e < .5 ? v % 4 === 0 || v === 38 : v < 16;
+          if (showLbl) txt(cg, px + nX * 16, py + nY * 16 + 4, String(v), { 'text-anchor': 'middle', 'font-size': e < .5 ? 11 : 13, fill: v === 38 && e < .5 ? '#a855f7' : '#e2e8f0', 'font-weight': v === 38 ? 700 : 400 });
+        }
+        if (e < .5) { const [px, py] = pt(38 * u, kk, x0, y0); sv('circle', { cx: px, cy: py, r: 6, fill: '#a855f7' }, cg); }
+        if (e >= 1) { txt(cg, cx, cy - 4, note ? note[0] : '16 Stellen', { 'text-anchor': 'middle', fill: note ? note[2] : '#94a3b8', 'font-size': 18, 'font-weight': 700 }); if (note) txt(cg, cx, cy + 20, note[1], { 'text-anchor': 'middle', fill: '#94a3b8', 'font-size': 13 }); }
+        if (dotV !== undefined) { const [px, py] = pt(dotV * u, kk, x0, y0); sv('circle', { cx: px, cy: py, r: 9, fill: '#fbbf24', stroke: '#020617', 'stroke-width': 2 }, cg); }
+      }
+      const anim = (ms, f, done) => { const t0 = performance.now(); const iv = setInterval(() => { const e = Math.min(1, (performance.now() - t0) / ms); f(e); if (e >= 1) { clearInterval(iv); done && done(); } }, 30); timers.push(iv); };
+      const phases = [
+        () => { setHl({ o: [3] }); drawLine(g, X(7), gb, X(7), Y(38) + 3, { stroke: '#f59e0b', 'stroke-width': 2.5, 'marker-end': 'url(#ah-x)' });
+          later(700, () => drawLine(g, X(7) - 3, Y(38), gp + 3, Y(38), { stroke: '#a855f7', 'stroke-width': 2.5, 'marker-end': 'url(#ah-y)' }));
+          later(1300, () => { txt(g, gp + 8, Y(38) - 7, 'f(7) = 38', { fill: '#a855f7', 'font-size': 15, 'font-weight': 700 }); }); },
+        () => { setHl({ o: [4] }); drawCoil(0); txt(cg, cx, 40, 'Zahlenstrahl 0 … 40', { 'text-anchor': 'middle', fill: '#94a3b8', 'font-size': 13 }); },
+        () => { setHl({ o: [4] }); anim(1800, e => drawCoil(e * e * (3 - 2 * e)), () => drawCoil(1)); },
+        () => { setHl({ o: [4, 5] }); blink('o', 4);
+          anim(2600, e => { const v = 38 * e; const r = Math.floor(v / 16); drawCoil(1, v, [`${r} Runde${r === 1 ? '' : 'n'} + ${Math.floor(v % 16)}`, `bei ${Math.floor(v)}`, '#fbbf24']); },
+            () => drawCoil(1, 38, ['38 % 16 = 6', '2 Runden (32) + 6', '#10b981'])); }
+      ];
+      return stepper(phases.length, i => phases[i](), 2900);
+    } },
+  { ch: 1, title: 'Gerade + Kreis = Linearer Kongruenzgenerator',
+    own: ['int k = 5, d = 3, m = 16;', 'int x = 7;                       // Seed', '', 'for (int i = 0; i < 16; i++)', '{', '    int y = k * x + d;           // 1) Gerade: f(x)', '    x = y % m;                   // 2) y um den Kreis wickeln', '    Console.Write(x + " ");      // 3) neues x', '}'],
+    rnd: ['Random generator = new Random(7);', 'for (int i = 0; i < 16; i++)', '{', '    Console.Write(generator.Next(16) + " ");', '}', '// andere Zahlen: Random hat eine andere Formel'],
+    hl: { o: [0, 1] },
+    text: '<p><b>Die Verbindung:</b> Die <span style="color:var(--y)">y-Achse</span> wird um den Kreis <b>gewickelt</b> – je 16 Einheiten sind <b>eine Runde</b> (die Streifen). Läuft der Punkt die y-Achse bis f(x) hinauf, läuft er gleichzeitig am Kreis herum. Wo er stehen bleibt, ist <code>f(x) % 16</code>.</p><p>Beispiel: 38 = 2 volle Runden (32) und 6 weiter → <b>38 % 16 = 6</b>. Diese Stelle ist das neue x.</p><p class="hint">→ = ein LCG-Schritt · ⏩ = alle restlichen automatisch</p><div id="lcgtab"></div>',
+    render(st) {
+      const r = el('div', 'row'); r.style.flexWrap = 'nowrap'; r.style.gap = '8px';
+      const G = lcgGraph(500, 260, { id: 'L', labels: true }); const c = circle(16, { id: 'l', size: 280 });
+      r.append(G.svg, c.svg); st.appendChild(r);
+      fit(G.svg, .6, .95); fit(c.svg, .38, .95);
+      const yDot = sv('circle', { cx: G.pad, cy: G.bottom, r: 0, fill: '#f59e0b' }, G.svg);
+      const tab = el('table', 'lcg'); tab.innerHTML = '<tr><th>x</th><th>f(x) = 5·x+3</th><th>Runden</th><th>f(x) % 16</th></tr>';
+      $('lcgtab').appendChild(tab);
+      let x = 7;
+      lightDot(c, 7, '#a855f7');
+      sv('circle', { cx: G.X(7), cy: G.bottom, r: 5, fill: '#f59e0b' }, G.curG);
+      const pointer = sv('circle', { cx: c.pos[0].x, cy: c.pos[0].y, r: 0, fill: '#f59e0b' }, c.top);
+      const runs = txt(c.top, c.cx, c.cy + 5, '', { 'text-anchor': 'middle', fill: '#f59e0b', 'font-size': 15, 'font-weight': 700 });
+      return stepper(16, () => {
+        G.newStep();
+        const ox = x, y = 5 * ox + 3, q = Math.floor(y / 16), nx = y % 16;
+        x = nx;
+        setHl({ o: [5] }); blink('o', 3);
+        sv('circle', { cx: G.X(ox), cy: G.bottom, r: 5, fill: '#f59e0b' }, G.curG);
+        txt(G.curG, G.X(ox), G.bottom - 8, 'x=' + ox, { 'text-anchor': 'middle', fill: '#f59e0b', 'font-size': 11 });
+        drawLine(G.curG, G.X(ox), G.bottom, G.X(ox), G.Y(y) + 3, { stroke: '#f59e0b', 'stroke-width': 2.5, 'marker-end': 'url(#ah-x)' });
+        later(700, () => drawLine(G.curG, G.X(ox) - 3, G.Y(y), G.pad + 3, G.Y(y), { stroke: '#a855f7', 'stroke-width': 2.5, 'marker-end': 'url(#ah-y)' }));
+        later(1300, () => txt(G.curG, G.pad + 5, G.Y(y) - 4, 'f(x)=' + y, { fill: '#a855f7', 'font-size': 11, 'font-weight': 700 }));
+        later(1500, () => {
+          setHl({ o: [6] });
+          pointer.setAttribute('r', 8); yDot.setAttribute('r', 6); runs.setAttribute('fill', '#f59e0b');
+          let t = 0; const speed = Math.max(.35, y / 60);
+          const iv = setInterval(() => {
+            t = Math.min(y, t + speed);
+            const p = angPos(c, t); pointer.setAttribute('cx', p.x); pointer.setAttribute('cy', p.y);
+            yDot.setAttribute('cy', G.Y(t));
+            G.band(Math.floor(t / 16), 'rgba(245,158,11,.22)');
+            runs.textContent = `${Math.floor(t / 16)} Runden + ${Math.floor(t % 16)}`;
+            if (t >= y) {
+              clearInterval(iv);
+              runs.textContent = `${y} % 16 = ${nx}`; runs.setAttribute('fill', '#10b981');
+              chord(c, ox, nx, '#10b981', 2.5); lightDot(c, nx, '#10b981');
+              sv('circle', { cx: G.X(nx), cy: G.bottom, r: 7, fill: 'none', stroke: '#10b981', 'stroke-width': 2 }, G.curG);
+              txt(G.curG, G.X(nx), G.bottom + 14, String(nx), { 'text-anchor': 'middle', fill: '#10b981', 'font-size': 12, 'font-weight': 700 });
+              tab.appendChild(el('tr', 'fade', `<td>${ox}</td><td>${y}</td><td>${q} · 16 + ${nx}</td><td class="res">${nx}</td>`));
+              setHl({ o: [7] });
+            }
+          }, 25);
+          timers.push(iv);
+        });
+      }, 4000);
+    } },
+  { ch: 1, title: 'Den Bereich verschieben: + n',
+    own: ['// x_neu = [(k * x_alt + d) mod m] + n', '', 'x = (k * x + d) % m;      // 0 ... m-1', 'int zahl = x + n;         // n ... n+m-1', '', '// m = 16, n = 10  ->  10 ... 25'],
+    rnd: ['int zahl = generator.Next(n, n + m);   // n ... n+m-1', 'int zahl = generator.Next(10, 26);     // 10 ... 25'],
+    hl: { o: [2] },
+    text: '<p><code>mod m</code> liefert immer <b>0 … m−1</b>. Wollen wir z.B. Zahlen ab 10, addieren wir am Ende <b>n</b>:</p><p><code>[(k · x + d) mod m] + n</code> → <b>n … n+m−1</b></p><p>Mit <code>m = 16</code>, <code>n = 10</code>: <b>10 … 25</b>. Das macht <code>generator.Next(10, 26)</code>: Untergrenze <b>n</b>, Obergrenze <b>n + m</b> (exklusive).</p>',
+    render(st) {
+      const c = el('div', 'col');
+      const nl = numberLine(0, 28, 0, 16, { tick: 2 }); c.appendChild(nl.svg);
+      const p = el('div', 'pill', 'mod 16 → [0, 16)'); c.appendChild(p);
+      st.appendChild(c);
+      later(1400, () => { setHl({ o: [3], r: [1] }); nl.move(10, 26); p.className = 'pill ok'; p.innerHTML = '+ 10 → [10, 26) = 10 … 25 → Next(10, 26)'; });
+    } },
+  // ---------- Parameter ----------,
+  { ch: 2, title: 'Der Seed ist der Startpunkt',
+    own: ['int x1 = 7;                // Seed 7', 'int x2 = 2;                // Seed 2', '', 'for (int i = 0; i < 16; i++)', '{', '    x1 = (5 * x1 + 3) % 16;', '    x2 = (5 * x2 + 3) % 16;', '}'],
+    rnd: ['Random generator1 = new Random(7);', 'Random generator2 = new Random(2);', 'Random generator3 = new Random();   // ohne Seed: jedes Mal anders', '', 'generator1.Next(16);   // Seed 7: immer dieselbe Folge', 'generator2.Next(16);   // Seed 2: eine andere Folge'],
+    hl: { o: [0, 1], r: [0, 1] },
+    text: '<p>Der erste <code>x</code> heißt <b>Seed</b>. Am Graph ist er der erste Punkt auf der x-Achse, am Kreis die <b>Startstelle</b>.</p><p>Beide rechnen mit <b>derselben Formel</b> – nur der Start ist anders → andere Folge. Startest du nochmal mit R, kommt <b>exakt dieselbe</b> Folge.</p><p>👍 Zum Testen: gleicher Seed = gleiche Welt. <span class="warn">⚠️ Für Passwörter nie <code>Random</code> – dafür <code>RandomNumberGenerator</code>.</span></p><p class="hint">→ = ein Schritt · ⏩ = automatisch</p>',
+    render(st) {
+      const r = el('div', 'row'); r.style.flexWrap = 'nowrap'; r.style.alignItems = 'flex-start'; r.style.gap = '18px';
+      const sw = $('stage').clientWidth, sh = $('stage').clientHeight;
+      const mk = (id, seed, color, cls) => {
+        const col = el('div', 'col'); col.style.gap = '4px';
+        const G = lcgGraph(300, 190, { id: 'G' + id });
+        const c = circle(16, { id, size: 220 });
+        const pair = el('div', 'row'); pair.style.flexWrap = 'nowrap'; pair.style.gap = '4px'; pair.append(G.svg, c.svg);
+        const s = el('div', 'seq'); s.style.maxWidth = (sw * .46) + 'px'; s.style.minHeight = '30px';
+        col.append(el('div', 'pill ' + cls, `Seed ${seed}`), pair, s);
+        r.appendChild(col);
+        const h = Math.max(100, sh - 120);
+        G.svg.style.width = Math.min(sw * .26, h * 1.58) + 'px'; G.svg.style.height = h + 'px';
+        c.svg.style.width = Math.min(sw * .19, h) + 'px'; c.svg.style.height = h + 'px';
+        lightDot(c, seed, color);
+        sv('circle', { cx: G.X(seed), cy: G.bottom, r: 5, fill: color }, G.curG);
+        return { G, c, s, x: seed, color, cls };
+      };
+      const A = mk('sa', 7, '#a855f7', 'y'), B = mk('sb', 2, '#f59e0b', 'x');
+      st.appendChild(r);
+      return stepper(16, () => {
+        setHl({ o: [5, 6], r: [4, 5] }); blink('o', 3);
+        [A, B].forEach(P => {
+          const ox = P.x, y = 5 * ox + 3, n = y % 16; P.x = n;
+          const head = `url(#${P.cls === 'y' ? 'ah-y' : 'ah-x'})`;
+          P.G.newStep();
+          drawLine(P.G.curG, P.G.X(ox), P.G.bottom, P.G.X(ox), P.G.Y(y) + 3, { stroke: P.color, 'stroke-width': 2.5, 'marker-end': head });
+          later(400, () => drawLine(P.G.curG, P.G.X(ox) - 3, P.G.Y(y), P.G.pad + 3, P.G.Y(y), { stroke: P.color, 'stroke-width': 2.5, 'marker-end': head }));
+          later(800, () => { P.G.band(Math.floor(y / 16), 'rgba(16,185,129,.22)'); txt(P.G.curG, P.G.pad + 4, P.G.Y(y) - 4, `${y} % 16 = ${n}`, { fill: '#10b981', 'font-size': 12, 'font-weight': 700 }); });
+          later(1000, () => { chord(P.c, ox, n, P.color, 2.5); lightDot(P.c, n, P.color); sv('circle', { cx: P.G.X(n), cy: P.G.bottom, r: 6, fill: 'none', stroke: '#10b981', 'stroke-width': 2 }, P.G.curG); P.s.appendChild(el('div', 'num pop ' + (P.cls === 'y' ? 'same' : 'diff'), n)); });
+        });
+      }, 1500);
+    } },
+  // ---------- Random in C# ----------,
+  { ch: 3, id: 'tabelle', title: 'Wer macht was? Die Parameter des LCG',
+    own: ['//         x_neu = [(k * x_alt + d) mod m] + n', '', 'int x = 7;    // x0: Seed - Startpunkt', 'int k = 5;    // Multiplikator - Steigung, wie weit gesprungen wird', 'int d = 3;    // Inkrement - Verschiebung, verhindert "haengen bei 0"', 'int m = 16;   // Modulus - Stellen am Kreis, maximale Periode', 'int n = 10;   // Verschiebung des Ergebnisbereichs', '', 'x = (k * x + d) % m;', 'int zahl = x + n;'],
+    rnd: ['// Bei Random sind k, d, m fest eingebaut.', '// Wir waehlen nur den Seed und den Bereich:', 'Random generator = new Random(7);      // Seed', 'int zahl = generator.Next(10, 26);    // n = 10, Breite 16'],
+    hl: { o: [2, 3, 4, 5, 6] },
+    text: '<p>Jeder Parameter hat eine eigene Aufgabe – am <b>Graph</b> und am <b>Kreis</b> sieht man sie wieder.</p><p>Bei <code>Random</code> sind <b>k, d und m versteckt</b>. Wir bestimmen nur den <b>Seed</b> (<code>new Random(seed)</code>) und den <b>Bereich</b> (<code>Next(min, max)</code>).</p><p>❓ Warum braucht es <b>k UND d</b> – würde nicht nur Multiplizieren oder nur Addieren reichen? → <a class="jump" onclick="jumpTo(&quot;warum&quot;)">nächste Folie</a></p>',
+    render(st) {
+      const t = el('table', 'par');
+      const rows = [
+        ['x₀', 'Seed', 'Startwert', 'Startpunkt auf der x-Achse', 'Startstelle am Kreis', 'new Random(seed)'],
+        ['k', 'Multiplikator', 'mischt: macht aus kleinen Unterschieden große<br><a class="jump" onclick="jumpTo(&quot;warum&quot;)">❓ Warum k UND d? →</a>', 'Steigung der Geraden', 'wie weit gesprungen wird', 'versteckt'],
+        ['d', 'Inkrement', 'verschiebt, damit 0 nicht bei 0 hängen bleibt<br><a class="jump" onclick="jumpTo(&quot;warum&quot;)">❓ Warum k UND d? →</a>', 'Verschiebung nach oben', 'zusätzlicher Versatz', 'versteckt'],
+        ['m', 'Modulus', 'Anzahl möglicher Werte = maximale Periode', 'Höhe eines Streifens (eine Runde)', 'Anzahl Stellen am Kreis', 'versteckt (riesig)'],
+        ['n', 'Verschiebung', 'Ergebnis in den Bereich n … n+m−1 schieben', '–', 'Beschriftung + n', 'Next(n, n + m)']
+      ];
+      t.innerHTML = '<tr><th></th><th>Name</th><th>Aufgabe</th><th>am Graph</th><th>am Kreis</th><th>bei Random</th></tr>' +
+        rows.map((r, i) => `<tr class="fade" style="animation-delay:${i * .5}s">${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
+      st.appendChild(t);
+      [2, 3, 4, 5, 6].forEach((ln, i) => later(i * 500, () => setHl({ o: [ln], r: i === 0 ? [2] : i === 4 ? [3] : [] })));
+      later(2800, () => setHl({ o: [2, 3, 4, 5, 6] }));
+    } },
+  { ch: 3, id: 'warum', textSize: .45, title: 'Warum + UND · ? Nur addieren oder nur multiplizieren reicht nicht',
+    own: ['// A) nur addieren (k = 1)', 'x = (x + 3) % 16;', '', '// B) nur multiplizieren (d = 0)', 'x = (5 * x) % 16;        // 3 15 11 7 3 15 ...', '', '// C) beides = lineare Funktion', 'x = (5 * x + 3) % 16;    // 6 1 8 11 10 5 ...'],
+    rnd: ['// Random: riesiges k und m -> Nachbarn landen', '// weit auseinander, man erkennt kein Muster.'],
+    hl: { o: [1, 4, 7] },
+    text: '<p id="whint" class="hint" style="color:var(--text);background:rgba(56,189,248,.1);border-left:3px solid var(--accent);padding:6px 10px;border-radius:6px">👈 Links unter „Probier aus“: Kombinationen, die interessante Muster zeichnen. Klick drauf!</p><p>Alle drei starten bei 7 und werden mit <code>% m</code> zusammengequetscht. Unten siehst du den <b>Verlauf</b> von 2 · m Zahlen (die ersten 5 als Zahl) – so sieht man, ob und wann sich die Folge wiederholt. Mit ⟲ ⟳ kannst du einen Kreis drehen, um Muster zu vergleichen. Oben kannst du <b>k, d und m</b> selbst einstellen – der Code links ändert sich mit.</p><p><b>Wann ist C (grün) nur ein gedrehtes B (rot)?</b> Wenn es einen <b>Fixpunkt</b> c gibt: k·c + d ≡ c (mod m). Dann gilt C(x) − c = k·(x − c) – C rechnet genau wie B, nur um c Stellen verschoben. Mit voller Periode gibt es <b>nie</b> einen Fixpunkt. Oben bei 🔄 kannst du es zeigen lassen (z.B. k = 3, d = 1, m = 17).</p><p><b style="color:var(--x)">A) nur + 3</b> (wiederholte Addition): besucht zwar alle 16 Stellen, aber immer genau <b>3 weiter</b> → eine Treppe, die man sofort durchschaut. Nach 10 kommt sicher 13.</p><p><b style="color:var(--bad)">B) nur · 5</b> (wiederholte Multiplikation): springt zwar, landet aber in einem <b>kurzen Kreis</b> mit nur 4 Zahlen. Startet man bei 0, bleibt es für immer 0 (5 · 0 = 0).</p><p><b style="color:var(--ok)">C) · 5 + 3</b> (lineare Funktion): Das <b>· (k)</b> mischt – Nachbarn landen 5 Stellen auseinander, und nach dem Wickeln sieht man nicht mehr, wie viele Runden es waren. Das <b>+ (d)</b> verhindert das Hängenbleiben und sorgt dafür, dass <b>alle</b> Stellen erreicht werden (Hull–Dobell). Erst beides zusammen wirkt zufällig – ist aber berechnet: <b>Pseudo</b>-Zufall.</p><p><a class="jump" onclick="jumpTo(\'tabelle\')">← zurück zur Tabelle</a> · <span class="hint">→ = ein Schritt · ⏩ = automatisch</span></p>',
+    render(st) {
+      // Parameter links (senkrecht), Kreise rechts daneben
+      const outer = el('div', 'row'); outer.style.cssText = 'flex-wrap:nowrap;gap:18px;align-items:center;width:100%;height:100%;justify-content:center';
+      const lab = el('div', 'lab', `<label>k</label><input id="wk" type="number" value="5" min="0" max="40"><label>d</label><input id="wd" type="number" value="3" min="0" max="40"><label>m</label><input id="wm" type="number" value="16" min="2" max="32"><button id="wsolve" style="grid-column:1/3;background:var(--panel2);color:var(--ok);border:1px solid var(--ok);border-radius:6px;padding:4px 8px;font-size:13px;cursor:pointer">⚡ sofort lösen</button><span style="grid-column:1/3;font-size:11px;color:var(--muted);font-family:Inter;max-width:120px">Seed 7 · Ändern löst sofort</span><span style="grid-column:1/3;font-size:12px;font-weight:700;font-family:Inter;margin-top:4px">Probier aus (C):</span><div id="wpre" style="grid-column:1/3;display:grid;grid-template-columns:1fr 1fr;gap:3px"></div>`);
+      lab.querySelectorAll('input').forEach(i => { Object.assign(i.style, { width: '62px', background: 'var(--panel2)', color: 'var(--text)', border: '1px solid var(--line)', borderRadius: '6px', padding: '3px 6px', fontFamily: 'Fira Code, monospace', fontSize: '14px' }); });
+      const host = el('div', '');
+      // Daumenregeln live ueber den Kreisen
+      const rules = el('div', ''); rules.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;justify-content:center;font-size:11px;max-width:100%';
+      const right = el('div', 'col'); right.style.cssText = 'gap:6px;min-width:0;flex:1 1 0';
+      right.append(rules, host);
+      outer.append(lab, right); st.appendChild(outer);
+      let prevW = null, bShift = 0;   // bShift: B startet bei Seed - c und wird um c gedreht (zum Vergleich mit C)
+      const chip = (kind, h, tip) => { const c = el('span', '', h); const col = { ok: 'var(--ok)', bad: 'var(--bad)', warn: 'var(--x)', info: 'var(--accent)' }[kind]; c.style.cssText = `border:1px solid ${col};color:${col};border-radius:12px;padding:1px 8px;background:rgba(15,23,42,.8);white-space:nowrap`; if (tip) c.title = tip; rules.appendChild(c); return c; };
+      function showRules(k, d, m) {
+        rules.innerHTML = '';
+        const g = gcd(d, m), pf = primes(m), c1 = g === 1, c2 = pf.every(q => (k - 1) % q === 0), c3 = m % 4 !== 0 || (k - 1) % 4 === 0;
+        // Vorschlaege: naechstes passendes d und k
+        let dOk = Math.max(1, d); while (gcd(dOk, m) !== 1) dOk++;
+        const L = pf.reduce((x, q) => x * q, 1) * (m % 4 === 0 && pf.reduce((x, q) => x * q, 1) % 4 !== 0 ? 2 : 1);
+        let kOk = 1 + L * Math.max(1, Math.round((k - 1) / L)); if (kOk >= m && m > L + 1) kOk = 1 + L;
+        const only2 = pf.length === 1 && pf[0] === 2;
+        chip(c1 ? 'ok' : 'bad', c1 ? `① d = ${d} und m = ${m} haben keinen gemeinsamen Teiler ✅` : `① d = ${d} und m = ${m} sind beide durch ${g} teilbar ❌ → nimm z.B. d = ${dOk}`, 'Bedingung 1: ggT(d, m) = 1 – sonst werden Stellen ausgelassen.');
+        chip(c2 ? 'ok' : 'bad', (only2 ? (c2 ? `② k − 1 = ${k - 1} ist gerade, also k ungerade` : `② k − 1 = ${k - 1} ist ungerade (k muss ungerade sein)`) : (c2 ? `② k − 1 = ${k - 1} ist durch ${pf.join(' und ')} teilbar` : `② k − 1 = ${k - 1} ist nicht durch ${pf.join(' und ')} teilbar`)) + (c2 ? ' ✅' : ` ❌ → nimm z.B. k = ${kOk}`), `Bedingung 2: k − 1 muss durch jeden Primfaktor von m (${pf.join(', ')}) teilbar sein.`);
+        if (m % 4 === 0) chip(c3 ? 'ok' : 'bad', `③ m = ${m} ist durch 4 teilbar, also muss k − 1 = ${k - 1} durch 4 teilbar sein ${c3 ? '✅' : `❌ → nimm z.B. k = ${kOk}`}`, 'Bedingung 3: Wenn m durch 4 teilbar ist, muss auch k − 1 durch 4 teilbar sein.');
+        else chip('ok', `③ m = ${m} ist nicht durch 4 teilbar – keine Bedingung`, 'Bedingung 3 gilt nur, wenn m durch 4 teilbar ist.');
+        if (c1 && c2 && c3) chip('ok', '⇒ C: volle Periode, alle Stellen werden besucht', 'Satz von Hull und Dobell');
+        else { const fix = chip('info', `⇒ keine volle Periode. So geht es: k = ${c2 && c3 ? k : kOk}, d = ${c1 ? d : dOk} (klick)`, 'Klick setzt die vorgeschlagenen Werte.'); fix.style.cursor = 'pointer'; fix.onclick = () => { $('wk').value = c2 && c3 ? k : kOk; $('wd').value = c1 ? d : dOk; bShift = 0; ctrl = build(); ctrl.solve(); }; }
+        if (k % m === 1) chip('warn', '⚠️ k = 1: C ist nur + d → Treppe');
+        if (d % m === 0) chip('warn', '⚠️ d = 0: C ist B, 0 bleibt 0');
+        if (m % 2 === 0 && k % m !== 1 && (k - 1) % (m / 2) === 0) chip('warn', '⚠️ k − 1 Vielfaches von m/2 → Paare-Muster');
+        if (gcd(k, m) > 1 && k % m !== 0) chip('warn', `⚠️ ggT(k, m) = ${gcd(k, m)}: B verliert Stellen`);
+        if (pf.length === 1 && pf[0] === m) chip('info', '💡 m prim: auch B kann fast alle Stellen');
+        // Fixpunkt c mit k·c + d ≡ c  =>  C(x) − c = k·(x − c): C ist ein um c gedrehtes B
+        let fc = -1; for (let c = 0; c < m; c++) if ((k * c + d) % m === c) { fc = c; break; }
+        if (d % m !== 0) {
+          if (fc >= 0) {
+            const b = chip('info', `🔄 Fixpunkt c = ${fc}: C ist B um ${fc} gedreht – ${bShift ? 'gezeigt ✓' : 'zeigen'}`, `k·${fc} + d ≡ ${fc} (mod m). Dann gilt C(x) − ${fc} = k·(x − ${fc}). Klick: B startet bei ${seedW(m)} − ${fc} und wird um ${fc} Stellen gedreht.`);
+            b.style.cursor = 'pointer'; b.onclick = () => { bShift = bShift ? 0 : fc; ctrl = build(); ctrl.solve(); };
+          } else chip('ok', '✅ kein Fixpunkt: C ist kein gedrehtes B', 'Es gibt kein c mit k·c + d ≡ c. Bei voller Periode ist das immer so.');
+        }
+      }
+      const seedW = m => 7 % m;
+      const build = () => {
+        clearTimers(); host.innerHTML = '';
+        const k = Math.max(0, +$('wk').value || 0), d = Math.max(0, +$('wd').value || 0), m = Math.max(2, Math.min(32, +$('wm').value || 2));
+        const seed = 7 % m;
+        showRules(k, d, m);
+        const seedB = ((seed - bShift) % m + m) % m;
+        const defs = [
+          { t: `A) nur + ${d}`, f: x => (x + d) % m, col: '#f59e0b', cls: 'x', code: `x = (x + ${d}) % ${m};` },
+          { s0: seedB, t: bShift ? `B) nur · ${k} (Start ${seedB}, ⟳ ${bShift})` : `B) nur · ${k}`, f: x => (k * x) % m, col: '#ef4444', cls: 'bad', code: `x = (${k} * x) % ${m};` },
+          { t: `C) · ${k} + ${d}`, f: x => (k * x + d) % m, col: '#10b981', cls: 'ok', code: `x = (${k} * x + ${d}) % ${m};` }
+        ];
+        // Periode und Verdikt vorab berechnen
+        defs.forEach(D => {
+          const seen = new Map(); let x = D.s0 ?? seed, i = 0;
+          while (!seen.has(x)) { seen.set(x, i++); x = D.f(x); }
+          D.period = i - seen.get(x); D.visited = seen.size;
+          const diffs = new Set(); let y = D.s0 ?? seed; for (let j = 0; j < m; j++) { const n = D.f(y); diffs.add(((n - y) % m + m) % m); y = n; }
+          const regel = diffs.size === 1;
+          D.end = D.period === m ? (regel ? `✅ alle ${m} – ❌ immer +${[...diffs][0]}, vorhersagbar` : `✅ alle ${m}, kein festes +`) : `❌ nur ${D.period} von ${m} Zahlen${D.f(0) === 0 ? ', 0 bleibt 0' : ''}`;
+        });
+        const P2 = (c, cm) => c.padEnd(22) + cm;
+        renderCode({ own: [
+            P2(`int k = ${k};`, '// Multiplikator'), P2(`int d = ${d};`, '// Inkrement'), P2(`int m = ${m};`, '// Modulus'), P2(`int x = ${seed};`, '// Seed'), '',
+            '// A) nur addieren (k = 1)', P2('x = (x + d) % m;', `// (x + ${d}) % ${m}`), '//   -> ' + lcgF(defs[0].f, seed, 6), '',
+            '// B) nur multiplizieren (d = 0)', P2('x = (k * x) % m;', `// (${k} * x) % ${m}`), '//   -> ' + lcgF(defs[1].f, seed, 6), '',
+            '// C) beides = lineare Funktion', P2('x = (k * x + d) % m;', `// (${k} * x + ${d}) % ${m}`), '//   -> ' + lcgF(defs[2].f, seed, 6)],
+          rnd: ['// Random: riesiges k und m -> Nachbarn landen', '// weit auseinander, man erkennt kein Muster.'], hl: { o: [6, 10, 14] } });
+        // geaenderte Parameter blinken (Deklaration + abhaengige Formeln + Ausgaben)
+        const chg = [];
+        if (prevW) {
+          const dep = { k: [0, 10, 11, 14, 15], d: [1, 6, 7, 14, 15], m: [2, 3, 6, 7, 10, 11, 14, 15] };
+          ['k', 'd', 'm'].forEach(key => { if (prevW[key] !== { k, d, m }[key]) dep[key].forEach(i => { chg.push(i); blink('o', i); }); });
+        }
+        prevW = { k, d, m };
+        const r = el('div', 'row'); r.style.flexWrap = 'nowrap'; r.style.alignItems = 'flex-start'; r.style.gap = '10px';
+        const sw = $('stage').clientWidth, sh = $('stage').clientHeight;
+        const cs = Math.floor(Math.max(110, Math.min((sw - 285) / 3 - 80, sh - 125 - rules.offsetHeight)));
+        const draw = Q => {
+          Q.poly.setAttribute('points', Q.vals.map((v, i) => `${Q.sx(i)},${Q.sy(v)}`).join(' '));
+        };
+        const P = defs.map((D, j) => {
+          const col = el('div', 'col'); col.style.gap = '5px';
+          const c = circle(m, { id: 'w' + j, size: 220 });
+          c.svg.style.width = c.svg.style.height = cs + 'px';
+          const W = 220, H = 46, sp = svgBox(W, H); sp.style.width = (cs + 60) + 'px'; sp.style.height = Math.round((cs + 60) * H / W) + 'px';
+          sv('rect', { x: 0, y: 0, width: W, height: H, fill: '#0b1220', rx: 6 }, sp);
+          const vl = txt(sp, W - 4, 9, 'Verlauf', { 'text-anchor': 'end', 'font-size': 7 });
+          const poly = sv('polyline', { points: '', fill: 'none', stroke: D.col, 'stroke-width': 2 }, sp);
+          const seq = el('div', 'seq'); seq.style.maxWidth = (cs + 60) + 'px'; seq.style.gap = '2px'; seq.style.minHeight = '16px';
+          const pill = el('div', 'pill ' + D.cls, D.t); pill.style.fontSize = '13px';
+          // Kreis drehen: ganzer Kreis dreht sich, die Zahlen bleiben aufrecht
+          let rot = 0;
+          c.svg.style.transition = 'transform .4s ease';
+          c.svg.querySelectorAll('text').forEach(t => { t.style.transformBox = 'fill-box'; t.style.transformOrigin = 'center'; t.style.transition = 'transform .4s ease'; });
+          const ref = { steps: 0, Q: null, lbl: null };
+          const turn = dir => { rot += dir * 360 / m; ref.steps += dir; c.svg.style.transform = `rotate(${rot}deg)`; c.svg.querySelectorAll('text').forEach(t => t.style.transform = `rotate(${-rot}deg)`); };
+          const btns = el('div', 'row'); btns.style.cssText = 'flex-wrap:nowrap;gap:4px';
+          [['⟲', -1, 'gegen den Uhrzeigersinn'], ['⟳', 1, 'im Uhrzeigersinn']].forEach(([lbl, dir, tip]) => {
+            const b = el('button', '', lbl); b.title = 'Kreis drehen ' + tip;
+            Object.assign(b.style, { background: 'var(--panel2)', color: 'var(--text)', border: '1px solid var(--line)', borderRadius: '6px', padding: '0 10px', fontSize: '16px', cursor: 'pointer' });
+            b.onclick = () => { turn(dir); b.blur(); };
+            btns.appendChild(b);
+          });
+          // Knoepfe links und rechts neben dem Kreis
+          const [bl, br] = btns.children;
+          btns.innerHTML = ''; btns.append(bl, c.svg, br);
+          col.append(pill, btns, sp, seq);
+          r.appendChild(col);
+          lightDot(c, D.s0 ?? seed, '#a855f7');
+          return ref.Q = Object.assign({ c, poly, seq, pill, ref, vl, turn, x: D.s0 ?? seed, vals: [D.s0 ?? seed], sx: i => 6 + i * (W - 12) / (2 * m), sy: v => H - 6 - v / (m - 1) * (H - 12) }, D);
+        });
+        host.appendChild(r);
+        if (bShift) P[1].turn(bShift);
+        P.forEach(draw);
+        const N = 2 * m;   // doppelt so lange Folge: Wiederholungen werden im Graphen sichtbar
+        let fast = false;
+        const S = stepper(N, (i) => {
+          setHl({ o: [6, 10, 14] }); blink('o', 6); blink('o', 10); blink('o', 14);
+          P.forEach(Q => {
+            const n = Q.f(Q.x);
+            if (fast) { const a = Q.c.pos[Q.x], b2 = Q.c.pos[n]; sv('line', { x1: a.x, y1: a.y, x2: b2.x, y2: b2.y, stroke: Q.col, 'stroke-width': 2, opacity: .85 }, Q.c.chords); } else chord(Q.c, Q.x, n, Q.col, 2);
+            lightDot(Q.c, n, Q.col);
+            Q.x = n; Q.vals.push(n); draw(Q);
+            const b = el('div', fast ? 'num' : 'num pop', String(n)); Object.assign(b.style, { minWidth: '15px', height: '14px', fontSize: '8px', padding: '0 2px', borderWidth: '1px', borderRadius: '3px' });
+            if (i < 5) Q.seq.appendChild(b);
+            else if (i === 5) { b.textContent = '…'; Q.seq.appendChild(b); }
+            if (i === N - 1) { Q.pill.innerHTML = Q.end + (bShift && Q.s0 !== undefined ? `<br><span style="font-size:11px">B startet bei ${Q.s0}, um ${bShift} gedreht</span>` : ''); }
+          });
+        }, Math.max(150, 330 * 16 / m));
+        // sofort loesen: alle restlichen Schritte ohne Animation
+        S.solve = () => { clearTimers(); fast = true; while (S.next()) { } fast = false; setHl({ o: [6, 10, 14] }); chg.forEach(i => blink('o', i)); $('autoBtn').disabled = true; };
+        return S;
+      };
+      ['wk', 'wd', 'wm'].forEach(id => $(id).addEventListener('input', () => { bShift = 0; ctrl = build(); ctrl.solve(); }));
+      // interessante Kombinationen fuer die Qualitaet der Zufallszahlen (Hinweis erscheint unten in der Erklaerung)
+      const presets = [
+        [5, 3, 16, '✅ gut', 'Alle 16 Stellen, unregelmäßige Sprünge. Aber: gerade und ungerade Zahlen wechseln <b>immer</b> ab (6 1 8 11 …) – das unterste Bit ist bei m = 2ⁿ nie zufällig. Darum verwendet man die <b>oberen</b> Bits.'],
+        [1, 1, 16, '🪜 Treppe', 'k = 1: C wird zu „nur + 1“ – der Kreis wird einfach Stelle für Stelle abgelaufen, der Verlauf ist eine perfekte Treppe. Volle Periode heißt noch nicht zufällig!'],
+        [9, 1, 16, '👯 Paare', 'Hull–Dobell ist erfüllt (alle 16 Stellen), trotzdem ein Muster: Die Zahlen kommen in <b>Paaren</b> x, x+1 (0 1, 10 11, 4 5 …). Im Kreis sieht man parallele Linien.'],
+        [3, 1, 16, '½ Periode', 'k − 1 = 2 ist nicht durch 4 teilbar (Bedingung 3) → nur 8 von 16 Stellen. Die Hälfte der Zahlen kommt nie vor.'],
+        [5, 4, 16, '🧲 steckt fest', 'ggT(4, 16) = 4 (Bedingung 1 verletzt). Ab Seed 7 kommt immer wieder 7: 5 · 7 + 4 = 39 = 2 · 16 + 7. Ein Fixpunkt!'],
+        [15, 0, 16, '↔ Pingpong', 'k = 15 ist wie „· (−1)“ und d = 0: Die Folge springt nur zwischen 2 Stellen hin und her (9 7 9 7 …).'],
+        [3, 0, 17, '🔢 Primzahl', 'm = 17 ist eine <b>Primzahl</b>: Jetzt schafft sogar B (nur · 3) 16 von 17 Stellen – alle außer 0. So funktioniert ein <b>Lehmer-Generator</b> (riesiges prim m, nie Seed 0).'],
+        [21, 1, 32, '✅ größer', 'm = 32, k = 21, d = 1: alle 32 Stellen, sieht schon recht wirr aus. Echte Generatoren nehmen m = 2³¹ oder 2⁶⁴ – dann sieht man kein Muster mehr.']
+      ];
+      presets.forEach(([pk, pd, pm, label, hint]) => {
+        const b = el('button', '', `${label} <span style="font-family:Fira Code;font-size:9px;color:var(--muted)">${pk}·${pd}·${pm}</span>`); b.title = `k = ${pk}, d = ${pd}, m = ${pm}`;
+        Object.assign(b.style, { background: 'var(--panel2)', color: 'var(--text)', border: '1px solid var(--line)', borderRadius: '6px', padding: '1px 5px', fontSize: '11px', cursor: 'pointer', textAlign: 'left', lineHeight: '1.3', whiteSpace: 'nowrap' });
+        b.onclick = () => {
+          $('wk').value = pk; $('wd').value = pd; $('wm').value = pm;
+          bShift = 0; ctrl = build(); ctrl.solve();
+          $('wpre').querySelectorAll('button').forEach(x => x.style.borderColor = 'var(--line)'); b.style.borderColor = 'var(--accent)';
+          const h = $('whint'); if (h) { $('text').scrollTop = 0; } if (h) h.innerHTML = `<b>${label} (k = ${pk}, d = ${pd}, m = ${pm}):</b> ${hint}`;
+          b.blur();
+        };
+        $('wpre').appendChild(b);
+      });
+      $('wsolve').onclick = () => { if (ctrl && ctrl.solve) ctrl.solve(); $('wsolve').blur(); };
+      return build();
+    } },
+  { ch: 4, title: 'Next: Bereich wählen mit Modulo und Verschieben',
+    own: ['x = (k * x + d) % m;          // m sehr gross, z.B. 2147483648', '', 'int zahl1 = x % 16;           // 0 ... 15', 'int zahl2 = x % 16 + 10;      // 10 ... 25  (verschieben)', 'int zahl3 = x % 100;          // 0 ... 99   (anderes Modulo)', 'int zahl4 = x % 100 + 10;     // 10 ... 109', '', '// allgemein: x % (max - min) + min'],
+    rnd: ['Random generator = new Random(101);   // EINMAL anlegen', '', 'int zahl1 = generator.Next(16);         // 0 ... 15', 'int zahl2 = generator.Next(10, 26);     // 10 ... 25', 'int zahl3 = generator.Next(100);        // 0 ... 99', 'int zahl4 = generator.Next(10, 110);    // 10 ... 109', '', '// Next(min, max): min inklusive, max EXKLUSIVE', '// Java: nextInt(...) - C#: Next(...), gross: NextInt64(...)'],
+    hl: { o: [0], r: [0] },
+    text: '<p>Wie bekommt man Zahlen aus einem bestimmten Bereich?</p><p><b>1.</b> <code>% 16</code> → 0 … 15 &nbsp; <b>2.</b> <b>+ 10</b> verschiebt → 10 … 25 &nbsp; <b>3.</b> ein <b>anderes Modulo</b> (% 100) → mehr verschiedene Zahlen &nbsp; <b>4.</b> beides kombiniert.</p><p>Allgemein: <code>x % (max − min) + min</code> – genau das ist <code>generator.Next(min, max)</code>. Damit das klappt, muss das m des Generators viel größer sein als die gewünschte Breite.</p><p class="hint">→ = nächster Schritt · ⏩ = automatisch</p>',
+    render(st) {
+      const c = el('div', 'col');
+      const nl = numberLine(0, 120, 0, 0, { tick: 10, w: 600 });
+      const p = el('div', 'pill', 'x = (k * x + d) % m  →  ein großes x');
+      c.append(nl.svg, p); st.appendChild(c);
+      const phases = [
+        [0, 16, 2, '% 16 → [0, 16)  ⇔  Next(16)', 'pill'],
+        [10, 26, 3, '% 16 + 10 → [10, 26)  ⇔  Next(10, 26)', 'pill x'],
+        [0, 100, 4, '% 100 → [0, 100)  ⇔  Next(100)', 'pill y'],
+        [10, 110, 5, '% 100 + 10 → [10, 110)  ⇔  Next(10, 110)', 'pill ok']
+      ];
+      return stepper(4, (i) => { const [a, b, ln, label, cls] = phases[i]; nl.move(a, b); p.className = cls; p.innerHTML = label; setHl({ o: [ln], r: [ln] }); }, 1800);
+    } },
+  { ch: 4, title: 'NextDouble: strecken und verschieben',
+    own: ['x = (k * x + d) % m;', 'double p = x / (double)m;          // [0.0, 1.0)', 'double breit = p * 100;            // [0.0, 100.0)', 'double wert = p * 100 + 15.6;      // [15.6, 115.6)'],
+    rnd: ['double p = generator.NextDouble();                   // [0.0, 1.0)', 'double breit = generator.NextDouble() * 100;         // [0.0, 100.0)', 'double wert = generator.NextDouble() * 100 + 15.6;   // [15.6, 115.6)', '', '// allgemein: min + NextDouble() * (max - min)'],
+    hl: { o: [1], r: [0] },
+    text: '<p>Selbst programmiert: <code>x / m</code> liegt immer in <b>[0.0, 1.0)</b>, weil x höchstens m−1 ist. Genau das liefert <code>NextDouble()</code>.</p><p>Wie bei der linearen Funktion: <b>· breite</b> streckt (wie k), <b>+ min</b> verschiebt (wie d bzw. n).</p>',
+    render(st) {
+      const c = el('div', 'col');
+      const nl = numberLine(0, 120, 0, 1, { tick: 10, w: 580 }); const p = el('div', 'pill', 'NextDouble() → [0.0, 1.0)');
+      c.append(nl.svg, p); st.appendChild(c);
+      later(1500, () => { setHl({ o: [2], r: [1] }); nl.move(0, 100); p.innerHTML = '· 100 → [0.0, 100.0)'; p.className = 'pill x'; });
+      later(3200, () => { setHl({ o: [3], r: [2] }); nl.move(15.6, 115.6); p.innerHTML = '+ 15.6 → [15.6, 115.6)'; p.className = 'pill ok'; });
+    } },
+  { ch: 4, title: 'Wahrscheinlichkeiten mit NextDouble',
+    own: ['x = (k * x + d) % m;', 'double wurf = x / (double)m;     // statt NextDouble()', 'if (wurf < 0.70) { ... }'],
+    rnd: ['for (int i = 0; i < anzahl; i++)', '{', '    double wurf = generator.NextDouble();', '    if (wurf < 0.70)', '    {', '        Console.WriteLine("common");   // 70%', '    }', '    else if (wurf < 0.95)', '    {', '        Console.WriteLine("rare");     // 25%', '    }', '    else', '    {', '        Console.WriteLine("epic");     //  5%', '    }', '}'],
+    hl: {},
+    text: '<p>Ein Wurf ∈ [0, 1) ist <b>gleichverteilt</b>: Ein Bereich der Breite 0.25 wird in <b>25%</b> der Fälle getroffen.</p><p>Mit einer <b>Mehrfachverzweigung</b> teilen wir [0, 1) in Bereiche. Die unteren Grenzen prüft das <code>else</code> mit. So pflanzen wir Bäume auf Stein mit 10%: <code>if (generator.NextDouble() &lt; 0.1)</code>.</p><p id="cnt" class="mono"></p>',
+    render(st) {
+      const c = el('div', 'col');
+      const bar = el('div', 'bar', '<div style="width:70%;background:#94a3b8">common 70%</div><div style="width:25%;background:#38bdf8">rare 25%</div><div style="width:5%;background:#f59e0b">5%</div>');
+      const pin = el('div', 'mono'); pin.style.width = '520px'; pin.style.maxWidth = '90%'; pin.style.position = 'relative'; pin.style.height = '24px';
+      const mark = el('div', '', '▲'); mark.style.position = 'absolute'; mark.style.transition = 'left .3s'; mark.style.color = '#10b981'; pin.appendChild(mark);
+      c.append(bar, pin); st.appendChild(c);
+      const cnt = { common: 0, rare: 0, epic: 0 };
+      every(700, () => {
+        const w = Math.random();
+        mark.style.left = `calc(${w * 100}% - 6px)`;
+        const k = w < .7 ? 'common' : w < .95 ? 'rare' : 'epic'; cnt[k]++;
+        setHl({ o: [1, 2], r: k === 'common' ? [2, 3, 5] : k === 'rare' ? [2, 7, 9] : [2, 11, 13] }); blink('r', 0);
+        const t = cnt.common + cnt.rare + cnt.epic;
+        const e = $('cnt'); if (e) e.innerHTML = `wurf = ${w.toFixed(3)} → ${k}<br>common ${(cnt.common / t * 100).toFixed(0)}% · rare ${(cnt.rare / t * 100).toFixed(0)}% · epic ${(cnt.epic / t * 100).toFixed(0)}% (nach ${t} Würfen)`;
+      });
+    } },
+  // ---------- Fehler ----------,
+  { ch: 5, title: 'Fehler 1: Seed bzw. Generator in der Schleife',
+    own: ['// ❌ Seed IN der Schleife', 'for (int i = 0; i < 8; i++)', '{', '    int x = 7;                    // jedes Mal wieder 7!', '    x = (5 * x + 3) % 16;', '    Console.Write(x + " ");       // 6 6 6 6 ...', '}', '', '// ✅ Seed VOR der Schleife', 'int x = 7;', 'for (int i = 0; i < 8; i++)', '{', '    x = (5 * x + 3) % 16;', '    Console.Write(x + " ");       // 6 1 8 11 ...', '}'],
+    rnd: ['// ❌ Generator IN der Schleife', 'for (int i = 0; i < 8; i++)', '{', '    Random g = new Random(7);     // jedes Mal von vorne!', '    Console.Write(g.Next(16) + " ");   // immer dieselbe Zahl', '}', '', '// ✅ Generator VOR der Schleife', 'Random g = new Random(7);', 'for (int i = 0; i < 8; i++)', '{', '    Console.Write(g.Next(16) + " ");   // verschiedene Zahlen', '}'],
+    hl: { o: [3], r: [3] },
+    text: '<p>Selbst programmiert sieht man den Fehler sofort: Wer <code>x</code> in jedem Durchlauf wieder auf den Seed setzt, rechnet immer denselben ersten Schritt → <b>immer dieselbe Zahl</b>.</p><p><code>new Random(7)</code> in der Schleife macht <b>genau das Gleiche</b>: Jeder neue Generator beginnt wieder beim Seed.</p><p><b>Lösung</b> in beiden Fällen: Seed bzw. Generator <b>einmal vor</b> der Schleife anlegen. (Die Zahlen von Random sind andere als unsere – andere Formel –, das Muster ist dasselbe.)</p>',
+    render(st) {
+      const c = el('div', 'col'); c.style.alignItems = 'flex-start';
+      const r1 = el('div', 'row'); r1.style.flexWrap = 'nowrap'; r1.appendChild(el('div', 'pill bad', '❌ in der Schleife')); const s1 = el('div', 'seq'); r1.appendChild(s1);
+      const r2 = el('div', 'row'); r2.style.flexWrap = 'nowrap'; r2.appendChild(el('div', 'pill ok', '✅ vor der Schleife')); const s2 = el('div', 'seq'); r2.appendChild(s2);
+      c.append(r1, r2); st.appendChild(c);
+      const seq = lcg(5, 3, 16, 7, 8);
+      for (let i = 0; i < 8; i++) later(300 + i * 500, () => { setHl({ o: [3, 4, 12], r: [3, 4, 11] }); blink('o', 1); blink('o', 10); blink('r', 1); blink('r', 9); s1.appendChild(el('div', 'num pop bad', seq[0])); s2.appendChild(el('div', 'num pop ok', seq[i])); });
+    } },
+  { ch: 5, title: 'Fehler 2 und 3: Grenzen',
+    own: ['// ❌ Fehler 2: Bereich zu gross', 'int index = x % (zahlen.Length + 1);   // 0 ... 10 -> 💥', '// ✅', 'int index = x % zahlen.Length;         // 0 ... 9', '', '// ❌ Fehler 3: karte = new string[20, 30]', 'int y = x % karte.GetLength(1);        // 0 ... 29 -> 💥', '// ✅', 'int y = x % karte.GetLength(0);        // 0 ... 19'],
+    rnd: ['// ❌ Fehler 2: obere Grenze ist exklusiv', 'int index = g.Next(0, zahlen.Length + 1);   // 0 ... 10 -> 💥', '// ✅', 'int index = g.Next(0, zahlen.Length);       // 0 ... 9', '', '// ❌ Fehler 3: karte = new string[20, 30]', 'int y = g.Next(0, karte.GetLength(1));      // 0 ... 29 -> 💥', '// ✅', 'int y = g.Next(0, karte.GetLength(0));      // 0 ... 19'],
+    hl: { o: [1, 6], r: [1, 6] },
+    text: '<p>Der <span style="color:var(--ok)">grüne Strich</span> zeigt die <b>gültigen</b> Indices, der Balken die <b>erzeugten</b> Zahlen.</p><p><b>Fehler 2:</b> <code>zahlen</code> hat 10 Elemente (Index 0 … 9). <code>% 11</code> bzw. <code>Next(0, 11)</code> kann 10 liefern → <code>IndexOutOfRangeException</code>.</p><p><b>Fehler 3:</b> Die Grenze ist exklusiv – aber die <b>falsche Dimension</b>: y braucht <code>GetLength(0)</code> (20 Zeilen), nicht <code>GetLength(1)</code> (30 Spalten).</p><p class="hint">→ = Fehler beheben</p>',
+    render(st) {
+      const c = el('div', 'col');
+      const p1 = el('div', 'pill bad', '❌ zahlen.Length = 10, erzeugt: 0 … 10'); const n1 = numberLine(0, 12, 0, 11, { tick: 1, color: '#ef4444', valid: [0, 9] });
+      const p2 = el('div', 'pill bad', '❌ karte = new string[20, 30], erzeugt y: 0 … 29'); const n2 = numberLine(0, 32, 0, 30, { tick: 2, color: '#ef4444', valid: [0, 19] });
+      c.append(p1, n1.svg, p2, n2.svg); st.appendChild(c);
+      const ph = [
+        () => { setHl({ o: [3], r: [3] }); n1.move(0, 10); n1.color('#10b981'); p1.className = 'pill ok'; p1.innerHTML = '✅ x % 10 bzw. Next(0, 10) → 0 … 9'; },
+        () => { setHl({ o: [8], r: [8] }); n2.move(0, 20); n2.color('#10b981'); p2.className = 'pill ok'; p2.innerHTML = '✅ GetLength(0) = 20 → y: 0 … 19'; }
+      ];
+      return stepper(2, i => ph[i](), 1500);
+    } },
+  // ---------- Anwendungen ----------,
+  { ch: 6, title: 'Monte-Carlo: π mit Zufall schätzen',
+    own: ['long z = 7;                                 // Seed', 'int anzahl = 1500;', 'int innen = 0;', '', 'for (int i = 0; i < anzahl; i++)', '{', '    z = (1103515245 * z + 12345) % 2147483648;', '    double x = z / 2147483648.0;            // [0, 1)', '    z = (1103515245 * z + 12345) % 2147483648;', '    double y = z / 2147483648.0;            // [0, 1)', '', '    if (x * x + y * y <= 1) { innen++; }', '}', 'double pi = 4.0 * innen / anzahl;'],
+    rnd: ['Random generator = new Random(7);', 'int anzahl = 1500;', 'int innen = 0;', '', 'for (int i = 0; i < anzahl; i++)', '{', '    double x = generator.NextDouble();      // [0, 1)', '    double y = generator.NextDouble();      // [0, 1)', '', '    if (x * x + y * y <= 1) { innen++; }    // Abstand zu (0,0) <= 1', '}', 'double pi = 4.0 * innen / anzahl;'],
+    hl: { o: [0, 1, 2], r: [0, 1, 2] },
+    text: '<p>Zufällige Punkte <code>(x, y)</code> in ein Quadrat 1 × 1 werfen. Der Viertelkreis mit Radius 1 um die Ecke <b>(0, 0)</b> hat die Fläche <b>π/4</b>.</p><p>Im Kreis (<code>x² + y² ≤ 1</code>) → <span style="color:var(--ok)">grün</span>, sonst <span style="color:var(--x)">orange</span>. Anteil grün ≈ π/4 → <code>π ≈ 4 · innen / anzahl</code>.</p><p>Die Punkte hier kommen aus <b>unserem eigenen LCG</b> (oben links) – mit großen Konstanten funktioniert er gut.</p><p id="pi" class="mono"></p>',
+    render(st) {
+      const s = 300, pad = 28;
+      const svg = svgBox(s + pad + 10, s + pad + 10);
+      const g = sv('g', { transform: `translate(${pad},10)` }, svg);
+      sv('rect', { x: 0, y: 0, width: s, height: s, fill: '#0b1220', stroke: '#475569' }, g);
+      sv('path', { d: `M 0 0 A ${s} ${s} 0 0 1 ${s} ${s} L 0 ${s} Z`, fill: 'rgba(16,185,129,.08)', stroke: '#38bdf8', 'stroke-width': 2 }, g);
+      txt(g, -6, s + 4, '0', { 'text-anchor': 'end' }); txt(g, s, s + 16, '1', { 'text-anchor': 'middle' }); txt(g, -6, 6, '1', { 'text-anchor': 'end' });
+      txt(g, s / 2, s + 16, 'x', { fill: '#f59e0b', 'font-size': 13 }); txt(g, -16, s / 2, 'y', { fill: '#a855f7', 'font-size': 13 });
+      const dots = sv('g', {}, g);
+      st.appendChild(svg); fit(svg);
+      let z = 7n, inn = 0, all = 0;
+      const nextZ = () => { z = (1103515245n * z + 12345n) % 2147483648n; return Number(z) / 2147483648; };
+      const one = (show) => {
+        const x = nextZ(), y = nextZ(); all++;
+        const ok = x * x + y * y <= 1; if (ok) inn++;
+        sv('circle', { cx: x * s, cy: s - y * s, r: show ? 5 : 2, fill: ok ? '#10b981' : '#f59e0b' }, dots);
+        if (show) { setHl({ o: ok ? [6, 7, 8, 9, 11] : [6, 7, 8, 9], r: ok ? [6, 7, 9] : [6, 7] }); blink('o', 4); blink('r', 4); }
+        const e = $('pi'); if (e) e.innerHTML = `${show ? `x = ${x.toFixed(2)}, y = ${y.toFixed(2)} → x²+y² = ${(x * x + y * y).toFixed(2)} ${ok ? '≤ 1 ✅' : '> 1 ❌'}<br>` : ''}π ≈ 4 · ${inn} / ${all} = ${(4 * inn / all).toFixed(3)}`;
+      };
+      for (let i = 0; i < 8; i++) later(600 + i * 1100, () => one(true));
+      later(9600, () => { setHl({ o: [4, 13], r: [4, 11] }); every(30, () => { if (all >= 1500) return; for (let k = 0; k < 6; k++) one(false); }); });
+    } },
+  { ch: 6, title: 'Ray Tracing: Ziel ist das Bild der Kamera',
+    ownTitle: '🤷 Zufallszahl selbst programmiert',
+    own: ['z = (k * z + d) % m;', 'double zufall = z / (double)m;      // statt NextDouble()'],
+    rndTitle: '🤷 Ray Tracer mit Random (Pseudocode – in echt viel mehr)',
+    rnd: ['double[] bild = new double[16];               // Kamerabild: 16 Pixel', 'for (int pixel = 0; pixel < 16; pixel++)', '{', '    double summe = 0;', '    for (int s = 0; s < anzahlStrahlen; s++)', '    {', '        // 1) Strahl durch einen ZUFAELLIGEN Punkt im Pixel', '        double winkel = WinkelDurchPixel(pixel + generator.NextDouble());', '        double energie = 1.0;', '        for (int sprung = 0; sprung < 4; sprung++)', '        {', '            string getroffen = Verfolge(winkel);', '            if (getroffen == "Lampe") { summe += energie; break; }', '            if (getroffen == "Himmel") { break; }       // dunkel', '            // 2) matte Flaeche: Licht STREUT zufaellig', '            winkel = generator.NextDouble() * 180 - 90;', '            energie = energie * 0.7;              // Flaeche schluckt 30%', '        }', '    }', '    bild[pixel] = summe / anzahlStrahlen;         // Pixel fertig', '}', '// echte Kamera: double[,] bild = new double[hoehe, breite]'],
+    hl: {},
+    text: '<p><b>Ziel:</b> das <b>Bild</b>, das die Kamera sieht (ganz rechts). Die Linien in der Szene sind nur die <b>Rechnung</b> dahinter.</p><p>Für jedes Pixel schicken wir Strahlen von der Kamera durch das Pixel in die Szene. Trifft ein Strahl eine <b>matte</b> Fläche (Boden, Kiste, Wand), wird das Licht <b>gestreut</b>: Es fliegt in eine <b>zufällige</b> Richtung weiter – bis zur <b style="color:var(--str)">Lampe</b> oder ins Leere.</p><p>Ein einzelner Pfad ist Glückssache: Das Bild ist am Anfang <b>verrauscht</b>. Der <b>Durchschnitt vieler zufälliger Pfade</b> ergibt die richtige Helligkeit jedes Pixels.</p><p class="hint">→ = ein Pfad langsam · ⏩ = alle Pixel mit vielen Pfaden</p><p id="ray" class="mono"></p>',
+    render(st) {
+      const W = 560, H = 300, floor = 262;
+      const svg = svgBox(W, H); arrowDefs(svg);
+      const lamp = { x1: 360, x2: 470, y: 26 };
+      const segs = [
+        { a: [0, floor], b: [W, floor], n: [0, -1], name: 'Boden' },
+        { a: [250, 170], b: [300, 170], n: [0, -1], name: 'Kiste' },
+        { a: [250, 170], b: [250, floor], n: [-1, 0], name: 'Kiste' },
+        { a: [300, 170], b: [300, floor], n: [1, 0], name: 'Kiste' },
+        { a: [545, 20], b: [545, floor], n: [-1, 0], name: 'Wand' },
+        { a: [lamp.x1, lamp.y], b: [lamp.x2, lamp.y], n: [0, 1], name: 'Lampe' }
+      ];
+      sv('rect', { x: 0, y: floor, width: W, height: H - floor, fill: '#1e293b' }, svg);
+      sv('rect', { x: 250, y: 170, width: 50, height: floor - 170, fill: '#475569' }, svg);
+      sv('rect', { x: 545, y: 20, width: 15, height: floor - 20, fill: '#334155' }, svg);
+      sv('rect', { x: lamp.x1, y: lamp.y - 6, width: lamp.x2 - lamp.x1, height: 6, rx: 2, fill: '#fbbf24' }, svg);
+      txt(svg, (lamp.x1 + lamp.x2) / 2, lamp.y + 16, 'Lampe', { 'text-anchor': 'middle', fill: '#fbbf24' });
+      txt(svg, 275, 165, 'Kiste', { 'text-anchor': 'middle' }); txt(svg, 540, 240, 'Wand', { 'text-anchor': 'end' });
+      const cam = [515, 110], NP = 16, scrX = 490, scrY = 78, scrH = 72;
+      // Sichtbereich der Kamera (duenn)
+      [[scrY, '#334155'], [scrY + scrH, '#334155']].forEach(([y, c]) => { const dx = scrX - cam[0], dy = y - cam[1], t = 20; sv('line', { x1: cam[0], y1: cam[1], x2: cam[0] + dx * t, y2: cam[1] + dy * t, stroke: c, 'stroke-dasharray': '3 5' }, svg); });
+      sv('rect', { x: 504, y: 96, width: 22, height: 28, rx: 4, fill: '#64748b' }, svg); txt(svg, 515, 92, 'Kamera', { 'text-anchor': 'middle' });
+      const scr = [];
+      for (let j = 0; j < NP; j++) scr.push(sv('rect', { x: scrX - 4, y: scrY + j * scrH / NP, width: 8, height: scrH / NP, fill: '#000', stroke: '#334155', 'stroke-width': .5 }, svg));
+      const paths = sv('g', {}, svg);
+      // Kamerabild rechts
+      const row = el('div', 'row'); row.style.flexWrap = 'nowrap'; row.style.gap = '16px';
+      const imgCol = el('div', 'col'); imgCol.style.gap = '6px';
+      const ps = Math.floor(Math.max(10, Math.min(24, ($('stage').clientHeight - 70) / NP)));
+      const img = el('div', ''); img.style.border = '2px solid #94a3b8'; img.style.borderRadius = '6px'; img.style.overflow = 'hidden';
+      const imgPx = [];
+      for (let j = 0; j < NP; j++) { const d = el('div', ''); Object.assign(d.style, { width: (ps * 3) + 'px', height: ps + 'px', background: '#000', boxSizing: 'border-box' }); img.appendChild(d); imgPx.push(d); }
+      imgCol.append(el('div', 'pill ok', '📷 Kamerabild'), img, el('div', 'mono', '<span style="font-size:11px;color:var(--muted)">16 Pixel</span>'));
+      row.append(svg, imgCol); st.appendChild(row); fit(svg, .76, 1);
+      function hit(p, d) {
+        let best = null;
+        segs.forEach(s => {
+          const sx = s.b[0] - s.a[0], sy = s.b[1] - s.a[1];
+          const den = d[0] * sy - d[1] * sx; if (Math.abs(den) < 1e-9) return;
+          const qx = s.a[0] - p[0], qy = s.a[1] - p[1];
+          const t = (qx * sy - qy * sx) / den, u = (qx * d[1] - qy * d[0]) / den;
+          if (t > 1e-6 && u >= 0 && u <= 1 && (!best || t < best.t)) best = { t, s, pt: [p[0] + d[0] * t, p[1] + d[1] * t] };
+        });
+        return best;
+      }
+      function tracePath(j) {
+        const ys = scrY + (j + Math.random()) * scrH / NP;   // zufaelliger Punkt im Pixel
+        let p = cam.slice(), d = [scrX - cam[0], ys - cam[1]]; const L = Math.hypot(d[0], d[1]); d = [d[0] / L, d[1] / L];
+        const pts = [p]; let energy = 1, result = 'Himmel';
+        for (let k = 0; k < 4; k++) {
+          const h = hit(p, d);
+          if (!h) { pts.push([p[0] + d[0] * 700, p[1] + d[1] * 700]); result = 'Himmel'; break; }
+          pts.push(h.pt);
+          if (h.s.name === 'Lampe') { result = 'Lampe'; break; }
+          const ang = (Math.random() * 180 - 90) * Math.PI / 180;
+          const n = h.s.n; d = [n[0] * Math.cos(ang) - n[1] * Math.sin(ang), n[0] * Math.sin(ang) + n[1] * Math.cos(ang)];
+          p = [h.pt[0] + n[0] * .5, h.pt[1] + n[1] * .5];
+          energy *= .7; result = 'leer';
+        }
+        return { pts, light: result === 'Lampe' ? energy : 0, result };
+      }
+      const sum = Array(NP).fill(0), cnt = Array(NP).fill(0);
+      const paint = j => {
+        const v = cnt[j] ? sum[j] / cnt[j] : 0; const gv = Math.round(Math.min(1, v * 3) * 255);
+        const c = `rgb(${gv},${Math.round(gv * .92)},${Math.round(gv * .7)})`;
+        scr[j].setAttribute('fill', c); imgPx[j].style.background = c;
+      };
+      const select = j => imgPx.forEach((d, i) => { d.style.outline = i === j ? '2px solid #f59e0b' : 'none'; d.style.outlineOffset = '-2px'; scr[i].setAttribute('stroke', i === j ? '#f59e0b' : '#334155'); scr[i].setAttribute('stroke-width', i === j ? 1.5 : .5); });
+      const info = (j, r) => { const e = $('ray'); if (e) e.innerHTML = `Pixel ${j}: ${r ? (r.result === 'Lampe' ? 'Lampe getroffen ☀️' : r.result === 'Himmel' ? 'ins Leere 🌑' : 'nach 4 Sprüngen aufgegeben') + ' · ' : ''}${cnt[j]} Pfade · Helligkeit = ${(cnt[j] ? sum[j] / cnt[j] : 0).toFixed(3)}`; };
+      const order = [13, 13, 13, 9, 2, 6];
+      function slowPath(j) {
+        select(j);
+        const r = tracePath(j); cnt[j]++; sum[j] += r.light;
+        paths.querySelectorAll('*').forEach(e => { e.removeAttribute('marker-end'); e.style.opacity = .25; });
+        const col = r.result === 'Lampe' ? '#fbbf24' : '#94a3b8';
+        r.pts.slice(1).forEach((q, i) => later(i * 700, () => {
+          const p = r.pts[i];
+          setHl(i === 0 ? { r: [6, 7, 11] } : { o: [0, 1], r: [14, 15, 16, 11] }); if (i > 0) blink('r', 9); else blink('r', 4);
+          drawLine(paths, p[0], p[1], q[0], q[1], { stroke: col, 'stroke-width': 2.2, 'marker-end': r.result === 'Lampe' ? 'url(#ah-x)' : 'url(#ah-b)' });
+          if (i < r.pts.length - 2) later(600, () => sv('circle', { cx: q[0], cy: q[1], r: 4, fill: '#e2e8f0' }, paths));
+        }));
+        later((r.pts.length - 1) * 700, () => { setHl(r.result === 'Lampe' ? { r: [12, 19] } : { r: [13, 19] }); paint(j); info(j, r); });
+      }
+      info(order[0]);
+      return {
+        i: 0,
+        next() { if (this.i >= order.length) return false; clearTimers(); slowPath(order[this.i]); this.i++; return true; },
+        auto() {
+          clearTimers(); this.i = order.length; paths.innerHTML = ''; select(-1); setHl({ o: [0, 1], r: [1, 4, 7, 15, 19] });
+          let round = 0;
+          every(40, () => {
+            if (round >= 150) return;
+            round++;
+            for (let j = 0; j < NP; j++) {
+              const r = tracePath(j); cnt[j]++; sum[j] += r.light; paint(j);
+              if (j % 4 === round % 4) {
+                if (paths.childNodes.length > 200) paths.removeChild(paths.firstChild);
+                sv('polyline', { points: r.pts.map(q => q.join(',')).join(' '), fill: 'none', stroke: r.result === 'Lampe' ? '#fbbf24' : '#64748b', 'stroke-width': 1, opacity: r.result === 'Lampe' ? .45 : .12 }, paths);
+              }
+            }
+            const e = $('ray'); if (e) e.innerHTML = `${round} Pfade pro Pixel · am Anfang verrauscht, dann immer ruhiger`;
+          });
+        }
+      };
+    } },
+  { ch: 6, title: 'Warum zufällige Strahlen und nicht gleichmäßige?',
+    ownTitle: '🤷 gleichmäßig: Strahlen im Gitter (ohne Zufall)', rndTitle: '🤷 zufällig: Strahlen mit Random',
+    own: ['// Pixel = kleines Quadrat; wir schicken 100 Strahlen hindurch', 'for (int y = 0; y < 20; y += 2)', '{', '    for (int x = 0; x < 20; x += 2)', '    {', '        if (zaun[y, x] == "⬜") { hell++; }', '        anzahl++;', '    }', '}', 'double pixelFarbe = (double)hell / anzahl;'],
+    rnd: ['for (int i = 0; i < 100; i++)', '{', '    int y = generator.Next(0, zaun.GetLength(0));', '    int x = generator.Next(0, zaun.GetLength(1));', '    if (zaun[y, x] == "⬜") { hell++; }', '    anzahl++;', '}', 'double pixelFarbe = (double)hell / anzahl;'],
+    hl: {},
+    text: '<p>Ein Pixel sieht in der Ferne einen <b>Zaun</b> mit feinen schwarz-weißen Latten (stark vergrößert als <code>string[,] zaun</code>). Richtig wäre ein <b>graues</b> Pixel (50%).</p><p><b>Gleichmäßige</b> Strahlen (jedes 2. Feld) laufen im <b>Gleichschritt</b> mit den Latten und treffen <b>nur Schwarz</b> → das Pixel wird schwarz. Bei vielen Pixeln entstehen so falsche Streifen (<b>Moiré</b>, <b>Aliasing</b>).</p><p><b>Zufällige</b> Strahlen haben keinen Takt, der zu einem Muster passt → im Mittel richtig grau. Darum würfeln Ray Tracer – sowohl wo der Strahl durchs Pixel geht als auch wohin er streut.</p><p class="hint">→ = 10 Strahlen mehr · ⏩ = automatisch</p>',
+    render(st) {
+      const pts = []; for (let y = 0; y < 20; y += 2) for (let x = 0; x < 20; x += 2) pts.push([y, x]);
+      return samplingDemo(st, { N: 20, cell: 12, white: (y, x) => x % 2 === 1, grid: pts, perStep: 10, name: 'Zaun',
+        hlStep: () => { setHl({ o: [5], r: [2, 3, 4] }); blink('o', 3); blink('r', 0); } });
+    } },
+  { ch: 6, title: 'Auch ein kompliziertes Muster kann das Gitter täuschen',
+    ownTitle: '🤷 versetztes Gitter (ohne Zufall)', rndTitle: '🤷 zufällig: Strahlen mit Random',
+    own: ['// jede 3. Zeile, jede Zeile um 1 verschoben, jede 4. Spalte', 'for (int y = 1; y < 24; y += 3)', '{', '    for (int x = y / 3 % 4; x < 24; x += 4)', '    {', '        if (muster[y, x] == "⬜") { hell++; }', '        anzahl++;', '    }', '}', 'double pixelFarbe = (double)hell / anzahl;   // 48 Strahlen'],
+    rnd: ['for (int i = 0; i < 48; i++)', '{', '    int y = generator.Next(0, muster.GetLength(0));', '    int x = generator.Next(0, muster.GetLength(1));', '    if (muster[y, x] == "⬜") { hell++; }', '    anzahl++;', '}', 'double pixelFarbe = (double)hell / anzahl;'],
+    hl: {},
+    text: '<p>Jetzt ein <b>verschnörkeltes Muster</b> (etwa eine Tapete oder ein Stoff) und ein <b>kompliziertes, versetztes Gitter</b>. Man sieht keinen offensichtlichen Gleichschritt – trotzdem trifft das Gitter <b>kein einziges</b> helles Feld. Richtig wären ca. <b>45%</b>.</p><p>Der Grund: Das Muster wiederholt sich alle <b>12 Felder</b> (gestrichelte Kacheln am Ende), und das Gitter wiederholt sich im <b>selben Takt</b>. Dann trifft jeder Strahl in jeder Kachel wieder <b>dieselbe Stelle</b> – egal wie kompliziert beides aussieht.</p><p>Bei echten Bildern kennen wir das Muster vorher nicht. Ein Gitter kann also <b>immer</b> zufällig im Takt liegen. Zufall hat <b>keinen Takt</b> → im Mittel richtig.</p><p class="hint">→ = eine Gitter-Zeile (6 Strahlen) mehr · ⏩ = automatisch</p>',
+    render(st) {
+      const pts = []; for (let y = 1; y < 24; y += 3) for (let x = Math.floor(y / 3) % 4; x < 24; x += 4) pts.push([y, x]);
+      const isGrid = (y, x) => y % 3 === 1 && x % 4 === Math.floor(y / 3) % 4;
+      const orn = (y, x) => { const u = x % 12, v = y % 12, dx = u - 5.5, dy = v - 5.5; return (Math.round(dx * dx + dy * dy) % 7 < 3) !== ((u + v) % 5 === 0); };
+      return samplingDemo(st, { N: 24, cell: 10, white: (y, x) => orn(y, x) && !isGrid(y, x), grid: pts, perStep: 6, tile: 12, name: 'Muster',
+        hlStep: () => { setHl({ o: [5], r: [2, 3, 4] }); blink('o', 3); blink('r', 0); } });
+    } },
+  { ch: 6, noCode: true, textSize: .35, title: 'COVID-19 im Aiyagari-Modell: Wer spart, wer verkauft?',
+    text: '<p>Grundlage: meine Diplomarbeit <i>„The Impact of COVID-19 on Macroeconomic Variables“</i> (TU Wien). Jeder Haushalt hat einen <b>Zustand (a, e, sir)</b>: <b>a</b> = Vermögen, <b>e</b> = Arbeitseffizienz (springt <b>zufällig</b>; e₁ = arbeitslos, e₈ = Superstar-Einkommen → Millionäre), <b>sir</b> = gesund (S), infiziert (I), genesen (R) – Infizierte können sterben. Jeder Haushalt wählt Konsum und Arbeitszeit. Knöpfe oben: welche Haushalte du siehst (bei e auch mehrere).</p><p><b>Rechts – Policy-Funktionen:</b> wie viel <b style="color:var(--ok)">gespart (+)</b> oder <b style="color:var(--bad)">verkauft (−)</b> wird. Wir verfolgen <b>einen Haushalt</b>: Die Kurven zeigen immer seinen Zustand (sir), seine Einkommensstufe ist dick. Er ist zuerst gesund, steckt sich an und wird wieder gesund. <b>Links</b> die Verteilungen von Vermögen, Arbeitszeit und Konsum von 1 000 000 Haushalten (Linie = stationär vor COVID).</p><p style="color:var(--muted)">Überspitzt und vereinfacht: Zins und Lohn fix, keine Wohlfahrtsrechnung. → = 2 Wochen · ⏩ = automatisch</p>',
+    render(st) {
+      const sw = st.clientWidth - 24, sh = st.clientHeight - 24;
+      const ctl = { next: () => false };
+      const scn = window.__aiyScn || 'normal', key = aiyKey();
+      // Umschalter COVID normal / sehr toedlich (auch waehrend gerechnet wird)
+      const scnRow = () => { const r = el('div', 'row'); r.style.cssText = 'gap:6px;justify-content:flex-start;flex-wrap:nowrap'; r.appendChild(el('span', '', '<b style="font-size:12px">COVID:</b>')); [['normal', '🦠 normal'], ['toedlich', '☠️ sehr tödlich']].forEach(([k, lbl]) => { const bb = el('button', '', lbl); Object.assign(bb.style, { background: 'var(--panel2)', color: 'var(--text)', border: `1px solid ${k === scn ? 'var(--bad)' : 'var(--line)'}`, borderRadius: '6px', padding: '1px 8px', fontSize: '12px', cursor: 'pointer' }); bb.onclick = () => { window.__aiyScn = k; bb.blur(); show(cur); }; r.appendChild(bb); });
+        r.appendChild(el('span', '', '<b style="font-size:12px;margin-left:10px">Lockdown:</b>')); [[false, 'aus'], [true, '🔒 an']].forEach(([v, lbl]) => { const bb = el('button', '', lbl); Object.assign(bb.style, { background: 'var(--panel2)', color: 'var(--text)', border: `1px solid ${!!window.__aiyLock === v ? 'var(--accent)' : 'var(--line)'}`, borderRadius: '6px', padding: '1px 8px', fontSize: '12px', cursor: 'pointer' }); bb.onclick = () => { window.__aiyLock = v; bb.blur(); show(cur); }; r.appendChild(bb); }); return r; };
+      if (window.__aiyCaches[key]) { Object.assign(ctl, build(window.__aiyCaches[key])); }
+      else {
+        const wrapW = el('div', 'col'); wrapW.style.gap = '10px';
+        const pill = el('div', 'pill', '⏳ rechne 1 000 000 Haushalte … (nur beim ersten Mal)'); wrapW.append(scnRow(), pill); st.appendChild(wrapW);
+        const me = steps[cur]; window.__aiyProgress = m => { pill.textContent = '⏳ ' + m; };
+        aiyStart(key).then(M => { window.__aiyProgress = null; if (steps[cur] === me && aiyKey() === key && st.contains(pill)) { st.innerHTML = ''; Object.assign(ctl, build(M)); } });
+      }
+      return { next: () => ctl.next(), auto: () => ctl.auto && ctl.auto() };
+
+      // ======================= Darstellung =======================
+      function build(M) {
+        const { NZ, ZS, E, T, tPeak, R, b, ub, pol, ip, nOf, hist, hn, hc, track, AMAX, NB, bw, NBn, NMAX, NBc, CMAX, MIL, NT, fixed } = M;
+        const outer = el('div', 'col'); outer.style.cssText = 'gap:4px;align-items:stretch;width:100%';
+        const mkBtn = (label, onClick) => { const bb = el('button', '', label); Object.assign(bb.style, { background: 'var(--panel2)', color: 'var(--text)', border: '1px solid var(--line)', borderRadius: '6px', padding: '1px 7px', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' }); bb.onclick = () => { onClick(); bb.blur(); }; return bb; };
+        const row1 = el('div', 'row'); row1.style.cssText = 'gap:6px;justify-content:flex-start;flex-wrap:nowrap';
+        const row2 = el('div', 'row'); row2.style.cssText = 'gap:4px;justify-content:flex-start;flex-wrap:nowrap';
+        const H2 = sh - 58;
+        const main = el('div', 'row'); main.style.cssText = 'flex-wrap:nowrap;gap:10px;align-items:stretch';
+        const lc = el('div', 'col'); lc.style.cssText = 'gap:6px;align-items:stretch';
+        const LW = Math.round(sw * .56), distC = mkCanvas(LW, Math.round(H2 * .58)), sub = el('div', 'row'); sub.style.cssText = 'flex-wrap:nowrap;gap:8px';
+        const labC = mkCanvas(Math.floor((LW - 8) / 2), Math.round(H2 * .4)), conC = mkCanvas(Math.floor((LW - 8) / 2), Math.round(H2 * .4));
+        sub.append(labC.c, conC.c); lc.append(distC.c, sub);
+        const polC = mkCanvas(Math.round(sw * .42), H2);
+        main.append(lc, polC.c); outer.append(row1, row2, main); st.appendChild(outer);
+        const grp = z => Math.min(2, Math.floor(z / 8)), GN = ['niedriges Einkommen', 'mittleres Einkommen', 'hohes Einkommen'], GC = ['#f97316', '#10b981', '#3b82f6'];
+        const zc = ZS.map(z => z === NZ - 1 ? '#c084fc' : GC[grp(z)]), REP = [3, 11, 19];   // je Gruppe eine typische Stufe fuer die Kurven
+        const sirName = ['S gesund', 'I infiziert', 'R genesen'], sirCol = ['#10b981', '#ef4444', '#38bdf8'], SUB = '₁₂₃₄₅₆₇₈';
+        let cur = 0, fast = false, selS = -1, polMode = 'track';   // Policy zeigt: 'track' = Zustand des Haushalts, sonst fest S/I/R (0/1/2)
+        const showE = new Array(NZ).fill(true); const rngPick = mulberry(99);
+        const sirOn = s => selS < 0 || selS === s;
+        // Balken je e fuer einen Zeitpunkt (nur gewaehlte sir/e)
+        const agg = (arr, t, nb, off) => { const h = arr[t], out = [...Array(nb)].map(() => new Array(NZ).fill(0)); let tot = 0; for (let s = 0; s < 3; s++) { if (!sirOn(s)) continue; for (let z = 0; z < NZ; z++) { if (!showE[z]) continue; const o = (s * NZ + z) * (nb + off); for (let k = 0; k < nb + off; k++) { const v = h[o + k]; tot += v; if (k >= off) out[k - off][z] += v; } } } return { out, tot }; };
+        const wealth = t => { const h = hist[t]; let zero = 0, over = 0, tot = 0; const bars = [...Array(NB)].map(() => new Array(NZ).fill(0)); for (let s = 0; s < 3; s++) { if (!sirOn(s)) continue; for (let z = 0; z < NZ; z++) { if (!showE[z]) continue; const o = (s * NZ + z) * (NB + 2); zero += h[o]; over += h[o + NB + 1]; tot += h[o] + h[o + NB + 1]; for (let k = 0; k < NB; k++) { bars[k][z] += h[o + 1 + k]; tot += h[o + 1 + k]; } } } return { bars, zero, over, tot }; };
+        // feste y-Skala ueber alle Zeitpunkte (damit die weisse Linie stillsteht)
+        let scaleW = 1, scaleN = 1, scaleC = 1;
+        const setScales = () => { scaleW = scaleN = scaleC = 1; for (let t = 0; t <= T; t++) { const w = wealth(t); w.bars.forEach(b2 => scaleW = Math.max(scaleW, b2.reduce((x, v) => x + v, 0))); agg(hn, t, NBn, 0).out.slice(1).forEach(b2 => scaleN = Math.max(scaleN, b2.reduce((x, v) => x + v, 0))); agg(hc, t, NBc, 0).out.forEach(b2 => scaleC = Math.max(scaleC, b2.reduce((x, v) => x + v, 0))); } scaleW *= 1.08; scaleN *= 1.08; scaleC *= 1.08; };
+        let tNow = 0;
+        const tl = mkCanvas(260, 24);
+        const drawTimeline = t => { const x = tl.x, W = x.W; x.clearRect(0, 0, W, 24); const l = 4, w = W - 120, sx = k => l + k / T * w; x.fillStyle = '#1e293b'; x.fillRect(l, 7, w, 10);
+          (M.LOCK || []).forEach(([a, b2]) => { x.fillStyle = '#ef4444'; x.globalAlpha = .7; x.fillRect(sx(a), 7, sx(b2 + 1) - sx(a), 10); x.globalAlpha = 1; });
+          x.fillStyle = '#fbbf24'; x.fillRect(sx(Math.min(t, T)) - 1.5, 2, 3, 20);
+          x.font = '700 12px Inter'; x.fillStyle = M.lockAt(t) ? '#ef4444' : '#94a3b8'; x.fillText(M.LOCK.length ? (M.lockAt(t) ? '🔒 Lockdown aktiv' : `Lockdown ${M.LOCK[0][0]}–${M.LOCK[0][1] + 1}`) : 'kein Lockdown', l + w + 8, 16); };
+        const lockFrame = (x, W, H) => { if (!M.lockAt(tNow)) return; x.save(); x.fillStyle = 'rgba(239,68,68,.07)'; x.fillRect(0, 0, W, H); x.strokeStyle = '#ef4444'; x.lineWidth = 3; x.setLineDash([8, 5]); x.strokeRect(1.5, 1.5, W - 3, H - 3); x.restore(); };
+        function stackPlot(cv, title, bars, base, mx, xmax, xlab, extra) {
+          const x = cv.x, W = x.W, Hh = x.H, l = 34, tp = 20, w = W - l - 10, h = Hh - tp - 26, nb = bars.length; x.clearRect(0, 0, W, Hh);
+          lockFrame(x, W, Hh); axes(x, l, tp, w, h); x.fillStyle = '#e2e8f0'; x.font = '600 12px Inter'; x.fillText(title, l, 13);
+          bars.forEach((b2, k) => { let y0 = tp + h; for (let z = 0; z < NZ; z++) { if (!b2[z]) continue; const hh = b2[z] / mx * h; x.fillStyle = zc[z]; x.globalAlpha = .85; x.fillRect(l + k / nb * w + .5, y0 - hh, Math.max(1, w / nb - 1), hh); y0 -= hh; } });
+          x.globalAlpha = 1; x.strokeStyle = '#f8fafc'; x.lineWidth = 1.4; x.beginPath(); base.forEach((b2, k) => { const hh = b2.reduce((s, v) => s + v, 0) / mx * h, x0 = l + k / nb * w; k ? x.lineTo(x0, tp + h - hh) : x.moveTo(x0, tp + h - hh); x.lineTo(x0 + w / nb, tp + h - hh); }); x.stroke();
+          x.fillStyle = '#94a3b8'; x.font = '10px Fira Code'; for (let v = 0; v <= xmax + 1e-9; v += xmax / 4) x.fillText(String(+v.toFixed(1)), l + v / xmax * w - 6, tp + h + 11); x.fillText(xlab, l + w - 70, tp + h + 22);
+          if (extra) extra(x, l, tp, w, h);
+        }
+        // Variante: Vermoegensverteilung der drei Einkommensbereiche nebeneinander
+        let splitMode = false; const scaleG = [1, 1, 1];
+        const wealthG = (t, g) => { const h = hist[t]; let zero = 0, over = 0, tot = 0; const bars = new Array(NB).fill(0); for (let s = 0; s < 3; s++) { if (!sirOn(s)) continue; for (let z = 0; z < NZ; z++) { if (grp(z) !== g) continue; const o = (s * NZ + z) * (NB + 2); zero += h[o]; over += h[o + NB + 1]; tot += h[o] + h[o + NB + 1]; for (let k = 0; k < NB; k++) { bars[k] += h[o + 1 + k]; tot += h[o + 1 + k]; } } } return { bars, zero, over, tot }; };
+        const setScaleG = () => { for (let g = 0; g < 3; g++) { scaleG[g] = 1; for (let t = 0; t <= T; t++) wealthG(t, g).bars.forEach(v => scaleG[g] = Math.max(scaleG[g], v)); scaleG[g] *= 1.1; } };
+        function drawSplit(t, marks) {
+          const x = distC.x, W = x.W, H = x.H; x.clearRect(0, 0, W, H); lockFrame(x, W, H);
+          x.fillStyle = '#e2e8f0'; x.font = '600 12px Inter'; x.fillText(`Vermögensverteilung je Einkommensbereich   t: ${t}   † ${M.deaths[t].toLocaleString('de-AT')}`, 34, 13);
+          const pw = W / 3;
+          for (let g = 0; g < 3; g++) {
+            const l = g * pw + 30, tp = 40, w = pw - 42, h = H - tp - 26, Wt = wealthG(t, g), W0 = wealthG(0, g), mx = scaleG[g];
+            axes(x, l, tp, w, h); x.fillStyle = GC[g]; x.font = '700 12px Inter'; x.fillText(GN[g], l, tp - 8);
+            Wt.bars.forEach((v, k) => { const hh = v / mx * h; x.fillStyle = GC[g]; x.globalAlpha = .85; x.fillRect(l + k / NB * w + .5, tp + h - hh, Math.max(1, w / NB - 1), hh); });
+            x.globalAlpha = 1; x.strokeStyle = '#f8fafc'; x.lineWidth = 1.3; x.beginPath(); W0.bars.forEach((v, k) => { const hh = v / mx * h, x0 = l + k / NB * w; k ? x.lineTo(x0, tp + h - hh) : x.moveTo(x0, tp + h - hh); x.lineTo(x0 + w / NB, tp + h - hh); }); x.stroke();
+            if (Wt.zero) { x.strokeStyle = '#ef4444'; x.lineWidth = 5; x.beginPath(); x.moveTo(l + 3, tp + h); x.lineTo(l + 3, tp + 2); x.stroke(); }
+            x.fillStyle = '#ef4444'; x.font = '700 11px Inter'; x.fillText(`← ${(Wt.zero / Math.max(1, Wt.tot) * 100).toFixed(1)} % bei 0`, l + 10, tp + 12);
+            if (Wt.over) { x.fillStyle = '#c084fc'; x.font = '11px Inter'; x.fillText(`${Wt.over.toLocaleString('de-AT')} > ${AMAX} →`, l + w - 90, tp + 26); }
+            x.fillStyle = '#94a3b8'; x.font = '10px Fira Code'; for (let v = 0; v <= AMAX; v += Math.max(1, Math.round(AMAX / 3))) x.fillText(String(v), l + v / AMAX * w - 3, tp + h + 11);
+            (marks || []).forEach(m => { if (m.g !== g) return; const px = l + Math.min(AMAX, m.a) / AMAX * w; x.fillStyle = m.c; x.beginPath(); x.moveTo(px, tp + h - 2); x.lineTo(px - 7, tp + h - 16); x.lineTo(px + 7, tp + h - 16); x.fill(); });
+          }
+          x.fillStyle = '#94a3b8'; x.font = '10px Fira Code'; x.fillText('Vermögen a →  · Linie = stationär (vor COVID)', W - 270, H - 2);
+        }
+        function drawDists(t, marks) {
+          const Wt = wealth(t), W0 = wealth(0);
+          if (splitMode) { drawSplit(t, marks); } else
+          stackPlot(distC, `Vermögensverteilung (1 000 000 Haushalte)   t: ${t}   † ${M.deaths[t].toLocaleString('de-AT')}`, Wt.bars, W0.bars, scaleW, AMAX, 'Vermögen a →', (x, l, tp, w, h) => {
+            if (Wt.zero) { x.strokeStyle = '#ef4444'; x.lineWidth = 6; x.beginPath(); x.moveTo(l + 3, tp + h); x.lineTo(l + 3, tp + 2); x.stroke(); x.fillStyle = '#ef4444'; x.font = '700 13px Inter'; x.fillText(`← ${(Wt.zero / Math.max(1, Wt.tot) * 100).toFixed(1)} % bei a = 0`, l + 12, tp + 14); }
+            x.fillStyle = '#c084fc'; x.font = '700 12px Inter'; x.fillText(`${Wt.over.toLocaleString('de-AT')} Haushalte mit a > ${AMAX} →  davon ${M.mils[t].toLocaleString('de-AT')} Millionäre (a > ${MIL})`, l + w - 380, tp + 14);
+            (marks || []).forEach(m => { const px = l + Math.min(AMAX, m.a) / AMAX * w; x.fillStyle = m.c; x.beginPath(); x.moveTo(px, tp + h - 2); x.lineTo(px - 7, tp + h - 16); x.lineTo(px + 7, tp + h - 16); x.fill(); });
+          });
+          // n = 0 (Arbeitslose, Infizierte) als eigene Spitze wie beim Vermoegen
+          const Lt = agg(hn, t, NBn, 0), L0 = agg(hn, 0, NBn, 0), z0 = Lt.out[0].reduce((x, v) => x + v, 0);
+          Lt.out[0] = new Array(NZ).fill(0); L0.out[0] = new Array(NZ).fill(0);
+          stackPlot(labC, `Arbeitszeit n   t: ${t}`, Lt.out, L0.out, scaleN, NMAX, 'Arbeit →', (x, l, tp, w, h) => { if (z0) { x.strokeStyle = '#ef4444'; x.lineWidth = 5; x.beginPath(); x.moveTo(l + 3, tp + h); x.lineTo(l + 3, tp + 2); x.stroke(); x.fillStyle = '#ef4444'; x.font = '700 12px Inter'; x.fillText(`← ${(z0 / Math.max(1, Lt.tot) * 100).toFixed(1)} % arbeiten nicht`, l + 10, tp + 13); } });
+          let co = 0; for (let s2 = 0; s2 < 3; s2++) { if (!sirOn(s2)) continue; for (let z = 0; z < NZ; z++) if (showE[z]) co += M.cover[t][s2 * NZ + z]; }
+          stackPlot(conC, `Konsum c   t: ${t}`, agg(hc, t, NBc, 0).out, agg(hc, 0, NBc, 0).out, scaleC, Math.round(CMAX * 10) / 10, 'Konsum →', (x, l, tp, w, h) => { x.fillStyle = '#c084fc'; x.font = '700 11px Inter'; x.fillText(`${co.toLocaleString('de-AT')} mit c > ${(Math.round(CMAX * 10) / 10)} →`, l + w - 150, tp + 12); });
+        }
+        const dA = (t, z, a, s) => { const tt = Math.min(T - 1, t), c = ip(pol[tt][s][z], a), y = s === 1 ? b : z === 0 ? ub : E[z] * nOf(tt, z, s, c); return Math.max(0, R * a + y - c) - a; };
+        let yr = [-2, 2];
+        const setRange = () => { let lo = -.5, hi = .5; for (const ss of [0, 1, 2]) for (const t of [0, tPeak, T - 1]) for (const z of ZS) { if (!showE[z] || z === NZ - 1) continue; /* Superstar-Kurve darf oben hinausragen */ for (let k = 0; k <= 30; k++) { const v = dA(t, z, k / 30 * AMAX, ss); lo = Math.min(lo, v); hi = Math.max(hi, v); } } const m = (hi - lo) * .06; yr = [lo - m, hi + m]; };
+        function drawPol(t, hiZ, hiS) {
+          const x = polC.x, W = x.W, Hh = x.H, l = 46, tp = 22, w = W - l - 10, h = Hh - tp - 26; x.clearRect(0, 0, W, Hh); tNow = t; lockFrame(x, W, Hh);
+          const [lo, hi] = yr, sx = v => l + v / AMAX * w, sy = v => tp + h - (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo) * h;
+          x.fillStyle = 'rgba(16,185,129,.07)'; x.fillRect(l, tp, w, sy(0) - tp); x.fillStyle = 'rgba(239,68,68,.08)'; x.fillRect(l, sy(0), w, tp + h - sy(0));
+          const ft = Math.min(t, track.length - 1), fa = track[ft].a[fixed], fz = track[ft].z[fixed], fsRaw = track[ft].h[fixed], trk = polMode === 'track', ss = trk ? (fsRaw === 3 ? 1 : fsRaw) : polMode;
+          axes(x, l, tp, w, h); x.fillStyle = '#e2e8f0'; x.font = '600 13px Inter'; x.fillText(`Policy-Funktionen ${trk ? 'für den Zustand des Haushalts' : '(alle 24 Einkommensstufen)'}   t: ${t}   sir = ${['S', 'I', 'R'][ss]}${M.lockAt(t) ? '   🔒 Lockdown' : ''}`, l, 13);
+          x.strokeStyle = '#94a3b8'; x.beginPath(); x.moveTo(l, sy(0)); x.lineTo(l + w, sy(0)); x.stroke();
+          x.font = '11px Inter'; x.fillStyle = '#10b981'; x.fillText('+ sparen', l + w - 60, tp + 14); x.fillStyle = '#ef4444'; x.fillText('− verkaufen', l + w - 70, tp + h - 6);
+          x.fillStyle = '#94a3b8'; x.font = '10px Fira Code'; const ys = [.25, .5, 1, 2, 5, 10].find(q => (hi - lo) / q <= 7); for (let v = Math.ceil(lo / ys) * ys; v <= hi + 1e-9; v += ys) x.fillText((v > 0 ? '+' : '') + (+v.toFixed(2)), 4, sy(v) + 3);
+          for (let v = 0; v <= AMAX; v += Math.max(1, Math.round(AMAX / 6))) x.fillText(String(v), sx(v) - 3, tp + h + 12); x.fillText('Vermögen a →', l + w - 80, tp + h + 22);
+          const curve = (z, s, col, lw, alpha) => { x.strokeStyle = col; x.globalAlpha = alpha; x.lineWidth = lw; x.beginPath(); for (let k = 0; k <= 100; k++) { const a = k / 100 * AMAX, v = dA(t, z, a, s); k ? x.lineTo(sx(a), sy(v)) : x.moveTo(sx(a), sy(v)); } x.stroke(); x.globalAlpha = 1; };
+          ZS.forEach(z => { if (showE[z]) curve(z, ss, zc[z], 1.2, .5); });   // alle 24 Policy-Funktionen
+          REP.forEach(z => { if (!showE[z]) return; x.fillStyle = zc[z]; x.font = '700 11px Inter'; x.fillText(GN[grp(z)], l + w - 130, sy(dA(t, z, AMAX, ss)) - 4); });
+          if (trk) curve(fz, ss, zc[fz], 4.5, 1);   // Kurve genau fuer den Zustand des Haushalts
+          // der verfolgte Haushalt: Punkt auf der Kurve seines Zustands (e, sir)
+          if (!trk) { /* fester sir-Zustand: nur die Kurven */ }
+          else if (fsRaw !== 3) { const v = dA(t, fz, fa, ss); x.fillStyle = zc[fz]; x.beginPath(); x.arc(sx(Math.min(AMAX, fa)), sy(v), 8, 0, 7); x.fill(); x.strokeStyle = '#f8fafc'; x.lineWidth = 3; x.stroke();
+            x.fillStyle = '#f8fafc'; x.font = '700 13px Inter'; x.fillText(`👤 Haushalt: (a = ${fa.toFixed(2)}, e${fz + 1} – ${GN[grp(fz)]}, ${['S', 'I', 'R'][ss]})  →  ${v >= 0 ? '+' : ''}${v.toFixed(2)}`, l + 6, tp + h - 22); }
+          else { x.fillStyle = '#94a3b8'; x.font = '700 13px Inter'; x.fillText('👤 Haushalt verstorben †', l + 6, tp + h - 22); }
+          return { sx, sy, l };
+        }
+        function drawAll(t) { tNow = t; drawTimeline(t); const ft = Math.min(t, track.length - 1); drawDists(t, [{ a: track[ft].a[fixed], c: '#fbbf24', g: grp(track[ft].z[fixed]) }]); drawPol(t); }
+        function step() {
+          if (cur >= T) return false;
+          const t = cur; cur = t + 1;
+          drawAll(t);   // zuerst den ganzen Stand zu t zeichnen (auch wenn der letzte Schritt abgebrochen wurde)
+          const fr = track[t], a = fr.a[fixed], z = fr.z[fixed], hs = fr.h[fixed];
+          if (hs === 3 || polMode !== 'track') { drawAll(t + 1); return true; }
+          const g = drawPol(t), x = polC.x, v = dA(t, z, a, hs), px = g.sx(Math.min(AMAX, a)), py = g.sy(v), y0 = g.sy(0);
+          const arrow = (x1, y1, x2, y2, c) => { x.strokeStyle = c; x.lineWidth = 2.5; x.beginPath(); x.moveTo(x1, y1); x.lineTo(x2, y2); x.stroke(); const an = Math.atan2(y2 - y1, x2 - x1); x.fillStyle = c; x.beginPath(); x.moveTo(x2, y2); x.lineTo(x2 - 8 * Math.cos(an - .4), y2 - 8 * Math.sin(an - .4)); x.lineTo(x2 - 8 * Math.cos(an + .4), y2 - 8 * Math.sin(an + .4)); x.fill(); };
+          const d1 = fast ? 60 : 450;
+          later(d1, () => arrow(px, y0, px, py, '#fbbf24'));
+          later(d1 * 2, () => { arrow(px, py, g.l + 2, py, zc[z]); x.fillStyle = v >= 0 ? '#10b981' : '#ef4444'; x.font = '700 13px Inter'; x.fillText(`${v >= 0 ? '+' : ''}${v.toFixed(2)} ${v >= 0 ? 'sparen' : 'verkaufen'}`, g.l + 6, py + (v >= 0 ? -6 : 16)); });
+          later(d1 * 3 + (fast ? 60 : 500), () => drawAll(t + 1));
+          return true;
+        }
+        const btnS = [], btnE = [];
+        const refreshBtns = () => { btnS.forEach((bb, k) => bb.style.borderColor = k - 1 === selS ? 'var(--accent)' : 'var(--line)'); btnE.forEach((bb, k) => { const on = k === 0 ? showE.every(v => v) : ZS.filter(z => grp(z) === k - 1).every(z => showE[z]); bb.style.borderColor = on ? 'var(--accent)' : 'var(--line)'; bb.style.opacity = k === 0 || on ? 1 : .45; }); };
+        const redraw = () => { refreshBtns(); setScales(); setScaleG(); setRange(); drawAll(Math.min(cur, T)); };
+        row1.appendChild(scnRow()); row1.appendChild(tl.c);
+        row1.appendChild(el('span', '', '<b style="font-size:12px;margin-left:14px">Zustand sir:</b>'));
+        [['alle', '#94a3b8'], ...sirName.map((n, k) => [n, sirCol[k]])].forEach(([n, c], k) => { const bb = mkBtn(`<span style="color:${c}">●</span> ${n}`, () => { selS = k - 1; redraw(); }); btnS.push(bb); row1.appendChild(bb); });
+        row1.appendChild(el('span', '', '<span style="font-size:12px;color:var(--muted);margin-left:10px">Zustand (a, e, sir) · a = x-Achse · † = verstorben</span>'));
+        row2.appendChild(el('span', '', '<b style="font-size:12px">Einkommensniveau e (24 Stufen, mehrere möglich):</b>'));
+        ['alle', ...GN].forEach((n, k) => { const bb = mkBtn(k ? `<span style="color:${GC[k - 1]}">■</span> ${n} (e${(k - 1) * 8 + 1}–e${k * 8})` : n, () => { if (k === 0) showE.fill(true); else { const g = k - 1, all = showE.every(v => v), gOn = ZS.filter(z => grp(z) === g).every(z => showE[z]); if (all) ZS.forEach(z => showE[z] = grp(z) === g); else ZS.forEach(z => { if (grp(z) === g) showE[z] = !gOn; }); if (!showE.some(v => v)) showE.fill(true); } redraw(); }); btnE.push(bb); row2.appendChild(bb); });
+        // Umschalter nur fuer die Policy-Funktion: Haushalt verfolgen oder fest S / I / R
+        row2.appendChild(el('span', '', '<b style="font-size:12px;margin-left:14px">Policy zeigt:</b>'));
+        const btnP = [];
+        [['track', '👤 Haushalt'], [0, 'S'], [1, 'I'], [2, 'R']].forEach(([m, lbl]) => { const bb = mkBtn(m === 'track' ? lbl : `<span style="color:${sirCol[m]}">●</span> ${lbl}`, () => { polMode = m; btnP.forEach((x, k) => x.style.borderColor = [ 'track', 0, 1, 2 ][k] === polMode ? 'var(--accent)' : 'var(--line)'); drawPol(Math.min(cur, T)); }); btnP.push(bb); row2.appendChild(bb); });
+        btnP[0].style.borderColor = 'var(--accent)';
+        row2.appendChild(el('span', '', '<b style="font-size:12px;margin-left:14px">Verteilung:</b>'));
+        const btnD = [];
+        [[false, 'gesamt'], [true, '3 nebeneinander']].forEach(([v, lbl]) => { const bb = mkBtn(lbl, () => { splitMode = v; btnD.forEach((x, k) => x.style.borderColor = (k === 1) === splitMode ? 'var(--accent)' : 'var(--line)'); drawAll(Math.min(cur, T)); }); btnD.push(bb); row2.appendChild(bb); });
+        btnD[0].style.borderColor = 'var(--accent)';
+        redraw(); $('autoBtn').disabled = false;
+        return {
+          next() { clearTimers(); fast = false; return step(); },
+          auto() { clearTimers(); fast = true; const tick = () => { if (step()) timers.push(setTimeout(tick, 420)); }; tick(); }
+        };
+      }
+    } },
+  { ch: 6, textSize: .6, title: 'Wann ist eine Firma insolvent? Sprünge und stochastische Volatilität',
+    ownTitle: '🤷 Insolvenz-Simulation (stark vereinfacht – in echt viel mehr)',
+    own: ['double X = 12, v = 4;                 // Kasse (Mio. €), Varianz', 'double dt = 1.0 / 52;                 // eine Woche', 'for (int t = 0; t < 260; t++)         // 5 Jahre = 260 Zufallsschritte', '{', '    double dW1 = Math.Sqrt(dt) * NormalZufall(g);', '    double dW2 = Math.Sqrt(dt) * NormalZufall(g);', '    X += mu * dt + Math.Sqrt(v) * dW1;                  // Kasse', '    v += kappa * (theta - v) * dt', '         + xi * Math.Sqrt(v) * dW2;                     // CIR-Prozess', '    v = Math.Max(v, 0);', '    if (g.NextDouble() < lambda * dt)                   // Poisson-Sprung', '        X -= -4 * Math.Log(1 - g.NextDouble());          // Klage, Ausfall ...', '    if (X <= 0) { insolvent++; break; }                 // erstes Mal pleite', '}'],
+    hl: { o: [0, 2] },
+    text: '<p><b>Frage einer Bank:</b> Wie wahrscheinlich geht eine Firma in den nächsten 5 Jahren pleite? Ihre <b>Kasse X</b> ändert sich jede Woche durch:</p><p>• Gewinn (Drift) · • zufällige Schwankungen, deren <b>Stärke selbst zufällig</b> ist (<b>CIR-Prozess</b> – ruhige und stürmische Zeiten) · • plötzliche <b>Sprünge</b> nach unten (Klagen, Kunden fallen aus: <b>Poisson-Prozess</b>).</p><p><b>Insolvent</b> = das <b>erste Mal</b> X ≤ 0. Dafür gibt es keine Formel – also tausende Zukünfte würfeln (Monte Carlo). Rot = pleite, ✖ = Zeitpunkt.</p><p><b>Für meine Firma</b> (rechts): Wie lange kann ich mit 95 % Sicherheit durchhalten? Dort, wo die Kurve der Pleite-Wahrscheinlichkeit 5 % erreicht, liegt der <b>95%-Schnitt</b>. Banken (Basel III), Ratingagenturen und Versicherungen rechnen so.</p><p class="hint">→ = eine Firma langsam · ⏩ = 3000 Firmen</p>',
+    render(st) {
+      const sw = st.clientWidth - 24, sh = st.clientHeight - 24;
+      const X0 = 12, mu = 1, kap = 2, th = 4, xi = 1.5, lam = .5, TD = 260, dt = 1 / 52;
+      const row = el('div', 'row'); row.style.cssText = 'flex-wrap:nowrap;gap:12px;align-items:stretch';
+      const pathC = mkCanvas(Math.round(sw * .5), sh);
+      const rc = el('div', 'col'); rc.style.gap = '6px';
+      const pdC = mkCanvas(Math.round(sw * .48), sh);
+      rc.append(pdC.c); row.append(pathC.c, rc); st.appendChild(row);
+      const rng = mulberry(5);
+      const P = pathC.x, PW = P.W, PH = P.H, pl = 40, pt = 22, pw = PW - pl - 10, ph = PH - pt - 24, lo = -4, hi = 36;
+      const px = t => pl + t / TD * pw, py = s => pt + ph - (Math.min(hi, Math.max(lo, s)) - lo) / (hi - lo) * ph;
+      function bg() {
+        P.clearRect(0, 0, PW, PH); axes(P, pl, pt, pw, ph); P.fillStyle = '#e2e8f0'; P.font = '600 13px Inter'; P.fillText('💶 Kasse X der Firma (Mio. €)', pl, 14);
+        P.fillStyle = 'rgba(239,68,68,.12)'; P.fillRect(pl, py(0), pw, py(lo) - py(0));
+        P.fillStyle = '#94a3b8'; P.font = '10px Fira Code'; [0, 10, 20, 30].forEach(v => P.fillText(String(v), 14, py(v) + 3)); for (let j = 0; j <= 5; j++) P.fillText(j + 'J', px(j * 52) - 6, pt + ph + 14);
+        P.strokeStyle = '#ef4444'; P.beginPath(); P.moveTo(pl, py(0)); P.lineTo(pl + pw, py(0)); P.stroke(); P.fillStyle = '#ef4444'; P.fillText('insolvent', pl + 4, py(0) + 12);
+      }
+      bg();
+      function onePath() {
+        let X = X0, v = th; const path = [X], jumps = [];
+        for (let t = 0; t < TD; t++) {
+          const d1 = Math.sqrt(dt) * gaussR(rng), d2 = Math.sqrt(dt) * gaussR(rng);
+          X += mu * dt + Math.sqrt(v) * d1; v += kap * (th - v) * dt + xi * Math.sqrt(Math.max(v, 0)) * d2; v = Math.max(v, 0);
+          if (rng() < lam * dt) { X -= -4 * Math.log(1 - rng()); jumps.push(t + 1); }
+          path.push(X);
+          if (X <= 0) return { path, def: t + 1, jumps };
+        }
+        return { path, def: -1, jumps };
+      }
+      const sims = []; let n = 0, nd = 0; const hy = [0, 0, 0, 0, 0], est = [];
+      const all = [], defT = [];   // alle Pfade, Pleite-Zeitpunkte; (nach der Pleite bleibt die Kasse bei 0) -> Quantile
+      function add(p) { const f = new Float32Array(TD + 1); for (let t = 0; t <= TD; t++) f[t] = t < p.path.length ? Math.max(0, p.path[t]) : 0; all.push(f); n++; if (p.def >= 0) { defT.push(p.def); nd++; hy[Math.min(4, Math.floor((p.def - 1) / 52))]++; } if (n <= 30 || n % 15 === 0) { const q = nd / n; est.push({ n, q, se: Math.sqrt(q * (1 - q) / n) }); } }
+      function drawPath(p, alpha, w, upto) {
+        const end = Math.min(upto ?? p.path.length - 1, p.path.length - 1);
+        P.globalAlpha = alpha; P.lineWidth = w; P.strokeStyle = p.def >= 0 && end >= p.def ? '#ef4444' : '#38bdf8';
+        P.beginPath(); for (let t = 0; t <= end; t++) t ? P.lineTo(px(t), py(p.path[t])) : P.moveTo(px(t), py(p.path[t])); P.stroke();
+        if (w > 1.5) { P.fillStyle = '#fbbf24'; p.jumps.filter(j => j <= end).forEach(j => { P.beginPath(); P.arc(px(j), py(p.path[j]), 3.5, 0, 7); P.fill(); }); }
+        if (p.def >= 0 && end >= p.def) { P.globalAlpha = Math.min(1, alpha * 3); P.fillStyle = '#ef4444'; P.font = `${w > 1.5 ? 16 : 10}px Inter`; P.fillText('✖', px(p.def) - 4, py(0) + 5); }
+        P.globalAlpha = 1;
+      }
+      function drawPD() {
+        const x = pdC.x, W = x.W, H = x.H, l = 42, t = 46, w = W - l - 14, h = H - t - 30; x.clearRect(0, 0, W, H);
+        const q = n ? nd / n : 0;
+        x.fillStyle = '#e2e8f0'; x.font = '600 13px Inter'; x.fillText(`Pleite in 5 Jahren: ${(q * 100).toFixed(1)} %   (${n} simulierte Zukünfte)`, l, 14);
+        // P(pleite bis Woche t)
+        const cum = new Float64Array(TD + 1); defT.forEach(d => cum[Math.min(TD, d)]++); for (let k = 1; k <= TD; k++) cum[k] += cum[k - 1];
+        const ymax = Math.max(.1, Math.ceil(q * 10 + .5) / 10), sx = k => l + k / TD * w, sy = v => t + h - v / ymax * h;
+        axes(x, l, t, w, h);
+        x.fillStyle = '#94a3b8'; x.font = '10px Fira Code'; for (let v = 0; v <= ymax + 1e-9; v += ymax / 4) x.fillText(`${Math.round(v * 100)}%`, 6, sy(v) + 3); for (let j = 0; j <= 5; j++) x.fillText(j + 'J', sx(j * 52) - 6, t + h + 13);
+        if (n) { x.fillStyle = 'rgba(239,68,68,.15)'; x.beginPath(); x.moveTo(sx(0), sy(0)); for (let k = 0; k <= TD; k++) x.lineTo(sx(k), sy(cum[k] / n)); x.lineTo(sx(TD), sy(0)); x.fill();
+          x.strokeStyle = '#ef4444'; x.lineWidth = 2.5; x.beginPath(); for (let k = 0; k <= TD; k++) k ? x.lineTo(sx(k), sy(cum[k] / n)) : x.moveTo(sx(k), sy(cum[k] / n)); x.stroke(); }
+        // 95%-Schnitt: erster Zeitpunkt, an dem 5 % der Zukuenfte pleite sind
+        x.strokeStyle = '#fbbf24'; x.setLineDash([6, 4]); x.lineWidth = 1.5; x.beginPath(); x.moveTo(l, sy(.05)); x.lineTo(l + w, sy(.05)); x.stroke(); x.setLineDash([]);
+        x.fillStyle = '#fbbf24'; x.font = '11px Inter'; x.fillText('5 % pleite', l + w - 60, sy(.05) - 4);
+        let tc = -1; if (n >= 50) for (let k = 0; k <= TD; k++) if (cum[k] / n >= .05) { tc = k; break; }
+        if (tc >= 0) { x.strokeStyle = '#fbbf24'; x.lineWidth = 2; x.beginPath(); x.moveTo(sx(tc), t); x.lineTo(sx(tc), t + h); x.stroke(); x.beginPath(); x.arc(sx(tc), sy(.05), 5, 0, 7); x.fillStyle = '#fbbf24'; x.fill();
+          x.font = '700 14px Inter'; x.fillText(`95%-Schnitt: ${(tc / 52).toFixed(1)} Jahre`, Math.min(sx(tc) + 8, l + w - 190), t + 16);
+          x.font = '12px Inter'; x.fillStyle = '#e2e8f0'; x.fillText(`Mit 95 % Sicherheit ist meine Firma die ersten ${(tc / 52).toFixed(1)} Jahre nicht pleite.`, l, 32); }
+        else { x.font = '12px Inter'; x.fillStyle = '#94a3b8'; x.fillText(n < 50 ? 'Mehr Zukünfte nötig (⏩) für den 95%-Schnitt …' : 'In 5 Jahren werden keine 5 % pleite.', l, 32); }
+      }
+      function drawFan() {
+        if (all.length < 50) return;
+        const ts = []; for (let t = 0; t <= TD; t += 4) ts.push(t); if (ts[ts.length - 1] !== TD) ts.push(TD);
+        const Q = ts.map(t => { const v = Float32Array.from(all, f => f[t]).sort(); const q = p => v[Math.min(v.length - 1, Math.floor(p * (v.length - 1)))]; return [q(.05), q(.25), q(.5), q(.75), q(.95)]; });
+        const band = (i, j, c) => { P.fillStyle = c; P.beginPath(); ts.forEach((t, k) => k ? P.lineTo(px(t), py(Q[k][j])) : P.moveTo(px(t), py(Q[k][j]))); for (let k = ts.length - 1; k >= 0; k--) P.lineTo(px(ts[k]), py(Q[k][i])); P.fill(); };
+        band(0, 4, 'rgba(56,189,248,.18)'); band(1, 3, 'rgba(56,189,248,.3)');
+        P.strokeStyle = '#f8fafc'; P.lineWidth = 2.5; P.beginPath(); ts.forEach((t, k) => k ? P.lineTo(px(t), py(Q[k][2])) : P.moveTo(px(t), py(Q[k][2]))); P.stroke();
+        P.strokeStyle = '#fbbf24'; P.lineWidth = 2; P.setLineDash([6, 4]); P.beginPath(); ts.forEach((t, k) => k ? P.lineTo(px(t), py(Q[k][0])) : P.moveTo(px(t), py(Q[k][0]))); P.stroke(); P.setLineDash([]);
+        const last = Q[Q.length - 1], y1 = Q[ts.indexOf(52)];
+        P.font = '700 12px Inter'; P.fillStyle = '#f8fafc'; P.fillText(`Median nach 5 J: ${last[2].toFixed(1)} Mio.`, px(TD) - 170, py(last[2]) - 6);
+        P.fillStyle = '#fbbf24'; P.fillText(`5%-Quantil nach 1 J: ${y1[0].toFixed(1)} Mio.`, px(52) + 6, py(y1[0]) + 16);
+        P.font = '11px Inter'; P.fillStyle = '#94a3b8'; P.fillText('Fläche: 25–75 % und 5–95 % aller Zukünfte · weiß = Median · gelb = 5%-Quantil', pl + 4, pt + 12);
+      }
+      drawPD();
+      return {
+        i: 0,
+        next() {
+          if (this.i >= 5) return false; this.i++; clearTimers();
+          bg(); sims.forEach(p => drawPath(p, .35, 1)); const p = onePath(); sims.push(p);
+          let t = 0; setHl({ o: [6], r: [] }); blink('o', 2);
+          every(25, () => {
+            if (t >= p.path.length - 1) return;
+            t = Math.min(p.path.length - 1, t + 3); drawPath(p, 1, 2.3, t);
+            setHl({ o: p.jumps.some(j => j > t - 3 && j <= t) ? [10, 11] : [4, 5, 6, 7, 8] });
+            if (t >= p.path.length - 1) { add(p); drawPD(); setHl({ o: p.def >= 0 ? [12] : [2] }); blink('o', p.def >= 0 ? 12 : 2); }
+          });
+          return true;
+        },
+        auto() {
+          clearTimers(); this.i = 5; bg(); setHl({ o: [2, 12] });
+          let tick = 0; every(40, () => { if (n >= 3000) return; for (let k = 0; k < 40 && n < 3000; k++) { const p = onePath(); add(p); if (k < 5) drawPath(p, .12, 1); } drawPD(); if (n >= 3000) drawFan(); });
+        }
+      };
+    } }
+];
+
+// ===================== Navigation =====================
+let cur = 0, ctrl = null;
+function buildTabs() {
+  chapters.forEach((c, i) => {
+    const b = el('button', '', (i + 1) + '. ' + c);
+    b.onclick = () => show(steps.findIndex(s => s.ch === i));
+    $('tabs').appendChild(b);
+  });
+}
+function show(i) {
+  clearTimers();
+  cur = Math.max(0, Math.min(steps.length - 1, i));
+  const s = steps[cur];
+  document.querySelectorAll('#tabs button').forEach((b, k) => b.classList.toggle('active', k === s.ch));
+  $('title').textContent = s.title;
+  $('counter').textContent = `Schritt ${cur + 1} / ${steps.length}`;
+  $('text').innerHTML = s.text;
+  $('text').parentElement.style.flex = s.textSize || 1;   // Erklaerung pro Folie kleiner machbar
+  renderCode(s);
+  $('left').style.display = s.noCode ? 'none' : '';   // Folien ohne Code: Animation volle Breite
+  $('right').style.width = s.noCode ? '100%' : '';
+  const st = $('stage'); st.innerHTML = '';
+  if (s.ch === 6 && !window.__aiyCaches['normal|-']) aiyStart('normal|-');   // Aiyagari-Modell im Hintergrund vorbereiten
+  ctrl = s.render(st) || null;
+  $('autoBtn').disabled = !(ctrl && ctrl.auto);
+}
+function go(d) {
+  if (d > 0 && ctrl && ctrl.next && ctrl.next()) return;
+  show(cur + d);
+}
+function replay() { show(cur); }
+function toChapterEnd() { const c = steps[cur].ch; let i = cur; while (i + 1 < steps.length && steps[i + 1].ch === c) i++; show(i === cur && cur + 1 < steps.length ? cur : i); }
+function jumpTo(id) { const i = steps.findIndex(s => s.id === id); if (i >= 0) show(i); }
+function runAuto() { if (ctrl && ctrl.auto) { $('autoBtn').disabled = true; ctrl.auto(); } }
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;   // Eingabefelder im Parameter-Labor
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+  if (e.key === 'r' || e.key === 'R') replay();
+});
+let rs; window.addEventListener('resize', () => { clearTimeout(rs); rs = setTimeout(() => show(cur), 200); });
+buildTabs();
+show(0);
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="LiveCoding/L04LiveCoding-Weltkarte.csproj" />
+  <Project Path="Aufgabe01-WeltenGenerieren/Aufgabe01-WeltenGenerieren.csproj" />
+  <Project Path="AufgabeOPTIONAL-KarteAusBild/AufgabeOPTIONAL-KarteAusBild.csproj" />
+  <Project Path="Skripten/Skripten.csproj" />
+  <Project Path="ZettelUebungen/ZettelUebungen.csproj" />
+</Solution>
