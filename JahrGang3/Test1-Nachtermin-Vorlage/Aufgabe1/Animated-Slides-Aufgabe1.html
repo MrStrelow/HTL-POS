@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aufgabe 1 – Hilfe</title>
+<style>
+  :root {
+    --bg: #020617; --panel: #0f172a; --line: #1e293b; --muted: #64748b; --text: #f1f5f9;
+    --accent: #38bdf8; --ok: #34d399; --bad: #fb7185; --warn: #fbbf24; --pkg: #f59e0b; --wall: #475569;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+  .mono { font-family: 'Fira Code', monospace; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 12px 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 20px; color: var(--accent); }
+  header small { color: var(--muted); }
+  nav { display: flex; flex-wrap: wrap; gap: 6px; }
+  nav button { background: #111827; color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; font: inherit; font-size: 13px; }
+  nav button.active { color: var(--accent); border-color: var(--accent); background: rgba(56,189,248,.1); }
+  main { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 20px 16px; gap: 16px; }
+  .title { text-align: center; max-width: 900px; }
+  .title h2 { margin: 0 0 6px; font-size: 22px; }
+  .title p { margin: 0; color: #cbd5e1; }
+  .stage { width: 100%; max-width: 1000px; min-height: 380px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; overflow-x: auto; }
+  .caption { min-height: 48px; max-width: 900px; text-align: center; font-size: 17px; padding: 10px 16px; border-radius: 10px; background: rgba(56,189,248,.08); border: 1px solid rgba(56,189,248,.3); }
+  .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .controls button { background: #1e293b; color: var(--text); border: 1px solid #334155; border-radius: 8px; padding: 8px 14px; cursor: pointer; font: inherit; }
+  .controls button:hover { border-color: var(--accent); }
+  .controls .counter { color: var(--muted); font-size: 14px; min-width: 70px; text-align: center; }
+  .speed { color: var(--muted); font-size: 13px; display: flex; gap: 6px; align-items: center; }
+
+  .row { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .ch { width: 30px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: #111827; border: 1.5px solid #334155; font-family: 'Fira Code', monospace; font-size: 18px; transition: all .35s ease; position: relative; }
+  .ch .idx { position: absolute; bottom: -16px; font-size: 10px; color: var(--muted); }
+  .ch.space { color: transparent; background: repeating-linear-gradient(45deg, #111827, #111827 4px, #1f2937 4px, #1f2937 8px); }
+  .ch.hl { border-color: var(--warn); background: rgba(251,191,36,.18); transform: translateY(-4px); }
+  .ch.gone { opacity: .15; transform: scale(.8); }
+  .ch.ok { border-color: var(--ok); background: rgba(52,211,153,.15); }
+  .ch.bad { border-color: var(--bad); background: rgba(251,113,133,.15); }
+  .ch.new { animation: pop .5s ease; border-color: var(--ok); background: rgba(52,211,153,.2); }
+  .chip { padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--accent); background: rgba(56,189,248,.12); font-family: 'Fira Code', monospace; font-size: 18px; animation: pop .45s ease; }
+  .chip.ok { border-color: var(--ok); background: rgba(52,211,153,.15); }
+  .chip.bad { border-color: var(--bad); background: rgba(251,113,133,.15); }
+  .chip.dim { opacity: .35; }
+  .badge { padding: 6px 12px; border-radius: 8px; font-weight: 700; animation: pop .45s ease; }
+  .badge.ok { color: var(--ok); border: 1.5px solid var(--ok); background: rgba(52,211,153,.12); }
+  .badge.bad { color: var(--bad); border: 1.5px solid var(--bad); background: rgba(251,113,133,.12); }
+  .label { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+  .arrow { color: var(--muted); font-size: 22px; }
+
+  .grid { display: grid; gap: 3px; }
+  .cell { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 18px; background: #111827; border: 1px solid #1f2937; transition: all .3s ease; position: relative; }
+  .cell.wall { background: var(--wall); border-color: #64748b; }
+  .cell.pkg::after { content: "📦"; }
+  .cell.goal { background: rgba(52,211,153,.15); border-color: var(--ok); }
+  .cell.goal::after { content: "🏁"; font-size: 15px; }
+  .cell.probe-ok { outline: 3px solid var(--ok); z-index: 2; }
+  .cell.probe-bad { outline: 3px solid var(--bad); z-index: 2; }
+  .cell.trail { background: rgba(56,189,248,.12); }
+  .robot { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; transition: transform .35s ease; z-index: 3; }
+  .robot .dir { position: absolute; font-size: 14px; color: var(--accent); font-weight: 700; }
+  .carry { position: absolute; top: -8px; right: -6px; font-size: 13px; }
+
+  .file { border: 1px solid #334155; border-radius: 10px; background: #0b1222; padding: 10px 14px; font-family: 'Fira Code', monospace; font-size: 13px; line-height: 1.55; min-width: 260px; }
+  .file .ln { color: var(--muted); display: inline-block; width: 24px; }
+  .file .cur { background: rgba(56,189,248,.15); border-radius: 4px; }
+  .file .err { color: var(--bad); }
+  .file .skip { color: #475569; }
+  .arr { display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; max-width: 900px; }
+  .arr .slot { min-width: 46px; height: 34px; padding: 0 6px; border: 1.5px solid #334155; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-family: 'Fira Code', monospace; font-size: 11px; color: #cbd5e1; animation: pop .35s ease; }
+  .cols { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; align-items: flex-start; }
+  .compass { position: relative; width: 220px; height: 220px; border-radius: 50%; border: 2px dashed #334155; }
+  .compass .d { position: absolute; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; background: #111827; border: 2px solid #334155; transition: all .3s; }
+  .compass .d.on { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,.18); transform: scale(1.15); }
+  .compass .bot { position: absolute; left: 50%; top: 50%; width: 60px; height: 60px; margin: -30px; display: flex; align-items: center; justify-content: center; font-size: 34px; transition: transform .5s ease; }
+  .compass .needle { position: absolute; left: 50%; top: 50%; width: 4px; height: 70px; margin-left: -2px; margin-top: -70px; background: var(--accent); border-radius: 2px; transform-origin: 50% 100%; transition: transform .5s ease; }
+  .log { font-family: 'Fira Code', monospace; font-size: 12px; background: #0b1222; border: 1px solid #334155; border-radius: 10px; padding: 8px 12px; min-width: 300px; min-height: 60px; white-space: pre; }
+  .log .e { color: var(--bad); }
+  .log .p { color: #cbd5e1; }
+  .log .new { animation: flash 1s ease; }
+  .stat { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  .stat div { background: #111827; border: 1px solid #334155; border-radius: 8px; padding: 6px 12px; }
+  .cell.route { background: rgba(56,189,248,.25); border-color: var(--accent); color: var(--accent); }
+  .cell.hit { background: rgba(251,113,133,.35); border-color: var(--bad); color: var(--bad); font-weight: 700; }
+  .cell { font-family: 'Fira Code', monospace; font-size: 14px; }
+  @keyframes pop { 0% { transform: scale(.6); opacity: 0; } 70% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes flash { 0% { background: rgba(251,191,36,.35); } 100% { background: transparent; } }
+  @media (max-width: 600px) { .cell { width: 24px; height: 24px; font-size: 13px; } .ch { width: 22px; height: 30px; font-size: 14px; } }
+  .stage { max-width: 1320px !important; align-items: stretch !important; }
+  .trace { display: flex; gap: 22px; flex-wrap: wrap; width: 100%; align-items: flex-start; justify-content: center; }
+  .tview { flex: 1 1 460px; display: flex; flex-direction: column; align-items: center; gap: 14px; min-width: 0; }
+  .tside { flex: 0 1 430px; min-width: 300px; display: flex; flex-direction: column; gap: 6px; }
+  .sig { font-family: 'Fira Code', monospace; font-size: 14px; color: var(--accent); font-weight: 600; }
+  .sig .call { display: block; color: #cbd5e1; font-weight: 400; font-size: 12px; margin-top: 2px; }
+  .steps { margin: 0 0 8px; padding-left: 26px; font-size: 13.5px; }
+  .steps li { padding: 4px 8px; margin: 2px 0; border-radius: 6px; color: #94a3b8; transition: all .25s; }
+  .steps li.cur { background: rgba(56,189,248,.16); color: #fff; outline: 1.5px solid var(--accent); }
+  .steps li.ok::after { content: "  ✔"; color: var(--ok); font-weight: 700; }
+  .steps li.bad::after { content: "  ✘"; color: var(--bad); font-weight: 700; }
+  .vars { border-collapse: collapse; font-family: 'Fira Code', monospace; font-size: 12.5px; width: 100%; }
+  .vars td { border-bottom: 1px solid #1e293b; padding: 4px 8px; vertical-align: top; word-break: break-all; }
+  .vars td:first-child { color: #94a3b8; width: 38%; word-break: normal; }
+  .vars tr.chg td { background: rgba(251,191,36,.16); }
+  .vars tr.chg td:first-child { color: var(--warn); }
+  .v-str { color: #fde68a; } .v-num { color: #93c5fd; } .v-raw { color: #c4b5fd; } .v-none { color: #475569; }
+  .v-true { color: var(--ok); font-weight: 700; } .v-false { color: var(--bad); font-weight: 700; }
+  .box { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .file.small { font-size: 11px; line-height: 1.45; min-width: 0; max-width: 100%; overflow-x: auto; }
+  .file .cur { outline: 1px solid var(--accent); }
+  .ch.sel { border-color: var(--accent); background: rgba(56,189,248,.22); }
+  .tside { display: none !important; }
+  .tview { flex: 1 1 100% !important; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🍂 Aufgabe 01 – Herbstblätter im Teich</h1>
+    <small>Was im Programm passiert – Schritt für Schritt (ohne Code) – funktioniert ohne Internet</small>
+  </div>
+  <nav id="nav"></nav>
+</header>
+<main>
+  <div class="title"><h2 id="slideTitle"></h2><p id="slideText"></p></div>
+  <div class="stage" id="stage"></div>
+  <div class="caption" id="caption"></div>
+  <div class="controls">
+    <button id="btnReset" title="Von vorne">↺</button>
+    <button id="btnPrev">◀ zurück</button>
+    <span class="counter" id="counter"></span>
+    <button id="btnNext">weiter ▶</button>
+    <button id="btnPlay">▶ Abspielen</button>
+    <label class="speed">Tempo <input id="speed" type="range" min="300" max="2500" step="100" value="1400"></label>
+  </div>
+</main>
+
+<script>
+// ===================== Trace-Engine: Ablauf der Musterlösung + Variablen =====================
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const R = t => ({ t });                       // Rohtext (z. B. Tupel, Array-Beschreibung)
+const P = (x, y) => R(`(${x}|${y})`);        // Position
+const fmt = n => n.toFixed(2).replace(".", ",");
+function val(v) {
+  if (v === null || v === undefined) return '<span class="v-none">—</span>';
+  if (typeof v === "string") return `<span class="v-str">"${esc(v).replace(/ /g, "·")}"</span>`;
+  if (typeof v === "boolean") return `<span class="${v ? "v-true" : "v-false"}">${v}</span>`;
+  if (Array.isArray(v)) return `[${v.map(val).join(", ")}]`;
+  if (typeof v === "object" && "t" in v) return `<span class="v-raw">${esc(v.t)}</span>`;
+  if (typeof v === "object" && "c" in v) return `<span class="v-str">'${esc(v.c)}'</span>`;
+  return `<span class="v-num">${esc(v)}</span>`;
+}
+const C = c => ({ c });                       // char
+function chars(text, cls = () => "", showIdx = true) {
+  return `<div class="row">${[...text].map((c, i) =>
+    `<div class="ch ${c === " " ? "space" : ""} ${cls(i, c)}">${esc(c === " " ? "·" : c === "	" ? "⇥" : c)}${showIdx ? `<span class="idx">${i}</span>` : ""}</div>`).join("") || '<div class="ch gone">∅</div>'}</div>`;
+}
+function fileView(lines, cur = -1, marks = {}, small = false) {
+  return `<div class="file ${small ? "small" : ""}">${lines.map(l => l.length > 80 ? l.slice(0, 80) + " … (" + l.length + " Zeichen)" : l).map((l, i) =>
+    `<div class="${i === cur ? "cur" : ""} ${marks[i] || ""}"><span class="ln">${i + 1}</span>${esc(l).replace(/	/g, "⇥&nbsp;&nbsp;").replace(/ /g, "&nbsp;") || "&nbsp;"}</div>`).join("")}</div>`;
+}
+const chip = (t, c = "") => `<span class="chip ${c}" style="white-space:pre">${esc(t)}</span>`;
+const box = (label, inner) => `<div class="box"><div class="label">${label}</div>${inner}</div>`;
+
+class Trace {
+  constructor(fn, steps) { this.fn = fn; this.steps = steps; this.frames = []; this.prev = {}; }
+  call(sig) { this.sig = sig; this.prev = {}; return this; }
+  // cur: aktiver Ablauf-Schritt, vars: Variablen, view: Daten-Ansicht, cap: Erklärung, mark: {Schritt: "ok"|"bad"}
+  f(cur, vars, view, cap, mark = {}) {
+    const rows = Object.entries(vars).map(([k, v]) => {
+      const chg = JSON.stringify(this.prev[k]) !== JSON.stringify(v) && v !== null && v !== undefined;
+      return `<tr class="${chg ? "chg" : ""}"><td>${esc(k)}</td><td>${val(v)}</td></tr>`;
+    }).join("");
+    this.prev = JSON.parse(JSON.stringify(vars));
+    const steps = this.steps.map((s, i) =>
+      `<li class="${i === cur ? "cur" : ""} ${mark[i] || ""}">${s}</li>`).join("");
+    this.frames.push({
+      caption: cap,
+      html: `<div class="trace"><div class="tview">${view}</div>
+        <div class="tside"><div class="sig">${esc(this.fn)}${this.sig ? `<span class="call">${esc(this.sig)}</span>` : ""}</div>
+        <div class="label">Ablauf der Musterlösung</div><ol class="steps">${steps}</ol>
+        <div class="label">Variablen</div><table class="vars">${rows}</table></div></div>`
+    });
+    return this;
+  }
+}
+const slideOf = (title, text, ...traces) => ({ title, text, frames: traces.flatMap(t => t.frames) });
+
+// ===================== Aufgabe 1 (3. Jahrgang): Herbstblätter im Teich =====================
+const TIEF = "🟦", SEICHT = "🟩", STEIN = "🪨", TREIBT = "🍂", HAENGT = "🍁";
+let seed = 7;
+// fester Startwert (mulberry32), damit die Animation immer gleich abläuft; liefert wie random.Next(min, max)
+function zufall(min, max) {
+  seed = (seed + 0x6D2B79F5) | 0;
+  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  const r = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  return min + Math.floor(r * (max - min));
+}
+const G = 12;
+let karte = [];
+const kopie = () => karte.map(r => [...r]);
+const gridView = (k, probes = {}) => `<div style="display:grid;grid-template-columns:repeat(${G},auto);gap:1px;font-size:20px;line-height:1">${k.flatMap((r, y) => r.map((c, x) =>
+  `<span title="(${y}, ${x})" style="padding:1px;border-radius:4px;${probes[y + "," + x] ? `outline:3px solid ${probes[y + "," + x] === "ok" ? "var(--ok)" : "var(--bad)"}` : ""}">${c}</span>`)).join("")}</div>`;
+const inside = p => p[0] >= 0 && p[0] < G && p[1] >= 0 && p[1] < G;
+
+// ---------- Teich-Konstruktor (wie in der Musterlösung) ----------
+const bau = new Trace("public Teich(int groesse)", [
+  "Groesse = max(groesse, 12); <b>Karte</b> = new string[Groesse, Groesse]",
+  "1. Rand → 🟩 seicht, Inneres → 🟦 tief",
+  "2. 15 % der Fläche zusätzlich 🟩 – Schleife: zufälliges Feld, nur wenn dort 🟦",
+  "3. 10 % der Fläche 🪨 – Schleife: zufälliges Feld, nur wenn dort 🟦",
+  "4. Blaetter = new Blatt[5 % der Fläche]; die ersten 3 in der Mitte, Rest zufällig – jedes mit <b>this</b>"]);
+bau.call("new Teich(12)");
+karte = Array.from({ length: G }, (_, y) => Array.from({ length: G }, (_, x) => (y === 0 || x === 0 || y === G - 1 || x === G - 1) ? SEICHT : TIEF));
+bau.f(0, { Groesse: 12, gesamtFlaeche: 144 }, gridView(kopie()), "12 ist nicht kleiner als 12 → Groesse = 12. Fläche = 144 Felder.");
+bau.f(1, { Groesse: 12, gesamtFlaeche: 144 }, gridView(kopie()), "Der Rand ist seichtes Ufer – dort bleiben die Blätter sicher irgendwann hängen.");
+let n = 0, versuche = 0;
+while (n < 21) { const y = zufall(0, G), x = zufall(0, G); versuche++; if (karte[y][x] === TIEF) { karte[y][x] = SEICHT; n++; } }
+bau.f(2, { anzahlSeicht: 21, platziertSeicht: 21, "Versuche gesamt": versuche }, gridView(kopie()), `(int)(144 · 0,15) = <b>21</b>. Weil manche Zufallsfelder schon seicht waren, brauchte die Schleife ${versuche} Versuche – gezählt wird nur, was wirklich platziert wurde.`);
+n = 0; versuche = 0;
+while (n < 14) { const y = zufall(0, G), x = zufall(0, G); versuche++; if (karte[y][x] === TIEF) { karte[y][x] = STEIN; n++; } }
+bau.f(3, { anzahlSteine: 14, platzierteSteine: 14, "Versuche gesamt": versuche }, gridView(kopie()), "(int)(144 · 0,10) = <b>14</b> Steine, nur auf tiefem Wasser.");
+
+// ---------- Blätter platzieren ----------
+const blaetter = [];
+const platz = new Trace("Blatt.PlatziereBlatt()  →  Teich.IstPlatzierbar(position)", [
+  "<b>pruefPosition</b> = Startposition",
+  "while: Teich.IstPlatzierbar(pruefPosition) liefert false?",
+  "   ↳ IstPlatzierbar: ❌ außerhalb / ❌ kein 🟦 → false;  ✅ 🍂 eintragen, true",
+  "   ❌ neue zufällige pruefPosition (y, x) wählen",
+  "Position = pruefPosition"]);
+const starts = [[6, 6], [5, 6], [6, 5], [zufall(0, G), zufall(0, G)], [zufall(0, G), zufall(0, G)], [zufall(0, G), zufall(0, G)], [zufall(0, G), zufall(0, G)]];
+starts.forEach((s, i) => {
+  let p = s; platz.call(`new Blatt(this, (${s[0]}, ${s[1]}))  // Blatt ${i}${i < 3 ? " – Mitte" : " – zufällig"}`);
+  platz.f(0, { i, pruefPosition: R(`(${p[0]}, ${p[1]})`), Rückgabe: null }, gridView(kopie(), { [p.join(",")]: "ok" }), i < 3 ? "Eines der drei Blätter, die vom Baum in der Mitte fallen." : "Zufällige Startposition.");
+  while (!(inside(p) && karte[p[0]][p[1]] === TIEF)) {
+    platz.f(2, { i, pruefPosition: R(`(${p[0]}, ${p[1]})`), "Karte dort": C(karte[p[0]][p[1]]), Rückgabe: false }, gridView(kopie(), { [p.join(",")]: "bad" }), `Dort ist ${karte[p[0]][p[1]]} – kein freies tiefes Wasser → false. Das Blatt probiert eine neue zufällige Stelle.`, { 2: "bad" });
+    p = [zufall(0, G), zufall(0, G)];
+    platz.f(3, { i, pruefPosition: R(`(${p[0]}, ${p[1]})`), Rückgabe: null }, gridView(kopie(), { [p.join(",")]: "ok" }), `Neuer Versuch auf (${p[0]}, ${p[1]}).`);
+  }
+  karte[p[0]][p[1]] = TREIBT; blaetter.push({ p, h: false });
+  platz.f(4, { i, pruefPosition: R(`(${p[0]}, ${p[1]})`), Rückgabe: true, Position: R(`(${p[0]}, ${p[1]})`) }, gridView(kopie(), { [p.join(",")]: "ok" }), "IstPlatzierbar hat 🍂 eingetragen und true geliefert → das Blatt merkt sich die Position.", { 2: "ok" });
+});
+bau.f(4, { "Blaetter.Length": 7 }, gridView(kopie()), "(int)(144 · 0,05) = <b>7</b> Blätter. Jedes bekommt <b>this</b> – also genau diesen Teich (bidirektionale Hat-Beziehung auf Objektebene).");
+
+// ---------- Treiben ----------
+const treib = new Trace("Blatt.Treiben()  →  Teich.KannTreiben / IstSeicht / VersetzeBlatt", [
+  "❌ HaengtFest? → return (bleibt für immer hängen)",
+  "for versuch von 0 bis 9: dy, dx zufällig −1, 0 oder 1; <b>ziel</b> = Position + (dy, dx)",
+  "   ❌ !Teich.KannTreiben(Position, ziel) (gleich / außerhalb / 🪨 / Blatt) → nächster Versuch",
+  "   ✅ HaengtFest = Teich.IstSeicht(ziel); Teich.VersetzeBlatt(Position, ziel, HaengtFest); Position = ziel; return"]);
+const sim = new Trace("Teich.Simuliere(runden)", ["for runde: foreach blatt in Blaetter → blatt.Treiben()"]);
+let gezeigt = 0, guardGezeigt = false;
+const snap = [];
+for (let runde = 0; runde < 55; runde++) {
+  blaetter.forEach((b, i) => {
+    const zeigen = gezeigt < 14;
+    if (b.h) { if (zeigen && !guardGezeigt) { treib.call(`Blatt ${i}, Runde ${runde + 1}`); treib.f(0, { HaengtFest: true }, gridView(kopie(), { [b.p.join(",")]: "bad" }), "Das Blatt hängt im Schilf fest → sofort return. Es bewegt sich nie wieder.", { 0: "bad" }); guardGezeigt = true; gezeigt++; } return; }
+    if (zeigen) treib.call(`Blatt ${i}, Runde ${runde + 1}`);
+    for (let v = 0; v < 10; v++) {
+      const dy = zufall(-1, 2), dx = zufall(-1, 2), z = [b.p[0] + dy, b.p[1] + dx];
+      const feld = inside(z) ? karte[z[0]][z[1]] : null;
+      const ok = !(dy === 0 && dx === 0) && inside(z) && feld !== STEIN && feld !== TREIBT && feld !== HAENGT;
+      if (!ok) { if (zeigen) treib.f(2, { versuch: v, dy, dx, ziel: R(`(${z[0]}, ${z[1]})`), "KannTreiben": false }, gridView(kopie(), { [b.p.join(",")]: "ok", ...(inside(z) ? { [z.join(",")]: "bad" } : {}) }), dy === 0 && dx === 0 ? "dy = dx = 0 – das wäre keine Bewegung → false." : `Am Ziel ist ${feld} → der Teich sagt nein.`, { 0: "ok", 2: "bad" }); continue; }
+      const seicht = feld === SEICHT;
+      karte[b.p[0]][b.p[1]] = TIEF; karte[z[0]][z[1]] = seicht ? HAENGT : TREIBT;
+      if (zeigen) treib.f(3, { versuch: v, dy, dx, ziel: R(`(${z[0]}, ${z[1]})`), "KannTreiben": true, HaengtFest: seicht }, gridView(kopie(), { [z.join(",")]: "ok" }), seicht ? "Ziel ist seicht → HaengtFest = true, der Teich trägt 🍁 ein." : "Tiefes Wasser → das Blatt treibt weiter (🍂). Am alten Platz ist wieder 🟦.", { 0: "ok", 2: "ok" });
+      b.p = z; b.h = seicht; if (zeigen) gezeigt++; break;
+    }
+  });
+  if (runde === 4 || runde === 54) snap.push([runde + 1, kopie(), blaetter.filter(b => b.h).length]);
+}
+for (const [r, k, h] of snap) sim.f(0, { runde: r, "hängen fest": `${h} von 7` }, gridView(k), `Nach ${r} Runden hängen ${h} von 7 Blättern fest.`);
+
+const gesamt = slideOf("Gesamtablauf – Teich bauen und simulieren", "Der Konstruktor baut den Teich und erzeugt die Blätter, Simuliere lässt sie treiben.", bau, sim);
+const slides = [gesamt, slideOf("PlatziereBlatt – Blatt ins Wasser fallen lassen", "Das Blatt fragt den Teich so lange, bis es einen freien Platz gibt (Delegation über die Hat-Beziehung).", platz), slideOf("Treiben – ein Blatt bewegen", "Höchstens 10 Versuche, der Teich entscheidet, seichtes Wasser hält das Blatt fest.", treib)];
+
+// ===================== Steuerung =====================
+let s = 0, f = 0, timer = null;
+const $ = id => document.getElementById(id);
+
+const nrOf = sl => +(sl.title.match(/Schritt (\d+)/) || [0, 0])[1];
+$("nav").innerHTML = slides.map((sl, i) => (i === 1 ? '<span style="color:var(--muted);align-self:center;font-size:13px">danach die Methoden:</span>' : "") +
+  `<button data-i="${i}">${i === 0 ? "1. Gesamtablauf" : sl.title.split(" – ")[0]}</button>`).join("");
+$("nav").addEventListener("click", e => { if (e.target.dataset.i) { stop(); s = +e.target.dataset.i; f = 0; render(); } });
+
+function render() {
+  const sl = slides[s], fr = sl.frames[f];
+  $("slideTitle").textContent = sl.title;
+  $("slideText").textContent = sl.text;
+  $("stage").innerHTML = fr.html;
+  $("caption").innerHTML = fr.caption;
+  $("counter").textContent = `${f + 1} / ${sl.frames.length}`;
+  [...$("nav").querySelectorAll("button")].forEach((b, i) => b.classList.toggle("active", i === s));
+  try { history.replaceState(null, "", "#schritt" + nrOf(slides[s])); } catch (e) {}
+}
+function next() {
+  if (f < slides[s].frames.length - 1) f++;
+  else if (s < slides.length - 1) { s++; f = 0; }
+  else stop();
+  render();
+}
+function prev() { if (f > 0) f--; else if (s > 0) { s--; f = slides[s].frames.length - 1; } render(); }
+function play() { if (timer) return stop(); $("btnPlay").textContent = "⏸ Pause"; timer = setInterval(() => {
+  if (f === slides[s].frames.length - 1) stop(); else next(); }, +$("speed").value); }
+function stop() { clearInterval(timer); timer = null; $("btnPlay").textContent = "▶ Abspielen"; }
+
+$("btnNext").onclick = () => { stop(); next(); };
+$("btnPrev").onclick = () => { stop(); prev(); };
+$("btnReset").onclick = () => { stop(); f = 0; render(); };
+$("btnPlay").onclick = play;
+$("speed").oninput = () => { if (timer) { stop(); play(); } };
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight") { stop(); next(); }
+  if (e.key === "ArrowLeft") { stop(); prev(); }
+  if (e.key === " ") { e.preventDefault(); play(); }
+});
+
+const m = location.hash.match(/schritt(\d)/);
+if (m) { const k = slides.findIndex(sl => nrOf(sl) === +m[1]); if (k >= 0) s = k; }
+render();
+</script>
+</body>
+</html>
