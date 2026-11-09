@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aufgabe 2 – Hilfe</title>
+<style>
+  :root {
+    --bg: #020617; --panel: #0f172a; --line: #1e293b; --muted: #64748b; --text: #f1f5f9;
+    --accent: #38bdf8; --ok: #34d399; --bad: #fb7185; --warn: #fbbf24; --pkg: #f59e0b; --wall: #475569;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+  .mono { font-family: 'Fira Code', monospace; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 12px 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 20px; color: var(--accent); }
+  header small { color: var(--muted); }
+  nav { display: flex; flex-wrap: wrap; gap: 6px; }
+  nav button { background: #111827; color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; font: inherit; font-size: 13px; }
+  nav button.active { color: var(--accent); border-color: var(--accent); background: rgba(56,189,248,.1); }
+  main { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 20px 16px; gap: 16px; }
+  .title { text-align: center; max-width: 900px; }
+  .title h2 { margin: 0 0 6px; font-size: 22px; }
+  .title p { margin: 0; color: #cbd5e1; }
+  .stage { width: 100%; max-width: 1000px; min-height: 380px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; overflow-x: auto; }
+  .caption { min-height: 48px; max-width: 900px; text-align: center; font-size: 17px; padding: 10px 16px; border-radius: 10px; background: rgba(56,189,248,.08); border: 1px solid rgba(56,189,248,.3); }
+  .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .controls button { background: #1e293b; color: var(--text); border: 1px solid #334155; border-radius: 8px; padding: 8px 14px; cursor: pointer; font: inherit; }
+  .controls button:hover { border-color: var(--accent); }
+  .controls .counter { color: var(--muted); font-size: 14px; min-width: 70px; text-align: center; }
+  .speed { color: var(--muted); font-size: 13px; display: flex; gap: 6px; align-items: center; }
+
+  .row { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .ch { width: 30px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: #111827; border: 1.5px solid #334155; font-family: 'Fira Code', monospace; font-size: 18px; transition: all .35s ease; position: relative; }
+  .ch .idx { position: absolute; bottom: -16px; font-size: 10px; color: var(--muted); }
+  .ch.space { color: transparent; background: repeating-linear-gradient(45deg, #111827, #111827 4px, #1f2937 4px, #1f2937 8px); }
+  .ch.hl { border-color: var(--warn); background: rgba(251,191,36,.18); transform: translateY(-4px); }
+  .ch.gone { opacity: .15; transform: scale(.8); }
+  .ch.ok { border-color: var(--ok); background: rgba(52,211,153,.15); }
+  .ch.bad { border-color: var(--bad); background: rgba(251,113,133,.15); }
+  .ch.new { animation: pop .5s ease; border-color: var(--ok); background: rgba(52,211,153,.2); }
+  .chip { padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--accent); background: rgba(56,189,248,.12); font-family: 'Fira Code', monospace; font-size: 18px; animation: pop .45s ease; }
+  .chip.ok { border-color: var(--ok); background: rgba(52,211,153,.15); }
+  .chip.bad { border-color: var(--bad); background: rgba(251,113,133,.15); }
+  .chip.dim { opacity: .35; }
+  .badge { padding: 6px 12px; border-radius: 8px; font-weight: 700; animation: pop .45s ease; }
+  .badge.ok { color: var(--ok); border: 1.5px solid var(--ok); background: rgba(52,211,153,.12); }
+  .badge.bad { color: var(--bad); border: 1.5px solid var(--bad); background: rgba(251,113,133,.12); }
+  .label { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+  .arrow { color: var(--muted); font-size: 22px; }
+
+  .grid { display: grid; gap: 3px; }
+  .cell { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 18px; background: #111827; border: 1px solid #1f2937; transition: all .3s ease; position: relative; }
+  .cell.wall { background: var(--wall); border-color: #64748b; }
+  .cell.pkg::after { content: "📦"; }
+  .cell.goal { background: rgba(52,211,153,.15); border-color: var(--ok); }
+  .cell.goal::after { content: "🏁"; font-size: 15px; }
+  .cell.probe-ok { outline: 3px solid var(--ok); z-index: 2; }
+  .cell.probe-bad { outline: 3px solid var(--bad); z-index: 2; }
+  .cell.trail { background: rgba(56,189,248,.12); }
+  .robot { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; transition: transform .35s ease; z-index: 3; }
+  .robot .dir { position: absolute; font-size: 14px; color: var(--accent); font-weight: 700; }
+  .carry { position: absolute; top: -8px; right: -6px; font-size: 13px; }
+
+  .file { border: 1px solid #334155; border-radius: 10px; background: #0b1222; padding: 10px 14px; font-family: 'Fira Code', monospace; font-size: 13px; line-height: 1.55; min-width: 260px; }
+  .file .ln { color: var(--muted); display: inline-block; width: 24px; }
+  .file .cur { background: rgba(56,189,248,.15); border-radius: 4px; }
+  .file .err { color: var(--bad); }
+  .file .skip { color: #475569; }
+  .arr { display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; max-width: 900px; }
+  .arr .slot { min-width: 46px; height: 34px; padding: 0 6px; border: 1.5px solid #334155; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-family: 'Fira Code', monospace; font-size: 11px; color: #cbd5e1; animation: pop .35s ease; }
+  .cols { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; align-items: flex-start; }
+  .compass { position: relative; width: 220px; height: 220px; border-radius: 50%; border: 2px dashed #334155; }
+  .compass .d { position: absolute; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; background: #111827; border: 2px solid #334155; transition: all .3s; }
+  .compass .d.on { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,.18); transform: scale(1.15); }
+  .compass .bot { position: absolute; left: 50%; top: 50%; width: 60px; height: 60px; margin: -30px; display: flex; align-items: center; justify-content: center; font-size: 34px; transition: transform .5s ease; }
+  .compass .needle { position: absolute; left: 50%; top: 50%; width: 4px; height: 70px; margin-left: -2px; margin-top: -70px; background: var(--accent); border-radius: 2px; transform-origin: 50% 100%; transition: transform .5s ease; }
+  .log { font-family: 'Fira Code', monospace; font-size: 12px; background: #0b1222; border: 1px solid #334155; border-radius: 10px; padding: 8px 12px; min-width: 300px; min-height: 60px; white-space: pre; }
+  .log .e { color: var(--bad); }
+  .log .p { color: #cbd5e1; }
+  .log .new { animation: flash 1s ease; }
+  .stat { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  .stat div { background: #111827; border: 1px solid #334155; border-radius: 8px; padding: 6px 12px; }
+  .cell.route { background: rgba(56,189,248,.25); border-color: var(--accent); color: var(--accent); }
+  .cell.hit { background: rgba(251,113,133,.35); border-color: var(--bad); color: var(--bad); font-weight: 700; }
+  .cell { font-family: 'Fira Code', monospace; font-size: 14px; }
+  @keyframes pop { 0% { transform: scale(.6); opacity: 0; } 70% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes flash { 0% { background: rgba(251,191,36,.35); } 100% { background: transparent; } }
+  @media (max-width: 600px) { .cell { width: 24px; height: 24px; font-size: 13px; } .ch { width: 22px; height: 30px; font-size: 14px; } }
+  .stage { max-width: 1320px !important; align-items: stretch !important; }
+  .trace { display: flex; gap: 22px; flex-wrap: wrap; width: 100%; align-items: flex-start; justify-content: center; }
+  .tview { flex: 1 1 460px; display: flex; flex-direction: column; align-items: center; gap: 14px; min-width: 0; }
+  .tside { flex: 0 1 430px; min-width: 300px; display: flex; flex-direction: column; gap: 6px; }
+  .sig { font-family: 'Fira Code', monospace; font-size: 14px; color: var(--accent); font-weight: 600; }
+  .sig .call { display: block; color: #cbd5e1; font-weight: 400; font-size: 12px; margin-top: 2px; }
+  .steps { margin: 0 0 8px; padding-left: 26px; font-size: 13.5px; }
+  .steps li { padding: 4px 8px; margin: 2px 0; border-radius: 6px; color: #94a3b8; transition: all .25s; }
+  .steps li.cur { background: rgba(56,189,248,.16); color: #fff; outline: 1.5px solid var(--accent); }
+  .steps li.ok::after { content: "  ✔"; color: var(--ok); font-weight: 700; }
+  .steps li.bad::after { content: "  ✘"; color: var(--bad); font-weight: 700; }
+  .vars { border-collapse: collapse; font-family: 'Fira Code', monospace; font-size: 12.5px; width: 100%; }
+  .vars td { border-bottom: 1px solid #1e293b; padding: 4px 8px; vertical-align: top; word-break: break-all; }
+  .vars td:first-child { color: #94a3b8; width: 38%; word-break: normal; }
+  .vars tr.chg td { background: rgba(251,191,36,.16); }
+  .vars tr.chg td:first-child { color: var(--warn); }
+  .v-str { color: #fde68a; } .v-num { color: #93c5fd; } .v-raw { color: #c4b5fd; } .v-none { color: #475569; }
+  .v-true { color: var(--ok); font-weight: 700; } .v-false { color: var(--bad); font-weight: 700; }
+  .box { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .file.small { font-size: 11px; line-height: 1.45; min-width: 0; max-width: 100%; overflow-x: auto; }
+  .file .cur { outline: 1px solid var(--accent); }
+  .ch.sel { border-color: var(--accent); background: rgba(56,189,248,.22); }
+  .tside { display: none !important; }
+  .tview { flex: 1 1 100% !important; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🏟️ Aufgabe 02 – Stadionrunden im Turnier</h1>
+    <small>Was im Programm passiert – Schritt für Schritt (ohne Code) – funktioniert ohne Internet</small>
+  </div>
+  <nav id="nav"></nav>
+</header>
+<main>
+  <div class="title"><h2 id="slideTitle"></h2><p id="slideText"></p></div>
+  <div class="stage" id="stage"></div>
+  <div class="caption" id="caption"></div>
+  <div class="controls">
+    <button id="btnReset" title="Von vorne">↺</button>
+    <button id="btnPrev">◀ zurück</button>
+    <span class="counter" id="counter"></span>
+    <button id="btnNext">weiter ▶</button>
+    <button id="btnPlay">▶ Abspielen</button>
+    <label class="speed">Tempo <input id="speed" type="range" min="300" max="2500" step="100" value="1400"></label>
+  </div>
+</main>
+
+<script>
+// ===================== Trace-Engine: Ablauf der Musterlösung + Variablen =====================
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const R = t => ({ t });                       // Rohtext (z. B. Tupel, Array-Beschreibung)
+const P = (x, y) => R(`(${x}|${y})`);        // Position
+const fmt = n => n.toFixed(2).replace(".", ",");
+function val(v) {
+  if (v === null || v === undefined) return '<span class="v-none">—</span>';
+  if (typeof v === "string") return `<span class="v-str">"${esc(v).replace(/ /g, "·")}"</span>`;
+  if (typeof v === "boolean") return `<span class="${v ? "v-true" : "v-false"}">${v}</span>`;
+  if (Array.isArray(v)) return `[${v.map(val).join(", ")}]`;
+  if (typeof v === "object" && "t" in v) return `<span class="v-raw">${esc(v.t)}</span>`;
+  if (typeof v === "object" && "c" in v) return `<span class="v-str">'${esc(v.c)}'</span>`;
+  return `<span class="v-num">${esc(v)}</span>`;
+}
+const C = c => ({ c });                       // char
+function chars(text, cls = () => "", showIdx = true) {
+  return `<div class="row">${[...text].map((c, i) =>
+    `<div class="ch ${c === " " ? "space" : ""} ${cls(i, c)}">${esc(c === " " ? "·" : c === "	" ? "⇥" : c)}${showIdx ? `<span class="idx">${i}</span>` : ""}</div>`).join("") || '<div class="ch gone">∅</div>'}</div>`;
+}
+function fileView(lines, cur = -1, marks = {}, small = false) {
+  return `<div class="file ${small ? "small" : ""}">${lines.map(l => l.length > 80 ? l.slice(0, 80) + " … (" + l.length + " Zeichen)" : l).map((l, i) =>
+    `<div class="${i === cur ? "cur" : ""} ${marks[i] || ""}"><span class="ln">${i + 1}</span>${esc(l).replace(/	/g, "⇥&nbsp;&nbsp;").replace(/ /g, "&nbsp;") || "&nbsp;"}</div>`).join("")}</div>`;
+}
+const chip = (t, c = "") => `<span class="chip ${c}" style="white-space:pre">${esc(t)}</span>`;
+const box = (label, inner) => `<div class="box"><div class="label">${label}</div>${inner}</div>`;
+
+class Trace {
+  constructor(fn, steps) { this.fn = fn; this.steps = steps; this.frames = []; this.prev = {}; }
+  call(sig) { this.sig = sig; this.prev = {}; return this; }
+  // cur: aktiver Ablauf-Schritt, vars: Variablen, view: Daten-Ansicht, cap: Erklärung, mark: {Schritt: "ok"|"bad"}
+  f(cur, vars, view, cap, mark = {}) {
+    const rows = Object.entries(vars).map(([k, v]) => {
+      const chg = JSON.stringify(this.prev[k]) !== JSON.stringify(v) && v !== null && v !== undefined;
+      return `<tr class="${chg ? "chg" : ""}"><td>${esc(k)}</td><td>${val(v)}</td></tr>`;
+    }).join("");
+    this.prev = JSON.parse(JSON.stringify(vars));
+    const steps = this.steps.map((s, i) =>
+      `<li class="${i === cur ? "cur" : ""} ${mark[i] || ""}">${s}</li>`).join("");
+    this.frames.push({
+      caption: cap,
+      html: `<div class="trace"><div class="tview">${view}</div>
+        <div class="tside"><div class="sig">${esc(this.fn)}${this.sig ? `<span class="call">${esc(this.sig)}</span>` : ""}</div>
+        <div class="label">Ablauf der Musterlösung</div><ol class="steps">${steps}</ol>
+        <div class="label">Variablen</div><table class="vars">${rows}</table></div></div>`
+    });
+    return this;
+  }
+}
+const slideOf = (title, text, ...traces) => ({ title, text, frames: traces.flatMap(t => t.frames) });
+
+// ===================== Aufgabe 2 (2. Jahrgang): Guard Clauses, Turnier =====================
+const BEWERBE = [].concat(...["Sprint", "Hürden", "Mittelstrecke", "Langstrecke", "Schnellgehen"].map(b => Array(6).fill(b)));
+const ATHLETEN = ["Lena Huber", "Jonas Gruber", "Mia Berger", "Elias Wagner", "Sara Pichler", "Paul Steiner",
+  "Anna Moser", "David Hofer", "Lea Bauer", "Felix Mayer", "Nora Fuchs", "Tim Leitner",
+  "Emma Wolf", "Luca Schwarz", "Hanna Brunner", "Noah Eder", "Lara Reiter", "Ben Winkler",
+  "Sophie Lang", "Max Haas", "Julia Koller", "Leon Graf", "Clara Böhm", "Finn Aigner",
+  "Marie Weiss", "Jakob Strasser", "Laura Kern", "Simon Egger", "Eva Holzer", "Moritz Lechner"];
+const ZEITEN = [47, 52, 45, 49, 51, 46, 55, 51, 58, 53, 50, 56, 62, 58, 64, 57, 60, 61, 72, 68, 75, 70, 66, 74, 98, 105, 92, 110, 101, 95];
+const LAUF = ["Sprint", "Hürden", "Mittelstrecke", "Langstrecke", "Schnellgehen"];
+const tabelle = (cur, hi, best) => `<div class="file small" style="display:grid;grid-template-columns:auto auto auto auto;gap:0 14px">${BEWERBE.map((b, i) =>
+  `<span class="ln">[${i}]</span><span style="${i === cur ? "background:rgba(56,189,248,.2)" : ""}">${b}</span><span>${ATHLETEN[i]}</span><span style="${i === best ? "color:var(--ok);font-weight:700" : hi && hi.includes(i) ? "color:var(--warn)" : ""}">${ZEITEN[i]} s</span>`).join("")}</div>`;
+const ausgabe = l => `<div class="log" style="min-width:420px">${l.map(x => `<span class="${x.startsWith("❌") ? "e" : "p"}">${esc(x)}</span>`).join("\n")}</div>`;
+
+function gesamt() {
+  const t = new Trace("Hauptprogramm", [
+    "bewerbe, athleten, rundenzeitenSek = Kopien mit (string[]) bzw. (int[]) …Clone()",
+    "SucheBesteRunde(stadion, bewerb, bewerbe, athleten, rundenzeitenSek) – 7 Aufrufe"]);
+  t.call("");
+  t.f(0, { "bewerbe == originalBewerbe": false }, `<div class="row">${chip("originalBewerbe")}<span class="arrow">→ Clone() →</span>${chip("bewerbe (neues Array)", "ok")}</div>`, "Clone liefert ein NEUES Array mit denselben Werten. Weil Clone den Typ object liefert, braucht es den Cast (string[]) bzw. (int[]).");
+  const aufrufe = [["Ernst-Happel-Stadion", "Sprint"], ["Ernst-Happel-Stadion", "Schnellgehen"], ["Ernst-Happel-Stadion", "Hürden"], ["Ernst-Happel-Stadion", "Mittelstrecke"], ["Ernst-Happel-Stadion", "Langstrecke"], ["Ernst-Happel-Stadion", "Stabhochsprung"], ["Praterstadion", "Sprint"]];
+  const out = [];
+  for (const [st, b] of aufrufe) {
+    out.push(...ergebnis(st, b));
+    t.f(1, { stadion: st, bewerb: b }, ausgabe(out.slice(-4)), `SucheBesteRunde("${st}", "${b}", …)`);
+  }
+  return slideOf("Gesamtablauf – Hauptprogramm", "Arrays klonen und siebenmal SucheBesteRunde aufrufen. Danach: jede Funktion im Detail.", t);
+}
+function besterIndex(b, max) { let bi = -1, bz = max ? -1 : 1e9; BEWERBE.forEach((x, i) => { if (x === b && (max ? ZEITEN[i] > bz : ZEITEN[i] < bz)) { bz = ZEITEN[i]; bi = i; } }); return bi; }
+function ergebnis(st, b) {
+  if (st !== "Ernst-Happel-Stadion") return ["❌ Fehler: Das Turnier findet nur im Ernst-Happel-Stadion statt!"];
+  if (!LAUF.includes(b)) return ["❌ Fehler: Unbekannter Bewerb! Erlaubt sind nur Sprint, Hürden, Mittelstrecke, Langstrecke oder Schnellgehen."];
+  const sg = b === "Schnellgehen", i = besterIndex(b, sg);
+  return [sg ? `🐢 Langsamste Runde im Bewerb ${b}:` : `⚡ Schnellste Runde im Bewerb ${b}:`, `   Athlet:     ${ATHLETEN[i]} (Index ${i})`, `   Rundenzeit: ${ZEITEN[i]} Sekunden`];
+}
+
+function s1() {
+  const t = new Trace("void SucheBesteRunde(string stadion, string bewerb, …)  – mit Guard Clauses", [
+    "❌ Guard 1: stadion != \"Ernst-Happel-Stadion\" → Meldung, return",
+    "❌ Guard 2: bewerb ist KEINER der 5 Laufbewerbe → Meldung, return",
+    "✅ bewerb == \"Schnellgehen\" → FindeLangsamsteRunde, Ausgabe 🐢",
+    "✅ sonst → FindeSchnellsteRunde, Ausgabe ⚡"]);
+  for (const [st, b] of [["Praterstadion", "Sprint"], ["Ernst-Happel-Stadion", "Stabhochsprung"], ["Ernst-Happel-Stadion", "Schnellgehen"], ["Ernst-Happel-Stadion", "Sprint"]]) {
+    t.call(`SucheBesteRunde("${st}", "${b}", …)`);
+    const v = { stadion: st, bewerb: b, "stadion ok": st === "Ernst-Happel-Stadion", "bewerb ok": null, Index: null };
+    if (st !== "Ernst-Happel-Stadion") { t.f(0, v, ausgabe(ergebnis(st, b)), "Falsches Stadion → sofort raus. Die anderen Prüfungen werden gar nicht mehr gemacht.", { 0: "bad" }); continue; }
+    v["bewerb ok"] = LAUF.includes(b);
+    if (!LAUF.includes(b)) { t.f(1, v, ausgabe(ergebnis(st, b)), `"${b}" ist kein Laufbewerb → raus. Achtung: Die Bedingung ist die Verneinung !( … || … ) der erlaubten Bewerbe.`, { 0: "ok", 1: "bad" }); continue; }
+    const sg = b === "Schnellgehen"; v.Index = besterIndex(b, sg);
+    t.f(sg ? 2 : 3, v, ausgabe(ergebnis(st, b)), sg ? "Schnellgehen ist der Sonderfall → langsamste Runde." : "Normaler Laufbewerb → schnellste Runde.", { 0: "ok", 1: "ok" });
+  }
+  return slideOf("SucheBesteRunde – Aufgabe 2.1", "Aus der Verschachtelung werden Guard Clauses: zuerst die ungewünschten Zustände, dann der Hauptpfad.", t);
+}
+
+function sucheTrace(b, max) {
+  const name = max ? "FindeLangsamsteRunde" : "FindeSchnellsteRunde";
+  const t = new Trace(`int ${name}(string bewerb, string[] bewerbe, int[] rundenzeiten)`, [
+    `<b>besterIndex</b> = -1; <b>${max ? "laengsteZeit" : "kuerzesteZeit"}</b> = ${max ? "-1" : "int.MaxValue"}`,
+    "for i von 0 bis bewerbe.Length − 1:",
+    `   bewerbe[i] == bewerb UND rundenzeiten[i] ${max ? "&gt;" : "&lt;"} ${max ? "laengsteZeit" : "kuerzesteZeit"}? → merken: Zeit und besterIndex = i`,
+    "return besterIndex"]);
+  t.call(`${name}("${b}", bewerbe, rundenzeiten)`);
+  const zk = max ? "laengsteZeit" : "kuerzesteZeit";
+  let bi = -1, bz = max ? -1 : null; const gesehen = [];
+  t.f(0, { i: null, besterIndex: -1, [zk]: max ? -1 : R("int.MaxValue") }, tabelle(-1, [], -1), max ? "-1 ist kleiner als jede echte Zeit – die erste passende Zeit gewinnt sicher." : "int.MaxValue ist größer als jede echte Zeit – die erste passende Zeit gewinnt sicher.");
+  let skipped = false;
+  for (let i = 0; i < 30; i++) {
+    if (BEWERBE[i] !== b) { if (!skipped) { t.f(1, { i, besterIndex: bi, [zk]: bz === null ? R("int.MaxValue") : bz }, tabelle(i, gesehen, bi), `i = ${i}: "${BEWERBE[i]}" ist nicht "${b}" → überspringen (bei allen anderen Bewerben genauso).`); skipped = true; } continue; }
+    gesehen.push(i);
+    const besser = bz === null || (max ? ZEITEN[i] > bz : ZEITEN[i] < bz);
+    if (besser) { bz = ZEITEN[i]; bi = i; }
+    t.f(2, { i, "rundenzeiten[i]": ZEITEN[i], besterIndex: bi, [zk]: bz }, tabelle(i, gesehen, bi), besser ? `${ZEITEN[i]} s ist ${max ? "länger" : "kürzer"} als alles bisher → merken (besterIndex = ${i}).` : `${ZEITEN[i]} s ist nicht ${max ? "länger" : "kürzer"} → nichts ändern.`, { 2: besser ? "ok" : "bad" });
+  }
+  t.f(3, { besterIndex: bi, [zk]: bz, Rückgabe: bi }, tabelle(-1, gesehen, bi), `Fertig: return ${bi} → ${ATHLETEN[bi]} mit ${bz} Sekunden.`);
+  return t;
+}
+function s2() { return slideOf("FindeSchnellsteRunde – Aufgabe 2.2", "Minimum-Suche, aber nur über die Einträge des gesuchten Bewerbs.", sucheTrace("Hürden", false)); }
+function s3() { return slideOf("FindeLangsamsteRunde – Aufgabe 2.3", "Maximum-Suche für die Schnellgeher.", sucheTrace("Schnellgehen", true)); }
+const slides = [gesamt(), s1(), s2(), s3()];
+
+// ===================== Steuerung =====================
+let s = 0, f = 0, timer = null;
+const $ = id => document.getElementById(id);
+
+const nrOf = sl => +(sl.title.match(/Schritt (\d+)/) || [0, 0])[1];
+$("nav").innerHTML = slides.map((sl, i) => (i === 1 ? '<span style="color:var(--muted);align-self:center;font-size:13px">danach die Methoden:</span>' : "") +
+  `<button data-i="${i}">${i === 0 ? "1. Gesamtablauf" : sl.title.split(" – ")[0]}</button>`).join("");
+$("nav").addEventListener("click", e => { if (e.target.dataset.i) { stop(); s = +e.target.dataset.i; f = 0; render(); } });
+
+function render() {
+  const sl = slides[s], fr = sl.frames[f];
+  $("slideTitle").textContent = sl.title;
+  $("slideText").textContent = sl.text;
+  $("stage").innerHTML = fr.html;
+  $("caption").innerHTML = fr.caption;
+  $("counter").textContent = `${f + 1} / ${sl.frames.length}`;
+  [...$("nav").querySelectorAll("button")].forEach((b, i) => b.classList.toggle("active", i === s));
+  try { history.replaceState(null, "", "#schritt" + nrOf(slides[s])); } catch (e) {}
+}
+function next() {
+  if (f < slides[s].frames.length - 1) f++;
+  else if (s < slides.length - 1) { s++; f = 0; }
+  else stop();
+  render();
+}
+function prev() { if (f > 0) f--; else if (s > 0) { s--; f = slides[s].frames.length - 1; } render(); }
+function play() { if (timer) return stop(); $("btnPlay").textContent = "⏸ Pause"; timer = setInterval(() => {
+  if (f === slides[s].frames.length - 1) stop(); else next(); }, +$("speed").value); }
+function stop() { clearInterval(timer); timer = null; $("btnPlay").textContent = "▶ Abspielen"; }
+
+$("btnNext").onclick = () => { stop(); next(); };
+$("btnPrev").onclick = () => { stop(); prev(); };
+$("btnReset").onclick = () => { stop(); f = 0; render(); };
+$("btnPlay").onclick = play;
+$("speed").oninput = () => { if (timer) { stop(); play(); } };
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight") { stop(); next(); }
+  if (e.key === "ArrowLeft") { stop(); prev(); }
+  if (e.key === " ") { e.preventDefault(); play(); }
+});
+
+const m = location.hash.match(/schritt(\d)/);
+if (m) { const k = slides.findIndex(sl => nrOf(sl) === +m[1]); if (k >= 0) s = k; }
+render();
+</script>
+</body>
+</html>

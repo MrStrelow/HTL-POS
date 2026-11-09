@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aufgabe 1 – Hilfe</title>
+<style>
+  :root {
+    --bg: #020617; --panel: #0f172a; --line: #1e293b; --muted: #64748b; --text: #f1f5f9;
+    --accent: #38bdf8; --ok: #34d399; --bad: #fb7185; --warn: #fbbf24; --pkg: #f59e0b; --wall: #475569;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+  .mono { font-family: 'Fira Code', monospace; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 12px 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 20px; color: var(--accent); }
+  header small { color: var(--muted); }
+  nav { display: flex; flex-wrap: wrap; gap: 6px; }
+  nav button { background: #111827; color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; font: inherit; font-size: 13px; }
+  nav button.active { color: var(--accent); border-color: var(--accent); background: rgba(56,189,248,.1); }
+  main { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 20px 16px; gap: 16px; }
+  .title { text-align: center; max-width: 900px; }
+  .title h2 { margin: 0 0 6px; font-size: 22px; }
+  .title p { margin: 0; color: #cbd5e1; }
+  .stage { width: 100%; max-width: 1000px; min-height: 380px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; overflow-x: auto; }
+  .caption { min-height: 48px; max-width: 900px; text-align: center; font-size: 17px; padding: 10px 16px; border-radius: 10px; background: rgba(56,189,248,.08); border: 1px solid rgba(56,189,248,.3); }
+  .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .controls button { background: #1e293b; color: var(--text); border: 1px solid #334155; border-radius: 8px; padding: 8px 14px; cursor: pointer; font: inherit; }
+  .controls button:hover { border-color: var(--accent); }
+  .controls .counter { color: var(--muted); font-size: 14px; min-width: 70px; text-align: center; }
+  .speed { color: var(--muted); font-size: 13px; display: flex; gap: 6px; align-items: center; }
+
+  .row { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .ch { width: 30px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: #111827; border: 1.5px solid #334155; font-family: 'Fira Code', monospace; font-size: 18px; transition: all .35s ease; position: relative; }
+  .ch .idx { position: absolute; bottom: -16px; font-size: 10px; color: var(--muted); }
+  .ch.space { color: transparent; background: repeating-linear-gradient(45deg, #111827, #111827 4px, #1f2937 4px, #1f2937 8px); }
+  .ch.hl { border-color: var(--warn); background: rgba(251,191,36,.18); transform: translateY(-4px); }
+  .ch.gone { opacity: .15; transform: scale(.8); }
+  .ch.ok { border-color: var(--ok); background: rgba(52,211,153,.15); }
+  .ch.bad { border-color: var(--bad); background: rgba(251,113,133,.15); }
+  .ch.new { animation: pop .5s ease; border-color: var(--ok); background: rgba(52,211,153,.2); }
+  .chip { padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--accent); background: rgba(56,189,248,.12); font-family: 'Fira Code', monospace; font-size: 18px; animation: pop .45s ease; }
+  .chip.ok { border-color: var(--ok); background: rgba(52,211,153,.15); }
+  .chip.bad { border-color: var(--bad); background: rgba(251,113,133,.15); }
+  .chip.dim { opacity: .35; }
+  .badge { padding: 6px 12px; border-radius: 8px; font-weight: 700; animation: pop .45s ease; }
+  .badge.ok { color: var(--ok); border: 1.5px solid var(--ok); background: rgba(52,211,153,.12); }
+  .badge.bad { color: var(--bad); border: 1.5px solid var(--bad); background: rgba(251,113,133,.12); }
+  .label { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+  .arrow { color: var(--muted); font-size: 22px; }
+
+  .grid { display: grid; gap: 3px; }
+  .cell { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 18px; background: #111827; border: 1px solid #1f2937; transition: all .3s ease; position: relative; }
+  .cell.wall { background: var(--wall); border-color: #64748b; }
+  .cell.pkg::after { content: "📦"; }
+  .cell.goal { background: rgba(52,211,153,.15); border-color: var(--ok); }
+  .cell.goal::after { content: "🏁"; font-size: 15px; }
+  .cell.probe-ok { outline: 3px solid var(--ok); z-index: 2; }
+  .cell.probe-bad { outline: 3px solid var(--bad); z-index: 2; }
+  .cell.trail { background: rgba(56,189,248,.12); }
+  .robot { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; transition: transform .35s ease; z-index: 3; }
+  .robot .dir { position: absolute; font-size: 14px; color: var(--accent); font-weight: 700; }
+  .carry { position: absolute; top: -8px; right: -6px; font-size: 13px; }
+
+  .file { border: 1px solid #334155; border-radius: 10px; background: #0b1222; padding: 10px 14px; font-family: 'Fira Code', monospace; font-size: 13px; line-height: 1.55; min-width: 260px; }
+  .file .ln { color: var(--muted); display: inline-block; width: 24px; }
+  .file .cur { background: rgba(56,189,248,.15); border-radius: 4px; }
+  .file .err { color: var(--bad); }
+  .file .skip { color: #475569; }
+  .arr { display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; max-width: 900px; }
+  .arr .slot { min-width: 46px; height: 34px; padding: 0 6px; border: 1.5px solid #334155; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-family: 'Fira Code', monospace; font-size: 11px; color: #cbd5e1; animation: pop .35s ease; }
+  .cols { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; align-items: flex-start; }
+  .compass { position: relative; width: 220px; height: 220px; border-radius: 50%; border: 2px dashed #334155; }
+  .compass .d { position: absolute; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; background: #111827; border: 2px solid #334155; transition: all .3s; }
+  .compass .d.on { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,.18); transform: scale(1.15); }
+  .compass .bot { position: absolute; left: 50%; top: 50%; width: 60px; height: 60px; margin: -30px; display: flex; align-items: center; justify-content: center; font-size: 34px; transition: transform .5s ease; }
+  .compass .needle { position: absolute; left: 50%; top: 50%; width: 4px; height: 70px; margin-left: -2px; margin-top: -70px; background: var(--accent); border-radius: 2px; transform-origin: 50% 100%; transition: transform .5s ease; }
+  .log { font-family: 'Fira Code', monospace; font-size: 12px; background: #0b1222; border: 1px solid #334155; border-radius: 10px; padding: 8px 12px; min-width: 300px; min-height: 60px; white-space: pre; }
+  .log .e { color: var(--bad); }
+  .log .p { color: #cbd5e1; }
+  .log .new { animation: flash 1s ease; }
+  .stat { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  .stat div { background: #111827; border: 1px solid #334155; border-radius: 8px; padding: 6px 12px; }
+  .cell.route { background: rgba(56,189,248,.25); border-color: var(--accent); color: var(--accent); }
+  .cell.hit { background: rgba(251,113,133,.35); border-color: var(--bad); color: var(--bad); font-weight: 700; }
+  .cell { font-family: 'Fira Code', monospace; font-size: 14px; }
+  @keyframes pop { 0% { transform: scale(.6); opacity: 0; } 70% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes flash { 0% { background: rgba(251,191,36,.35); } 100% { background: transparent; } }
+  @media (max-width: 600px) { .cell { width: 24px; height: 24px; font-size: 13px; } .ch { width: 22px; height: 30px; font-size: 14px; } }
+  .stage { max-width: 1320px !important; align-items: stretch !important; }
+  .trace { display: flex; gap: 22px; flex-wrap: wrap; width: 100%; align-items: flex-start; justify-content: center; }
+  .tview { flex: 1 1 460px; display: flex; flex-direction: column; align-items: center; gap: 14px; min-width: 0; }
+  .tside { flex: 0 1 430px; min-width: 300px; display: flex; flex-direction: column; gap: 6px; }
+  .sig { font-family: 'Fira Code', monospace; font-size: 14px; color: var(--accent); font-weight: 600; }
+  .sig .call { display: block; color: #cbd5e1; font-weight: 400; font-size: 12px; margin-top: 2px; }
+  .steps { margin: 0 0 8px; padding-left: 26px; font-size: 13.5px; }
+  .steps li { padding: 4px 8px; margin: 2px 0; border-radius: 6px; color: #94a3b8; transition: all .25s; }
+  .steps li.cur { background: rgba(56,189,248,.16); color: #fff; outline: 1.5px solid var(--accent); }
+  .steps li.ok::after { content: "  ✔"; color: var(--ok); font-weight: 700; }
+  .steps li.bad::after { content: "  ✘"; color: var(--bad); font-weight: 700; }
+  .vars { border-collapse: collapse; font-family: 'Fira Code', monospace; font-size: 12.5px; width: 100%; }
+  .vars td { border-bottom: 1px solid #1e293b; padding: 4px 8px; vertical-align: top; word-break: break-all; }
+  .vars td:first-child { color: #94a3b8; width: 38%; word-break: normal; }
+  .vars tr.chg td { background: rgba(251,191,36,.16); }
+  .vars tr.chg td:first-child { color: var(--warn); }
+  .v-str { color: #fde68a; } .v-num { color: #93c5fd; } .v-raw { color: #c4b5fd; } .v-none { color: #475569; }
+  .v-true { color: var(--ok); font-weight: 700; } .v-false { color: var(--bad); font-weight: 700; }
+  .box { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .file.small { font-size: 11px; line-height: 1.45; min-width: 0; max-width: 100%; overflow-x: auto; }
+  .file .cur { outline: 1px solid var(--accent); }
+  .ch.sel { border-color: var(--accent); background: rgba(56,189,248,.22); }
+  .tside { display: none !important; }
+  .tview { flex: 1 1 100% !important; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🏳️ Aufgabe 01 – Fahnen-Muster und Stufen-Array</h1>
+    <small>Was im Programm passiert – Schritt für Schritt (ohne Code) – funktioniert ohne Internet</small>
+  </div>
+  <nav id="nav"></nav>
+</header>
+<main>
+  <div class="title"><h2 id="slideTitle"></h2><p id="slideText"></p></div>
+  <div class="stage" id="stage"></div>
+  <div class="caption" id="caption"></div>
+  <div class="controls">
+    <button id="btnReset" title="Von vorne">↺</button>
+    <button id="btnPrev">◀ zurück</button>
+    <span class="counter" id="counter"></span>
+    <button id="btnNext">weiter ▶</button>
+    <button id="btnPlay">▶ Abspielen</button>
+    <label class="speed">Tempo <input id="speed" type="range" min="300" max="2500" step="100" value="1400"></label>
+  </div>
+</main>
+
+<script>
+// ===================== Trace-Engine: Ablauf der Musterlösung + Variablen =====================
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const R = t => ({ t });                       // Rohtext (z. B. Tupel, Array-Beschreibung)
+const P = (x, y) => R(`(${x}|${y})`);        // Position
+const fmt = n => n.toFixed(2).replace(".", ",");
+function val(v) {
+  if (v === null || v === undefined) return '<span class="v-none">—</span>';
+  if (typeof v === "string") return `<span class="v-str">"${esc(v).replace(/ /g, "·")}"</span>`;
+  if (typeof v === "boolean") return `<span class="${v ? "v-true" : "v-false"}">${v}</span>`;
+  if (Array.isArray(v)) return `[${v.map(val).join(", ")}]`;
+  if (typeof v === "object" && "t" in v) return `<span class="v-raw">${esc(v.t)}</span>`;
+  if (typeof v === "object" && "c" in v) return `<span class="v-str">'${esc(v.c)}'</span>`;
+  return `<span class="v-num">${esc(v)}</span>`;
+}
+const C = c => ({ c });                       // char
+function chars(text, cls = () => "", showIdx = true) {
+  return `<div class="row">${[...text].map((c, i) =>
+    `<div class="ch ${c === " " ? "space" : ""} ${cls(i, c)}">${esc(c === " " ? "·" : c === "	" ? "⇥" : c)}${showIdx ? `<span class="idx">${i}</span>` : ""}</div>`).join("") || '<div class="ch gone">∅</div>'}</div>`;
+}
+function fileView(lines, cur = -1, marks = {}, small = false) {
+  return `<div class="file ${small ? "small" : ""}">${lines.map(l => l.length > 80 ? l.slice(0, 80) + " … (" + l.length + " Zeichen)" : l).map((l, i) =>
+    `<div class="${i === cur ? "cur" : ""} ${marks[i] || ""}"><span class="ln">${i + 1}</span>${esc(l).replace(/	/g, "⇥&nbsp;&nbsp;").replace(/ /g, "&nbsp;") || "&nbsp;"}</div>`).join("")}</div>`;
+}
+const chip = (t, c = "") => `<span class="chip ${c}" style="white-space:pre">${esc(t)}</span>`;
+const box = (label, inner) => `<div class="box"><div class="label">${label}</div>${inner}</div>`;
+
+class Trace {
+  constructor(fn, steps) { this.fn = fn; this.steps = steps; this.frames = []; this.prev = {}; }
+  call(sig) { this.sig = sig; this.prev = {}; return this; }
+  // cur: aktiver Ablauf-Schritt, vars: Variablen, view: Daten-Ansicht, cap: Erklärung, mark: {Schritt: "ok"|"bad"}
+  f(cur, vars, view, cap, mark = {}) {
+    const rows = Object.entries(vars).map(([k, v]) => {
+      const chg = JSON.stringify(this.prev[k]) !== JSON.stringify(v) && v !== null && v !== undefined;
+      return `<tr class="${chg ? "chg" : ""}"><td>${esc(k)}</td><td>${val(v)}</td></tr>`;
+    }).join("");
+    this.prev = JSON.parse(JSON.stringify(vars));
+    const steps = this.steps.map((s, i) =>
+      `<li class="${i === cur ? "cur" : ""} ${mark[i] || ""}">${s}</li>`).join("");
+    this.frames.push({
+      caption: cap,
+      html: `<div class="trace"><div class="tview">${view}</div>
+        <div class="tside"><div class="sig">${esc(this.fn)}${this.sig ? `<span class="call">${esc(this.sig)}</span>` : ""}</div>
+        <div class="label">Ablauf der Musterlösung</div><ol class="steps">${steps}</ol>
+        <div class="label">Variablen</div><table class="vars">${rows}</table></div></div>`
+    });
+    return this;
+  }
+}
+const slideOf = (title, text, ...traces) => ({ title, text, frames: traces.flatMap(t => t.frames) });
+
+// ===================== Aufgabe 1 (2. Jahrgang): Eingabevalidierung, geteiltes Muster, Stufen-Array =====================
+const konsole = lines => `<div class="log" style="min-width:420px">${lines.map(l => `<span class="${l.startsWith("❌") ? "e" : "p"}">${esc(l)}</span>`).join("\n")}</div>`;
+const emojiGrid = (rows, hi = null) => `<div style="display:flex;flex-direction:column;gap:2px;font-size:26px;line-height:1.1">${rows.map((r, y) =>
+  `<div style="display:flex;gap:2px">${[...r].filter(c => c.trim()).map((c, x) => `<span style="padding:2px;border-radius:6px;${hi && hi[0] === y && hi[1] === x ? "outline:3px solid var(--warn)" : ""}">${c}</span>`).join("")}</div>`).join("")}</div>`;
+
+const LAENDER = { aut: ["🟥", "⬛", "⬜"], austria: ["🟥", "⬛", "⬜"], "österreich": ["🟥", "⬛", "⬜"], ger: ["🟨", "⬛", "🟥"], germany: ["🟨", "⬛", "🟥"], deutschland: ["🟨", "⬛", "🟥"] };
+const GER = ["🟨", "⬛", "🟥"], AUT = ["🟥", "⬛", "⬜"];
+function gesamt() {
+  const t = new Trace("Hauptprogramm", ["LeseLand", "LeseUngeradeBreite, LesePositiveZahl", "ZeichneFahnenMuster", "LeseLand, LesePositiveZahl", "ErstelleStufenMuster", "PrintArray"]);
+  t.call("");
+  t.f(0, {}, `${konsole(["Bitte Land für die Fahne eingeben (AUT oder GER): GER"])}<div class="row" style="font-size:30px">${GER.join(" ")}</div>`, "LeseLand liefert die drei Flaggenfarben als Array.");
+  t.f(1, {}, konsole(["Bitte ungerade Breite (mind. 3) eingeben: 7", "Bitte Höhe (> 0) eingeben: 5"]), "Breite 7, Höhe 5.");
+  t.f(2, {}, emojiGrid(musterZeilen(5, 7, GER[0], GER[2], GER[1])), "Die Fahne wird gezeichnet.");
+  t.f(3, {}, `${konsole(["Bitte Land für die Stufen eingeben (AUT oder GER): Österreich", "Bitte Anzahl der Stufen (> 0) eingeben: 6"])}<div class="row" style="font-size:30px">${AUT.join(" ")}</div>`, "Diesmal Österreich, 6 Stufen.");
+  const m = stufen(6, AUT);
+  t.f(4, {}, `<div style="font-size:24px">${m.join("")}</div>`, "Das Stufen-Array.");
+  t.f(5, {}, konsole(["🚦[ " + m.join("") + " ]🏁"]), "Ausgabe mit Start- und Endsymbol.");
+  return slideOf("Gesamtablauf – Hauptprogramm", "Was das Hauptprogramm der Reihe nach macht. Danach: jede Funktion im Detail.", t);
+}
+function musterZeilen(z, s, a, b, tr) {
+  const r = [];
+  for (let y = 0; y < z; y++) { let l = ""; for (let x = 0; x < s; x++) { const mitte = x === Math.floor(s / 2), links = x < Math.floor(s / 2), g = y % 2 === 0; l += mitte ? tr : (links === g ? a : b); } r.push(l); }
+  return r;
+}
+function stufen(n, farben) { const m = []; for (let st = 1; st <= n; st++) for (let k = 0; k < st; k++) m.push(farben[(st - 1) % 3]); return m; }
+
+function s1() {
+  const t = new Trace("string[] LeseLand(string prompt)", []);
+  t.call("");
+  const k = [];
+  for (const ein of ["Österrreich", "DE", "dEuTsChLaNd"]) {
+    k.push("Bitte Land für die Fahne eingeben (AUT oder GER): " + ein);
+    const klein = ein.toLowerCase(), ok = klein in LAENDER;
+    t.f(0, {}, `${konsole(k)}<div class="row">${chip(ein)}<span class="arrow">→ klein →</span>${chip(klein, ok ? "ok" : "bad")}</div><div class="row">${Object.keys(LAENDER).map(w => chip(w, w === klein ? "ok" : "dim")).join("")}</div>`, ok ? `"${klein}" ist eines der sechs Wörter.` : `"${klein}" ist keines der sechs Wörter.`);
+    if (!ok) { k.length = 0; k.push("❌ Unbekanntes Land! Erlaubt sind AUT, Austria, Österreich, GER, Germany oder Deutschland."); t.f(0, {}, konsole(k), "Konsole leeren, Fehlermeldung, neu fragen."); }
+    else t.f(0, {}, `<div class="row" style="font-size:34px">${LAENDER[klein].map((c, i) => `<span style="display:flex;flex-direction:column;align-items:center">${c}<span style="font-size:11px;color:var(--muted)">[${i}]</span></span>`).join("")}</div>`, "Rückgabe: die Farben der deutschen Flagge, die Trennlinie in der Mitte.");
+  }
+  return slideOf("LeseLand – Aufgabe 1.1", "Wort einlesen, klein schreiben, prüfen, Farben zurückgeben.", t);
+}
+
+function s2() {
+  const t = new Trace("int LesePositiveZahl(string prompt)", [
+    "prompt ausgeben",
+    "Schleife: int.TryParse(Eingabe, out zahl) liefert false ODER zahl ≤ 0?",
+    "   ❌ Console.Clear(), Fehlermeldung, prompt erneut ausgeben",
+    "✅ return zahl"]);
+  t.call('LesePositiveZahl("Bitte Höhe (> 0) eingeben: ")');
+  const k = []; const v = { eingabe: null, "TryParse ok": null, zahl: null, Rückgabe: null };
+  for (const ein of ["fünf", "0", "-3", "5"]) {
+    k.push("Bitte Höhe (> 0) eingeben: " + ein);
+    const n = /^-?\d+$/.test(ein) ? +ein : 0, ok = /^-?\d+$/.test(ein);
+    Object.assign(v, { eingabe: ein, "TryParse ok": ok, zahl: n });
+    const gut = ok && n > 0;
+    t.f(1, v, konsole(k), !ok ? `"${esc(ein)}" ist keine ganze Zahl → TryParse liefert false (zahl wird 0).` : n <= 0 ? `${n} ist eine Zahl, aber nicht größer als 0.` : `${n} ist eine Zahl und größer als 0 → Schleife endet.`, { 1: gut ? "ok" : "bad" });
+    if (!gut) { k.length = 0; k.push("❌ Ungültige Eingabe! Bitte eine positive ganze Zahl (> 0) eingeben."); t.f(2, v, konsole(k), "Beide Bedingungen sind mit || verbunden: Ist EINE davon wahr, wird nochmal gefragt.", { 1: "bad" }); }
+  }
+  v.Rückgabe = 5; t.f(3, v, `<div class="badge ok">✅ return 5</div>`, "Gültige Zahl zurückgeben.");
+  return slideOf("LesePositiveZahl – Aufgabe 1.2", "int.TryParse und die Bedingung > 0 in einer Schleife.", t);
+}
+
+function s3() {
+  const t = new Trace("int LeseUngeradeBreite(string prompt)", [
+    "prompt ausgeben; while (true):",
+    "   ❌ Fehlerfall 1: int.TryParse schlägt fehl → Clear, Meldung, prompt, <b>continue</b>",
+    "   ❌ Fehlerfall 2: breite &lt; 3 → Clear, Meldung, prompt, <b>continue</b>",
+    "   ❌ Fehlerfall 3: breite % 2 == 0 (gerade) → Clear, Meldung, prompt, <b>continue</b>",
+    "   ✅ return breite"]);
+  t.call('LeseUngeradeBreite("Bitte ungerade Breite (mind. 3) eingeben: ")');
+  const k = []; const v = { eingabe: null, breite: null, "breite % 2": null, Rückgabe: null };
+  const meld = ["❌ Fehler: Ungültige Eingabe! Bitte geben Sie eine gültige ganze Zahl ein.", "❌ Fehler: Die Breite ist zu klein! Sie muss mindestens 3 betragen.", "❌ Fehler: Die Breite muss ungerade sein, damit es genau eine Mitte gibt (z. B. 3, 5, 7)."];
+  for (const ein of ["sieben", "1", "6", "7"]) {
+    k.push("Bitte ungerade Breite (mind. 3) eingeben: " + ein);
+    const ok = /^-?\d+$/.test(ein), n = ok ? +ein : 0;
+    Object.assign(v, { eingabe: ein, breite: n, "breite % 2": ok ? n % 2 : null });
+    t.f(0, v, konsole(k), `Eingabe: <b>${esc(ein)}</b>. Jetzt werden die drei Fehlerfälle der Reihe nach geprüft.`);
+    let fall = !ok ? 1 : n < 3 ? 2 : n % 2 === 0 ? 3 : 0; const m = {};
+    for (let f = 1; f <= 3; f++) { if (fall === f) { m[f] = "bad"; break; } m[f] = "ok"; }
+    if (fall) { k.length = 0; k.push(meld[fall - 1]); t.f(fall, v, konsole(k), `Fehlerfall ${fall} trifft zu → eigene Meldung und mit <b>continue</b> zurück an den Anfang der Schleife.`, m); continue; }
+    v.Rückgabe = n; t.f(4, v, `<div class="badge ok">✅ return ${n}</div>`, "Kein Fehlerfall trifft zu → return. Erst dadurch wird die Endlosschleife verlassen.", m);
+  }
+  return slideOf("LeseUngeradeBreite – Aufgabe 1.3", "Drei Fehlerfälle, drei eigene Meldungen, continue statt return.", t);
+}
+
+function s4() {
+  const t = new Trace("void ZeichneFahnenMuster(int anzahlZeilen, int anzahlSpalten, string[] farben)", [
+    "Guard ❌: Spalten nicht ungerade, Spalten ≤ 0 oder Zeilen ≤ 0 → Meldung, return",
+    "<b>mitte</b> = anzahlSpalten / 2",
+    "for zeile, for spalte: <b>istMitte</b> = spalte == mitte; <b>istLinks</b> = spalte &lt; mitte; <b>istGeradeZeile</b> = zeile % 2 == 0",
+    "   istMitte → farben[1]",
+    "   sonst istLinks == istGeradeZeile → farben[0]",
+    "   sonst → farben[2]",
+    "nach jeder Zeile: Console.WriteLine()"]);
+  t.call("ZeichneFahnenMuster(4, 6, farben)");
+  t.f(0, { anzahlZeilen: 4, anzahlSpalten: 6, "6 % 2": 0 }, `<div class="badge bad">❌ Fehler: Die Anzahl der Spalten muss ungerade …</div>`, "6 ist gerade – es gäbe keine einzelne Mitte → Guard greift, return.", { 0: "bad" });
+  t.call("ZeichneFahnenMuster(5, 7, farben)  // Deutschland");
+  const voll = musterZeilen(5, 7, "🟨", "🟥", "⬛"); const rows = ["", "", "", "", ""];
+  const v = { mitte: 3, zeile: null, spalte: null, istMitte: null, istLinks: null, istGeradeZeile: null, Ausgabe: null };
+  t.f(1, v, emojiGrid(rows), "7 / 2 = <b>3</b> (ganzzahlige Division). Spalte 3 ist die Mitte – links und rechts davon je 3 Spalten.", { 0: "ok" });
+  for (let y = 0; y < 5; y++) {
+    for (let x = 0; x < 7; x++) {
+      const istMitte = x === 3, istLinks = x < 3, g = y % 2 === 0, sym = istMitte ? "⬛" : (istLinks === g ? "🟨" : "🟥");
+      rows[y] += sym;
+      if (y < 2) {
+        Object.assign(v, { zeile: y, spalte: x, istMitte, istLinks, istGeradeZeile: g, Ausgabe: sym });
+        const step = istMitte ? 3 : (istLinks === g ? 4 : 5);
+        t.f(step, v, emojiGrid(rows.map((r, k) => k === y ? r : r), [y, x]),
+          istMitte ? "Mittlere Spalte → Trennlinie." : `istLinks = ${istLinks}, istGeradeZeile = ${g} → ${istLinks === g ? "gleich → Farbe 1" : "verschieden → Farbe 2"}.`, { 0: "ok" });
+      }
+    }
+    v.spalte = null; t.f(6, { ...v, zeile: y }, emojiGrid(rows), y < 2 ? `Zeile ${y} fertig → Zeilenumbruch.` : `Zeile ${y}: ${y % 2 === 0 ? "gerade → links Farbe 1" : "ungerade → links Farbe 2"}.`, { 0: "ok" });
+  }
+  return slideOf("ZeichneFahnenMuster – Aufgabe 1.4", "Mitte bestimmen, dann für jedes Feld mit drei booleschen Variablen entscheiden.", t);
+}
+
+function s5() {
+  const t = new Trace("string[] ErstelleStufenMuster(int anzahlStufen, string[] farben)", [
+    "<b>laenge</b> = anzahlStufen · (anzahlStufen + 1) / 2; <b>muster</b> = new string[laenge]; <b>index</b> = 0",
+    "for stufe von 1 bis anzahlStufen:",
+    "   for k von 0 bis stufe − 1: muster[index] = Farbe der Stufe (der Reihe nach farben[0], [1], [2]); index++",
+    "return muster"]);
+  t.call('ErstelleStufenMuster(6, farben)  // Österreich');
+  const L = 21, m = Array(L).fill(null);
+  const view = cur => `<div class="arr">${m.map((e, i) => `<div class="slot" style="font-size:18px;min-width:34px;${i === cur ? "border-color:var(--warn)" : ""}">${e || `<span style="font-size:10px;color:var(--muted)">[${i}]</span>`}</div>`).join("")}</div>`;
+  const v = { laenge: 21, stufe: null, k: null, index: 0, Rückgabe: null };
+  t.f(0, v, view(-1), "6 · 7 / 2 = <b>21</b> Felder (1 + 2 + 3 + 4 + 5 + 6).");
+  let idx = 0;
+  for (let st = 1; st <= 6; st++) {
+    const sym = AUT[(st - 1) % 3];
+    t.f(1, { ...v, stufe: st, k: null, index: idx }, view(-1), `Stufe ${st}: ${st} Felder in ${sym}.`);
+    for (let k = 0; k < st; k++) {
+      m[idx] = sym;
+      if (st <= 3) t.f(2, { ...v, stufe: st, k, index: idx }, view(idx), `muster[${idx}] = ${sym}, danach index = ${idx + 1}.`);
+      idx++;
+    }
+    if (st > 3) t.f(2, { ...v, stufe: st, k: st - 1, index: idx }, view(idx - 1), `Stufe ${st} fertig, index = ${idx}.`);
+  }
+  v.Rückgabe = R("string[21]"); t.f(3, { ...v, index: 21 }, view(-1), "index ist genau bei 21 angekommen – das Array ist voll. Rückgabe.");
+  const p = new Trace("void PrintArray(string[] items, string startSymbol, string endSymbol)", ["startSymbol + \"[ \" ausgeben", "for i: items[i] ausgeben", "\" ]\" + endSymbol ausgeben"]);
+  p.call('PrintArray(muster, "🚦", "🏁")');
+  p.f(0, { startSymbol: "🚦", endSymbol: "🏁" }, konsole(["🚦[ "]), "Zuerst das Startsymbol.");
+  p.f(1, { startSymbol: "🚦", endSymbol: "🏁" }, konsole(["🚦[ " + m.join("")]), "Alle Elemente in EINER Zeile (Console.Write, nicht WriteLine).");
+  p.f(2, { startSymbol: "🚦", endSymbol: "🏁" }, konsole(["🚦[ " + m.join("") + " ]🏁"]), "Zum Schluss das Endsymbol mit Zeilenumbruch.");
+  return slideOf("ErstelleStufenMuster – Aufgabe 1.5 + 1.6", "Äußere Schleife über die Stufen, innere über die Felder einer Stufe, eigener index.", t, p);
+}
+const slides = [gesamt(), s1(), s2(), s3(), s4(), s5()];
+
+// ===================== Steuerung =====================
+let s = 0, f = 0, timer = null;
+const $ = id => document.getElementById(id);
+
+const nrOf = sl => +(sl.title.match(/Schritt (\d+)/) || [0, 0])[1];
+$("nav").innerHTML = slides.map((sl, i) => (i === 1 ? '<span style="color:var(--muted);align-self:center;font-size:13px">danach die Methoden:</span>' : "") +
+  `<button data-i="${i}">${i === 0 ? "1. Gesamtablauf" : sl.title.split(" – ")[0]}</button>`).join("");
+$("nav").addEventListener("click", e => { if (e.target.dataset.i) { stop(); s = +e.target.dataset.i; f = 0; render(); } });
+
+function render() {
+  const sl = slides[s], fr = sl.frames[f];
+  $("slideTitle").textContent = sl.title;
+  $("slideText").textContent = sl.text;
+  $("stage").innerHTML = fr.html;
+  $("caption").innerHTML = fr.caption;
+  $("counter").textContent = `${f + 1} / ${sl.frames.length}`;
+  [...$("nav").querySelectorAll("button")].forEach((b, i) => b.classList.toggle("active", i === s));
+  try { history.replaceState(null, "", "#schritt" + nrOf(slides[s])); } catch (e) {}
+}
+function next() {
+  if (f < slides[s].frames.length - 1) f++;
+  else if (s < slides.length - 1) { s++; f = 0; }
+  else stop();
+  render();
+}
+function prev() { if (f > 0) f--; else if (s > 0) { s--; f = slides[s].frames.length - 1; } render(); }
+function play() { if (timer) return stop(); $("btnPlay").textContent = "⏸ Pause"; timer = setInterval(() => {
+  if (f === slides[s].frames.length - 1) stop(); else next(); }, +$("speed").value); }
+function stop() { clearInterval(timer); timer = null; $("btnPlay").textContent = "▶ Abspielen"; }
+
+$("btnNext").onclick = () => { stop(); next(); };
+$("btnPrev").onclick = () => { stop(); prev(); };
+$("btnReset").onclick = () => { stop(); f = 0; render(); };
+$("btnPlay").onclick = play;
+$("speed").oninput = () => { if (timer) { stop(); play(); } };
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight") { stop(); next(); }
+  if (e.key === "ArrowLeft") { stop(); prev(); }
+  if (e.key === " ") { e.preventDefault(); play(); }
+});
+
+const m = location.hash.match(/schritt(\d)/);
+if (m) { const k = slides.findIndex(sl => nrOf(sl) === +m[1]); if (k >= 0) s = k; }
+render();
+</script>
+</body>
+</html>
