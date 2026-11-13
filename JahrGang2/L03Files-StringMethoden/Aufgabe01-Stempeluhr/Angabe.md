@@ -19,23 +19,23 @@ Dein Programm berechnet die Arbeitszeit pro Person und schreibt sie schön forma
 
 ``stempelzeiten.txt`` (die Zeilennummern stehen nicht in der Datei)
 ```
- 1  # Stempeluhr der Werkstatt
- 2  # Format: name;kommen-gehen;kommen-gehen;...
- 3  # Zeiten im Format H:MM oder HH:MM
- 4
- 5    mÜLLER anna ; 7:30-12:00 ; 12:30-16:15
- 6  HUBER   max;8:00-12:00
- 7    gruber LISA ; 6:45-11:15 ; 11:45-15:00 ; 15:30-17:00
- 8    steiner PAUL ; 7.45-12:00 ; 12,30-16:00
- 9
-10  wagner tom ; 8:00-12:x0
-11  berger eva ; 13:00-12:00
-12  weber jana ; 8:00-12:00 ;
-13  kaya ; 
-14   ; 8:00-12:00
-15  fuchs leo ; 8:00-12:00 ; 11:30-15:00
-16  moser ida ; 6:00-24:00
-17  bartholomäus der zweite von hohenstein der zweite von hohenstein ... ; 7:00-11:00
+# Stempeluhr der Werkstatt
+# Format: name;kommen-gehen;kommen-gehen;...
+# Zeiten im Format H:MM oder HH:MM
+
+  mÜLLER anna ; 7:30-12:00 ; 12:30-16:15
+HUBER   max;8:00-12:00
+  gruber LISA ; 6:45-11:15 ; 11:45-15:00 ; 15:30-17:00
+  steiner PAUL ; 7.45-12:00 ; 12,30-16:00
+
+wagner tom ; 8:00-12:x0
+berger eva ; 13:00-12:00
+weber jana ; 8:00-12:00 ;
+kaya ; 
+ ; 8:00-12:00
+fuchs leo ; 8:00-12:00 ; 11:30-15:00
+moser ida ; 6:00-24:00
+bartholomäus der zweite von hohenstein der zweite von hohenstein der zweite von hohenstein der zweite von hohenstein der zweite von hohenstein der zweite von hohenstein der zweite von hohenstein der zweite von hohenstein der zweite von hohenstein der zweite von hohenstein ; 7:00-11:00
 ```
 (In Zeile 17 wiederholt sich „der zweite von hohenstein“ 10-mal – der Name ist **272 Zeichen** lang. Hier ist er gekürzt.)
 
