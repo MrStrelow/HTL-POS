@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Werttyp und Referenztyp</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020617; --panel: #0f172a; --panel2: #1e293b; --line: #334155;
+    --text: #f8fafc; --muted: #94a3b8; --accent: #38bdf8; --x: #f59e0b; --y: #f472b6;
+    --ok: #10b981; --bad: #ef4444; --kw: #c084fc; --str: #fbbf24; --num: #34d399; --com: #64748b;
+    --wt: #38bdf8; --rt: #ef4444; --ws: #facc15; --rs: #2dd4bf;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; overflow: hidden; }
+  .mono { font-family: 'Fira Code', monospace; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 19px; color: var(--accent); }
+  header p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+  #tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  #tabs button { background: var(--panel2); color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  #tabs button.active { background: #0284c7; color: #fff; border-color: var(--accent); }
+  main { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; overflow: hidden; min-height: 0; }
+  #titlebar { display: flex; align-items: baseline; gap: 12px; }
+  #title { font-size: 22px; font-weight: 700; margin: 0; }
+  #counter { color: var(--muted); font-size: 13px; }
+  #content { flex: 1; min-height: 0; display: flex; gap: 12px; }
+  .pane { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+  .panehead { background: #020617; border-bottom: 1px solid var(--line); padding: 6px 14px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  #left { width: 50%; }
+  #right { width: 50%; }
+  #overview { flex: 1; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 14px; align-items: center; }
+  #codebox { overflow: auto; padding: 8px 0; font-size: 15px; line-height: 1.7; }
+  #text { overflow: auto; padding: 8px 16px; font-size: 15px; line-height: 1.55; }
+  #text p { margin: 6px 0; }
+  #text code, #mx code { font-family: 'Fira Code', monospace; background: var(--panel2); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+  #stage { flex: 1; min-height: 0; background: radial-gradient(circle at center, #0b1430 0%, #020617 75%); display: flex; align-items: center; justify-content: center; position: relative; overflow: auto; padding: 16px; }
+  #mx { flex: 1; overflow: auto; padding: 10px; display: flex; align-items: center; justify-content: center; }
+  .cl { padding: 0 14px; border-left: 4px solid transparent; white-space: pre; }
+  .cl.hl { background: rgba(56,189,248,.18); border-left-color: var(--accent); }
+  .tk-kw { color: var(--kw); } .tk-str { color: var(--str); } .tk-num { color: var(--num); } .tk-com { color: var(--com); font-style: italic; } .tk-ty { color: #38bdf8; }
+  nav { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; }
+  nav button { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 18px; font-size: 15px; cursor: pointer; }
+  nav button:hover { border-color: var(--accent); }
+  nav button.on { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,.15); }
+  nav span { color: var(--muted); font-size: 12px; }
+  .split-v { flex: none; width: 8px; margin: 0 -6px; cursor: col-resize; border-radius: 4px; position: relative; z-index: 2; }
+  .split-h { flex: none; height: 8px; margin: -6px 0; cursor: row-resize; border-radius: 4px; position: relative; z-index: 2; }
+  .split-v:hover, .split-h:hover, .split-v.drag, .split-h.drag { background: var(--accent); }
+  body.dragging { user-select: none; }
+
+  /* ---- Variable als Schachtel ---- */
+  .vbox { display: inline-flex; flex-direction: column; border: 2px solid var(--line); border-radius: 10px; background: var(--panel2); min-width: 150px; position: relative; transition: all .4s; }
+  .vbox.wt { border-color: var(--wt); } .vbox.rt { border-color: var(--rt); }
+  .vbox .vname { padding: 4px 10px; font-weight: 700; font-family: 'Fira Code', monospace; color: var(--y); border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 10px; }
+  .vbox::after { content: ""; display: block; width: 46px; height: 8px; margin: 0 auto 8px; border-radius: 4px; background: var(--line); }
+  .vbox .vtype { color: var(--kw); font-weight: 400; }
+  .vbox .vval { padding: 10px; font-family: 'Fira Code', monospace; font-size: 22px; text-align: center; min-height: 52px; transition: background .3s; color: var(--num); }
+  .vbox .vval.ref { color: var(--rt); font-size: 18px; }
+  .vbox .vaddr { position: absolute; top: -18px; right: 4px; font-family: 'Fira Code', monospace; font-size: 11px; color: var(--muted); }
+  .part { border-radius: 6px; transition: background .3s, outline .3s; }
+  .part.on { outline: 3px solid var(--x); background: rgba(245,158,11,.22); }
+  .tag { font-size: 12px; color: var(--x); font-weight: 700; }
+  .flash { animation: flash 1s ease; } @keyframes flash { 0% { background: rgba(245,158,11,.85); } 100% { background: transparent; } }
+  .pop { animation: pop .45s cubic-bezier(.2,.8,.3,1.3) both; } @keyframes pop { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
+  .gone { opacity: .25; text-decoration: line-through; }
+
+  /* ---- Objekt im Arbeitsspeicher ---- */
+  .obj { border: 2px solid var(--rt); border-radius: 10px; background: #1f0b0b; position: relative; transition: all .4s; }
+  .obj .ohead { padding: 3px 10px; font-size: 12px; color: var(--rt); border-bottom: 1px solid var(--line); font-family: 'Fira Code', monospace; }
+  .obj .obody { padding: 8px 10px; display: flex; gap: 4px; font-family: 'Fira Code', monospace; font-size: 20px; }
+  .obj .oaddr { position: absolute; top: -18px; right: 4px; font-family: 'Fira Code', monospace; font-size: 11px; color: var(--muted); }
+  .obj.dead { opacity: .3; border-style: dashed; }
+  .ocell { border: 1px solid var(--line); border-radius: 5px; padding: 2px 8px; transition: background .3s; }
+
+  .ram { border: 2px dashed var(--line); border-radius: 14px; padding: 26px 18px 18px; position: relative; display: flex; gap: 46px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .ram > .ramlbl { position: absolute; top: 4px; left: 12px; font-size: 12px; color: var(--muted); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 30px; }
+  .row { display: flex; align-items: center; gap: 18px; }
+  .scene { position: relative; }
+  .ov { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 5; }
+  .console { background: #000; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; min-height: 50px; min-width: 230px; font-size: 14px; color: #d1fae5; font-family: 'Fira Code', monospace; }
+  .lbl { color: var(--muted); font-size: 13px; }
+
+  /* ---- 2x2 Matrix ---- */
+  table.matrix { border-collapse: separate; border-spacing: 6px; width: 100%; max-width: 900px; }
+  table.matrix th { font-size: 13px; padding: 6px; border-radius: 8px; }
+  table.matrix th.ws { background: rgba(250,204,21,.15); color: var(--ws); border: 1px solid var(--ws); }
+  table.matrix th.rs { background: rgba(45,212,191,.15); color: var(--rs); border: 1px solid var(--rs); }
+  table.matrix th.wt { background: rgba(56,189,248,.15); color: var(--wt); border: 1px solid var(--wt); width: 110px; }
+  table.matrix th.rt { background: rgba(239,68,68,.15); color: var(--rt); border: 1px solid var(--rt); width: 110px; }
+  table.matrix th small { display: block; font-weight: 400; color: var(--muted); font-size: 11px; margin-top: 2px; }
+  table.matrix td { background: var(--panel2); border: 2px solid var(--line); border-radius: 10px; padding: 8px 10px; vertical-align: top; font-size: 13.5px; line-height: 1.5; transition: all .4s; }
+  table.matrix td.hid { color: transparent; }
+  table.matrix td.hid > * { visibility: hidden; }
+  table.matrix td.on { border-color: var(--x); box-shadow: 0 0 0 3px rgba(245,158,11,.25), 0 0 22px rgba(245,158,11,.25); }
+  .kw { display: inline-block; font-family: 'Fira Code', monospace; font-size: 12.5px; padding: 1px 6px; margin: 2px 2px; border-radius: 5px; background: #020617; border: 1px solid var(--line); color: var(--kw); }
+  .ty { display: inline-block; font-family: 'Fira Code', monospace; font-size: 12.5px; padding: 1px 6px; margin: 2px 2px; border-radius: 5px; background: #020617; border: 1px solid var(--line); color: var(--accent); }
+  table.matrix td { text-align: center; vertical-align: middle !important; height: 140px; }
+  .big { font-family: 'Fira Code', monospace; font-size: 48px; font-weight: 600; }
+  .pill { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; }
+  .ctitle { font-weight: 700; margin-bottom: 4px; }
+  .cnote { color: var(--muted); font-size: 12px; margin-top: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>📦 Werttyp und Referenztyp · Werttypsemantik und Referenztypsemantik</h1>
+    <p>Weiter: Pfeiltasten ← → oder Leertaste · Variable = Name, Typ, Wert, Speicheradresse</p>
+  </div>
+  <div id="tabs"></div>
+</header>
+<main>
+  <div id="titlebar"><h2 id="title"></h2><span id="counter"></span></div>
+  <div id="content">
+    <section id="left" class="pane"><div class="panehead">🧩 Variable: Name, Typ, Wert, Adresse</div><div id="overview"></div></section>
+    <div class="split-v" id="sv" title="ziehen: Breite links / rechts"></div>
+    <section id="right" class="pane"><div class="panehead">🔲 Matrix: Typ × Semantik</div><div id="mx"></div></section>
+  </div>
+  <nav>
+    <button onclick="go(-1)">◀ zurück</button>
+    <button onclick="replay()">↻ nochmal</button>
+    <button onclick="go(1)">weiter ▶</button>
+    <button class="vbtn" id="vb0" onclick="setView(0)" title="Taste 1">🧩🔲 beide</button>
+    <button class="vbtn" id="vb1" onclick="setView(1)" title="Taste 2">🔲 nur Matrix</button>
+    <button class="vbtn" id="vb2" onclick="setView(2)" title="Taste 3">🧩 nur Variable</button>
+    <span>R = nochmal · 1/2/3 = Ansicht</span>
+  </nav>
+</main>
+
+<script>
+// ===================== kleine Helfer =====================
+const $ = (id) => document.getElementById(id);
+const SVGNS = 'http://www.w3.org/2000/svg';
+let timers = [];
+function later(ms, fn) { timers.push(setTimeout(fn, ms)); }
+function clearTimers() { timers.forEach(t => clearTimeout(t)); timers = []; }
+function el(tag, cls, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; }
+
+const KW = /\b(int|double|bool|char|string|new|struct|class|record|ref|null|void|public|static|var|true|false|init|get)\b/g;
+function highlight(line) {
+  let s = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const ci = s.indexOf('//'); let com = '';
+  if (ci >= 0) { com = '<span class="tk-com">' + s.slice(ci) + '</span>'; s = s.slice(0, ci); }
+  s = s.replace(/"[^"]*"/g, m => '\u0001' + m + '\u0002');
+  s = s.replace(KW, '<span class="tk-kw">$1</span>').replace(/\b(\d+)\b/g, '<span class="tk-num">$1</span>');
+  s = s.replace(/\u0001/g, '<span class="tk-str">').replace(/\u0002/g, '</span>');
+  return s + com;
+}
+function renderCode(lines, hl) {
+  const b = $('codebox'); b.innerHTML = '';
+  (lines || []).forEach((l, i) => { const d = el('div', 'cl' + ((hl || []).includes(i) ? ' hl' : ''), highlight(l) || ' '); d.id = 'code-' + i; b.appendChild(d); });
+}
+function setHl(hl) { document.querySelectorAll('.cl').forEach((d, i) => d.classList.toggle('hl', hl.includes(i))); }
+
+// Variable als Schachtel: Name, Typ, Wert, Adresse
+function vbox(id, name, type, val, addr, kind) {
+  const b = el('div', 'vbox ' + (kind || ''));
+  b.id = id;
+  b.innerHTML = `<span class="vaddr part" id="${id}-addr">${addr}</span>
+    <div class="vname"><span class="part" id="${id}-name">${name}</span><span class="vtype part" id="${id}-type">${type}</span></div>
+    <div class="vval part ${kind === 'rt' ? 'ref' : ''}" id="${id}-val">${val}</div>`;
+  return b;
+}
+function setVal(id, v) { const e = $(id + '-val'); if (!e) return; e.innerHTML = v; e.classList.remove('flash'); void e.offsetWidth; e.classList.add('flash'); }
+// Objekt im Arbeitsspeicher
+function objBox(id, type, addr, cells) {
+  const o = el('div', 'obj');
+  o.id = id;
+  o.innerHTML = `<span class="oaddr">${addr}</span><div class="ohead">${type}</div><div class="obody">${cells.map((c, i) => `<span class="ocell" id="${id}-${i}">${c}</span>`).join('')}</div>`;
+  return o;
+}
+function setCell(id, i, v) { const e = $(id + '-' + i); if (!e) return; e.innerHTML = v; e.classList.remove('flash'); void e.offsetWidth; e.classList.add('flash'); }
+function ram(label) { const r = el('div', 'ram'); r.appendChild(el('span', 'ramlbl', label || 'Arbeitsspeicher')); return r; }
+function konsole(id) { const k = el('div', 'console'); k.id = id; return k; }
+function print(id, txt) { const k = $(id); if (k) k.innerHTML += txt + '<br>'; }
+
+// ---------- Szene mit SVG-Pfeilen ----------
+function scene() {
+  const s = el('div', 'scene');
+  const svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('class', 'ov');
+  svg.innerHTML = '<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>';
+  s.appendChild(svg); s._svg = svg; s._links = [];
+  return s;
+}
+function link(sc, fromId, toId, opts = {}) { sc._links.push({ fromId, toId, opts }); redraw(sc); }
+function unlink(sc, fromId) { sc._links = sc._links.filter(l => l.fromId !== fromId); redraw(sc); }
+function anchor(r, side, base) {
+  const cx = r.left - base.left + r.width / 2, cy = r.top - base.top + r.height / 2;
+  if (side === 'bottom') return [cx, r.bottom - base.top];
+  if (side === 'top') return [cx, r.top - base.top];
+  if (side === 'left') return [r.left - base.left, cy];
+  if (side === 'right') return [r.right - base.left, cy];
+  return [cx, cy];
+}
+function redraw(sc) {
+  if (!sc || !sc._svg) return;
+  const base = sc.getBoundingClientRect();
+  sc._svg.querySelectorAll('.ln').forEach(e => e.remove());
+  sc._links.forEach(({ fromId, toId, opts }) => {
+    const a = $(fromId), b = $(toId); if (!a || !b) return;
+    const [x1, y1] = anchor(a.getBoundingClientRect(), opts.from || 'right', base);
+    const [x2, y2] = anchor(b.getBoundingClientRect(), opts.to || 'left', base);
+    const g = document.createElementNS(SVGNS, 'g'); g.setAttribute('class', 'ln'); g.style.color = opts.color || 'var(--accent)';
+    const p = document.createElementNS(SVGNS, 'path');
+    const mx = (x1 + x2) / 2;
+    p.setAttribute('d', `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`);
+    p.setAttribute('fill', 'none'); p.setAttribute('stroke', 'currentColor'); p.setAttribute('stroke-width', '2.5'); p.setAttribute('marker-end', 'url(#ah)');
+    if (opts.dash) p.setAttribute('stroke-dasharray', '6 5');
+    g.appendChild(p); sc._svg.appendChild(g);
+  });
+}
+function redrawAll() { document.querySelectorAll('.scene').forEach(redraw); }
+
+// Schritte innerhalb einer Folie
+function seq(acts) {
+  let i = 0;
+  return { next() { if (i >= acts.length) return false; acts[i++](); return true; } };
+}
+
+// ===================== Überblick links =====================
+// zeigt immer: Variable mit Werttyp und Variable mit Referenztyp
+function renderOverview() {
+  const o = $('overview'); o.innerHTML = '';
+  const w = el('div', 'col'); w.style.gap = '40px'; w.style.margin = 'auto';
+  w.innerHTML = `
+    <div class="mono" style="font-size:44px"><span class="part tk-kw" id="lg-type">int</span> <span class="part" id="lg-name" style="color:var(--y);border:3px solid var(--wt);padding:0 6px">alter</span> = <span class="part tk-num" id="lg-val">17</span>;</div>
+    <div class="vbox wt" style="min-width:260px"><span class="vaddr part" id="ow-addr" style="font-size:16px;top:-24px">0x10</span>
+      <div class="vname" style="font-size:24px"><span class="part" id="ow-name">alter</span><span class="vtype part" id="ow-type">int</span></div>
+      <div class="vval part" id="ow-val" style="font-size:40px">17</div></div>
+    <div style="display:grid;grid-template-columns:repeat(4,auto);gap:14px;font-size:24px;font-weight:700">
+      <span class="part" id="lt-name" style="color:var(--y)">Name</span><span class="part" id="lt-type" style="color:var(--kw)">Typ</span><span class="part" id="lt-val" style="color:var(--num)">Wert</span><span class="part" id="lt-addr" style="color:var(--muted)">Adresse</span></div>
+    <div id="ex-wt" style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);align-items:center;gap:24px;width:100%;visibility:hidden">
+      <div class="col" style="align-items:flex-start;gap:26px"><span class="tag" style="color:var(--wt);font-size:20px">Werttyp</span>
+        <div class="vbox wt"><span class="vaddr">0x10</span><div class="vname"><span>alter</span><span class="vtype">int</span></div><div class="vval">17</div></div></div>
+      <div style="font-size:22px">Wert = <b style="color:var(--wt)">der Wert selbst</b></div></div>
+    <div id="ex-rt" style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);align-items:center;gap:24px;width:100%;visibility:hidden">
+      <div class="col" style="align-items:flex-start;gap:26px"><span class="tag" style="color:var(--rt);font-size:20px">Referenztyp</span>
+        <div class="row" style="gap:10px"><div class="vbox rt"><span class="vaddr">0x14</span><div class="vname"><span>zahlen</span><span class="vtype">int[]</span></div><div class="vval ref">0x80</div></div>
+        <span style="color:var(--rt);font-size:22px">──▶</span>
+        <div class="obj"><span class="oaddr">0x80</span><div class="ohead">int[3]</div><div class="obody"><span class="ocell">1</span><span class="ocell">2</span><span class="ocell">3</span></div></div></div></div>
+      <div style="font-size:22px">Wert = <b style="color:var(--rt)">eine Referenz</b><br><span class="lbl" style="font-size:16px">(Adresse des Objekts)</span></div></div>`;
+  o.appendChild(w);
+}
+
+// Folie 2: Übergabe an eine Methode – links Werttypsemantik, rechts Referenztypsemantik
+function renderUebergabe() {
+  const box = (id, name, type, val, kind, hidden) => `<div class="vbox ${kind}" id="${id}" style="min-width:70px;${hidden ? 'visibility:hidden' : ''}"><div class="vname"><span>${name}</span><span class="vtype">${type}</span></div><div class="vval ${kind === 'rt' ? 'ref' : ''}" id="${id}v">${val}</div></div>`;
+  const code = (lines, kind) => '<div class="mono" style="font-size:15px;line-height:1.6;background:#020617;border:1px solid var(--line);border-radius:8px;padding:8px 12px;white-space:pre">' + lines.map(l => highlight(l).replace(/\b(alter|zahlen|z)\b(?![^<]*>)/g, '<span style="color:var(--y);border:2px solid var(--' + kind + ');border-radius:4px;padding:0 3px">$1</span>')).join('<br>') + '</div>';
+  $('overview').innerHTML = `<div style="display:grid;grid-template-columns:auto 1fr;align-items:center;gap:50px 14px;width:100%;margin:auto;padding:0 4px">
+    <div><div class="tag" style="color:var(--ws);font-size:18px;margin-bottom:10px">Werttypsemantik</div>${code(['void Zeige(int z)', 'Zeige(alter);'], 'wt')}</div>
+    <div class="row">${box('uw-a', 'alter', 'int', '17', 'wt')}${box('uw-z', 'z', 'int', '17', 'wt', true)}</div>
+    <div><div class="tag" style="color:var(--rs);font-size:18px;margin-bottom:10px">Referenztypsemantik</div>${code(['void Zeige(int[] z)', 'Zeige(zahlen);'], 'rt')}</div>
+    <div class="row" style="gap:8px">${box('ur-a', 'zahlen', 'int[]', '0x80', 'rt')}<span style="color:var(--rt);font-size:18px">─▶</span><div class="obj"><span class="oaddr">0x80</span><div class="ohead">int[3]</div><div class="obody"><span class="ocell">1</span><span class="ocell">2</span><span class="ocell">3</span></div></div><span id="ur-arr2" style="color:var(--rt);font-size:18px;visibility:hidden">◀─</span>${box('ur-z', 'z', 'int[]', '0x80', 'rt', true)}</div>
+  </div>`;
+}
+
+// ===================== Matrix rechts unten =====================
+const MX = {
+  ww: { body: '<span class="big tk-kw">int</span>' },
+  wr: { body: '<span class="big tk-kw">ref int</span>' },
+  rw: { body: '<span class="big tk-kw">string</span>' },
+  rr: { body: '<span class="big tk-kw">int[]</span>' }
+};
+function renderMatrix(show, on) {
+  const cell = k => `<td id="mx-${k}" style="border-color:${k[0] === 'w' ? 'var(--wt)' : 'var(--rt)'}" class="${show.includes(k) ? '' : 'hid'} ${on === k ? 'on' : ''}">${MX[k].body}</td>`;
+  $('mx').innerHTML = `<table class="matrix">
+    <tr><th></th><th class="ws">Werttypsemantik<small>verhält sich wie eine Kopie</small></th><th class="rs">Referenztypsemantik<small>verhält sich wie dasselbe Ding</small></th></tr>
+    <tr><th class="wt">Werttyp<small>Wert steht in der Variable</small></th>${cell('ww')}${cell('wr')}</tr>
+    <tr><th class="rt">Referenztyp<small>Referenz steht in der Variable</small></th>${cell('rw')}${cell('rr')}</tr>
+  </table>`;
+}
+
+// ===================== Code =====================
+
+// ===================== Folien =====================
+const chapters = ['Variable', 'Werttyp & Referenztyp', 'Übergabe an Methode', 'Matrix'];
+const say = (t) => { $('counter').innerHTML = t; };
+const steps = [
+  { ch: 0, title: 'Die 4 Dinge einer Variable', ov: [], mx: [],
+    render() {
+      ['ex-wt', 'ex-rt'].forEach(id => { $(id).style.display = 'none'; });
+      const parts = ['name', 'type', 'val', 'addr'];
+      return seq(parts.map(p => () => {
+        document.querySelectorAll('.part.on').forEach(e => e.classList.remove('on'));
+        ['ow', 'lg', 'lt'].forEach(v => { const e = $(v + '-' + p); if (e) e.classList.add('on'); });
+      }));
+    } },
+  { ch: 1, title: 'Was steht als Wert drinnen?', ov: [], mx: [],
+    left() {
+      renderOverview();
+      const col = $('overview').firstElementChild;
+      [...col.children].forEach(c => { if (!c.id.startsWith('ex-')) c.style.display = 'none'; });
+      col.style.gap = '60px'; col.style.width = '100%'; col.style.padding = '0 10px';
+    },
+    render() {
+      return seq(['ex-wt', 'ex-rt'].map(id => () => { $(id).style.visibility = 'visible'; $(id).classList.add('pop'); }));
+    } },
+  { ch: 2, title: 'Variable an eine Methode übergeben', ov: [], mx: [], left: renderUebergabe,
+    render() {
+      const on = (id, v) => { const e = $(id); e.style.visibility = 'visible'; e.classList.add('pop'); };
+      const set = (id, v) => { const e = $(id); e.innerHTML = v; e.classList.remove('flash'); void e.offsetWidth; e.classList.add('flash'); };
+      return seq([
+        () => { on('uw-z'); on('ur-z'); on('ur-arr2'); },
+        () => { renderMatrix(['ww', 'rr'], null); }
+      ]);
+    } },
+  { ch: 3, title: 'Typ × Semantik', ov: [], mx: [],
+    render() {
+      const shown = [];
+      return seq(['ww', 'rr', 'rw', 'wr'].map(k => () => { shown.push(k); renderMatrix(shown, k); }));
+    } }
+];
+
+// ===================== Navigation =====================
+let cur = 0, ctrl = null;
+function buildTabs() {
+  chapters.forEach((c, i) => {
+    const b = el('button', '', (i + 1) + '. ' + c);
+    b.onclick = () => show(steps.findIndex(s => s.ch === i));
+    $('tabs').appendChild(b);
+  });
+}
+function show(i) {
+  clearTimers();
+  cur = Math.max(0, Math.min(steps.length - 1, i));
+  const s = steps[cur];
+  document.querySelectorAll('#tabs button').forEach((b, k) => b.classList.toggle('active', k === s.ch));
+  $('title').textContent = s.title;
+  $('counter').textContent = 'weiter ▶ deckt Schritt für Schritt auf';
+  (s.left || renderOverview)();
+  renderMatrix(s.mx, null);
+  ctrl = s.render() || null;
+}
+function go(d) { if (d > 0 && ctrl && ctrl.next && ctrl.next()) return; show(cur + d); }
+function replay() { show(cur); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+  if (e.key === 'r' || e.key === 'R') replay();
+  if (e.key === '1' || e.key === '2' || e.key === '3') setView(Number(e.key) - 1);
+});
+
+// ===================== Trennlinien mit der Maus verschieben =====================
+let userSplit = false;
+function dragger(handle, onMove) {
+  handle.addEventListener('pointerdown', e => {
+    e.preventDefault(); handle.setPointerCapture(e.pointerId); handle.classList.add('drag'); document.body.classList.add('dragging');
+    const mv = ev => { onMove(ev); redrawAll(); };
+    const up = () => { handle.removeEventListener('pointermove', mv); handle.removeEventListener('pointerup', up); handle.classList.remove('drag'); document.body.classList.remove('dragging'); };
+    handle.addEventListener('pointermove', mv); handle.addEventListener('pointerup', up);
+  });
+}
+dragger($('sv'), e => {
+  const r = $('content').getBoundingClientRect();
+  const pct = Math.max(15, Math.min(80, (e.clientX - r.left) / r.width * 100));
+  $('left').style.width = pct + '%'; $('right').style.width = 'auto'; $('right').style.flex = '1';
+});
+let view = 0;
+function applyLayout() {
+  const L = $('left'), R = $('right');
+  L.style.display = view === 1 ? 'none' : ''; R.style.display = view === 2 ? 'none' : ''; $('sv').style.display = view === 0 ? '' : 'none';
+  if (view === 0) { L.style.width = '50%'; R.style.width = '50%'; R.style.flex = ''; }
+  if (view === 1) { R.style.width = '100%'; R.style.flex = '1'; }
+  if (view === 2) { L.style.width = '100%'; }
+  [0, 1, 2].forEach(k => $('vb' + k).classList.toggle('on', view === k));
+  setTimeout(redrawAll, 50);
+}
+function setView(v) { view = v; applyLayout(); }
+window.addEventListener('resize', redrawAll);
+
+buildTabs();
+show(0);
+applyLayout();
+</script>
+</body>
+</html>

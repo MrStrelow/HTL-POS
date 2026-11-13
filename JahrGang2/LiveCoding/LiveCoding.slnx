@@ -13,4 +13,7 @@
     <Project Path="L03DistanzBerechnen/L03DistanzBerechnen.csproj" />
   </Folder>
   <Project Path="L03DistanzZeichnen/L03DistanzZeichnen.csproj" Id="cc893a4d-9480-429c-81ca-ce885acc3e14" />
+  <Folder Name="/L05/">
+    <Project Path="L05Hamster/L05Hamster.csproj" />
+  </Folder>
 </Solution>

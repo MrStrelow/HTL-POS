@@ -1,5 +1,4 @@
 <Solution>
-  <Project Path="LiveCoding/L05LiveCoding-Hamster.csproj" />
   <Project Path="Skripten/Skripten.csproj" />
   <Project Path="ZettelUebungen/ZettelUebungen.csproj" />
 </Solution>

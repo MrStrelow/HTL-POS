@@ -14,8 +14,10 @@ Ordne jeden Begriff aus dem Hamster-Programm **einem** Fachbegriff zu: ``Klasse`
 | ``Hamster`` (der Bauplan) | |
 | *paul* (ein konkreter Hamster) | |
 | ``position`` | |
+| ``darstellung`` | |
+| ``anzahlSchritte`` | |
 | ``Bewegen(string richtung)`` | |
-| ``Hamster((int x, int y) start)`` | |
+| ``Hamster((int x, int y) start, string darstellung, Hamster freund)`` | |
 | ``freund`` | |
 | ``Nachmachen()`` | |
 
@@ -33,11 +35,15 @@ ___________________________________________________________
 **Übung 2: Pen(C)il (Sharp)ener – Code am Zettel schreiben**
 
 #### 1. - Klasse mit Feldern
-Schreibe eine ``Klasse`` *Hamster* mit drei öffentlichen ``Feldern``:
+Schreibe eine ``Klasse`` *Hamster* (eigenes File *Hamster.cs*) mit fünf öffentlichen ``Feldern``:
 * *position* vom ``Typ`` *(int x, int y)*
+* *darstellung* vom ``Typ`` *string*
 * *richtung* vom ``Typ`` *string*
+* *anzahlSchritte* vom ``Typ`` *int*
 * *freund* vom ``Typ`` *Hamster*
 ```csharp
+// ___________________________________________
+// ___________________________________________
 // ___________________________________________
 // ___________________________________________
 // ___________________________________________
@@ -47,8 +53,10 @@ Schreibe eine ``Klasse`` *Hamster* mit drei öffentlichen ``Feldern``:
 ```
 
 #### 2. - Konstruktor
-Ergänze einen ``Konstruktor``, der eine Startposition *start* übernimmt und im ``Feld`` *position* speichert.
+Ergänze einen ``Konstruktor``, der eine Startposition *start*, eine *darstellung* und einen *freund* übernimmt und in den passenden ``Feldern`` speichert.
 ```csharp
+// ___________________________________________
+// ___________________________________________
 // ___________________________________________
 // ___________________________________________
 // ___________________________________________
@@ -56,8 +64,10 @@ Ergänze einen ``Konstruktor``, der eine Startposition *start* übernimmt und im
 ```
 
 #### 3. - Methoden
-Ergänze die ``Methode`` *Bewegen*, die eine Richtung als *string* übernimmt und im ``Feld`` *richtung* speichert, und die ``Methode`` *Nachmachen*, die *Bewegen* mit der Richtung des Freundes aufruft.
+Ergänze die ``Methode`` *Bewegen*, die eine Richtung als *string* übernimmt, im ``Feld`` *richtung* speichert, *anzahlSchritte* um 1 erhöht und z. B. *🐹 Schritt 3: geht nach N* ausgibt, und die ``Methode`` *Nachmachen*, die *Bewegen* mit der Richtung des Freundes aufruft.
 ```csharp
+// ___________________________________________
+// ___________________________________________
 // ___________________________________________
 // ___________________________________________
 // ___________________________________________
@@ -69,7 +79,7 @@ Ergänze die ``Methode`` *Bewegen*, die eine Richtung als *string* übernimmt un
 ```
 
 #### 4. - Objekte erzeugen
-Erzeuge zwei Hamster *paul* bei ``(0, 0)`` und *willi* **direkt rechts daneben**. *willi* soll *paul* als Freund haben. Danach geht *paul* nach ``"S"`` und *willi* macht nach.
+Erzeuge zwei Hamster *paul* (🐹) bei ``(0, 0)`` und *willi* (🐭) **direkt rechts daneben**. *willi* soll *paul* als Freund haben. Übergib **alles** über den ``Konstruktor`` – setze keine ``Felder`` von außen. Danach geht *paul* nach ``"S"`` und *willi* macht nach.
 ```csharp
 // ___________________________________________
 // ___________________________________________
@@ -87,11 +97,9 @@ Erzeuge zwei Hamster *paul* bei ``(0, 0)`` und *willi* **direkt rechts daneben**
 
 Zeichne das ``Objektdiagramm`` **nach** dem folgenden Code (Objekte mit ``name : Klasse``, alle ``Felder`` mit ihren ``Werten``, Pfeil für die hat-Beziehung):
 ```csharp
-Hamster paul  = new Hamster((2, 3));
-Hamster willi = new Hamster((3, 3));
-Hamster gerri = new Hamster((2, 4));
-willi.freund = paul;
-gerri.freund = paul;
+Hamster paul  = new Hamster((2, 3), "🐹", null);
+Hamster willi = new Hamster((3, 3), "🐭", paul);
+Hamster gerri = new Hamster((2, 4), "🐰", paul);
 paul.Bewegen("W");
 willi.Nachmachen();
 ```
@@ -105,7 +113,7 @@ willi.Nachmachen();
  
  
 ```
-**Frage:** Welchen ``Wert`` hat *gerri.richtung*? Warum?
+**Frage:** Welchen ``Wert`` hat *gerri.richtung*? Warum? Was steht in der Konsole?
 ```
 ___________________________________________________________
 ___________________________________________________________
@@ -120,7 +128,7 @@ ___________________________________________________________
 
 #### 1. - Methode aufrufen
 ```csharp
-Hamster paul = new Hamster((0, 0));
+Hamster paul = new Hamster((0, 0), "🐹", null);
 Hamster.Bewegen("N");
 ```
 **Was passiert?** / **Korrigierter Code:**
@@ -131,8 +139,8 @@ Hamster.Bewegen("N");
 
 #### 2. - Nachmachen
 ```csharp
-Hamster paul  = new Hamster((0, 0));
-Hamster willi = new Hamster((1, 0));
+Hamster paul  = new Hamster((0, 0), "🐹", null);
+Hamster willi = new Hamster((1, 0), "🐭", null);
 paul.Bewegen("O");
 willi.Nachmachen();
 ```
@@ -148,10 +156,14 @@ willi.Nachmachen();
 class Hamster
 {
     public (int x, int y) position;
+    public string darstellung;
+    public Hamster freund;
 
-    public void Hamster((int x, int y) start)
+    public void Hamster((int x, int y) start, string darstellung, Hamster freund)
     {
         position = start;
+        this.darstellung = darstellung;
+        this.freund = freund;
     }
 }
 ```

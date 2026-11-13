@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Distanz als Linie</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020617; --panel: #0f172a; --panel2: #1e293b; --line: #334155;
+    --text: #f8fafc; --muted: #94a3b8; --accent: #38bdf8; --x: #f59e0b; --y: #a855f7;
+    --ok: #10b981; --bad: #ef4444; --kw: #c084fc; --str: #fbbf24; --num: #34d399; --com: #64748b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; overflow: hidden; }
+  .mono { font-family: 'Fira Code', monospace; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 19px; color: var(--accent); }
+  header p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+  #tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  #tabs button { background: var(--panel2); color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  #tabs button.active { background: #0284c7; color: #fff; border-color: var(--accent); }
+  main { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; overflow: hidden; min-height: 0; }
+  #titlebar { display: flex; align-items: baseline; gap: 12px; }
+  #title { font-size: 22px; font-weight: 700; margin: 0; }
+  #counter { color: var(--muted); font-size: 13px; }
+  #content { flex: 1; min-height: 0; display: flex; gap: 12px; }
+  .pane { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+  .panehead { background: #020617; border-bottom: 1px solid var(--line); padding: 6px 14px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  #left { width: 40%; }
+  #right { width: 60%; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  #codebox { flex: 1; overflow: auto; padding: 10px 0; font-size: 14px; line-height: 1.6; }
+  #stage { flex: 1.9; min-height: 0; background: radial-gradient(circle at center, #0b1430 0%, #020617 75%); display: flex; align-items: safe center; justify-content: safe center; position: relative; overflow: auto; padding: 16px; }
+  #text { flex: 1; min-height: 0; overflow: auto; padding: 10px 16px; font-size: 15px; line-height: 1.55; }
+  #text p { margin: 6px 0; }
+  code, #text code { font-family: 'Fira Code', monospace; background: var(--panel2); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+  .cl { padding: 0 14px; border-left: 4px solid transparent; white-space: pre; }
+  .cl.hl { background: rgba(56,189,248,.18); border-left-color: var(--accent); }
+  .cl.hit { background: rgba(16,185,129,.28); border-left-color: var(--ok); }
+  .cl.new { animation: fade .5s ease both; background: rgba(16,185,129,.12); }
+  .cl.miss { background: rgba(100,116,139,.15); border-left-color: var(--com); }
+  .tk-kw { color: var(--kw); } .tk-str { color: var(--str); } .tk-num { color: var(--num); } .tk-com { color: var(--com); font-style: italic; } .tk-ty { color: #38bdf8; }
+  nav { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; }
+  nav button { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 14px; font-size: 14px; cursor: pointer; }
+  nav button:hover { border-color: var(--accent); }
+  nav button:disabled { opacity: .35; cursor: default; }
+  nav button#autoBtn:not(:disabled), nav button#skipBtn:not(:disabled) { border-color: var(--ok); color: var(--ok); }
+  nav button.on { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,.15); }
+  nav span, nav label { color: var(--muted); font-size: 12px; }
+  nav input[type=range] { width: 110px; vertical-align: middle; }
+  .split-v { flex: none; width: 8px; margin: 0 -6px; cursor: col-resize; border-radius: 4px; position: relative; z-index: 2; }
+  .split-h { flex: none; height: 8px; margin: -6px 0; cursor: row-resize; border-radius: 4px; position: relative; z-index: 2; }
+  .split-v:hover, .split-h:hover, .split-v.drag, .split-h.drag { background: var(--accent); }
+  body.dragging { user-select: none; }
+
+  .col { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .row { display: flex; align-items: flex-start; gap: 18px; flex-wrap: wrap; justify-content: center; }
+  .idx { font-family: 'Fira Code', monospace; font-size: 11px; color: var(--muted); display: flex; align-items: center; justify-content: center; border-radius: 4px; }
+  .idx.x { color: var(--x); } .idx.y { color: var(--y); } .idx.xv { color: var(--ok); }
+  .idx.on { background: rgba(168,85,247,.35); color: #fff; } .idx.x.on { background: rgba(245,158,11,.35); }
+  .pop { animation: pop .35s cubic-bezier(.2,.8,.3,1.3) both; }
+  @keyframes pop { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
+  .fade { animation: fade .6s ease both; }
+  @keyframes fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .pill { font-family: 'Fira Code', monospace; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 14px; }
+  .pill.x { border-color: var(--x); color: var(--x); } .pill.y { border-color: var(--y); color: var(--y); } .pill.ok { border-color: var(--ok); color: var(--ok); } .pill.bad { border-color: var(--bad); color: var(--bad); } .pill.acc { border-color: var(--accent); color: var(--accent); }
+  .file { background: #0b1220; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-family: 'Fira Code', monospace; font-size: 18px; min-width: 200px; }
+  .file .fh { font-size: 11px; color: var(--str); display: flex; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+  .file .ln { display: flex; gap: 12px; align-items: center; border-radius: 6px; padding: 0 6px; }
+  .file .ln b { font-size: 11px; color: var(--muted); width: 16px; }
+  .file .ln.hl { background: rgba(245,158,11,.22); }
+  .console { background: #000; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; min-height: 40px; min-width: 260px; font-size: 13px; color: #d1fae5; white-space: pre-wrap; }
+  table.vt { border-collapse: collapse; font-family: 'Fira Code', monospace; font-size: 13px; }
+  table.vt td { border: 1px solid var(--line); padding: 3px 8px; }
+  table.vt td:first-child { color: var(--muted); }
+  table.vt td:last-child { color: var(--num); font-weight: 600; }
+  table.vt td.t { color: var(--ok); } table.vt td.f { color: var(--bad); } table.vt td.y { color: var(--y); } table.vt td.x { color: var(--x); }
+  table.vt tr.flash td { animation: flash .8s ease; } @keyframes flash { 0% { background: rgba(245,158,11,.45); } 100% { background: transparent; } }
+  table.uni { border-collapse: collapse; font-family: 'Fira Code', monospace; font-size: 13px; }
+  table.uni th, table.uni td { border: 1px solid var(--line); padding: 4px 9px; text-align: center; }
+  table.uni th { color: var(--muted); font-weight: 500; font-size: 11.5px; }
+  table.uni td.d { background: rgba(239,68,68,.25); color: #fecaca; font-weight: 700; } table.uni td.a { color: var(--ok); font-weight: 700; }
+
+  /* ---- Gitter ---- */
+  .bwrap { position: relative; }
+  .board { display: grid; gap: 2px; }
+  .bc { background: #0b1430; border: 1px solid #1e293b; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 16px; line-height: 1; transition: background .25s; }
+  .bc.con { background: #050505; border-color: #161616; }
+  .bc.dim { opacity: .45; }
+  .bc.vis { background: #13213f; } .bc.con.vis { background: #0d0d0d; }
+  .bc.rowhot { background: rgba(168,85,247,.18); } .bc.colhot { background: rgba(245,158,11,.16); }
+  .bc.cur { outline: 3px solid var(--ok); outline-offset: -1px; position: relative; z-index: 3; }
+  .bc.curbad { outline: 3px solid var(--bad); outline-offset: -1px; position: relative; z-index: 3; }
+  .bc.ghost { box-shadow: inset 0 0 0 2px var(--x); }
+  .bc.diff { background: rgba(239,68,68,.4); }
+  .bc.miss { outline: 2px dashed var(--ok); outline-offset: -3px; }
+  svg.ov { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 4; }
+  .origin { transition: transform 1.4s cubic-bezier(.5,0,.2,1); }
+
+  /* ---- Tab 3: A / B nebeneinander ---- */
+  .vcol { display: flex; flex-direction: column; gap: 8px; align-items: center; background: rgba(15,23,42,.6); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+  .vcol.A { border-color: rgba(16,185,129,.55); } .vcol.B { border-color: rgba(239,68,68,.55); }
+  .vhead { font-weight: 700; font-size: 15px; }
+  .vcol.A .vhead { color: var(--ok); } .vcol.B .vhead { color: var(--bad); }
+  .snip { background: #0b1220; border: 1px solid var(--line); border-radius: 8px; padding: 6px 0; font-size: 12px; line-height: 1.5; align-self: stretch; }
+  .snip .cl { padding: 0 10px; }
+  .presets { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .presets button { background: var(--panel2); color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; font-family: 'Fira Code', monospace; font-size: 12px; cursor: pointer; }
+  .presets button.on { color: var(--accent); border-color: var(--accent); background: rgba(56,189,248,.15); }
+  .sticker { background: #fde68a; color: #1f2937; border-radius: 4px; padding: 10px 12px; max-width: 280px; font-size: 14px; line-height: 1.4; box-shadow: 4px 6px 14px rgba(0,0,0,.45); transform: rotate(-1.5deg); }
+  .warn { color: var(--x); }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>📏 Distanz berechnen &amp; als Linie zeichnen</h1>
+    <p>Weiter: Pfeiltasten ← → oder Leertaste · coords.txt → Named Tuples → Euklid → Gerade im 2D-Gitter → Achsenverschub</p>
+  </div>
+  <div id="tabs"></div>
+</header>
+<main>
+  <div id="titlebar"><h2 id="title"></h2><span id="counter"></span></div>
+  <div id="content">
+    <section id="left" class="pane"><div class="panehead">📄 Program.cs (gesamter Code)</div><div id="codebox" class="mono"></div></section>
+    <div class="split-v" id="sv" title="ziehen: Breite von Code / Animation"></div>
+    <div id="right">
+      <section class="pane" style="flex:1.9"><div class="panehead">🎬 Animation</div><div id="stage"></div></section>
+      <div class="split-h" id="sh" title="ziehen: Höhe von Animation / Erklärung"></div>
+      <section class="pane" style="flex:1"><div class="panehead">💡 Erklärung</div><div id="text"></div></section>
+    </div>
+  </div>
+  <nav>
+    <button onclick="go(-1)">◀ zurück</button>
+    <button onclick="replay()">↻ nochmal</button>
+    <button onclick="go(1)">weiter ▶</button>
+    <button id="autoBtn" onclick="runAuto()" disabled>⏩ Durchlauf</button>
+    <button id="skipBtn" onclick="runSkip()" disabled>⏭ bis Schleifenende</button>
+    <label>Tempo <input type="range" id="speed" min="40" max="1200" step="20" value="300"> <span id="speedVal">300 ms</span></label>
+    <button id="presBtn" onclick="togglePresenter()" title="Taste P">🎤 Presenter</button>
+    <button class="vbtn" id="vb0" onclick="setView(0)" title="Taste 1">📄🎬 Code + Animation</button>
+    <button class="vbtn" id="vb1" onclick="setView(1)" title="Taste 2">🎬 nur Animation</button>
+    <button class="vbtn" id="vb2" onclick="setView(2)" title="Taste 3">📄 nur Code</button>
+    <span>R = nochmal · A = Durchlauf/Pause · P = Presenter · 1/2/3 = Ansicht</span>
+  </nav>
+</main>
+
+<script>
+// ===================== kleine Helfer =====================
+const $ = (id) => document.getElementById(id);
+const SVGNS = 'http://www.w3.org/2000/svg';
+let timers = [];
+function later(ms, fn) { timers.push(setTimeout(fn, ms)); }
+function clearTimers() { timers.forEach(t => { clearTimeout(t); clearInterval(t); }); timers = []; }
+function el(tag, cls, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; }
+const f2 = (v) => (Math.round(v * 100) / 100).toFixed(2);
+// C# Math.Round rundet bei .5 auf die gerade Zahl (Banker's Rounding)
+function csRound(v) { const f = Math.floor(v), d = v - f; if (Math.abs(d - 0.5) < 1e-9) return f % 2 === 0 ? f : f + 1; return d < 0.5 ? f : f + 1; }
+const speed = () => Number($('speed').value);
+$('speed').addEventListener('input', () => { $('speedVal').textContent = speed() + ' ms'; });
+
+function highlight(line) {
+  const re = /(\/\/.*$)|(\$?"(?:[^"\\]|\\.)*"|'.')|(\b(?:using|new|for|while|if|else|return|int|string|double|bool|void|out|var|true|false)\b)|(\b(?:File|Console|Math|Encoding)\b)|(\b\d+(?:\.\d+)?\b)/g;
+  let out = '', last = 0, m;
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  while ((m = re.exec(line)) !== null) {
+    out += esc(line.slice(last, m.index));
+    const cls = m[1] ? 'tk-com' : m[2] ? 'tk-str' : m[3] ? 'tk-kw' : m[4] ? 'tk-ty' : 'tk-num';
+    out += `<span class="${cls}">${esc(m[0])}</span>`;
+    last = re.lastIndex;
+  }
+  return out + esc(line.slice(last));
+}
+// Code-Block: box = Container, pre = id-Präfix der Zeilen
+function codeInto(box, lines, pre) {
+  box.innerHTML = '';
+  lines.forEach((l, i) => { const d = el('div', 'cl', highlight(l) || ' '); d.id = pre + '-' + i; box.appendChild(d); });
+}
+// hl: Liste von Zeilen, hit: Zeilen die "wahr" sind (grün), miss: Zeilen die geprüft aber falsch sind (grau)
+function hlIn(pre, n, hl, hit, miss) {
+  for (let i = 0; i < n; i++) {
+    const d = $(pre + '-' + i); if (!d) continue;
+    d.classList.toggle('hl', hl.includes(i));
+    d.classList.toggle('hit', (hit || []).includes(i));
+    d.classList.toggle('miss', (miss || []).includes(i));
+  }
+  const first = $(pre + '-' + (hl.length ? Math.max(...hl) : 0));
+  if (first && pre === 'code') first.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+function setHl(hl, hit, miss) { hlIn('code', FULL.length, hl, hit, miss); }
+
+function varTable(id, rows) {
+  const t = el('table', 'vt'); t.id = id; fillVars(t, rows, false); return t;
+}
+function fillVars(t, rows, flash) {
+  if (typeof t === 'string') t = $(t); if (!t) return;
+  const old = Array.from(t.querySelectorAll('td:last-child')).map(td => td.innerHTML);
+  t.innerHTML = '';
+  rows.forEach(([k, v, c], i) => {
+    const tr = el('tr', flash && old[i] !== String(v) ? 'flash' : '');
+    tr.innerHTML = `<td>${k}</td><td class="${c || ''}">${v}</td>`;
+    t.appendChild(tr);
+  });
+}
+const yes = (b) => b ? ['✔ true', 't'] : ['✘ false', 'f'];
+
+// ===================== Gitter =====================
+// fill(x, y) liefert den Startinhalt einer Zelle, xv = start.x für eine Zusatzzeile "xVerschoben"
+function board(id, n, o = {}) {
+  const cs = o.cs || 30;
+  const w = el('div', 'bwrap'); w.id = id + '-wrap';
+  const g = el('div', 'board'); g.style.gridTemplateColumns = `26px repeat(${n}, ${cs}px)`; g.style.gridAutoRows = cs + 'px';
+  for (let y = 0; y < n; y++) {
+    const yl = el('div', 'idx y', String(y)); yl.id = id + '-yl-' + y; g.appendChild(yl);
+    for (let x = 0; x < n; x++) {
+      const c = el('div', 'bc' + (o.con ? ' con' : ''), o.fill ? o.fill(x, y) : '');
+      c.id = id + '-' + y + '-' + x; g.appendChild(c);
+    }
+  }
+  g.appendChild(el('div', 'idx', 'y\\x'));
+  for (let x = 0; x < n; x++) { const xl = el('div', 'idx x', String(x)); xl.id = id + '-xl-' + x; g.appendChild(xl); }
+  if (o.xv !== undefined) {
+    g.appendChild(el('div', 'idx xv', 'xV'));
+    for (let x = 0; x < n; x++) g.appendChild(el('div', 'idx xv', String(x - o.xv)));
+  }
+  w.appendChild(g);
+  const svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('class', 'ov'); svg.id = id + '-svg';
+  svg.innerHTML = '<defs><marker id="' + id + '-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>';
+  w.appendChild(svg);
+  return w;
+}
+const bc = (id, x, y) => $(id + '-' + y + '-' + x);
+// Mittelpunkt einer (auch gebrochenen) Koordinate relativ zum Gitter
+function pt(id, xf, yf) {
+  const a = bc(id, 0, 0), b = bc(id, 1, 1);
+  const px = b.offsetLeft - a.offsetLeft, py = b.offsetTop - a.offsetTop;
+  return [a.offsetLeft + a.offsetWidth / 2 + xf * px, a.offsetTop + a.offsetHeight / 2 + yf * py];
+}
+function svgAdd(id, html) { const s = $(id + '-svg'); if (s) s.insertAdjacentHTML('beforeend', html); }
+function line(id, x1, y1, x2, y2, col, opt = {}) {
+  const [a, b] = pt(id, x1, y1), [c, d] = pt(id, x2, y2);
+  svgAdd(id, `<line x1="${a}" y1="${b}" x2="${c}" y2="${d}" stroke="${col}" stroke-width="${opt.w || 2.5}" ${opt.dash ? `stroke-dasharray="${opt.dash}"` : ''} ${opt.arrow ? `marker-end="url(#${id}-ah)"` : ''} opacity="${opt.op || 1}"/>`);
+}
+function label(id, xf, yf, txt, col, dx = 0, dy = 0) {
+  const [a, b] = pt(id, xf, yf);
+  svgAdd(id, `<text x="${a + dx}" y="${b + dy}" fill="${col}" font-family="Fira Code" font-size="13" font-weight="700" text-anchor="middle" paint-order="stroke" stroke="#020617" stroke-width="4">${txt}</text>`);
+}
+function put(id, x, y, v, pop) { const c = bc(id, x, y); if (!c) return; c.innerHTML = v; if (pop) { c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); } }
+function clearCls(id, cls) { document.querySelectorAll('#' + id + '-wrap .' + cls).forEach(e => e.classList.remove(cls)); }
+
+// ===================== Daten (Tab 1 + 2) =====================
+const N = 10, S = [1, 1], Z = [6, 5];
+const BG = '🟦', ZS = '❌', SS = '✅', LS = '🔸';
+const K = (Z[1] - S[1]) / (Z[0] - S[0]);     // 0.8
+
+// Kompletter Code (Tab 1 rechnet, Tab 2 zeichnet)
+const FULL = [
+  /* 0*/ 'using System.Text;',
+  /* 1*/ '',
+  /* 2*/ 'Console.OutputEncoding = Encoding.UTF8;',
+  /* 3*/ '',
+  /* 4*/ 'string pfad = "coords.txt";',
+  /* 5*/ 'SchreibeDatei(pfad);',
+  /* 6*/ '((int x, int y) start, (int x, int y) ziel) punkte = LeseKoordinaten(pfad);',
+  /* 7*/ 'double distanz = BerechneEuklid(punkte.start, punkte.ziel);',
+  /* 8*/ 'Console.WriteLine($"Start: ({punkte.start.x}|{punkte.start.y}), Ziel: ({punkte.ziel.x}|{punkte.ziel.y}) -> Distanz: {distanz:F2}");',
+  /* 9*/ 'ZeichneDistanzAlsLinie(punkte.start, punkte.ziel);',
+  /*10*/ '',
+  /*11*/ 'void SchreibeDatei(string pfad)',
+  /*12*/ '{',
+  /*13*/ '    string[] zeilen = { "1;1", "6;5" };',
+  /*14*/ '    File.WriteAllLines(pfad, zeilen);',
+  /*15*/ '}',
+  /*16*/ '',
+  /*17*/ '((int x, int y) start, (int x, int y) ziel) LeseKoordinaten(string pfad)',
+  /*18*/ '{',
+  /*19*/ '    string[] lines = File.ReadAllLines(pfad);',
+  /*20*/ "    string[] p1 = lines[0].Split(';');",
+  /*21*/ "    string[] p2 = lines[1].Split(';');",
+  /*22*/ '    if (!int.TryParse(p1[0], out int sx) || !int.TryParse(p1[1], out int sy) ||',
+  /*23*/ '        !int.TryParse(p2[0], out int zx) || !int.TryParse(p2[1], out int zy))',
+  /*24*/ '    {',
+  /*25*/ '        return ((-1, -1), (-1, -1));',
+  /*26*/ '    }',
+  /*27*/ '    return ((sx, sy), (zx, zy));',
+  /*28*/ '}',
+  /*29*/ '',
+  /*30*/ 'double BerechneEuklid((int x, int y) start, (int x, int y) ziel)',
+  /*31*/ '{',
+  /*32*/ '    int dx = ziel.x - start.x;',
+  /*33*/ '    int dy = ziel.y - start.y;',
+  /*34*/ '    return Math.Sqrt(dx * dx + dy * dy);',
+  /*35*/ '}',
+  /*36*/ '',
+  /*37*/ 'void ZeichneDistanzAlsLinie((int x, int y) start, (int x, int y) ziel, int groesse = 10)',
+  /*38*/ '{',
+  /*39*/ '    string background = "🟦";',
+  /*40*/ '    string zielSymbol = "❌";',
+  /*41*/ '    string startSymbol = "✅";',
+  /*42*/ '    string linienSymbol = "🔸";',
+  /*43*/ '    double k = (double)(ziel.y - start.y) / (ziel.x - start.x);',
+  /*44*/ '',
+  /*45*/ '    for (int y = 0; y < groesse; y++)',
+  /*46*/ '    {',
+  /*47*/ '        for (int x = 0; x < groesse; x++)',
+  /*48*/ '        {',
+  /*49*/ '            // Achsenverschub: Ursprung liegt im Startpunkt',
+  /*50*/ '            int xVerschoben = x - start.x;',
+  /*51*/ '            int fx = start.y + (int)Math.Round(k * xVerschoben);',
+  /*52*/ '',
+  /*53*/ '            if (y == fx && start.x < x && x < ziel.x)',
+  /*54*/ '            {',
+  /*55*/ '                Console.Write(linienSymbol);',
+  /*56*/ '            }',
+  /*57*/ '            else if (x == start.x && y == start.y)',
+  /*58*/ '            {',
+  /*59*/ '                Console.Write(startSymbol);',
+  /*60*/ '            }',
+  /*61*/ '            else if (x == ziel.x && y == ziel.y)',
+  /*62*/ '            {',
+  /*63*/ '                Console.Write(zielSymbol);',
+  /*64*/ '            }',
+  /*65*/ '            else',
+  /*66*/ '            {',
+  /*67*/ '                Console.Write(background);',
+  /*68*/ '            }',
+  /*69*/ '        }',
+  /*70*/ '        Console.WriteLine();',
+  /*71*/ '    }',
+  /*72*/ '}'
+];
+const L = { forY: 45, forX: 47, xv: 50, fx: 51, ifL: 53, wL: 55, elS: 57, wS: 59, elZ: 61, wZ: 63, els: 65, wB: 67, wl: 70 };
+
+// Gleiche Logik wie im C#-Code: liefert Symbol und Zweig für eine Zelle
+function decide(x, y, s, z, k, verschub = true, grenze = true) {
+  const xv = x - s[0];
+  const fx = verschub ? s[1] + csRound(k * xv) : csRound(k * x);
+  if (y === fx && (!grenze || (s[0] < x && x < z[0]))) return { sym: LS, br: 'L', fx, xv };
+  if (x === s[0] && y === s[1]) return { sym: SS, br: 'S', fx, xv };
+  if (x === z[0] && y === z[1]) return { sym: ZS, br: 'Z', fx, xv };
+  return { sym: BG, br: 'B', fx, xv };
+}
+
+// ===================== Tab 1: Berechnen =====================
+function calcStage(st, o) {
+  const row = el('div', 'row');
+  const col = el('div', 'col');
+  const f = el('div', 'file');
+  f.appendChild(el('div', 'fh', `<span>💾 Festplatte: coords.txt</span><span>${o.fst || ''}</span>`));
+  if (!o.file) f.appendChild(el('div', 'ln', '<span style="color:#64748b;font-size:13px">noch nicht vorhanden</span>'));
+  else o.file.forEach((t, i) => f.appendChild(el('div', 'ln' + ((o.fhl || []).includes(i) ? ' hl' : '') + (o.fpop ? ' pop' : ''), `<b>${i}</b><span>${t}</span>`)));
+  col.appendChild(f);
+  col.appendChild(el('div', 'panehead', '🧮 Variablen'));
+  col.lastChild.style.cssText = 'border:none;background:none;padding:0';
+  const vt = varTable('vt1', o.vars || []); vt.classList.add('fade'); col.appendChild(vt);
+  const k = el('div', 'console mono', o.out || '<span style="color:#475569">// Konsole leer</span>'); col.appendChild(k);
+  row.appendChild(col);
+  const bcol = el('div', 'col');
+  bcol.appendChild(el('div', 'idx', '2D-Gitter: (0|0) ist oben links · x → rechts · y ↓ unten'));
+  bcol.appendChild(board('cb', N, { fill: (x, y) => o.pts && x === S[0] && y === S[1] ? SS : o.pts && x === Z[0] && y === Z[1] ? ZS : '' }));
+  row.appendChild(bcol);
+  st.appendChild(row);
+  if (o.pts && o.popPts) { put('cb', S[0], S[1], SS, true); put('cb', Z[0], Z[1], ZS, true); }
+  // nur der neue Teil wird animiert, Bekanntes steht sofort da
+  const a = o.anim === 'dxdy', h = o.anim === 'hyp';
+  if (o.tri) {
+    later(a ? 150 : 0, () => { line('cb', S[0], S[1], Z[0], S[1], '#f59e0b', { w: 3 }); label('cb', (S[0] + Z[0]) / 2, S[1], 'dx = 5', '#f59e0b', 0, -10); });
+    later(a ? 650 : 0, () => { line('cb', Z[0], S[1], Z[0], Z[1], '#a855f7', { w: 3 }); label('cb', Z[0], (S[1] + Z[1]) / 2, 'dy = 4', '#a855f7', 38, 4); });
+  }
+  if (o.tri > 1) later(h ? 300 : 0, () => { line('cb', S[0], S[1], Z[0], Z[1], '#10b981', { w: 3.5 }); label('cb', (S[0] + Z[0]) / 2 - 0.4, (S[1] + Z[1]) / 2 + 0.4, '√41 ≈ 6.40', '#10b981'); });
+}
+const FILE = ['1;1', '6;5'];
+
+// ===================== Tab 2: Zeichnen (Konsolen-Trace) =====================
+function picture(n, s, z, k, verschub = true, grenze = true) {
+  const p = [];
+  for (let y = 0; y < n; y++) { p.push([]); for (let x = 0; x < n; x++) p[y].push(decide(x, y, s, z, k, verschub, grenze).sym); }
+  return p;
+}
+// Idee: jedes x durchgehen – f(x) sagt, in welcher Zeile y die Linie in dieser Spalte liegt
+function ideeStage(st) {
+  const r = el('div', 'row');
+  r.appendChild(board('fb', N, { fill: (x, y) => x === S[0] && y === S[1] ? SS : x === Z[0] && y === Z[1] ? ZS : '' }));
+  r.appendChild(varTable('vtf', [['x', '–'], ['f(x)', '–']]));
+  st.appendChild(r);
+  const ev = []; for (let x = S[0] + 1; x < Z[0]; x++) ev.push({ x });
+  return stepper(ev, e => {
+    clearCls('fb', 'colhot');
+    for (let i = 0; i < N; i++) { bc('fb', e.x, i).classList.add('colhot'); $('fb-xl-' + i).classList.toggle('on', i === e.x); }
+    const xv = e.x - S[0], fx = S[1] + csRound(K * xv);
+    line('fb', e.x, -0.9, e.x, fx - 0.45, '#f59e0b', { w: 2.5, arrow: true });
+    put('fb', e.x, fx, LS, true);
+    fillVars('vtf', [['x', e.x, 'x'], ['f(x)', `${S[1]} + Round(${f2(K)} · ${xv}) = ${fx}`, 'y']], true);
+  });
+}
+// gerade Linie, indem man y abgeht: x = start.x + Round((y - start.y) / k)
+function pictureY(n, s, z) {
+  const k = (z[1] - s[1]) / (z[0] - s[0]), p = [];
+  for (let y = 0; y < n; y++) { p.push([]); for (let x = 0; x < n; x++) {
+    const fy = s[0] + csRound((y - s[1]) / k);
+    p[y].push(x === s[0] && y === s[1] ? SS : x === z[0] && y === z[1] ? ZS : (x === fy && s[1] < y && y < z[1]) ? LS : BG);
+  } }
+  return p;
+}
+function traceStage(st) {
+  const row = el('div', 'row');
+  const c1 = el('div', 'col');
+  c1.appendChild(el('div', 'idx', '🖥️ Konsole – wird Zeichen für Zeichen geschrieben'));
+  c1.appendChild(board('kb', N, { con: true }));
+  row.appendChild(c1);
+  const c2 = el('div', 'col');
+  c2.appendChild(varTable('vt2', [['y', '–'], ['x', '–']]));
+  row.appendChild(c2);
+  st.appendChild(row);
+  const ev = [];
+  for (let y = 0; y < N; y++) { for (let x = 0; x < N; x++) ev.push({ y, x }); ev.push({ y, wl: true, end: true }); }
+  let prev = null;
+  return stepper(ev, (e) => {
+    clearCls('kb', 'cur'); clearCls('kb', 'rowhot');
+    for (let i = 0; i < N; i++) { $('kb-yl-' + i).classList.toggle('on', i === e.y); }
+    if (e.wl) {
+      for (let i = 0; i < N; i++) $('kb-xl-' + i).classList.remove('on');
+      setHl([], [L.wl]);
+      fillVars('vt2', [['y', e.y, 'y'], ['Zeile fertig', '↵ WriteLine']], true);
+      return;
+    }
+    for (let i = 0; i < N; i++) $('kb-xl-' + i).classList.toggle('on', i === e.x);
+    const d = decide(e.x, e.y, S, Z, K);
+    put('kb', e.x, e.y, d.sym, true);
+    bc('kb', e.x, e.y).classList.add('cur');
+    // nur: Berechnung von fx + die Zeile, die tatsächlich schreibt
+    const wr = { L: L.wL, S: L.wS, Z: L.wZ, B: L.wB }[d.br];
+    setHl([L.fx], [wr]);
+    const inR = S[0] < e.x && e.x < Z[0];
+    fillVars('vt2', [
+      ['y', e.y, 'y'], ['x', e.x, 'x'], ['fx', d.fx],
+      ['y == fx && im Bereich', ...yes(e.y === d.fx && inR)]
+    ], true);
+  });
+}
+
+// ===================== Tab 3: Achsenverschub (Mathematik) =====================
+const P = { s: [2, 3], z: [8, 7] };
+const kP = () => (P.z[1] - P.s[1]) / (P.z[0] - P.s[0]);
+// je Stufe kommt eine Zeile dazu: [Formel, Farbe, Notiz]
+const MATH = [
+  ['f(x) = k · x', 'bad', 'startet in (0|0)'],
+  ['f(x) = k · (x − start.x)', 'x', `nach rechts schieben: x − ${P.s[0]} (Minus!)`],
+  ['f(x) = start.y + k · (x − start.x)', 'y', `nach unten schieben: + ${P.s[1]}`],
+];
+function grp(id, gid, inner, ox, oy) {
+  const [a, b] = pt(id, 0, 0), [c, d] = pt(id, 1, 1);
+  svgAdd(id, `<g class="origin" id="${gid}" style="transform: translate(${ox * (c - a)}px, ${oy * (d - b)}px)">${inner}</g>`);
+}
+function moveTo(id, gid, ox, oy) {
+  const [a, b] = pt(id, 0, 0), [c, d] = pt(id, 1, 1);
+  const g = $(gid); if (g) g.style.transform = `translate(${ox * (c - a)}px, ${oy * (d - b)}px)`;
+}
+function mathStage(st, lvl) {
+  const k = kP(), len = P.z[0] - P.s[0];
+  const r = el('div', 'row');
+  r.appendChild(board('ib', N, { fill: (x, y) => x === P.s[0] && y === P.s[1] ? SS : x === P.z[0] && y === P.z[1] ? ZS : '' }));
+  const side = el('div', 'col'); side.style.alignItems = 'stretch';
+  side.appendChild(el('div', 'pill acc', `S(${P.s}) → Z(${P.z}) · k = ${f2(k)}`));
+  MATH.slice(0, Math.min(lvl, 3)).forEach(([f, c, n], i) => side.appendChild(el('div', 'pill ' + c + (i === lvl - 1 ? ' fade' : ''), `${f}<br><small>${n}</small>`)));
+  if (lvl >= 4) {
+    const m = el('div', 'snip mono' + (lvl === 4 ? ' fade' : ''));
+    m.innerHTML = `<div class="cl"><span class="tk-com">// (x − start.x)</span></div><div class="cl hl">${highlight('int xVerschoben = x - start.x;')}</div>
+      <div class="cl"><span class="tk-com">// start.y + k · (…), gerundet aufs Kästchen</span></div><div class="cl hl">${highlight('int fx = start.y + (int)Math.Round(k * xVerschoben);')}</div>`;
+    side.appendChild(m);
+  }
+  if (lvl >= 5) { altStage(st, lvl === 5 ? 'd' : 's'); return; }
+  r.appendChild(side); st.appendChild(r);
+  const nw = (l) => l === lvl;
+  later(50, () => {
+    line('ib', 0, 0, len, k * len, '#ef4444', { dash: '5 4', w: 2, op: .8 });
+    if (lvl < 2) return;
+    // eine Gerade: zuerst nach rechts, dann nach unten
+    const [a, b] = pt('ib', 0, 0), [c, d] = pt('ib', len, k * len);
+    const from = nw(2) ? [0, 0] : nw(3) ? [P.s[0], 0] : [P.s[0], lvl >= 3 ? P.s[1] : 0];
+    grp('ib', 'ib-sl', `<line x1="${a}" y1="${b}" x2="${c}" y2="${d}" stroke="#10b981" stroke-width="3.5"/><circle cx="${a}" cy="${b}" r="5" fill="#10b981"/>`, from[0], from[1]);
+    if (nw(2)) { later(400, () => moveTo('ib', 'ib-sl', P.s[0], 0)); later(500, () => line('ib', 0, -0.6, P.s[0], -0.6, '#f59e0b', { w: 2.5, arrow: true })); }
+    else if (lvl >= 2) line('ib', 0, -0.6, P.s[0], -0.6, '#f59e0b', { w: 2.5, arrow: true });
+    if (nw(3)) { later(400, () => moveTo('ib', 'ib-sl', P.s[0], P.s[1])); later(500, () => line('ib', P.s[0] - 0.6, 0, P.s[0] - 0.6, P.s[1], '#a855f7', { w: 2.5, arrow: true })); }
+    else if (lvl > 3) line('ib', P.s[0] - 0.6, 0, P.s[0] - 0.6, P.s[1], '#a855f7', { w: 2.5, arrow: true });
+    if (lvl >= 4) for (let x = P.s[0] + 1; x < P.z[0]; x++) later((x - P.s[0]) * (nw(4) ? 350 : 0), () => put('ib', x, P.s[1] + csRound(k * (x - P.s[0])), LS, true));
+  });
+}
+
+// Nur EINE Verschiebung: kind 'd' = nur y (f(x) + d), kind 's' = nur x (f(x + s))
+function altStage(st, kind) {
+  const k = kP(), [sx, sy] = P.s, d = sy - k * sx, sh = sy / k - sx;
+  const D = kind === 'd';
+  const rows = D ? [
+    ['allgemein', 'y = k · x + d'],
+    ['S einsetzen', 'start.y = k · start.x + d'],
+    ['nach d umformen', 'd = start.y − k · start.x'],
+    ['Zahlen einsetzen', `d = ${sy} − ${f2(k)} · ${sx} = ${f2(d)}`],
+  ] : [
+    ['allgemein', 'y = k · (x + s)'],
+    ['S einsetzen', 'start.y = k · (start.x + s)'],
+    ['nach s umformen', 's = start.y / k − start.x'],
+    ['Zahlen einsetzen', `s = ${sy} / ${f2(k)} − ${sx} = ${f2(sh)}`],
+  ];
+  const code = D ? ['double d = start.y - k * start.x;', 'int fx = (int)Math.Round(k * x + d);']
+                 : ['double s = start.y / k - start.x;', 'int fx = (int)Math.Round(k * (x + s));'];
+  const r = el('div', 'row');
+  r.appendChild(board('ib', N, { fill: (x, y) => x === sx && y === sy ? SS : x === P.z[0] && y === P.z[1] ? ZS : '' }));
+  const side = el('div', 'col'); side.style.alignItems = 'stretch';
+  side.appendChild(el('div', 'pill acc', `S(${P.s}) → Z(${P.z}) · k = ${f2(k)}`));
+  const t = el('table', 'vt'); side.appendChild(t);
+  rows.forEach(([a, b], i) => later(300 + i * 900, () => { const tr = el('tr', 'fade', `<td>${a}</td><td class="${D ? 'y' : 'x'}">${b}</td>`); t.appendChild(tr); }));
+  const m = el('div', 'snip mono'); m.style.visibility = 'hidden';
+  m.innerHTML = code.map(l => `<div class="cl hl">${highlight(l)}</div>`).join('');
+  side.appendChild(m);
+  r.appendChild(side); st.appendChild(r);
+  const T = 300 + rows.length * 900;
+  later(T, () => { m.style.visibility = ''; m.classList.add('fade'); });
+  later(50, () => line('ib', 0, 0, P.z[0] - sx, k * (P.z[0] - sx), '#ef4444', { dash: '5 4', w: 2, op: .8 }));
+  later(T + 300, () => {
+    const col = D ? '#a855f7' : '#f59e0b';
+    const L2 = D ? P.z[0] : P.z[0] + sh, [a, b] = pt('ib', 0, 0), [c, e] = pt('ib', L2, k * L2);
+    grp('ib', 'ib-alt', `<line x1="${a}" y1="${b}" x2="${c}" y2="${e}" stroke="${col}" stroke-width="3.5"/><circle cx="${a}" cy="${b}" r="5" fill="${col}"/>`, 0, 0);
+    later(300, () => moveTo('ib', 'ib-alt', D ? 0 : -sh, D ? d : 0));
+    later(400, () => D ? line('ib', -0.6, 0, -0.6, d, col, { w: 2.5, arrow: true }) : line('ib', 0, -0.6, -sh, -0.6, col, { w: 2.5, arrow: true }));
+    for (let x = sx + 1; x < P.z[0]; x++) later(1800 + (x - sx) * 300, () => put('ib', x, D ? csRound(k * x + d) : csRound(k * (x + sh)), LS, true));
+  });
+}
+
+// ===================== Stepper =====================
+// events: Liste von Ereignissen; e.end markiert das Ende einer inneren Schleife (für "bis Schleifenende")
+let autoOn = false;
+function stepper(events, step) {
+  let i = 0;
+  return {
+    next() { if (i >= events.length) return false; step(events[i], i); i++; return true; },
+    skip() { while (i < events.length) { const e = events[i]; step(e, i); i++; if (e.end) break; } },
+    auto() {
+      autoOn = true; updAuto();
+      const tick = () => { if (autoOn && this.next()) timers.push(setTimeout(tick, speed())); else { autoOn = false; updAuto(); } };
+      tick();
+    }
+  };
+}
+function updAuto() { $('autoBtn').textContent = autoOn ? '⏸ Pause' : '⏩ Durchlauf'; }
+
+// ===================== Folien =====================
+const chapters = ['Distanz berechnen', 'Linie zeichnen', 'Achsenverschub'];
+const steps = [
+  // ---------- Tab 1 ----------
+  { ch: 0, add: [0, 1, 2, 3, 4], title: 'Programmstart: Dateiname festlegen', hl: [2, 4],
+    text: '<p><code>Console.OutputEncoding = Encoding.UTF8;</code> sorgt dafür, dass die Emojis (🟦 ✅ ❌ 🔸) später richtig in der Konsole erscheinen.</p><p>Danach legen wir den Dateinamen <code>pfad = "coords.txt"</code> fest. Auf der Festplatte gibt es die Datei noch nicht.</p>',
+    render: st => calcStage(st, { vars: [['pfad', '"coords.txt"']] }) },
+  { ch: 0, add: [5, 10, 11, 12, 13, 14, 15, 16], title: 'SchreibeDatei: Koordinaten auf die Festplatte', hl: [5, 13, 14],
+    text: '<p><code>SchreibeDatei(pfad)</code> legt das Array <code>{ "1;1", "6;5" }</code> an. <code>File.WriteAllLines</code> schreibt jedes Element als eigene Zeile in <code>coords.txt</code>.</p><p>Eine Zeile = ein Punkt, <code>x</code> und <code>y</code> getrennt durch <code>;</code>.</p>',
+    render: st => calcStage(st, { file: FILE, fpop: true, fst: 'geschrieben', vars: [['zeilen[0]', '"1;1"'], ['zeilen[1]', '"6;5"']] }) },
+  { ch: 0, add: [6, 17, 18, 19, 28], title: 'LeseKoordinaten: Datei einlesen', hl: [6, 19],
+    text: '<p><code>File.ReadAllLines(pfad)</code> liest <b>alle</b> Zeilen auf einmal in ein <code>string[]</code>.</p>',
+    render: st => calcStage(st, { file: FILE, fhl: [0, 1], fst: 'gelesen', vars: [['lines[0]', '"1;1"'], ['lines[1]', '"6;5"']] }) },
+  { ch: 0, add: [20, 21], title: 'Split: Zeilen am ; zerlegen', hl: [20, 21],
+    text: "<p><code>lines[0].Split(';')</code> liefert <code>[\"1\", \"1\"]</code>, <code>lines[1].Split(';')</code> liefert <code>[\"6\", \"5\"]</code>. Das sind aber noch <b>Texte</b>, keine Zahlen!</p>",
+    render: st => calcStage(st, { file: FILE, fhl: [0, 1], vars: [['p1', '["1", "1"]'], ['p2', '["6", "5"]']] }) },
+  { ch: 0, add: [22, 23, 24, 25, 26], title: 'int.TryParse: Text → Zahl', hl: [22, 23],
+    text: '<p>Jedes <code>int.TryParse</code> wandelt einen Teil in eine Zahl um und liefert sie über <code>out</code>. Klappt eine Umwandlung nicht, ist der Ausdruck <code>true</code> und wir geben <code>((-1, -1), (-1, -1))</code> zurück.</p><p>Hier klappt alles: Start ✅ und Ziel ❌ stehen im Gitter. <b>Achtung:</b> (0|0) ist <b>oben links</b>, y wächst nach <b>unten</b>.</p>',
+    render: st => calcStage(st, { file: FILE, pts: true, popPts: true, vars: [['sx, sy', '1, 1'], ['zx, zy', '6, 5']] }) },
+  { ch: 0, add: [27], title: 'Rückgabe als Named Tuple', hl: [6, 27],
+    text: '<p><code>return ((sx, sy), (zx, zy));</code> packt beide Punkte in <b>ein</b> Named Tuple. Im Hauptprogramm heißt es <code>punkte</code> mit den Teilen <code>punkte.start</code> und <code>punkte.ziel</code> – jeweils mit <code>.x</code> und <code>.y</code>.</p>',
+    render: st => calcStage(st, { file: FILE, pts: true, vars: [['punkte.start', '(x: 1, y: 1)'], ['punkte.ziel', '(x: 6, y: 5)']] }) },
+  { ch: 0, add: [7, 29, 30, 31, 32, 33, 35], title: 'BerechneEuklid: dx und dy', hl: [7, 32, 33],
+    text: '<p><code>dx = ziel.x − start.x = 6 − 1 = 5</code> Kästchen nach rechts, <code>dy = ziel.y − start.y = 5 − 1 = 4</code> Kästchen nach unten. Das sind die beiden Katheten eines rechtwinkligen Dreiecks.</p>',
+    render: st => calcStage(st, { file: FILE, pts: true, tri: 1, anim: 'dxdy', vars: [['dx', '6 − 1 = 5', 'x'], ['dy', '5 − 1 = 4', 'y']] }) },
+  { ch: 0, add: [34], title: 'Pythagoras: Math.Sqrt', hl: [34],
+    text: '<p>Die direkte Luftlinie ist die Hypotenuse: <code>Math.Sqrt(dx * dx + dy * dy) = √(25 + 16) = √41 ≈ 6.40</code>.</p>',
+    render: st => calcStage(st, { file: FILE, pts: true, tri: 2, anim: 'hyp', vars: [['dx * dx + dy * dy', '25 + 16 = 41'], ['distanz', '√41 ≈ 6.40']] }) },
+  { ch: 0, add: [8], title: 'Ausgabe mit Interpolated String', hl: [8],
+    text: '<p><code>{distanz:F2}</code> formatiert auf 2 Nachkommastellen. Danach ruft Zeile 10 <code>ZeichneDistanzAlsLinie</code> auf – weiter im nächsten Tab.</p>',
+    render: st => calcStage(st, { file: FILE, pts: true, tri: 2, vars: [['distanz', '6.40']], out: 'Start: (1|1), Ziel: (6|5) -> Distanz: 6.40' }) },
+
+  // ---------- Tab 2 ----------
+  { ch: 1, add: [9, 36, 37, 38, 72], title: 'Aufruf: ZeichneDistanzAlsLinie', hl: [9, 37],
+    text: '<p>Wir übergeben die beiden Teile des Named Tuples. <code>groesse</code> ist ein <b>Default-Parameter</b>: Wir geben ihn beim Aufruf nicht an, also gilt <code>10</code>.</p>',
+    render: st => { const r = el('div', 'row'); r.appendChild(board('kb', N, { con: true })); r.appendChild(varTable('vt2', [['start', '(x: 1, y: 1)'], ['ziel', '(x: 6, y: 5)'], ['groesse', '10 (Default)']])); st.appendChild(r); } },
+  { ch: 1, add: [39, 40, 41, 42], title: 'Die Symbole', hl: [39, 40, 41, 42],
+    text: '<p>Vier <code>string</code>-Variablen halten die Emojis. Jedes Emoji ist in der Konsole ungefähr 2 Zeichen breit – deshalb sieht das Feld quadratisch aus.</p>',
+    render: st => { const r = el('div', 'row'); [['background', BG], ['zielSymbol', ZS], ['startSymbol', SS], ['linienSymbol', LS]].forEach(([n, s], i) => { const p = el('div', 'pill pop', `${n} = "${s}"`); p.style.animationDelay = (i * .15) + 's'; r.appendChild(p); }); st.appendChild(r); } },
+  { ch: 1, add: [43], title: 'Steigung k – Achtung Ganzzahl-Division!', hl: [43],
+    text: '<p><b>int / int ist wieder int</b>: <code>4 / 5 = 0</code> → <code>k = 0</code> → waagrechte Linie (links). Mit <code>(double)</code> <b>vor</b> der Division: <code>4.0 / 5 = 0.8</code> (rechts).</p>',
+    render: st => {
+      const r = el('div', 'row');
+      [[0, '✘ double k = (ziel.y - start.y) / (ziel.x - start.x);', '4 / 5 = 0  →  k = 0', 'bad'], [K, '✔ double k = (double)(ziel.y - start.y) / (ziel.x - start.x);', '4.0 / 5 = 0.8  →  k = 0.8', 'ok']].forEach(([k, code, res, cls], i) => {
+        const c = el('div', 'col fade'); c.style.animationDelay = (i * .5) + 's';
+        c.appendChild(el('div', 'pill ' + cls, code.replace(/</g, '&lt;'))); c.appendChild(el('div', 'pill ' + cls, res));
+        const pic = picture(N, S, Z, k);
+        c.appendChild(board('kk' + i, N, { con: true, cs: 24, fill: (x, y) => pic[y][x] }));
+        r.appendChild(c);
+      });
+      st.appendChild(r);
+    } },
+  { ch: 1, small: true, add: [44, 45, 46, 47, 48, 49, 50, 51, 52, 69, 70, 71], title: 'Die Idee: jedes x durchgehen', hl: [51],
+    text: '<p>Für jede Spalte <code>x</code> sagt <code>f(x)</code>, in welcher Zeile <code>y</code> die Linie liegt. Pro Spalte genau <b>ein</b> Punkt.</p>',
+    render: st => ideeStage(st) },
+  { ch: 1, add: [53, 54, 55, 56], title: 'Begrenzung: nur zwischen Start und Ziel', hl: [53],
+    text: '<p><code>f(x)</code> liefert für <b>jedes</b> x eine Zeile. Ohne <code>start.x &lt; x &amp;&amp; x &lt; ziel.x</code> läuft die Linie übers ganze Feld (links) und überdeckt sogar ✅ und ❌, weil der Linien-<code>if</code> zuerst geprüft wird.</p>',
+    render: st => {
+      const r = el('div', 'row');
+      [[false, '✘ ohne Begrenzung', 'bad'], [true, '✔ mit Begrenzung', 'ok']].forEach(([g, t, cls], i) => {
+        const c = el('div', 'col fade'); c.style.animationDelay = (i * .5) + 's';
+        c.appendChild(el('div', 'pill ' + cls, t));
+        const pic = picture(N, S, Z, K, true, g);
+        c.appendChild(board('bg' + i, N, { con: true, cs: 24, fill: (x, y) => pic[y][x] }));
+        r.appendChild(c);
+      });
+      st.appendChild(r);
+    } },
+  { ch: 1, small: true, add: [57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68], title: 'Im Code: Zelle für Zelle', hl: [51],
+    text: '<p>Die Konsole schreibt zeilenweise. Gedruckt wird 🔸 nur, wenn die Schleife gerade in Zeile <code>fx</code> ist.</p>',
+    render: st => traceStage(st) },
+  { ch: 1, title: 'Grenzen: x oder y abgehen?', hl: [43],
+    text: '<p>Bei steilen Linien (<code>|dy| &gt; |dx|</code>, also <code>k &gt; 1</code>) gibt es mehr Zeilen als Spalten – x abgehen erzeugt <b>Lücken</b>. Dann <b>y abgehen</b>: <code>x = start.x + Round((y − start.y) / k)</code>.</p><p>Regel: die <b>längere</b> Achse abgehen. Senkrecht (<code>dx = 0</code>) geht mit k gar nicht.</p>',
+    render: st => {
+      const s2 = [1, 1], z2 = [3, 8], k2 = (z2[1] - s2[1]) / (z2[0] - s2[0]);
+      const r = el('div', 'row');
+      [[picture(N, s2, z2, k2), '✘ x abgehen: Lücken', 'bad'], [pictureY(N, s2, z2), '✔ y abgehen', 'ok']].forEach(([pic, t, cls], i) => {
+        const c = el('div', 'col fade'); c.style.animationDelay = (i * .5) + 's';
+        c.appendChild(el('div', 'pill ' + cls, t));
+        c.appendChild(board('gr' + i, N, { con: true, cs: 24, fill: (x, y) => pic[y][x] }));
+        r.appendChild(c);
+      });
+      st.appendChild(el('div', 'col')).append(el('div', 'pill acc', `S(${s2}) → Z(${z2}) · k = ${k2}`), r);
+      later(100, () => { line('gr0', s2[0], s2[1], z2[0], z2[1], '#10b981', { w: 2, op: .6 }); line('gr1', s2[0], s2[1], z2[0], z2[1], '#10b981', { w: 2, op: .6 }); });
+    } },
+
+  // ---------- Tab 3 ----------
+  { ch: 2, small: true, title: 'Ausgangslage: f(x) = k · x', hl: [43],
+    text: '<p>Die Gerade startet in (0|0). Sie soll aber in ✅ starten.</p>', render: st => mathStage(st, 1) },
+  { ch: 2, small: true, title: 'Nach rechts schieben: f(x − start.x)', hl: [50],
+    text: '<p>Nach rechts schieben heißt <b>x − start.x</b> (nicht +): bei <code>x = start.x</code> ist die Klammer 0 – dort beginnt jetzt die Linie.</p>', render: st => mathStage(st, 2) },
+  { ch: 2, small: true, title: 'Nach unten schieben: + start.y', hl: [51],
+    text: '<p>Jetzt liegt sie noch in Zeile 0. Mit <b>+ start.y</b> rutscht sie nach unten in den Startpunkt.</p>', render: st => mathStage(st, 3) },
+  { ch: 2, small: true, title: 'Übersetzt in zwei Code-Zeilen', hl: [50, 51],
+    text: '<p>Die Klammer heißt im Code <code>xVerschoben</code>, das Ergebnis <code>fx</code>.</p>', render: st => mathStage(st, 4) },
+  { ch: 2, small: true, title: 'Nur y verschieben: f(x) + d', hl: [44, 51],
+    code: { 44: '    double d = start.y - k * start.x;', 49: '            // nur y verschieben: y = k · x + d', 50: null, 51: '            int fx = (int)Math.Round(k * x + d);' },
+    text: '<p>Eine Verschiebung reicht: <code>d</code> so wählen, dass die Gerade durch ✅ geht.</p>', render: st => mathStage(st, 5) },
+  { ch: 2, small: true, title: 'Nur x verschieben: f(x + s)', hl: [44, 51],
+    code: { 44: '    double s = start.y / k - start.x;', 49: '            // nur x verschieben: y = k · (x + s)', 50: null, 51: '            int fx = (int)Math.Round(k * (x + s));' },
+    text: '<p>Genauso mit x: <code>s</code> so wählen, dass die Gerade durch ✅ geht. ⚠ bei <code>k = 0</code> Division durch 0.</p>', render: st => mathStage(st, 6) }
+];
+
+// ===================== Navigation =====================
+let cur = 0, ctrl = null;
+function buildTabs() {
+  chapters.forEach((c, i) => {
+    const b = el('button', '', (i + 1) + '. ' + c);
+    b.onclick = () => show(steps.findIndex(s => s.ch === i));
+    $('tabs').appendChild(b);
+  });
+}
+function show(i) {
+  clearTimers(); autoOn = false; updAuto();
+  cur = Math.max(0, Math.min(steps.length - 1, i));
+  const s = steps[cur];
+  document.querySelectorAll('#tabs button').forEach((b, k) => b.classList.toggle('active', k === s.ch));
+  $('title').textContent = s.title;
+  const inCh = steps.filter(x => x.ch === s.ch), pos = inCh.indexOf(s) + 1;
+  $('counter').textContent = `Schritt ${pos} / ${inCh.length} im Tab · gesamt ${cur + 1} / ${steps.length}`;
+  $('text').innerHTML = typeof s.text === 'function' ? s.text() : s.text;
+  if (!userSplit && !presenter) { $('stage').parentElement.style.flex = '1.9'; $('text').parentElement.style.flex = s.small ? '0.45' : '1'; }
+  const mod = s.code || {};
+  codeInto($('codebox'), FULL.map((l, i) => i in mod && mod[i] !== null ? mod[i] : l), 'code');
+  Object.keys(mod).forEach(i => { const d = $('code-' + i); if (mod[i] === null) d.style.display = 'none'; else d.classList.add('new'); });
+  // Code baut sich auf: sichtbar ist alles, was bis zu diesem Schritt hinzugekommen ist (Tab 3: alles)
+  const vis = new Set(); steps.slice(0, cur + 1).forEach(x => (x.add || []).forEach(i => vis.add(i)));
+  const all = s.ch === 2;
+  FULL.forEach((_, i) => { const d = $('code-' + i); if (!all && !vis.has(i) && d.style.display !== 'none') d.style.display = 'none'; if (!all && (s.add || []).includes(i)) d.classList.add('new'); });
+  setHl(s.hl || []);
+  const st = $('stage'); st.innerHTML = '';
+  ctrl = s.render(st) || null;
+  $('autoBtn').disabled = !(ctrl && ctrl.auto);
+  $('skipBtn').disabled = !(ctrl && ctrl.skip);
+}
+function go(d) {
+  if (d > 0 && ctrl && ctrl.next) { autoOn = false; updAuto(); clearTimers(); if (ctrl.next()) return; }
+  show(cur + d);
+}
+function runAuto() {
+  if (!ctrl || !ctrl.auto) return;
+  if (autoOn) { autoOn = false; clearTimers(); updAuto(); } else ctrl.auto();
+}
+function runSkip() { if (ctrl && ctrl.skip) { autoOn = false; clearTimers(); updAuto(); ctrl.skip(); } }
+function replay() { show(cur); }
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+  if (e.key === 'r' || e.key === 'R') replay();
+  if (e.key === 'a' || e.key === 'A') runAuto();
+  if (e.key === 'p' || e.key === 'P') togglePresenter();
+  if (e.key === '1' || e.key === '2' || e.key === '3') setView(Number(e.key) - 1);
+});
+// ===================== Trennlinien mit der Maus verschieben =====================
+let userSplit = false;
+function dragger(handle, onMove) {
+  handle.addEventListener('pointerdown', e => {
+    e.preventDefault(); handle.setPointerCapture(e.pointerId); handle.classList.add('drag'); document.body.classList.add('dragging');
+    const mv = ev => onMove(ev);
+    const up = () => { handle.removeEventListener('pointermove', mv); handle.removeEventListener('pointerup', up); handle.classList.remove('drag'); document.body.classList.remove('dragging'); };
+    handle.addEventListener('pointermove', mv); handle.addEventListener('pointerup', up);
+  });
+}
+dragger($('sv'), e => {
+  const r = $('content').getBoundingClientRect();
+  const pct = Math.max(15, Math.min(75, (e.clientX - r.left) / r.width * 100));
+  $('left').style.width = pct + '%'; $('right').style.width = 'auto'; $('right').style.flex = '1';
+});
+dragger($('sh'), e => {
+  const r = $('right').getBoundingClientRect();
+  const y = Math.max(80, Math.min(r.height - 60, e.clientY - r.top));
+  $('stage').parentElement.style.flex = String(y); $('text').parentElement.style.flex = String(r.height - y);
+  userSplit = true;
+});
+// ===================== Presenter-Modus und Ansicht =====================
+let presenter = false, view = 0;   // 0 = Code + Animation, 1 = nur Animation, 2 = nur Code
+function applyLayout() {
+  const Lp = $('left'), R = $('right'), sp = $('stage').parentElement, tp = $('text').parentElement;
+  if (presenter) { Lp.style.width = '30%'; R.style.width = '70%'; R.style.flex = 'none'; sp.style.flex = '1'; }
+  else { Lp.style.width = '40%'; R.style.width = '60%'; R.style.flex = ''; sp.style.flex = '1.9'; tp.style.flex = steps[cur].small ? '0.45' : '1'; userSplit = false; }
+  tp.style.display = presenter ? 'none' : ''; $('sh').style.display = presenter ? 'none' : '';
+  Lp.style.display = view === 1 ? 'none' : ''; $('sv').style.display = view === 0 ? '' : 'none'; R.style.display = view === 2 ? 'none' : '';
+  if (view === 1) { R.style.width = '100%'; R.style.flex = '1'; }
+  if (view === 2) { Lp.style.width = '100%'; }
+  $('presBtn').classList.toggle('on', presenter); [0, 1, 2].forEach(k => $('vb' + k).classList.toggle('on', view === k));
+}
+function togglePresenter() { presenter = !presenter; applyLayout(); }
+function setView(v) { view = v; applyLayout(); }
+
+buildTabs();
+show(0);
+applyLayout();
+</script>
+</body>
+</html>

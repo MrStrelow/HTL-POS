@@ -68,118 +68,85 @@
             <p class="text-xs text-slate-400 mt-0.5">Commits als Knoten (Nodes), Code-Änderungen als Value & <code class="text-amber-300 font-code">HEAD</code> als Listen-Zeiger</p>
         </div>
         
-        <!-- 5 Themen-Tabs -->
-        <div class="flex flex-wrap gap-1.5 bg-slate-950 p-1.5 rounded-lg border border-slate-800 w-full xl:w-auto">
-            <button id="tab-0" class="tab-btn px-3 py-1.5 rounded-md text-xs font-bold bg-sky-600 text-white transition-all" onclick="switchTab(0)">
-                1) Repo &amp; Staging (cd, add)
-            </button>
-            <button id="tab-1" class="tab-btn px-3 py-1.5 rounded-md text-xs font-bold text-slate-400 hover:bg-slate-800 transition-all" onclick="switchTab(1)">
-                2) Commit &amp; Message (Linked List)
-            </button>
-            <button id="tab-2" class="tab-btn px-3 py-1.5 rounded-md text-xs font-bold text-slate-400 hover:bg-slate-800 transition-all" onclick="switchTab(2)">
-                3) Local vs. Remote (push)
-            </button>
-            <button id="tab-3" class="tab-btn px-3 py-1.5 rounded-md text-xs font-bold text-slate-400 hover:bg-slate-800 transition-all" onclick="switchTab(3)">
-                4) Unstage (git reset &lt;file&gt;)
-            </button>
-            <button id="tab-4" class="tab-btn px-3 py-1.5 rounded-md text-xs font-bold text-slate-400 hover:bg-slate-800 transition-all" onclick="switchTab(4)">
-                5) Datei-Reset (git checkout &lt;file&gt;)
-            </button>
-        </div>
+        <!-- Themen-Tabs (werden aus tabsData erzeugt) -->
+        <div id="tab-bar" class="flex flex-wrap gap-1.5 bg-slate-950 p-1.5 rounded-lg border border-slate-800 w-full xl:w-auto"></div>
     </header>
 
-    <!-- MAIN 3-COLUMN GRID -->
-    <main class="flex-1 grid grid-cols-1 lg:grid-cols-[1.05fr_1.45fr_1.1fr] overflow-hidden p-3 gap-3 bg-slate-950 relative z-10">
-        
-        <!-- LEFT COLUMN: C# Code Editor (Exceptions vs. Kontrollstrukturen) -->
-        <section class="bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl relative">
-            <div class="bg-slate-950 py-2 px-3 border-b border-slate-800 flex items-center justify-between gap-2">
-                <div class="flex items-center gap-1.5" id="file-tabs-container">
-                    <!-- Dynamische Datei-Tabs (z.B. Roboter.cs, Welt.cs) -->
+    <!-- MAIN: Code (links, schmal) | Grafik + Konsole (Mitte, breit) | Befehlsübersicht (rechts) -->
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,2.2fr)_minmax(0,0.75fr)] overflow-hidden p-3 gap-3 bg-slate-950 relative z-10">
+
+        <!-- LINKS: Code-Editor + Git-Speicher -->
+        <section class="flex flex-col gap-3 overflow-hidden min-h-0">
+            <div class="flex-[1.4] min-h-0 bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl relative">
+                <div class="bg-slate-950 py-2 px-3 border-b border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+                    <div class="flex items-center gap-1.5 flex-wrap" id="file-tabs-container"></div>
+                    <span id="file-status-pill" class="text-[11px] font-code px-2 py-0.5 rounded font-semibold"></span>
                 </div>
-                <span id="file-status-pill" class="text-[11px] font-code px-2 py-0.5 rounded font-semibold"></span>
+                <div id="code-container" class="flex-1 overflow-auto p-2 font-code text-[11.5px] leading-6 select-text"></div>
+                <div class="bg-slate-950/90 px-3 py-1.5 border-t border-slate-800 flex justify-between items-center gap-2 text-[10.5px] text-slate-400">
+                    <span><span class="text-emerald-400 font-bold">+ neu</span> | <span class="text-rose-400 font-bold">- entfernt</span></span>
+                    <span id="code-architecture-hint" class="text-sky-400 font-semibold text-right"></span>
+                </div>
             </div>
-            <div id="code-container" class="flex-1 overflow-y-auto p-3 font-code text-[12.5px] leading-6 select-text"></div>
-            <div class="bg-slate-950/90 px-3 py-1.5 border-t border-slate-800 flex justify-between items-center text-[11px] text-slate-400">
-                <span>Legende: <span class="text-emerald-400 font-bold">+ Neu (Hinzugefügt)</span> | <span class="text-rose-400 font-bold">- Entfernt</span></span>
-                <span id="code-architecture-hint" class="text-sky-400 font-semibold"></span>
+            <div class="flex-1 min-h-0 bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+                <div class="bg-slate-950 py-2 px-3 border-b border-slate-800 flex justify-between items-center">
+                    <span class="text-xs font-semibold text-amber-400 uppercase tracking-widest">Git Speicher</span>
+                    <span class="text-[11px] font-code text-slate-500">.git</span>
+                </div>
+                <div id="inspector-container" class="flex-1 overflow-y-auto p-2 flex flex-col gap-2 bg-slate-900/50"></div>
             </div>
         </section>
 
-        <!-- CENTER COLUMN: SVG Git Graph (Linked List of Commits + Working/Staging/Remote Zones) -->
-        <section class="bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl relative">
-            <div class="bg-slate-950 py-2 px-4 border-b border-slate-800 flex justify-between items-center">
-                <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Git Datenstruktur (Commit-Baum &amp; Zonen)</span>
-                <span id="svg-subtitle" class="text-xs font-code text-amber-400">Singly Linked List (Node.Parent)</span>
-            </div>
-            <div class="flex-1 relative bg-slate-950 flex items-center justify-center p-2 overflow-hidden">
-                <svg id="svg-canvas" class="w-full h-full" viewBox="0 0 820 430" preserveAspectRatio="xMidYMid meet">
-                    <defs>
-                        <!-- Pfeilspitzen analog zum Linked List Visualizer -->
-                        <marker id="arrow-head" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                            <polygon points="0 0, 10 3.5, 0 7" fill="#ef4444" />
-                        </marker>
-                        <marker id="arrow-parent" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                            <polygon points="0 0, 10 3.5, 0 7" fill="#f97316" />
-                        </marker>
-                        <marker id="arrow-remote" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                            <polygon points="0 0, 10 3.5, 0 7" fill="#a855f7" />
-                        </marker>
-                        <marker id="arrow-flow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                            <polygon points="0 0, 10 3.5, 0 7" fill="#38bdf8" />
-                        </marker>
-                        <marker id="arrow-flow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                            <polygon points="0 0, 10 3.5, 0 7" fill="#22c55e" />
-                        </marker>
-                        <marker id="arrow-flow-amber" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                            <polygon points="0 0, 10 3.5, 0 7" fill="#f59e0b" />
-                        </marker>
-                    </defs>
-
-                    <!-- Statischer Hintergrund-Rahmen wird dynamisch in #svg-dynamic-layer gerendert -->
-                    <g id="svg-dynamic-layer"></g>
-                </svg>
-
-                <!-- Legende unten links im Canvas -->
-                <div class="absolute bottom-2.5 left-3 flex flex-wrap gap-3 text-[10px] font-bold uppercase tracking-wider bg-slate-900/90 px-2.5 py-1.5 rounded border border-slate-800">
-                    <span class="text-amber-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-400"></span>HEAD (Aktueller Knoten)</span>
-                    <span class="text-orange-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-orange-500"></span>Parent-Pointer (Vorgänger)</span>
-                    <span class="text-emerald-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span>Local Branch (main)</span>
-                    <span class="text-purple-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-500"></span>Remote (origin/main)</span>
+        <!-- MITTE: oben Grafik, unten Konsole -->
+        <section class="flex flex-col gap-3 overflow-hidden min-h-0">
+            <div class="flex-[1.15] min-h-0 bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl relative">
+                <div class="bg-slate-950 py-2 px-4 border-b border-slate-800 flex justify-between items-center">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Git Datenstruktur</span>
+                    <span id="svg-subtitle" class="text-xs font-code text-amber-400"></span>
+                </div>
+                <div class="flex-1 min-h-0 relative bg-slate-950 flex items-center justify-center p-1 overflow-hidden">
+                    <svg id="svg-canvas" class="w-full h-full" viewBox="0 0 820 430" preserveAspectRatio="xMidYMid meet">
+                        <defs>
+                            <marker id="arrow-head" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#ef4444" /></marker>
+                            <marker id="arrow-parent" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#f97316" /></marker>
+                            <marker id="arrow-remote" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#a855f7" /></marker>
+                            <marker id="arrow-flow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#38bdf8" /></marker>
+                            <marker id="arrow-flow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#22c55e" /></marker>
+                            <marker id="arrow-flow-amber" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#f59e0b" /></marker>
+                        </defs>
+                        <g id="svg-dynamic-layer"></g>
+                    </svg>
+                    <div id="svg-legend" class="absolute bottom-2 left-3 flex flex-wrap gap-3 text-[10px] font-bold uppercase tracking-wider bg-slate-900/90 px-2.5 py-1.5 rounded border border-slate-800">
+                        <span class="text-amber-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-400"></span>HEAD</span>
+                        <span class="text-orange-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-orange-500"></span>Parent-Pointer</span>
+                        <span class="text-emerald-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span>main</span>
+                        <span class="text-purple-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-500"></span>origin/main</span>
+                    </div>
                 </div>
             </div>
-        </section>
 
-        <!-- RIGHT COLUMN: Terminal (Top) & Git Speicher-Inspektor (Bottom) -->
-        <section class="flex flex-col gap-3 overflow-hidden">
-            
-            <!-- TOP: Interactive Terminal (CLI) -->
-            <div class="flex-[1.15] bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
+            <div class="flex-1 min-h-0 bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
                 <div class="bg-slate-950 py-2 px-3 border-b border-slate-800 flex justify-between items-center">
                     <div class="flex items-center gap-2">
                         <span class="w-2.5 h-2.5 rounded-full bg-rose-500/80"></span>
                         <span class="w-2.5 h-2.5 rounded-full bg-amber-500/80"></span>
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></span>
-                        <span class="text-xs font-semibold text-sky-400 uppercase tracking-widest ml-1">Terminal (Bash / PowerShell)</span>
+                        <span class="text-xs font-semibold text-sky-400 uppercase tracking-widest ml-1">Konsole</span>
+                        <span class="text-[11px] text-slate-500 ml-2">links: Befehl &amp; Ausgabe · rechts: was der Befehl macht</span>
                     </div>
-                    <span id="terminal-cwd" class="text-[11px] font-code text-slate-400">~/Projekte</span>
+                    <span id="terminal-cwd" class="text-[11px] font-code text-slate-400">~</span>
                 </div>
-                <div id="terminal-container" class="flex-1 overflow-y-auto p-3 font-code text-xs leading-relaxed bg-[#050814] select-text space-y-2">
-                    <!-- Terminal Output wird hier gerendert -->
-                </div>
+                <div id="terminal-container" class="flex-1 overflow-y-auto p-3 font-code text-[12.5px] leading-relaxed bg-[#050814] select-text space-y-2"></div>
             </div>
+        </section>
 
-            <!-- BOTTOM: Git Zonen & Commit-Heap Inspektor -->
-            <div class="flex-[1.25] bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
-                <div class="bg-slate-950 py-2 px-3 border-b border-slate-800 flex justify-between items-center">
-                    <span class="text-xs font-semibold text-amber-400 uppercase tracking-widest">Git Speicher &amp; Commit-Nodes (Heap)</span>
-                    <span class="text-[11px] font-code text-slate-500">.git/objects</span>
-                </div>
-                <div id="inspector-container" class="flex-1 overflow-y-auto p-3 flex flex-col gap-2 bg-slate-900/50">
-                    <!-- Stack/Heap-artige Darstellung der Zonen & Commit-Objekte -->
-                </div>
+        <!-- RECHTS: Befehlsübersicht -->
+        <section class="bg-slate-900 rounded-xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl min-h-0">
+            <div class="bg-slate-950 py-2 px-3 border-b border-slate-800">
+                <span class="text-xs font-semibold text-emerald-400 uppercase tracking-widest">Befehlsübersicht</span>
+                <p class="text-[10.5px] text-slate-500 mt-0.5">markiert = kommt in diesem Schritt vor</p>
             </div>
-
+            <div id="cmd-overview" class="flex-1 overflow-y-auto p-2 flex flex-col gap-1"></div>
         </section>
     </main>
 
@@ -313,7 +280,180 @@
         // =========================================================================
         // 5 TABS MIT SCHRITT-FÜR-SCHRITT SLIDES
         // =========================================================================
+        // Befehlsübersicht rechts: re = erkennt den Befehl in der Konsole
+        const commandList = [
+            { group: "Konsole" },
+            { cmd: "pwd", desc: "zeigt den Ordner, in dem du gerade bist", re: /^pwd\b/ },
+            { cmd: "ls / ls -a", desc: "listet den Inhalt des Ordners (-a auch versteckte wie .git)", re: /^ls\b/ },
+            { cmd: "mkdir <ordner>", desc: "erstellt einen neuen Ordner", re: /^mkdir\b/ },
+            { cmd: "cd <ordner>", desc: "wechselt in den Ordner (cd .. = eine Ebene hinauf)", re: /^cd\b/ },
+            { cmd: "dotnet new console", desc: "legt ein C#-Konsolenprojekt im aktuellen Ordner an", re: /^dotnet new console/ },
+            { cmd: "dotnet build", desc: "übersetzt das Projekt, erzeugt bin/ und obj/", re: /^dotnet build/ },
+            { cmd: "dotnet new gitignore", desc: "legt eine .gitignore an (bin/ und obj/ werden ignoriert)", re: /^dotnet new gitignore/ },
+            { group: "Git einrichten (einmalig)" },
+            { cmd: 'git config --global user.name "<name>"', desc: "dein Name, der in jedem Commit steht", re: /^git config --global user\.name/ },
+            { cmd: 'git config --global user.email "<mail>"', desc: "deine Mail-Adresse, die in jedem Commit steht", re: /^git config --global user\.email/ },
+            { cmd: "git config --global --list", desc: "zeigt die gespeicherten Einstellungen", re: /^git config --global --list/ },
+            { cmd: "git clone <url>", desc: "lädt ein Repository vom Server und legt einen Ordner dafür an", re: /^git clone\b/ },
+            { group: "Git Alltag" },
+            { cmd: "git status", desc: "zeigt geänderte (rot) und vorgemerkte (grün) Dateien", re: /^git status\b/ },
+            { cmd: "git add <datei>", desc: "legt eine Datei in die Staging Area", re: /^git add (?!-A)/ },
+            { cmd: "git add -A", desc: "legt alle Änderungen in die Staging Area", re: /^git add -A/ },
+            { cmd: 'git commit -m "<nachricht>"', desc: "speichert die Staging Area als neuen Commit", re: /^git commit\b/ },
+            { cmd: "git log --oneline", desc: "listet die Commits, neuester zuerst", re: /^git log\b/ },
+            { cmd: "git push", desc: "lädt lokale Commits auf den Server (origin)", re: /^git push\b/ },
+            { group: "Zurücknehmen" },
+            { cmd: "git reset <datei>", desc: "nimmt eine Datei aus der Staging Area, Änderung bleibt", re: /^git reset\b/ },
+            { cmd: "git checkout <datei>", desc: "setzt eine Datei auf den letzten Commit zurück, Änderung ist weg", re: /^git checkout (?!origin)/ },
+            { cmd: "git checkout origin/main -- <datei>", desc: "holt eine Datei im Stand des Servers", re: /^git checkout origin/ }
+        ];
+
+        function findCommand(cmdText) {
+            return commandList.find(c => c.re && c.re.test(cmdText));
+        }
+
+        const setupNoProject = [
+            { text: "// Noch kein Projekt vorhanden.", type: "normal" },
+            { text: "// Zuerst Ordner anlegen, Repository klonen", type: "normal" },
+            { text: "// und darin ein Konsolenprojekt erstellen.", type: "normal" }
+        ];
+        const setupProgram = [
+            { text: "// See https://aka.ms/new-console-template for more information", type: "add" },
+            { text: "Console.WriteLine(\"Hello, World!\");", type: "add" }
+        ];
+        const setupGitignore = [
+            { text: "## Ignore Visual Studio temporary files, build results, ...", type: "add" },
+            { text: "[Dd]ebug/", type: "add" },
+            { text: "[Rr]elease/", type: "add" },
+            { text: "[Bb]in/", type: "add" },
+            { text: "[Oo]bj/", type: "add" },
+            { text: ".vs/", type: "add" },
+            { text: "# ... (ca. 400 weitere Zeilen)", type: "normal" }
+        ];
+        const setupReadme = [
+            { text: "# Katastrophengebiet", type: "normal" }
+        ];
+        const emptyInspector = (extra) => ({ headRef: "—", working: ["Kein Repository"], staging: ["Leer (0 Dateien)"], commits: [], extra: extra || [] });
+        const cfgRows = [["user.name", "Max Muster"], ["user.email", "max.muster@schule.at"]];
+
         const tabsData = [
+            // ---------------------------------------------------------------------
+            // TAB 0: Ordner anlegen, Git einrichten, Clone & Projekt anlegen
+            // ---------------------------------------------------------------------
+            {
+                name: "0) Ordner, Clone & Projekt",
+                subtitle: "mkdir → git config → git clone → dotnet new",
+                steps: [
+                    {
+                        badge: "KONSOLE",
+                        title: "Ordner für alle Projekte erstellen: mkdir & cd",
+                        desc: "Wir starten im Benutzerordner <code>~</code>. Mit <code>mkdir Projekte</code> erstellen wir einen Ordner für alle Projekte, mit <code>cd Projekte</code> wechseln wir hinein. <code>pwd</code> zeigt zur Kontrolle, wo wir gerade sind. Noch gibt es weder Git-Repository noch C#-Projekt.",
+                        cwd: "~/Projekte",
+                        archHint: "Noch kein Projekt",
+                        files: [{ name: "(leer)", status: "Kein Projekt", lines: setupNoProject }],
+                        terminal: [
+                            { cmd: "mkdir Projekte", out: "" },
+                            { cmd: "cd Projekte", out: "", highlight: true },
+                            { cmd: "pwd", out: "/home/dev/Projekte" },
+                            { cmd: "ls", out: "<span class='text-slate-500'>(leer)</span>" }
+                        ],
+                        svg: { mode: "setup", tree: [["Projekte/", "new"]], config: false, remote: true, cloning: false },
+                        inspector: emptyInspector()
+                    },
+                    {
+                        badge: "GIT EINRICHTEN (EINMALIG)",
+                        title: "Name und Mail-Adresse angeben: git config --global",
+                        desc: "Jeder Commit speichert, <strong>wer</strong> ihn gemacht hat. Deshalb sagen wir Git <strong>einmal pro Computer</strong> unseren Namen und unsere Mail-Adresse. <code>--global</code> heißt: gilt für alle Repositories dieses Benutzers. Verwende die Mail-Adresse, mit der du am GitLab-Server angemeldet bist. Ohne diese Angaben verweigert <code>git commit</code> später die Arbeit.",
+                        cwd: "~/Projekte",
+                        archHint: "Gilt für alle Repositories",
+                        files: [{ name: "(leer)", status: "Kein Projekt", lines: setupNoProject }],
+                        terminal: [
+                            { cmd: "git config --global user.name \"Max Muster\"", out: "", highlight: true },
+                            { cmd: "git config --global user.email \"max.muster@schule.at\"", out: "", highlight: true },
+                            { cmd: "git config --global --list", out: "user.name=Max Muster\nuser.email=max.muster@schule.at" }
+                        ],
+                        svg: { mode: "setup", tree: [["Projekte/", ""]], config: true, remote: true, cloning: false },
+                        inspector: emptyInspector(cfgRows)
+                    },
+                    {
+                        badge: "GIT CLONE",
+                        title: "Repository vom Server holen: git clone",
+                        desc: "Am GitLab-Server wurde das Projekt <code>Katastrophengebiet</code> angelegt (mit README). Die Adresse kopieren wir unter <em>Code → Clone with HTTPS</em>. <code>git clone &lt;url&gt;</code> lädt alle Commits herunter und legt dafür den Ordner <code>Katastrophengebiet</code> an. Das Repository kennt jetzt den Server unter dem Namen <code>origin</code>.",
+                        cwd: "~/Projekte",
+                        archHint: "Server → lokaler Ordner",
+                        files: [{ name: "README.md", status: "Unmodified", lines: setupReadme }],
+                        terminal: [
+                            { cmd: "git clone https://gitlab.schule.at/max.muster/Katastrophengebiet.git", out: "Cloning into 'Katastrophengebiet'...\nremote: Enumerating objects: 3, done.\nReceiving objects: 100% (3/3), done.", highlight: true },
+                            { cmd: "ls", out: "<span class='text-sky-300'>Katastrophengebiet/</span>" }
+                        ],
+                        svg: { mode: "setup", tree: [["Projekte/", ""], ["  Katastrophengebiet/", "new"], ["    .git/", "new"], ["    README.md", "new"]], config: true, remote: true, cloning: true },
+                        inspector: { headRef: "#0a1 (main)", working: ["Keine Änderungen (clean)"], staging: ["Leer (0 Dateien)"], commits: [{ hash: "#0a1", msg: "Initial commit", diff: "README.md", parent: "null" }], extra: cfgRows.concat([["origin", "gitlab.schule.at/…/Katastrophengebiet.git"]]) }
+                    },
+                    {
+                        badge: "KONSOLE",
+                        title: "In den neuen Ordner wechseln: cd",
+                        desc: "Git-Befehle wirken immer auf das Repository des <strong>aktuellen Ordners</strong>. Deshalb wechseln wir mit <code>cd Katastrophengebiet</code> hinein. <code>ls -a</code> zeigt auch den versteckten Ordner <code>.git</code> – das ist das lokale Repository mit allen Commits.",
+                        cwd: "~/Projekte/Katastrophengebiet",
+                        archHint: "Ohne cd findet Git das Repo nicht",
+                        files: [{ name: "README.md", status: "Unmodified", lines: setupReadme }],
+                        terminal: [
+                            { cmd: "cd Katastrophengebiet", out: "", highlight: true },
+                            { cmd: "ls -a", out: ".   ..   <span class='text-amber-300'>.git/</span>   README.md", highlight: true }
+                        ],
+                        svg: { mode: "setup", tree: [["Projekte/", ""], ["  Katastrophengebiet/   ← du bist hier", "here"], ["    .git/", ""], ["    README.md", ""]], config: true, remote: true, cloning: false },
+                        inspector: { headRef: "#0a1 (main)", working: ["Keine Änderungen (clean)"], staging: ["Leer (0 Dateien)"], commits: [{ hash: "#0a1", msg: "Initial commit", diff: "README.md", parent: "null" }], extra: cfgRows }
+                    },
+                    {
+                        badge: "PROJEKT ANLEGEN",
+                        title: "C#-Projekt erstellen: dotnet new console (noch ohne .gitignore)",
+                        desc: "<code>dotnet new console</code> legt im aktuellen Ordner ein Konsolenprojekt an. Nach dem ersten <code>dotnet build</code> (oder Start in Visual Studio) entstehen die Ordner <code>bin/</code> und <code>obj/</code> mit hunderten erzeugten Dateien. <strong>Problem:</strong> <code>git status</code> zeigt sie als neu an – mit <code>git add -A</code> würden sie im Repository landen. Sie gehören dort nicht hin: Sie lassen sich jederzeit neu erzeugen und ändern sich bei jedem Build.",
+                        cwd: "~/Projekte/Katastrophengebiet",
+                        archHint: "bin/ und obj/ gehören nicht ins Repo!",
+                        files: [{ name: "Program.cs", status: "Untracked (neu)", lines: setupProgram }],
+                        terminal: [
+                            { cmd: "dotnet new console", out: "The template \"Console App\" was created successfully.", highlight: true },
+                            { cmd: "dotnet build", out: "Build succeeded.", explain: "übersetzt das Projekt – erzeugt dabei bin/ und obj/" },
+                            { cmd: "git status", out: "Untracked files:\n\t<span class='text-rose-400'>Katastrophengebiet.csproj</span>\n\t<span class='text-rose-400'>Program.cs</span>\n\t<span class='text-rose-400'>bin/</span>   <span class='text-amber-300'><-- soll nicht ins Repo</span>\n\t<span class='text-rose-400'>obj/</span>   <span class='text-amber-300'><-- soll nicht ins Repo</span>", highlight: true }
+                        ],
+                        svg: { mode: "setup", tree: [["Projekte/", ""], ["  Katastrophengebiet/", "here"], ["    .git/", ""], ["    Katastrophengebiet.csproj", "untracked"], ["    Program.cs", "untracked"], ["    README.md", ""], ["    bin/   (Build-Ergebnis!)", "untracked"], ["    obj/   (Build-Zwischendateien!)", "untracked"]], config: true, remote: true, cloning: false },
+                        inspector: { headRef: "#0a1 (main)", working: [".csproj, Program.cs, bin/, obj/ (untracked)"], staging: ["Leer (0 Dateien)"], commits: [{ hash: "#0a1", msg: "Initial commit", diff: "README.md", parent: "null" }], extra: cfgRows }
+                    },
+                    {
+                        badge: ".GITIGNORE",
+                        title: ".gitignore erstellen: dotnet new gitignore",
+                        desc: "<code>dotnet new gitignore</code> erstellt die Textdatei <code>.gitignore</code> (links im Code-Fenster). Jede Zeile ist ein Muster: Dateien und Ordner, die darauf passen, <strong>ignoriert Git</strong> – sie erscheinen nicht mehr in <code>git status</code> und werden von <code>git add -A</code> nicht erfasst. <code>[Bb]in/</code> heißt z. B.: der Ordner <code>bin</code> oder <code>Bin</code>. Die <code>.gitignore</code> selbst wird committet, damit sie für alle gilt. Man kann sie auch von Hand anlegen und eigene Zeilen ergänzen (z. B. <code>*.log</code>).",
+                        cwd: "~/Projekte/Katastrophengebiet",
+                        archHint: "Neue Dateien, noch nicht in Git",
+                        files: [
+                            { name: ".gitignore", status: "Untracked (neu)", lines: setupGitignore },
+                            { name: "Program.cs", status: "Untracked (neu)", lines: setupProgram }
+                        ],
+                        terminal: [
+                            { cmd: "dotnet new gitignore", out: "The template \"dotnet gitignore file\" was created successfully.", highlight: true },
+                            { cmd: "ls -a", out: ".   ..   .git/   <span class='text-emerald-300'>.gitignore</span>   Katastrophengebiet.csproj   Program.cs   README.md   bin/   obj/", explain: "bin/ und obj/ sind noch da – Git ignoriert sie nur" }
+                        ],
+                        svg: { mode: "setup", tree: [["Projekte/", ""], ["  Katastrophengebiet/", "here"], ["    .git/", ""], ["    .gitignore", "new"], ["    Katastrophengebiet.csproj", "untracked"], ["    Program.cs", "untracked"], ["    README.md", ""], ["    bin/   (ignoriert)", "ignored"], ["    obj/   (ignoriert)", "ignored"]], config: true, remote: true, cloning: false },
+                        inspector: { headRef: "#0a1 (main)", working: [".gitignore (neu)"], staging: ["Leer (0 Dateien)"], commits: [{ hash: "#0a1", msg: "Initial commit", diff: "README.md", parent: "null" }], extra: cfgRows }
+                    },
+                    {
+                        badge: "KONTROLLE",
+                        title: "Was sieht Git? git status",
+                        desc: "<code>git status</code> zeigt die drei neuen Dateien als <em>untracked</em> (rot). Die Ordner <code>bin/</code> und <code>obj/</code> fehlen jetzt in der Liste – genau dafür ist die <code>.gitignore</code> da. Ab jetzt geht es weiter wie in Tab 1: <code>git add</code>, <code>git commit</code>, <code>git push</code>.",
+                        cwd: "~/Projekte/Katastrophengebiet",
+                        archHint: "obj/ wird ignoriert",
+                        files: [
+                            { name: "Program.cs", status: "Untracked (neu)", lines: setupProgram },
+                            { name: ".gitignore", status: "Untracked (neu)", lines: setupGitignore }
+                        ],
+                        terminal: [
+                            { cmd: "git status", out: "On branch main\nYour branch is up to date with 'origin/main'.\n\nUntracked files:\n  (use \"git add <file>...\" to include in what will be committed)\n\t<span class='text-rose-400'>.gitignore</span>\n\t<span class='text-rose-400'>Katastrophengebiet.csproj</span>\n\t<span class='text-rose-400'>Program.cs</span>\n\nnothing added to commit but untracked files present", highlight: true }
+                        ],
+                        svg: { mode: "setup", tree: [["Projekte/", ""], ["  Katastrophengebiet/", "here"], ["    .git/", ""], ["    .gitignore", "untracked"], ["    Katastrophengebiet.csproj", "untracked"], ["    Program.cs", "untracked"], ["    README.md", ""], ["    bin/   (ignoriert)", "ignored"], ["    obj/   (ignoriert)", "ignored"]], config: true, remote: true, cloning: false },
+                        inspector: { headRef: "#0a1 (main)", working: [".gitignore, .csproj, Program.cs (untracked)"], staging: ["Leer (0 Dateien)"], commits: [{ hash: "#0a1", msg: "Initial commit", diff: "README.md", parent: "null" }], extra: cfgRows }
+                    }
+                ]
+            },
+
             // ---------------------------------------------------------------------
             // TAB 0: Repository, Navigation (cd) & Staging Area (git add)
             // ---------------------------------------------------------------------
@@ -886,6 +1026,44 @@
                 "e8b": { x: 685, y: 125 }
             };
 
+            document.getElementById('svg-legend').style.display = svgData.mode === "setup" ? "none" : "flex";
+            if (svgData.mode === "setup") {
+                let html = "";
+                // Lokaler Rechner (links)
+                html += `<rect x="20" y="20" width="470" height="390" rx="10" fill="#090d16" stroke="#334155" stroke-width="2" />
+                    <text x="36" y="46" fill="#38bdf8" font-family="Inter" font-weight="bold" font-size="13">DEIN COMPUTER  (~ = /home/dev)</text>`;
+                const colors = { new: "#4ade80", here: "#fbbf24", untracked: "#f87171", ignored: "#64748b", "": "#e2e8f0" };
+                svgData.tree.forEach((t, i) => {
+                    const y = 82 + i * 26;
+                    const txt = t[0].replace(/ /g, "\u00a0");
+                    html += `<text x="44" y="${y}" font-family="Fira Code" font-size="14" fill="${colors[t[1]]}" ${t[1] === 'new' ? 'font-weight="bold"' : ''}>${txt}</text>`;
+                    if (t[1] === "new") html += `<text x="460" y="${y}" text-anchor="end" font-family="Inter" font-size="10" fill="#4ade80">NEU</text>`;
+                    if (t[1] === "untracked") html += `<text x="460" y="${y}" text-anchor="end" font-family="Inter" font-size="10" fill="#f87171">untracked</text>`;
+                });
+                // git config Box
+                const cfgCls = svgData.config ? "#22c55e" : "#334155";
+                html += `<rect x="36" y="318" width="438" height="76" rx="8" fill="#0b1220" stroke="${cfgCls}" stroke-width="2" ${svgData.config ? '' : 'stroke-dasharray="5 5"'} />
+                    <text x="50" y="340" font-family="Inter" font-size="11" font-weight="bold" fill="#94a3b8">~/.gitconfig  (git config --global)</text>
+                    <text x="50" y="362" font-family="Fira Code" font-size="13" fill="${svgData.config ? '#e2e8f0' : '#475569'}">user.name  = ${svgData.config ? 'Max Muster' : '???'}</text>
+                    <text x="50" y="382" font-family="Fira Code" font-size="13" fill="${svgData.config ? '#e2e8f0' : '#475569'}">user.email = ${svgData.config ? 'max.muster@schule.at' : '???'}</text>`;
+                // Server (rechts)
+                html += `<rect x="560" y="60" width="240" height="170" rx="10" fill="#140b1f" stroke="#a855f7" stroke-width="2" />
+                    <text x="680" y="88" text-anchor="middle" fill="#c084fc" font-family="Inter" font-weight="bold" font-size="13">GITLAB-SERVER (origin)</text>
+                    <text x="680" y="110" text-anchor="middle" fill="#94a3b8" font-family="Fira Code" font-size="11">Katastrophengebiet.git</text>
+                    <g transform="translate(680, 170)">
+                        <circle r="30" fill="#020617" stroke="#a855f7" stroke-width="2.5" />
+                        <text y="-2" text-anchor="middle" font-family="Fira Code" font-size="13" fill="#f8fafc" font-weight="bold">#0a1</text>
+                        <text y="13" text-anchor="middle" font-family="Inter" font-size="9.5" fill="#c084fc">README</text>
+                    </g>`;
+                if (svgData.cloning) {
+                    html += `<path d="M 560 170 C 520 170, 520 120, 470 110" stroke="#22c55e" stroke-width="3.5" stroke-dasharray="6 4" fill="none" marker-end="url(#arrow-flow-green)" class="path-draw" />
+                        <rect x="500" y="250" width="160" height="26" rx="5" fill="#064e3b" stroke="#22c55e" />
+                        <text x="580" y="267" text-anchor="middle" fill="#86efac" font-family="Fira Code" font-size="12" font-weight="bold">git clone (Download)</text>`;
+                }
+                layer.innerHTML = html;
+                return;
+            }
+
             if (svgData.mode === "zones") {
                 // -----------------------------------------------------------------
                 // ANSICHT A: Local Repository (Oben) + Working Dir & Staging (Unten)
@@ -1100,6 +1278,16 @@
             const st = tab.steps[currentStep];
 
             // 1. Header-Tabs aktualisieren
+            const tabBar = document.getElementById('tab-bar');
+            if (!tabBar.children.length) {
+                tabsData.forEach((t, idx) => {
+                    const b = document.createElement('button');
+                    b.id = `tab-${idx}`;
+                    b.textContent = t.name;
+                    b.onclick = () => switchTab(idx);
+                    tabBar.appendChild(b);
+                });
+            }
             tabsData.forEach((_, idx) => {
                 const btn = document.getElementById(`tab-${idx}`);
                 if (idx === currentTab) {
@@ -1172,16 +1360,47 @@
                     : "px-2 py-0.5 opacity-80";
 
                 const isComment = entry.cmd.startsWith("#");
+                const known = isComment ? null : findCommand(entry.cmd);
+                const explain = entry.explain || (known ? known.desc : "");
+                block.className += " grid grid-cols-[minmax(0,1fr)_minmax(180px,0.42fr)] gap-4";
                 block.innerHTML = `
-                    <div class="flex items-center gap-2">
-                        <span class="text-emerald-400 font-bold select-none">$</span>
-                        <span class="${isComment ? 'text-slate-500 italic' : 'text-white font-semibold'}">${entry.cmd}</span>
+                    <div class="min-w-0">
+                        <div class="flex items-start gap-2">
+                            <span class="text-emerald-400 font-bold select-none">$</span>
+                            <span class="${isComment ? 'text-slate-500 italic' : 'text-white font-semibold'} break-all">${entry.cmd}</span>
+                        </div>
+                        ${entry.out ? `<div class="text-slate-300 whitespace-pre-wrap pl-4 mt-1 text-[12px]">${entry.out}</div>` : ''}
                     </div>
-                    ${entry.out ? `<div class="text-slate-300 whitespace-pre-wrap pl-4 mt-1 text-[11.5px]">${entry.out}</div>` : ''}
+                    <div class="font-sans text-[12px] text-sky-200/90 border-l border-slate-700 pl-3 leading-snug">${explain}</div>
                 `;
                 termContainer.appendChild(block);
             });
             termContainer.scrollTop = termContainer.scrollHeight;
+
+            // Befehlsübersicht rechts: verwendete Befehle markieren
+            const used = new Set();
+            const usedMain = new Set();
+            st.terminal.forEach(e => {
+                const c = findCommand(e.cmd);
+                if (c) { used.add(c); if (e.highlight) usedMain.add(c); }
+            });
+            const ov = document.getElementById('cmd-overview');
+            ov.innerHTML = '';
+            commandList.forEach(c => {
+                const d = document.createElement('div');
+                if (c.group) {
+                    d.className = "text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-2 mb-0.5 px-1";
+                    d.textContent = c.group;
+                } else {
+                    const on = used.has(c);
+                    d.className = on
+                        ? "px-2 py-1 rounded border " + (usedMain.has(c) ? "bg-emerald-500/15 border-emerald-400" : "bg-emerald-500/5 border-emerald-700")
+                        : "px-2 py-1 rounded border border-transparent opacity-55";
+                    d.innerHTML = `<div class="font-code text-[11.5px] ${on ? 'text-emerald-300 font-bold' : 'text-slate-300'} break-all">${c.cmd.replace(/</g, '&lt;')}</div>
+                        <div class="text-[10.5px] text-slate-400 leading-snug">${c.desc}</div>`;
+                }
+                ov.appendChild(d);
+            });
 
             // 5. Git Zonen & Commit-Nodes Inspektor rechts unten rendern
             const insp = st.inspector;
@@ -1203,6 +1422,10 @@
                     </div>
                 </div>
             `;
+
+            (insp.extra || []).forEach(r => {
+                inspContainer.innerHTML += `<div class="flex justify-between items-center gap-2 text-xs px-3 py-1 bg-slate-800/50 rounded border border-slate-700/80"><span class="text-slate-400 font-code">${r[0]}</span><span class="val-badge stage-badge truncate max-w-[200px]">${r[1]}</span></div>`;
+            });
 
             // Commit-Nodes (wie Heap-Nodes im Linked List Visualizer)
             insp.commits.forEach(c => {

@@ -503,3 +503,83 @@ Ein Datentyp, bei dem die Variable den eigentlichen Wert direkt in ihrem eigenen
 
 ### Werttypsemantik
 Ein Verhalten bei einer Zuweisung, bei dem der tatsächliche Inhalt (der Wert) kopiert wird. Nach der Zuweisung besitzen die Variablen völlig unabhängige Kopien der Daten.
+### Pfad
+Eine Wegbeschreibung zu einer Datei oder einem Ordner im Dateisystem, z. B. `"../../../daten.txt"`. Man unterscheidet [``absolute``](#absoluter-pfad) und [``relative Pfade``](#relativer-pfad).
+
+### Absoluter Pfad
+Ein [``Pfad``](#pfad), der beim Laufwerk beginnt (z. B. `C:\Users\...\daten.txt`). Er funktioniert nur auf dem Rechner, auf dem dieser Ordner existiert.
+
+### Relativer Pfad
+Ein [``Pfad``](#pfad), der von einem Basispunkt ausgeht. In einer C#-[``Console-App``](#console-app) ist das der Ordner der `.exe` (`bin/Debug/net10.0`). `..` bedeutet „einen Ordner hinauf“.
+
+### String-Methode
+Eine [``Methode``](#methode), die für einen [``String``](#string) aufgerufen wird, z. B. `Trim`, `Split`, `Substring`, `IndexOf`, `ToUpper`, `PadLeft`. Strings sind unveränderlich: Die Methode liefert einen **neuen** String zurück, der ursprüngliche bleibt gleich.
+
+### Foreach-Schleife
+Eine [``Schleife``](#schleife), die alle [``Elemente``](#element) einer Sammlung (z. B. eines [``Arrays``](#array)) der Reihe nach durchgeht, **ohne** [``Index``](#index): `foreach (string zeile in zeilen) { ... }`. Gut geeignet für reine Leseoperationen.
+
+### StreamReader
+Eine Klasse zum zeilenweisen Lesen einer Datei mit `ReadLine()`. Im Gegensatz zu `File.ReadAllLines` wird nicht die ganze Datei auf einmal in den Speicher geladen, darum eignet sie sich für große Dateien.
+
+### CSV
+*(Comma-Separated Values)* Ein Textformat für Tabellen: Jede Zeile ist ein Datensatz, die Werte sind durch ein Trennzeichen getrennt (im Englischen `,`, im Deutschen meist `;`). Eingelesen wird zeilenweise mit `Split`.
+
+### Default-Parameter
+Ein [``Parameter``](#parameter) mit Standardwert in der Signatur (z. B. `int n = 10`). Beim [``Aufruf``](#aufruf) darf er weggelassen werden, dann gilt der Standardwert. Default-Parameter stehen immer am Ende der Parameterliste.
+
+### Named Tuple
+Ein [``Typ``](#typ), der mehrere [``Werte``](#wert) mit Namen zusammenfasst, z. B. `(int x, int y) start`. Zugriff über den Punkt: `start.x`. Damit kann eine [``Funktion``](#funktion) mehrere Werte auf einmal zurückgeben.
+
+### Ganzzahldivision
+Eine Division zweier ganzzahliger Werte (`int / int`). Das Ergebnis ist wieder ganzzahlig, der Rest fällt weg: `4 / 5` ergibt `0`. Mit einem [``Typecast``](#typecasting) vor der Division (`(double)4 / 5`) erhält man `0.8`.
+
+### Euklidische Distanz
+Die direkte Luftlinie zwischen zwei Punkten nach dem Satz des Pythagoras: `Math.Sqrt(dx * dx + dy * dy)`.
+
+### Lineare Funktion
+Eine Funktion der Form `y = k · x + d`. `k` ist die Steigung, `d` die Verschiebung nach oben oder unten. Im 2D-Gitter liefert sie für jede Spalte `x` die Zeile `y`, in der eine Linie liegt.
+
+### Commit
+Ein gespeicherter Stand eines [``Git``](#git)-[``Repositorys``](#repository). Er enthält die Änderungen, eine Nachricht und eine [``Referenz``](#referenz) auf seinen Vorgänger. Alle Commits zusammen bilden eine Kette wie eine Linked List.
+
+### HEAD
+Ein Zeiger in [``Git``](#git) auf den [``Commit``](#commit), auf dem wir gerade arbeiten. Nach jedem neuen Commit wandert HEAD weiter.
+
+### Repository
+Der Speicher eines Projekts in [``Git``](#git) mit allen [``Commits``](#commit). Lokal liegt es im versteckten Ordner `.git`. Am Server (z. B. GitLab) liegt das [``Remote Repository``](#remote-repository).
+
+### Working Directory
+Die Dateien des Projekts, so wie sie gerade auf der Festplatte liegen. Änderungen hier sind noch in keinem [``Commit``](#commit) gespeichert.
+
+### Staging Area
+Der „Packtisch“ von [``Git``](#git): Mit `git add` legen wir Dateien hinein, mit `git commit` wird ihr Inhalt zum nächsten [``Commit``](#commit). Mit `git reset <datei>` nehmen wir eine Datei wieder heraus.
+
+### Remote Repository
+Das [``Repository``](#repository) am Server (z. B. GitLab), meist *origin* genannt. Mit `git push` übertragen wir lokale [``Commits``](#commit) dorthin, mit `git clone` holen wir es auf den Rechner.
+
+### .gitignore
+Eine Datei im [``Repository``](#repository), in der steht, welche Dateien und Ordner [``Git``](#git) ignorieren soll, z. B. `bin` und `obj`. Erstellt mit `dotnet new gitignore`.
+
+### Exception
+Ein [``Objekt``](#objekt), das einen echten Ausnahmefall beschreibt. Kann eine [``Methode``](#methode) ihre Aufgabe nicht erfüllen, wirft sie mit `throw` eine Exception. Der Aufrufer fängt sie mit [``try-catch``](#try-catch-finally).
+
+### Try-Catch-Finally
+Eine [``Kontrollstruktur``](#kontrollstruktur) zur Fehlerbehandlung. `try` umschließt Code, der eine [``Exception``](#exception) werfen kann, `catch` fängt sie auf, `finally` wird immer ausgeführt (z. B. um Ressourcen freizugeben).
+
+### Exception Filter
+Eine Bedingung mit `when` hinter einem `catch`: `catch (ZutatLeerException ex) when (ex.Zutat == "Milch")`. Der `catch`-Block wird nur betreten, wenn die Bedingung `true` ist.
+
+### StackTrace
+Die Aufrufkette zum Zeitpunkt einer [``Exception``](#exception): welche [``Methode``](#methode) welche aufgerufen hat, mit Zeilennummern. Abrufbar über `ex.StackTrace`.
+
+### Generics
+Klassen oder [``Methoden``](#methode), die mit einem [``Typparameter``](#typparameter) (z. B. `T`) für beliebige [``Typen``](#typ) geschrieben werden, z. B. `List<T>`.
+
+### Typparameter
+Ein Platzhalter für einen [``Typ``](#typ) bei [``Generics``](#generics), meist `T`. Er wird erst bei der Verwendung festgelegt, z. B. `List<int>`.
+
+### Typ-Restriktion
+Eine Einschränkung mit `where`, welche [``Typen``](#typ) für einen [``Typparameter``](#typparameter) erlaubt sind, z. B. `where T : IComparable<T>`.
+
+### Boxing
+Das Einpacken eines [``Werttyps``](#werttyp) in ein `object` auf dem [``Heap``](#heap). Das Auspacken heißt Unboxing. Beides kostet Zeit, [``Generics``](#generics) vermeiden es.
