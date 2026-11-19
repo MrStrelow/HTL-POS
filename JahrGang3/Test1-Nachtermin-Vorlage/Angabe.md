@@ -14,77 +14,107 @@ Notenschlüssel:
 
 ---
 
-#### Aufgabe 01 - Herbstblätter im Teich - 45%
+#### Aufgabe 01 - Bergsteiger am Berg - 45%
 
 >🎬 Zu dieser Aufgabe gibt es eine Hilfe zum Durchklicken: ``Aufgabe1/Animated-Slides-Aufgabe1.html`` (im Browser öffnen, funktioniert ohne Internet).
 
-Im Herbst fallen Blätter von einem Baum in einen Teich. Der Wind treibt sie zufällig über das Wasser. Sobald ein Blatt **seichtes Wasser** erreicht, verfängt es sich im Schilf und **bleibt für immer hängen**. Ein Blatt weiß nicht, wie der Teich aussieht – es fragt den Teich, ob es an eine bestimmte Stelle treiben darf.
+Ein Hubschrauber setzt Bergsteiger:innen am Gipfel ab. Im dichten Nebel klettern sie zufällig über den verschneiten Berg. Sobald jemand eine **Alm** erreicht, macht er dort **für immer Rast**. Steht ein **Fels** im Weg, kann er mit seinem **Pickel** freigeschlagen werden – aber nur, solange der Pickel hält. Ein Bergsteiger weiß nicht, wie der Berg aussieht – er fragt den Berg, ob er an eine bestimmte Stelle klettern darf.
 
 ##### Allgemeine Rahmenbedingungen der Simulation
-* **Kartengröße:** Der Teich ist quadratisch und muss **mindestens 12 × 12 Felder** groß sein (falls beim Erstellen ein kleinerer Wert übergeben wird, wird die Größe automatisch auf 12 gesetzt). Er darf aber auch größer sein.
+* **Kartengröße:** Der Berg ist quadratisch und muss **mindestens 12 × 12 Felder** groß sein (falls beim Erstellen ein kleinerer Wert übergeben wird, wird die Größe automatisch auf 12 gesetzt). Er darf aber auch größer sein.
 * **Gelände-Aufteilung:**
-  * Der **Rand** des Teichs (erste und letzte Zeile, erste und letzte Spalte) ist seichtes Ufer (🟩), das Innere tiefes Wasser (🟦).
-  * Zusätzlich sind **15 % der Gesamtfläche** seichtes Wasser (🟩) – nur auf Feldern, die vorher tiefes Wasser waren.
-  * **10 % der Gesamtfläche** sind Steine (🪨) – ebenfalls nur auf tiefem Wasser.
-* **Anzahl der Blätter:**
-  * Es fallen genau **5 % der Gesamtfläche** (abgerundet auf ganze Zahlen, bei 12 × 12 also 7 Stück) an Blättern in den Teich.
+  * Der **Rand** des Berges (erste und letzte Zeile, erste und letzte Spalte) ist Alm (🟩), das Innere Schnee (⬜).
+  * Zusätzlich sind **15 % der Gesamtfläche** Almen (🟩) – nur auf Feldern, die vorher Schnee waren.
+  * **10 % der Gesamtfläche** sind Fels (🪨) – ebenfalls nur auf Schnee.
+* **Anzahl der Bergsteiger:**
+  * Es werden genau **5 % der Gesamtfläche** (abgerundet auf ganze Zahlen, bei 12 × 12 also 7) Bergsteiger abgesetzt.
 * **Startpositionen:**
-  * Die ersten drei Blätter fallen vom Baum in der Mitte des Teichs auf die Koordinaten *(y, x)* **(Groesse / 2, Groesse / 2)**, **(Groesse / 2 − 1, Groesse / 2)** und **(Groesse / 2, Groesse / 2 − 1)**. Alle weiteren Blätter erhalten eine zufällige Startposition.
-* **Symbole:** treibendes Blatt 🍂, festhängendes Blatt 🍁.
+  * Die ersten drei Bergsteiger werden am Gipfel in der Mitte auf die Koordinaten *(y, x)* **(Groesse / 2, Groesse / 2)**, **(Groesse / 2 − 1, Groesse / 2)** und **(Groesse / 2, Groesse / 2 − 1)** abgesetzt. Alle weiteren erhalten eine zufällige Startposition.
+* **Symbole:** kletternder Bergsteiger 🧗, rastender Bergsteiger 🏕️.
 
 ##### Beschreibung der Klassen
 
-##### 1. Klasse `Blatt`
+##### 1. Klasse `Pickel`
 * **Eigenschaften:**
-  * **Teich:** Referenz auf den Teich, in dem das Blatt treibt (nur innerhalb der Klasse setzbar).
-  * **Position:** Ein Tupel für Zeile und Spalte *(y, x)* (nur innerhalb der Klasse setzbar).
-  * **HaengtFest:** Wahrheitswert, ob das Blatt im seichten Wasser festhängt (nur innerhalb der Klasse setzbar, am Anfang *falsch*).
+  * **Haltbarkeit:** Wie oft der Pickel noch verwendet werden kann (nur innerhalb der Klasse setzbar).
+  * **IstKaputt:** Nur lesbar. *Wahr*, wenn die **Haltbarkeit** 0 ist.
 * **Konstruktor:**
-  * Nimmt die Referenz auf den **Teich** sowie ein Tupel für die **Startposition** entgegen, speichert beide und ruft sofort die eigene Methode **PlatziereBlatt** auf.
+  * Nimmt die **Haltbarkeit** als Default-Parameter entgegen (Standardwert **3**) und speichert sie.
 * **Methoden:**
-  * **PlatziereBlatt:**
-    * Versucht, das Blatt auf der Startposition ins Wasser fallen zu lassen. Dazu fragt es den Teich mit **IstPlatzierbar**.
-    * **Falls das nicht möglich ist** (Stein, seichtes Wasser, schon ein Blatt oder außerhalb): Das Blatt wählt in einer Schleife solange zufällige neue Koordinaten *(y, x)* innerhalb der Teichgröße aus, bis **IstPlatzierbar** eine positive Rückmeldung liefert.
-    * Die gefundene Koordinate wird in **Position** gespeichert.
-  * **Treiben:**
-    * Hängt das Blatt bereits fest, passiert **nichts** (es bleibt für immer hängen).
-    * Sonst versucht das Blatt **höchstens 10-mal**, in eine zufällige Richtung zu treiben: *dy* und *dx* sind jeweils zufällig −1, 0 oder 1.
-    * Ob es dorthin darf, entscheidet der **Teich** mit **KannTreiben(Position, ziel)**. Wenn nicht, folgt der nächste Versuch.
-    * **Sobald ein Versuch klappt:**
-      1. Das Blatt fragt den Teich mit **IstSeicht(ziel)**, ob das Ziel seichtes Wasser ist, und speichert das Ergebnis in **HaengtFest**.
-      2. Der Teich versetzt das Blatt in seiner Karte mit **VersetzeBlatt(Position, ziel, HaengtFest)**.
-      3. Das Blatt speichert das Ziel als neue **Position** und beendet die Methode.
+  * **Benutzen:** Ist der Pickel kaputt, liefert die Methode *falsch*. Sonst verringert sie die **Haltbarkeit** um 1 und liefert *wahr*.
 
-##### 2. Klasse `Teich`
+##### 2. Klasse `Bergsteiger`
+* **Eigenschaften:**
+  * **Berg:** Referenz auf den Berg, auf dem der Bergsteiger klettert (nur innerhalb der Klasse setzbar).
+  * **Position:** Ein Tupel für Zeile und Spalte *(y, x)* (nur innerhalb der Klasse setzbar).
+  * **Rastet:** Wahrheitswert, ob der Bergsteiger auf einer Alm rastet (nur innerhalb der Klasse setzbar, am Anfang *falsch*).
+  * **Pickel:** Der eigene Pickel (1-zu-1 Beziehung, nur innerhalb der Klasse setzbar).
+* **Konstruktor:**
+  * Nimmt die Referenz auf den **Berg** sowie ein Tupel für die **Startposition** entgegen und speichert beide. Erzeugt einen **neuen Pickel** und ruft sofort die eigene Methode **Absetzen** auf.
+* **Methoden:**
+  * **Absetzen:**
+    * Versucht, den Bergsteiger auf der Startposition abzusetzen. Dazu fragt er den Berg mit **IstPlatzierbar**.
+    * **Falls das nicht möglich ist** (Fels, Alm, schon ein Bergsteiger oder außerhalb): Der Bergsteiger wählt in einer Schleife solange zufällige neue Koordinaten *(y, x)* innerhalb der Berggröße aus, bis **IstPlatzierbar** eine positive Rückmeldung liefert.
+    * Die gefundene Koordinate wird in **Position** gespeichert.
+  * **Klettern:**
+    * Rastet der Bergsteiger bereits, passiert **nichts** (er bleibt für immer auf der Alm).
+    * Sonst versucht der Bergsteiger **höchstens 10-mal** (Default-Parameter), in eine zufällige Richtung zu klettern: *dy* und *dx* sind jeweils zufällig −1, 0 oder 1.
+    * ⛏️ Ist das Ziel **Fels** (**IstFels(ziel)**) und kann der **Pickel benutzt** werden, schlägt der Berg das Feld mit **SchlageFrei(ziel)** frei. Danach folgt der nächste Versuch.
+    * Ob der Bergsteiger dorthin darf, entscheidet der **Berg** mit **KannKlettern(Position, ziel)**. Wenn nicht, folgt der nächste Versuch.
+    * **Sobald ein Versuch klappt:**
+      1. Der Bergsteiger fragt den Berg mit **IstAlm(ziel)**, ob das Ziel eine Alm ist, und speichert das Ergebnis in **Rastet**.
+      2. Der Berg versetzt den Bergsteiger in seiner Karte mit **VersetzeBergsteiger(Position, ziel, Rastet)**.
+      3. Der Bergsteiger speichert das Ziel als neue **Position** und beendet die Methode.
+
+##### 3. Klasse `Berg`
 * **Felder & Eigenschaften:**
   * **Karte:** Ein **privates** zweidimensionales Text-Array für Zeilen und Spalten. Es darf von anderen Klassen **nicht** direkt gelesen oder verändert werden!
-  * **Groesse:** Öffentlich lesbare Eigenschaft für die Seitenlänge des Teichs (nur intern setzbar).
-  * **Blaetter:** Öffentlich lesbares 1D-Array aller Blätter (1-zu-*n* Beziehung, nur intern setzbar).
+  * **Groesse:** Öffentlich lesbare Eigenschaft für die Seitenlänge des Berges (nur intern setzbar).
+  * **Bergsteiger:** Öffentlich lesbares 1D-Array aller Bergsteiger (1-zu-*n* Beziehung, nur intern setzbar).
 * **Konstruktor:**
-  * Nimmt die gewünschte Seitenlänge als Parameter entgegen (mindestens 12).
-  * Erstellt das 2D-Array **Karte**, befüllt den Rand mit 🟩 und das Innere mit 🟦.
-  * Platziert anschließend auf **15 % der Felder** zusätzlich 🟩 und auf **10 % der Felder** 🪨 an zufälligen Feldern mit tiefem Wasser.
-  * Berechnet die Anzahl der Blätter (**5 % der Gesamtfläche**), legt das 1D-Array **Blaetter** an und erzeugt die Blatt-Objekte (die ersten drei mit den Startpositionen in der Mitte, den Rest mit Zufallskoordinaten). Jedes Blatt muss **genau diesen** Teich kennen!
+  * Nimmt die gewünschte Seitenlänge als Parameter entgegen (mindestens 12, als Default-Parameter).
+  * Erstellt das 2D-Array **Karte**, befüllt den Rand mit 🟩 und das Innere mit ⬜.
+  * Platziert anschließend auf **15 % der Felder** zusätzlich 🟩 und auf **10 % der Felder** 🪨 an zufälligen Feldern mit Schnee.
+  * Berechnet die Anzahl der Bergsteiger (**5 % der Gesamtfläche**), legt das 1D-Array **Bergsteiger** an und erzeugt die Bergsteiger-Objekte (die ersten drei am Gipfel in der Mitte, den Rest mit Zufallskoordinaten). Jeder Bergsteiger muss **genau diesen** Berg kennen!
 * **Methoden:**
-  * **IstPlatzierbar:** Nimmt eine Position als Tupel *(y, x)* entgegen und gibt einen Wahrheitswert zurück. Prüft die Kartengrenzen und ob dort tiefes Wasser (🟦) ist. Ist das so, trägt die Methode ein treibendes Blatt (🍂) in die **Karte** ein und gibt *wahr* zurück.
-  * **KannTreiben:** Nimmt die aktuelle Position *von* und die Zielposition *ziel* entgegen. Liefert *falsch*, wenn *ziel* gleich *von* ist, außerhalb liegt oder dort ein Stein (🪨) oder bereits ein Blatt (🍂 oder 🍁) ist. Sonst *wahr*.
-  * **IstSeicht:** Liefert *wahr*, wenn die Position im Teich liegt und dort seichtes Wasser (🟩) ist.
-  * **VersetzeBlatt:** Nimmt *von*, *ziel* und *haengtFest* entgegen. Auf *von* wird wieder tiefes Wasser (🟦) eingetragen, auf *ziel* ein festhängendes (🍁) oder treibendes (🍂) Blatt.
-  * **Simuliere:** Nimmt eine Anzahl an Runden entgegen. In jeder Runde treibt **jedes** Blatt einmal.
-  * **ZaehleHaengendeBlaetter:** Liefert die Anzahl der Blätter, die festhängen.
+  * **IstPlatzierbar:** Nimmt eine Position als Tupel *(y, x)* entgegen und gibt einen Wahrheitswert zurück. Prüft die Kartengrenzen und ob dort Schnee (⬜) ist. Ist das so, trägt die Methode einen kletternden Bergsteiger (🧗) in die **Karte** ein und gibt *wahr* zurück.
+  * **KannKlettern:** Nimmt die aktuelle Position *von* und die Zielposition *ziel* entgegen. Liefert *falsch*, wenn *ziel* gleich *von* ist, außerhalb liegt oder dort Fels (🪨) oder bereits ein Bergsteiger (🧗 oder 🏕️) ist. Sonst *wahr*.
+  * **IstAlm:** Liefert *wahr*, wenn die Position auf der Karte liegt und dort eine Alm (🟩) ist.
+  * **IstFels:** Liefert *wahr*, wenn die Position auf der Karte liegt und dort Fels (🪨) ist.
+  * **SchlageFrei:** Ist an der Position Fels, wird dort Schnee (⬜) eingetragen.
+  * **VersetzeBergsteiger:** Nimmt *von*, *ziel* und *rastet* entgegen. Auf *von* wird wieder Schnee (⬜) eingetragen, auf *ziel* ein rastender (🏕️) oder kletternder (🧗) Bergsteiger.
+  * **Simuliere:** Nimmt eine Anzahl an Runden entgegen. In jeder Runde klettert **jeder** Bergsteiger einmal.
+  * **ZaehleRastende:** Liefert die Anzahl der Bergsteiger, die rasten.
+  * **ZaehleKaputtePickel:** Liefert die Anzahl der Bergsteiger, deren Pickel kaputt ist.
   * **Print:** Gibt die gesamte **Karte** zeilenweise in der Konsole aus.
 
-##### 3. Hauptprogramm (`Program`)
-* Stellt die Konsolenausgabe auf UTF-8 um, erstellt einen **Teich** (z. B. Größe 12) und gibt ihn mit **Print** aus.
-* Simuliert 5 Runden und gibt den Teich sowie die Anzahl der festhängenden Blätter aus. Danach weitere 50 Runden, wieder mit Ausgabe.
+##### 4. Hauptprogramm (`Program`)
+* Stellt die Konsolenausgabe auf UTF-8 um, erstellt einen **Berg** (z. B. Größe 12) und gibt ihn mit **Print** aus.
+* Simuliert 5 Runden und gibt den Berg, die Anzahl der rastenden Bergsteiger und der kaputten Pickel aus. Danach weitere 50 Runden, wieder mit Ausgabe.
 
 ---
 
-##### 4. Erwartete Ausgabe
+##### 5. Erwartete Ausgabe
 Durch Zufall nicht 1 zu 1 verwendbar.
 ```
-Siehe HTML-Slide.
+🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩
+🟩⬜🪨⬜🪨⬜🟩🪨⬜🟩🪨🟩
+🟩🟩🪨🟩🟩⬜⬜⬜🪨🟩⬜🟩
+🟩🪨⬜⬜⬜🟩⬜🏕️⬜🟩⬜🏕️
+🟩⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜🟩
+🟩⬜🪨⬜⬜⬜⬜⬜🟩⬜⬜🟩
+🟩⬜🟩⬜🪨🪨🟩⬜⬜⬜⬜🟩
+🟩⬜🏕️⬜⬜⬜⬜⬜⬜🧗⬜🟩
+🟩⬜⬜⬜⬜⬜🏕️⬜🟩⬜🟩🟩
+🟩⬜⬜⬜🟩⬜🪨⬜⬜⬜🏕️🟩
+🟩⬜⬜⬜🟩🟩⬜⬜⬜⬜🟩🟩
+🟩🟩🟩🏕️🟩🟩🟩🟩🟩🟩🟩🟩
+
+Rastende Bergsteiger: 6 | kaputte Pickel: 0
 ```
+Weitere Zwischenschritte: siehe HTML-Slide.
+
+---
 
 #### Aufgabe 02 - Doubly Linked List - 45%
 
@@ -159,39 +189,45 @@ PoS - CAMM - 3CHIF
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 **Datum:** 
 _ _ _ _ _ _ _ _ _ _
-Analysiere folgenden Code. Die Methode **SetzeKapitaen** soll die Hat-Beziehung zwischen Schiff und Kapitän in **beide Richtungen** herstellen. Das Programm gibt aber `False` aus. Was fällt dir auf? Wie beheben wir den Fehler?
+Eine **Seilschaft** ist eine einfach verkettete Liste von Kletterern. Für den Abstieg soll die Methode **Umdrehen** die Reihenfolge umkehren: Wer zuletzt geht, geht nun voran. Erwartet wird ``Cem - Ben - Anna``, das Programm gibt aber nur ``Anna`` aus. Was fällt dir auf? Wo sind Ben und Cem geblieben? Wie beheben wir den Fehler?
 
 ```csharp
-public class Kapitaen
+public class Kletterer
 {
     public string Name { get; private set; }
-    public Schiff Schiff { get; set; }
+    public Kletterer? Next { get; set; }
 
-    public Kapitaen(string name)
+    public Kletterer(string name)
     {
         Name = name;
     }
 }
 
-public class Schiff
+public class Seilschaft
 {
-    public string Name { get; private set; }
-    public Kapitaen Kapitaen { get; private set; }
+    public Kletterer? Head { get; private set; }
 
-    public Schiff(string name)
-    {
-        Name = name;
-    }
+    // AddLast und Print funktionieren richtig und sind hier ausgelassen.
 
-    public void SetzeKapitaen(Kapitaen kapitaen)
+    public void Umdrehen()
     {
-        Kapitaen = kapitaen;
-        kapitaen.Schiff = new Schiff(Name);
+        Kletterer? prev = null;
+        Kletterer? curr = Head;
+        while (curr != null)
+        {
+            curr.Next = prev;
+            prev = curr;
+            curr = curr.Next;
+        }
+        Head = prev;
     }
 }
 
 // Program.cs
-Schiff schiff = new Schiff("Donauwelle");
-schiff.SetzeKapitaen(new Kapitaen("Nemo"));
-Console.WriteLine(schiff.Kapitaen.Schiff == schiff);
+Seilschaft seilschaft = new Seilschaft();
+seilschaft.AddLast(new Kletterer("Anna"));
+seilschaft.AddLast(new Kletterer("Ben"));
+seilschaft.AddLast(new Kletterer("Cem"));
+seilschaft.Umdrehen();
+seilschaft.Print();     // Ausgabe: Anna
 ```

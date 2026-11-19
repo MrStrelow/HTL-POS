@@ -116,7 +116,7 @@
 <body>
 <header>
   <div>
-    <h1>🍂 Aufgabe 01 – Herbstblätter im Teich</h1>
+    <h1>🧗 Aufgabe 01 – Bergsteiger am Berg</h1>
     <small>Was im Programm passiert – Schritt für Schritt (ohne Code) – funktioniert ohne Internet</small>
   </div>
   <nav id="nav"></nav>
@@ -186,8 +186,8 @@ class Trace {
 }
 const slideOf = (title, text, ...traces) => ({ title, text, frames: traces.flatMap(t => t.frames) });
 
-// ===================== Aufgabe 1 (3. Jahrgang): Herbstblätter im Teich =====================
-const TIEF = "🟦", SEICHT = "🟩", STEIN = "🪨", TREIBT = "🍂", HAENGT = "🍁";
+// ===================== Aufgabe 1 (3. Jahrgang): Bergsteiger am Berg =====================
+const TIEF = "⬜", SEICHT = "🟩", STEIN = "🪨", TREIBT = "🧗", HAENGT = "🏕️";
 let seed = 7;
 // fester Startwert (mulberry32), damit die Animation immer gleich abläuft; liefert wie random.Next(min, max)
 function zufall(min, max) {
@@ -204,77 +204,80 @@ const gridView = (k, probes = {}) => `<div style="display:grid;grid-template-col
   `<span title="(${y}, ${x})" style="padding:1px;border-radius:4px;${probes[y + "," + x] ? `outline:3px solid ${probes[y + "," + x] === "ok" ? "var(--ok)" : "var(--bad)"}` : ""}">${c}</span>`)).join("")}</div>`;
 const inside = p => p[0] >= 0 && p[0] < G && p[1] >= 0 && p[1] < G;
 
-// ---------- Teich-Konstruktor (wie in der Musterlösung) ----------
-const bau = new Trace("public Teich(int groesse)", [
-  "Groesse = max(groesse, 12); <b>Karte</b> = new string[Groesse, Groesse]",
-  "1. Rand → 🟩 seicht, Inneres → 🟦 tief",
-  "2. 15 % der Fläche zusätzlich 🟩 – Schleife: zufälliges Feld, nur wenn dort 🟦",
-  "3. 10 % der Fläche 🪨 – Schleife: zufälliges Feld, nur wenn dort 🟦",
-  "4. Blaetter = new Blatt[5 % der Fläche]; die ersten 3 in der Mitte, Rest zufällig – jedes mit <b>this</b>"]);
-bau.call("new Teich(12)");
+// ---------- Berg-Konstruktor (wie in der Musterlösung) ----------
+const bau = new Trace("public Berg(int groesse, int minGroesse = 12)", [
+  "Groesse = max(groesse, minGroesse); <b>Karte</b> = new string[Groesse, Groesse]",
+  "1. Rand → 🟩 Alm, Inneres → ⬜ Schnee",
+  "2. 15 % der Fläche zusätzlich 🟩 – Schleife: zufälliges Feld, nur wenn dort ⬜",
+  "3. 10 % der Fläche 🪨 – Schleife: zufälliges Feld, nur wenn dort ⬜",
+  "4. Bergsteiger = new Bergsteiger[5 % der Fläche]; die ersten 3 am Gipfel in der Mitte, Rest zufällig – jeder mit <b>this</b>"]);
+bau.call("new Berg(12)");
 karte = Array.from({ length: G }, (_, y) => Array.from({ length: G }, (_, x) => (y === 0 || x === 0 || y === G - 1 || x === G - 1) ? SEICHT : TIEF));
 bau.f(0, { Groesse: 12, gesamtFlaeche: 144 }, gridView(kopie()), "12 ist nicht kleiner als 12 → Groesse = 12. Fläche = 144 Felder.");
-bau.f(1, { Groesse: 12, gesamtFlaeche: 144 }, gridView(kopie()), "Der Rand ist seichtes Ufer – dort bleiben die Blätter sicher irgendwann hängen.");
+bau.f(1, { Groesse: 12, gesamtFlaeche: 144 }, gridView(kopie()), "Der Rand ist Alm – dort kommen die Bergsteiger irgendwann zur Rast.");
 let n = 0, versuche = 0;
 while (n < 21) { const y = zufall(0, G), x = zufall(0, G); versuche++; if (karte[y][x] === TIEF) { karte[y][x] = SEICHT; n++; } }
-bau.f(2, { anzahlSeicht: 21, platziertSeicht: 21, "Versuche gesamt": versuche }, gridView(kopie()), `(int)(144 · 0,15) = <b>21</b>. Weil manche Zufallsfelder schon seicht waren, brauchte die Schleife ${versuche} Versuche – gezählt wird nur, was wirklich platziert wurde.`);
+bau.f(2, { anzahlAlm: 21, platziertAlm: 21, "Versuche gesamt": versuche }, gridView(kopie()), `(int)(144 · 0,15) = <b>21</b>. Weil manche Zufallsfelder schon Alm waren, brauchte die Schleife ${versuche} Versuche – gezählt wird nur, was wirklich platziert wurde.`);
 n = 0; versuche = 0;
 while (n < 14) { const y = zufall(0, G), x = zufall(0, G); versuche++; if (karte[y][x] === TIEF) { karte[y][x] = STEIN; n++; } }
-bau.f(3, { anzahlSteine: 14, platzierteSteine: 14, "Versuche gesamt": versuche }, gridView(kopie()), "(int)(144 · 0,10) = <b>14</b> Steine, nur auf tiefem Wasser.");
+bau.f(3, { anzahlFels: 14, platzierterFels: 14, "Versuche gesamt": versuche }, gridView(kopie()), "(int)(144 · 0,10) = <b>14</b> Felder Fels, nur auf Schnee.");
 
-// ---------- Blätter platzieren ----------
+// ---------- Bergsteiger absetzen ----------
 const blaetter = [];
-const platz = new Trace("Blatt.PlatziereBlatt()  →  Teich.IstPlatzierbar(position)", [
+const platz = new Trace("Bergsteiger.Absetzen()  →  Berg.IstPlatzierbar(position)", [
   "<b>pruefPosition</b> = Startposition",
-  "while: Teich.IstPlatzierbar(pruefPosition) liefert false?",
-  "   ↳ IstPlatzierbar: ❌ außerhalb / ❌ kein 🟦 → false;  ✅ 🍂 eintragen, true",
+  "while: Berg.IstPlatzierbar(pruefPosition) liefert false?",
+  "   ↳ IstPlatzierbar: ❌ außerhalb / ❌ kein ⬜ → false;  ✅ 🧗 eintragen, true",
   "   ❌ neue zufällige pruefPosition (y, x) wählen",
   "Position = pruefPosition"]);
 const starts = [[6, 6], [5, 6], [6, 5], [zufall(0, G), zufall(0, G)], [zufall(0, G), zufall(0, G)], [zufall(0, G), zufall(0, G)], [zufall(0, G), zufall(0, G)]];
 starts.forEach((s, i) => {
-  let p = s; platz.call(`new Blatt(this, (${s[0]}, ${s[1]}))  // Blatt ${i}${i < 3 ? " – Mitte" : " – zufällig"}`);
-  platz.f(0, { i, pruefPosition: R(`(${p[0]}, ${p[1]})`), Rückgabe: null }, gridView(kopie(), { [p.join(",")]: "ok" }), i < 3 ? "Eines der drei Blätter, die vom Baum in der Mitte fallen." : "Zufällige Startposition.");
+  let p = s; platz.call(`new Bergsteiger(this, (${s[0]}, ${s[1]}))  // Bergsteiger ${i}${i < 3 ? " – Mitte" : " – zufällig"}`);
+  platz.f(0, { i, pruefPosition: R(`(${p[0]}, ${p[1]})`), Rückgabe: null }, gridView(kopie(), { [p.join(",")]: "ok" }), i < 3 ? "Einer der drei Bergsteiger, die der Hubschrauber am Gipfel absetzt." : "Zufällige Startposition.");
   while (!(inside(p) && karte[p[0]][p[1]] === TIEF)) {
-    platz.f(2, { i, pruefPosition: R(`(${p[0]}, ${p[1]})`), "Karte dort": C(karte[p[0]][p[1]]), Rückgabe: false }, gridView(kopie(), { [p.join(",")]: "bad" }), `Dort ist ${karte[p[0]][p[1]]} – kein freies tiefes Wasser → false. Das Blatt probiert eine neue zufällige Stelle.`, { 2: "bad" });
+    platz.f(2, { i, pruefPosition: R(`(${p[0]}, ${p[1]})`), "Karte dort": C(karte[p[0]][p[1]]), Rückgabe: false }, gridView(kopie(), { [p.join(",")]: "bad" }), `Dort ist ${karte[p[0]][p[1]]} – kein freier Schnee → false. Der Bergsteiger probiert eine neue zufällige Stelle.`, { 2: "bad" });
     p = [zufall(0, G), zufall(0, G)];
     platz.f(3, { i, pruefPosition: R(`(${p[0]}, ${p[1]})`), Rückgabe: null }, gridView(kopie(), { [p.join(",")]: "ok" }), `Neuer Versuch auf (${p[0]}, ${p[1]}).`);
   }
-  karte[p[0]][p[1]] = TREIBT; blaetter.push({ p, h: false });
-  platz.f(4, { i, pruefPosition: R(`(${p[0]}, ${p[1]})`), Rückgabe: true, Position: R(`(${p[0]}, ${p[1]})`) }, gridView(kopie(), { [p.join(",")]: "ok" }), "IstPlatzierbar hat 🍂 eingetragen und true geliefert → das Blatt merkt sich die Position.", { 2: "ok" });
+  karte[p[0]][p[1]] = TREIBT; blaetter.push({ p, h: false, k: 3 });
+  platz.f(4, { i, pruefPosition: R(`(${p[0]}, ${p[1]})`), Rückgabe: true, Position: R(`(${p[0]}, ${p[1]})`) }, gridView(kopie(), { [p.join(",")]: "ok" }), "IstPlatzierbar hat 🧗 eingetragen und true geliefert → der Bergsteiger merkt sich die Position. Er bekommt einen neuen Pickel (Haltbarkeit 3).", { 2: "ok" });
 });
-bau.f(4, { "Blaetter.Length": 7 }, gridView(kopie()), "(int)(144 · 0,05) = <b>7</b> Blätter. Jedes bekommt <b>this</b> – also genau diesen Teich (bidirektionale Hat-Beziehung auf Objektebene).");
+bau.f(4, { "Bergsteiger.Length": 7 }, gridView(kopie()), "(int)(144 · 0,05) = <b>7</b> Bergsteiger. Jeder bekommt <b>this</b> – also genau diesen Berg (bidirektionale Hat-Beziehung auf Objektebene) – und seinen eigenen Pickel.");
 
 // ---------- Treiben ----------
-const treib = new Trace("Blatt.Treiben()  →  Teich.KannTreiben / IstSeicht / VersetzeBlatt", [
-  "❌ HaengtFest? → return (bleibt für immer hängen)",
-  "for versuch von 0 bis 9: dy, dx zufällig −1, 0 oder 1; <b>ziel</b> = Position + (dy, dx)",
-  "   ❌ !Teich.KannTreiben(Position, ziel) (gleich / außerhalb / 🪨 / Blatt) → nächster Versuch",
-  "   ✅ HaengtFest = Teich.IstSeicht(ziel); Teich.VersetzeBlatt(Position, ziel, HaengtFest); Position = ziel; return"]);
-const sim = new Trace("Teich.Simuliere(runden)", ["for runde: foreach blatt in Blaetter → blatt.Treiben()"]);
+const treib = new Trace("Bergsteiger.Klettern()  →  Berg.IstFels / KannKlettern / IstAlm / VersetzeBergsteiger", [
+  "❌ Rastet? → return (bleibt für immer auf der Alm)",
+  "for versuch von 0 bis maxVersuche - 1: dy, dx zufällig −1, 0 oder 1; <b>ziel</b> = Position + (dy, dx)",
+  "   ⛏️ Berg.IstFels(ziel) && Pickel.Benutzen() → Berg.SchlageFrei(ziel); nächster Versuch",
+  "   ❌ !Berg.KannKlettern(Position, ziel) (gleich / außerhalb / 🪨 / Bergsteiger) → nächster Versuch",
+  "   ✅ Rastet = Berg.IstAlm(ziel); Berg.VersetzeBergsteiger(Position, ziel, Rastet); Position = ziel; return"]);
+const sim = new Trace("Berg.Simuliere(runden)", ["for runde: foreach b in Bergsteiger → b.Klettern()"]);
 let gezeigt = 0, guardGezeigt = false;
 const snap = [];
 for (let runde = 0; runde < 55; runde++) {
   blaetter.forEach((b, i) => {
     const zeigen = gezeigt < 14;
-    if (b.h) { if (zeigen && !guardGezeigt) { treib.call(`Blatt ${i}, Runde ${runde + 1}`); treib.f(0, { HaengtFest: true }, gridView(kopie(), { [b.p.join(",")]: "bad" }), "Das Blatt hängt im Schilf fest → sofort return. Es bewegt sich nie wieder.", { 0: "bad" }); guardGezeigt = true; gezeigt++; } return; }
-    if (zeigen) treib.call(`Blatt ${i}, Runde ${runde + 1}`);
+    if (b.h) { if (zeigen && !guardGezeigt) { treib.call(`Bergsteiger ${i}, Runde ${runde + 1}`); treib.f(0, { Rastet: true }, gridView(kopie(), { [b.p.join(",")]: "bad" }), "Der Bergsteiger rastet auf der Alm → sofort return. Er bewegt sich nie wieder.", { 0: "bad" }); guardGezeigt = true; gezeigt++; } return; }
+    if (zeigen) treib.call(`Bergsteiger ${i}, Runde ${runde + 1}`);
     for (let v = 0; v < 10; v++) {
       const dy = zufall(-1, 2), dx = zufall(-1, 2), z = [b.p[0] + dy, b.p[1] + dx];
-      const feld = inside(z) ? karte[z[0]][z[1]] : null;
+      let feld = inside(z) ? karte[z[0]][z[1]] : null;
+      if (feld === STEIN && b.k > 0) { b.k--; karte[z[0]][z[1]] = TIEF; if (zeigen) treib.f(2, { versuch: v, dy, dx, ziel: R(`(${z[0]}, ${z[1]})`), "IstFels": true, "Pickel.Haltbarkeit": b.k }, gridView(kopie(), { [b.p.join(",")]: "ok", [z.join(",")]: "ok" }), `⛏️ Fels! Der Pickel hält noch → Benutzen() liefert true, Haltbarkeit jetzt ${b.k}. Der Berg schlägt das Feld frei (⬜). Nächster Versuch.`, { 0: "ok", 2: "ok" }); continue; }
+      if (feld === STEIN && zeigen) treib.f(2, { versuch: v, dy, dx, ziel: R(`(${z[0]}, ${z[1]})`), "IstFels": true, "Pickel.Haltbarkeit": b.k }, gridView(kopie(), { [b.p.join(",")]: "ok", [z.join(",")]: "bad" }), "⛏️ Fels, aber der Pickel ist kaputt → Benutzen() liefert false. Weiter mit KannKlettern.", { 0: "ok", 2: "bad" });
       const ok = !(dy === 0 && dx === 0) && inside(z) && feld !== STEIN && feld !== TREIBT && feld !== HAENGT;
-      if (!ok) { if (zeigen) treib.f(2, { versuch: v, dy, dx, ziel: R(`(${z[0]}, ${z[1]})`), "KannTreiben": false }, gridView(kopie(), { [b.p.join(",")]: "ok", ...(inside(z) ? { [z.join(",")]: "bad" } : {}) }), dy === 0 && dx === 0 ? "dy = dx = 0 – das wäre keine Bewegung → false." : `Am Ziel ist ${feld} → der Teich sagt nein.`, { 0: "ok", 2: "bad" }); continue; }
+      if (!ok) { if (zeigen) treib.f(3, { versuch: v, dy, dx, ziel: R(`(${z[0]}, ${z[1]})`), "KannKlettern": false }, gridView(kopie(), { [b.p.join(",")]: "ok", ...(inside(z) ? { [z.join(",")]: "bad" } : {}) }), dy === 0 && dx === 0 ? "dy = dx = 0 – das wäre keine Bewegung → false." : `Am Ziel ist ${feld} → der Berg sagt nein.`, { 0: "ok", 3: "bad" }); continue; }
       const seicht = feld === SEICHT;
       karte[b.p[0]][b.p[1]] = TIEF; karte[z[0]][z[1]] = seicht ? HAENGT : TREIBT;
-      if (zeigen) treib.f(3, { versuch: v, dy, dx, ziel: R(`(${z[0]}, ${z[1]})`), "KannTreiben": true, HaengtFest: seicht }, gridView(kopie(), { [z.join(",")]: "ok" }), seicht ? "Ziel ist seicht → HaengtFest = true, der Teich trägt 🍁 ein." : "Tiefes Wasser → das Blatt treibt weiter (🍂). Am alten Platz ist wieder 🟦.", { 0: "ok", 2: "ok" });
+      if (zeigen) treib.f(4, { versuch: v, dy, dx, ziel: R(`(${z[0]}, ${z[1]})`), "KannKlettern": true, Rastet: seicht }, gridView(kopie(), { [z.join(",")]: "ok" }), seicht ? "Ziel ist eine Alm → Rastet = true, der Berg trägt 🏕️ ein." : "Schnee → der Bergsteiger klettert weiter (🧗). Am alten Platz ist wieder ⬜.", { 0: "ok", 3: "ok" });
       b.p = z; b.h = seicht; if (zeigen) gezeigt++; break;
     }
   });
   if (runde === 4 || runde === 54) snap.push([runde + 1, kopie(), blaetter.filter(b => b.h).length]);
 }
-for (const [r, k, h] of snap) sim.f(0, { runde: r, "hängen fest": `${h} von 7` }, gridView(k), `Nach ${r} Runden hängen ${h} von 7 Blättern fest.`);
+for (const [r, k, h] of snap) sim.f(0, { runde: r, "rasten": `${h} von 7` }, gridView(k), `Nach ${r} Runden rasten ${h} von 7 Bergsteigern.`);
 
-const gesamt = slideOf("Gesamtablauf – Teich bauen und simulieren", "Der Konstruktor baut den Teich und erzeugt die Blätter, Simuliere lässt sie treiben.", bau, sim);
-const slides = [gesamt, slideOf("PlatziereBlatt – Blatt ins Wasser fallen lassen", "Das Blatt fragt den Teich so lange, bis es einen freien Platz gibt (Delegation über die Hat-Beziehung).", platz), slideOf("Treiben – ein Blatt bewegen", "Höchstens 10 Versuche, der Teich entscheidet, seichtes Wasser hält das Blatt fest.", treib)];
+const gesamt = slideOf("Gesamtablauf – Berg bauen und simulieren", "Der Konstruktor baut den Berg und setzt die Bergsteiger ab, Simuliere lässt sie klettern.", bau, sim);
+const slides = [gesamt, slideOf("Absetzen – Bergsteiger am Berg absetzen", "Der Bergsteiger fragt den Berg so lange, bis es einen freien Platz gibt (Delegation über die Hat-Beziehung).", platz), slideOf("Klettern – einen Bergsteiger bewegen", "Höchstens 10 Versuche, Fels kann mit dem Pickel freigeschlagen werden, der Berg entscheidet, auf der Alm wird gerastet.", treib)];
 
 // ===================== Steuerung =====================
 let s = 0, f = 0, timer = null;

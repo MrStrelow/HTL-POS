@@ -77,7 +77,7 @@ False
 
 Implementiere ``string ErzeugeUeberschrift(string s, char links = '=', char rechts = '=', int n = 10)``.
 
->**Default-Parameter:** Ein Parameter mit ``= wert`` in der Signatur darf beim Aufruf **weggelassen** werden – dann gilt der angegebene Standardwert. Default-Parameter stehen immer **am Ende** der Parameterliste. Wir verwenden sie statt fest eingebauter „magischer Zahlen“: Der Normalfall bleibt kurz, Sonderfälle sind trotzdem möglich.
+>**Default-Parameter:** Ein Parameter mit ``= wert`` in der Signatur darf beim Aufruf **weggelassen** werden – dann gilt der angegebene Standardwert. Default-Parameter stehen immer **am Ende** der Parameterliste: Der Normalfall bleibt kurz, Sonderfälle sind trotzdem möglich.
 
 Im Hauptprogramm reicht dann ``ErzeugeUeberschrift("Arbeitszeiten")``. Mit ``ErzeugeUeberschrift("Pause", '*', '*')`` werden nur ``links`` und ``rechts`` geändert, ``n`` bleibt ``10``.
 

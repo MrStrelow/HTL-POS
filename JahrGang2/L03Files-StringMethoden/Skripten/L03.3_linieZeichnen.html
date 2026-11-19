@@ -188,7 +188,8 @@ function hlIn(pre, n, hl, hit, miss) {
   const first = $(pre + '-' + (hl.length ? Math.max(...hl) : 0));
   if (first && pre === 'code') first.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
-function setHl(hl, hit, miss) { hlIn('code', FULL.length, hl, hit, miss); }
+let CODE = null;   // aktuell angezeigter Code (FULL, FULL_Y oder FULL_ALL)
+function setHl(hl, hit, miss) { hlIn('code', (CODE || FULL).length, hl, hit, miss); }
 
 function varTable(id, rows) {
   const t = el('table', 'vt'); t.id = id; fillVars(t, rows, false); return t;
@@ -528,6 +529,220 @@ function altStage(st, kind) {
   });
 }
 
+// ===================== Tab 4 + 5: Erweiterungen =====================
+// Variante: für jede Zeile y fragt g(y), in welcher Spalte x die Linie liegt
+const OFF = 37;   // Zeilen 0..36 = Programmanfang mit Distanzberechnung
+const FULL_Y_FN = [
+  'void ZeichneDistanzAlsLinie((int x, int y) start, (int x, int y) ziel, int groesse = 10)',
+  '{',
+  '    string background = "🟦";',
+  '    string zielSymbol = "❌";',
+  '    string startSymbol = "✅";',
+  '    string linienSymbol = "🔸";',
+  '    // m = 1 / k: wie weit geht es in x pro Zeile?',
+  '    double m = (double)(ziel.x - start.x) / (ziel.y - start.y);',
+  '',
+  '    for (int y = 0; y < groesse; y++)',
+  '    {',
+  '        // g(y): in welcher Spalte liegt die Linie in Zeile y?',
+  '        int gy = start.x + (int)Math.Round(m * (y - start.y));',
+  '',
+  '        for (int x = 0; x < groesse; x++)',
+  '        {',
+  '            if (x == gy && start.y < y && y < ziel.y)',
+  '            {',
+  '                Console.Write(linienSymbol);',
+  '            }',
+  '            else if (x == start.x && y == start.y)',
+  '            {',
+  '                Console.Write(startSymbol);',
+  '            }',
+  '            else if (x == ziel.x && y == ziel.y)',
+  '            {',
+  '                Console.Write(zielSymbol);',
+  '            }',
+  '            else',
+  '            {',
+  '                Console.Write(background);',
+  '            }',
+  '        }',
+  '        Console.WriteLine();',
+  '    }',
+  '}'
+];
+// alle Richtungen: flach/steil, links->rechts/rechts->links
+const FULL_ALL_FN = [
+  'void ZeichneLinie((int x, int y) start, (int x, int y) ziel, int groesse = 10)',
+  '{',
+  '    string background = "🟦";',
+  '    string zielSymbol = "❌";',
+  '    string startSymbol = "✅";',
+  '    string linienSymbol = "🔸";',
+  '',
+  '    int dx = ziel.x - start.x;',
+  '    int dy = ziel.y - start.y;',
+  '    // steil: mehr Zeilen als Spalten -> y abgehen',
+  '    bool steil = Math.Abs(dy) > Math.Abs(dx);',
+  '    double k = (double)dy / dx;   // für f(x)',
+  '    double m = (double)dx / dy;   // für g(y)',
+  '',
+  '    // egal ob links -> rechts oder rechts -> links',
+  '    int minX = Math.Min(start.x, ziel.x);',
+  '    int maxX = Math.Max(start.x, ziel.x);',
+  '    int minY = Math.Min(start.y, ziel.y);',
+  '    int maxY = Math.Max(start.y, ziel.y);',
+  '',
+  '    for (int y = 0; y < groesse; y++)',
+  '    {',
+  '        int gy = start.x + (int)Math.Round(m * (y - start.y));',
+  '        for (int x = 0; x < groesse; x++)',
+  '        {',
+  '            int fx = start.y + (int)Math.Round(k * (x - start.x));',
+  '',
+  '            bool aufLinie;',
+  '            if (steil)',
+  '            {',
+  '                aufLinie = x == gy && minY < y && y < maxY;',
+  '            }',
+  '            else',
+  '            {',
+  '                aufLinie = y == fx && minX < x && x < maxX;',
+  '            }',
+  '',
+  '            if (aufLinie)',
+  '            {',
+  '                Console.Write(linienSymbol);',
+  '            }',
+  '            else if (x == start.x && y == start.y)',
+  '            {',
+  '                Console.Write(startSymbol);',
+  '            }',
+  '            else if (x == ziel.x && y == ziel.y)',
+  '            {',
+  '                Console.Write(zielSymbol);',
+  '            }',
+  '            else',
+  '            {',
+  '                Console.Write(background);',
+  '            }',
+  '        }',
+  '        Console.WriteLine();',
+  '    }',
+  '}'
+];
+const FULL_Y = FULL.slice(0, OFF).concat(FULL_Y_FN);
+const FULL_ALL = FULL.slice(0, OFF).concat(FULL_ALL_FN);
+FULL_ALL[9] = 'ZeichneLinie(punkte.start, punkte.ziel);';
+// mode: 'naiv' = Code aus Tab 2, 'minmax' = Bereich mit Min/Max, 'y' = immer g(y), 'all' = fertige Lösung
+function linePic(s, z, mode) {
+  const dx = z[0] - s[0], dy = z[1] - s[1], k = dy / dx, m = dx / dy;
+  const steil = mode === 'y' || (mode === 'all' && Math.abs(dy) > Math.abs(dx));
+  const x0 = mode === 'naiv' ? s[0] : Math.min(s[0], z[0]), x1 = mode === 'naiv' ? z[0] : Math.max(s[0], z[0]);
+  const y0 = Math.min(s[1], z[1]), y1 = Math.max(s[1], z[1]);
+  const p = [];
+  for (let y = 0; y < NE; y++) {
+    p.push([]);
+    for (let x = 0; x < NE; x++) {
+      const on = steil ? x === s[0] + csRound(m * (y - s[1])) && y0 < y && y < y1
+                       : y === s[1] + csRound(k * (x - s[0])) && x0 < x && x < x1;
+      p[y].push(on ? LS : x === s[0] && y === s[1] ? SS : x === z[0] && y === z[1] ? ZS : BG);
+    }
+  }
+  return p;
+}
+const NE = 5;   // Brettgröße in den Erweiterungen
+const samePic = (a, b) => a.every((r, y) => r.every((v, x) => v === b[y][x]));
+const countLS = (p) => p.flat().filter(v => v === LS).length;
+function miniBoard(id, s, z, mode, title, cls) {
+  const c = el('div', 'col fade'); c.style.gap = '4px';
+  const pic = linePic(s, z, mode);
+  const t = el('div', 'pill ' + cls, title); t.style.fontSize = '12px'; t.style.padding = '2px 8px'; c.appendChild(t);
+  c.appendChild(board(id, NE, { con: true, cs: 18, fill: (x, y) => pic[y][x] }));
+  later(80, () => line(id, s[0], s[1], z[0], z[1], '#10b981', { w: 2, op: .55 }));
+  return c;
+}
+const ST = { s: [0, 0], z: [2, 4] }, FL = { s: [0, 1], z: [4, 2] };
+
+// Tab 4, Schritt 1: f(x) oder g(y)?
+function frageStage(st) {
+  const g = el('div', 'board'); g.style.gridTemplateColumns = 'auto auto auto'; g.style.gap = '8px'; g.style.fontSize = '12px'; g.style.alignItems = 'center';
+  g.append(el('div'), el('div', 'pill x', 'für jede Spalte x: f(x) = y'), el('div', 'pill y', 'für jede Zeile y: g(y) = x'));
+  [['steil', ST], ['flach', FL]].forEach(([name, P2], r) => {
+    g.appendChild(el('div', 'pill acc', name));
+    ['minmax', 'y'].forEach((mode, i) => {
+      const n = countLS(linePic(P2.s, P2.z, mode)), need = Math.max(Math.abs(P2.z[0] - P2.s[0]), Math.abs(P2.z[1] - P2.s[1])) - 1;
+      const ok = n === need;
+      g.appendChild(miniBoard('fq' + r + i, P2.s, P2.z, mode, `${ok ? '✔' : '✘'} ${n} von ${need} 🔸`, ok ? 'ok' : 'bad'));
+    });
+  });
+  st.appendChild(g);
+}
+// Tab 4, Schritt 2: Koordinatensystem an der Diagonale spiegeln (x und y tauschen)
+function drehStage(st) {
+  const r = el('div', 'row');
+  const pic = linePic(ST.s, ST.z, 'minmax');
+  const b = board('db', NE, { con: true, cs: 40, fill: (x, y) => pic[y][x] });
+  b.style.transition = 'transform 1.8s cubic-bezier(.5,0,.2,1)';
+  r.appendChild(b);
+  const side = el('div', 'col'); side.style.alignItems = 'stretch';
+  side.appendChild(el('div', 'pill acc', `S(${ST.s}) → Z(${ST.z}) · steil`));
+  const p2 = el('div', 'pill y'); p2.style.visibility = 'hidden'; p2.innerHTML = 'x ↔ y tauschen: aus steil wird flach<br><small>jetzt passt wieder „für jede Spalte eine Zeile“</small>';
+  side.appendChild(p2);
+  r.appendChild(side); st.appendChild(r);
+  later(80, () => line('db', ST.s[0], ST.s[1], ST.z[0], ST.z[1], '#10b981', { w: 3 }));
+  later(900, () => { b.style.transform = 'matrix(0, 1, 1, 0, 0, 0)'; });
+  later(2800, () => { p2.style.visibility = ''; p2.classList.add('fade'); });
+}
+// Tab 4, Schritt 3: g(y) als Umkehrfunktion herleiten
+function inversStage(st) {
+  const [sx, sy] = ST.s, dx = ST.z[0] - sx, dy = ST.z[1] - sy, m = dx / dy;
+  const rows = [
+    ['f(x) von vorher', 'y = start.y + k · (x − start.x)'],
+    ['− start.y', 'y − start.y = k · (x − start.x)'],
+    [': k', '(y − start.y) / k = x − start.x'],
+    ['+ start.x', 'x = start.x + (y − start.y) / k'],
+    ['1 / k = Δx / Δy = m', 'g(y) = start.x + m · (y − start.y)'],
+    ['Zahlen einsetzen', `m = ${dx} / ${dy} = ${f2(m)}  →  g(y) = ${sx} + ${f2(m)} · (y − ${sy})`],
+  ];
+  const side = el('div', 'col'); side.style.alignItems = 'stretch';
+  const t = el('table', 'vt'); side.appendChild(t);
+  rows.forEach(([a, b], i) => later(200 + i * 900, () => t.appendChild(el('tr', 'fade', `<td>${a}</td><td class="y">${b}</td>`))));
+  const m2 = el('div', 'snip mono'); m2.style.visibility = 'hidden';
+  m2.innerHTML = ['double m = (double)(ziel.x - start.x) / (ziel.y - start.y);', 'int gy = start.x + (int)Math.Round(m * (y - start.y));']
+    .map(l => `<div class="cl hl">${highlight(l)}</div>`).join('');
+  side.appendChild(m2);
+  later(200 + rows.length * 900, () => { m2.style.visibility = ''; m2.classList.add('fade'); });
+  st.appendChild(side);
+}
+// Tab 4, Schritt 4: Zeile für Zeile mit g(y)
+function zeilenStage(st) {
+  const [sx, sy] = ST.s, m = (ST.z[0] - sx) / (ST.z[1] - sy);
+  const r = el('div', 'row');
+  r.appendChild(board('gb', NE, { cs: 40, fill: (x, y) => x === sx && y === sy ? SS : x === ST.z[0] && y === ST.z[1] ? ZS : '' }));
+  r.appendChild(varTable('vtg', [['y', '–'], ['g(y)', '–']]));
+  st.appendChild(r);
+  later(80, () => line('gb', sx, sy, ST.z[0], ST.z[1], '#10b981', { w: 2, op: .5 }));
+  const ev = []; for (let y = sy + 1; y < ST.z[1]; y++) ev.push({ y });
+  return stepper(ev, e => {
+    clearCls('gb', 'rowhot');
+    for (let i = 0; i < NE; i++) { bc('gb', i, e.y).classList.add('rowhot'); $('gb-yl-' + i).classList.toggle('on', i === e.y); }
+    const gy = sx + csRound(m * (e.y - sy));
+    line('gb', -0.9, e.y, gy - 0.45, e.y, '#a855f7', { w: 2.5, arrow: true });
+    put('gb', gy, e.y, LS, true);
+    fillVars('vtg', [['y', e.y, 'y'], ['g(y)', `${sx} + Round(${f2(m)} · ${e.y - sy}) = ${gy}`, 'x']], true);
+  });
+}
+// Tab 5: vier Richtungen nebeneinander
+const CASES = [['flach, links → rechts', [0, 1], [4, 3]], ['flach, rechts → links', [4, 0], [0, 2]], ['steil, links → rechts', [1, 0], [2, 4]], ['steil, rechts → links', [3, 0], [1, 4]]];
+function richtungStage(st, mode) {
+  const g = el('div', 'board'); g.style.gridTemplateColumns = 'auto auto'; g.style.gap = '8px';
+  CASES.forEach(([name, s, z], i) => {
+    const ok = samePic(linePic(s, z, mode), linePic(s, z, 'all'));
+    g.appendChild(miniBoard('rc' + i, s, z, mode, `${ok ? '✔' : '✘'} ${name}`, ok ? 'ok' : 'bad'));
+  });
+  st.appendChild(g);
+}
+
 // ===================== Stepper =====================
 // events: Liste von Ereignissen; e.end markiert das Ende einer inneren Schleife (für "bis Schleifenende")
 let autoOn = false;
@@ -546,7 +761,7 @@ function stepper(events, step) {
 function updAuto() { $('autoBtn').textContent = autoOn ? '⏸ Pause' : '⏩ Durchlauf'; }
 
 // ===================== Folien =====================
-const chapters = ['Distanz berechnen', 'Linie zeichnen', 'Achsenverschub'];
+const chapters = ['Distanz berechnen', 'Linie zeichnen', 'Achsenverschub', 'Erweiterung: x oder y?', 'Erweiterung: alle Richtungen'];
 const steps = [
   // ---------- Tab 1 ----------
   { ch: 0, add: [0, 1, 2, 3, 4], title: 'Programmstart: Dateiname festlegen', hl: [2, 4],
@@ -616,21 +831,6 @@ const steps = [
   { ch: 1, small: true, add: [57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68], title: 'Im Code: Zelle für Zelle', hl: [51],
     text: '<p>Die Konsole schreibt zeilenweise. Gedruckt wird 🔸 nur, wenn die Schleife gerade in Zeile <code>fx</code> ist.</p>',
     render: st => traceStage(st) },
-  { ch: 1, title: 'Grenzen: x oder y abgehen?', hl: [43],
-    text: '<p>Bei steilen Linien (<code>|dy| &gt; |dx|</code>, also <code>k &gt; 1</code>) gibt es mehr Zeilen als Spalten – x abgehen erzeugt <b>Lücken</b>. Dann <b>y abgehen</b>: <code>x = start.x + Round((y − start.y) / k)</code>.</p><p>Regel: die <b>längere</b> Achse abgehen. Senkrecht (<code>dx = 0</code>) geht mit k gar nicht.</p>',
-    render: st => {
-      const s2 = [1, 1], z2 = [3, 8], k2 = (z2[1] - s2[1]) / (z2[0] - s2[0]);
-      const r = el('div', 'row');
-      [[picture(N, s2, z2, k2), '✘ x abgehen: Lücken', 'bad'], [pictureY(N, s2, z2), '✔ y abgehen', 'ok']].forEach(([pic, t, cls], i) => {
-        const c = el('div', 'col fade'); c.style.animationDelay = (i * .5) + 's';
-        c.appendChild(el('div', 'pill ' + cls, t));
-        c.appendChild(board('gr' + i, N, { con: true, cs: 24, fill: (x, y) => pic[y][x] }));
-        r.appendChild(c);
-      });
-      st.appendChild(el('div', 'col')).append(el('div', 'pill acc', `S(${s2}) → Z(${z2}) · k = ${k2}`), r);
-      later(100, () => { line('gr0', s2[0], s2[1], z2[0], z2[1], '#10b981', { w: 2, op: .6 }); line('gr1', s2[0], s2[1], z2[0], z2[1], '#10b981', { w: 2, op: .6 }); });
-    } },
-
   // ---------- Tab 3 ----------
   { ch: 2, small: true, title: 'Ausgangslage: f(x) = k · x', hl: [43],
     text: '<p>Die Gerade startet in (0|0). Sie soll aber in ✅ starten.</p>', render: st => mathStage(st, 1) },
@@ -645,7 +845,24 @@ const steps = [
     text: '<p>Eine Verschiebung reicht: <code>d</code> so wählen, dass die Gerade durch ✅ geht.</p>', render: st => mathStage(st, 5) },
   { ch: 2, small: true, title: 'Nur x verschieben: f(x + s)', hl: [44, 51],
     code: { 44: '    double s = start.y / k - start.x;', 49: '            // nur x verschieben: y = k · (x + s)', 50: null, 51: '            int fx = (int)Math.Round(k * (x + s));' },
-    text: '<p>Genauso mit x: <code>s</code> so wählen, dass die Gerade durch ✅ geht. ⚠ bei <code>k = 0</code> Division durch 0.</p>', render: st => mathStage(st, 6) }
+    text: '<p>Genauso mit x: <code>s</code> so wählen, dass die Gerade durch ✅ geht. ⚠ bei <code>k = 0</code> Division durch 0.</p>', render: st => mathStage(st, 6) },
+  // ---------- Tab 4 ----------
+  { ch: 3, small: true, title: 'f(x) oder g(y)?', hl: [51],
+    text: '<p>Fragen wir <b>jede Spalte</b> „welches y?“ oder <b>jede Zeile</b> „welches x?“. Bei steilen Linien bleiben mit f(x) viele Kästchen frei, bei flachen mit g(y).</p>', render: st => frageStage(st) },
+  { ch: 3, small: true, title: 'Koordinatensystem umdrehen', hl: [], full: FULL_Y,
+    text: '<p>Wir spiegeln an der Diagonale: x und y tauschen die Rollen. Die steile Linie wird flach.</p>', render: st => drehStage(st) },
+  { ch: 3, small: true, title: 'g(y) als Umkehrfunktion von f(x)', hl: [OFF + 7, OFF + 12], full: FULL_Y,
+    text: '<p>Wir formen f(x) nach x um.</p>', render: st => inversStage(st) },
+  { ch: 3, small: true, title: 'Zeile für Zeile mit g(y)', hl: [OFF + 12, OFF + 16], full: FULL_Y,
+    text: '<p><code>gy</code> hängt nur von y ab – darum steht es in der äußeren Schleife.</p>', render: st => zeilenStage(st) },
+  // ---------- Tab 5 ----------
+  { ch: 4, small: true, title: 'Alle Richtungen: was zeichnet unser Code?', hl: [53],
+    text: '<p>Nur flach von links nach rechts klappt. Von rechts nach links ist <code>start.x &lt; x &lt; ziel.x</code> nie wahr, steil gibt Lücken.</p>', render: st => richtungStage(st, 'naiv') },
+  { ch: 4, small: true, title: 'Fix 1: Bereich mit Math.Min / Math.Max', hl: [44, 53],
+    code: { 44: '    int minX = Math.Min(start.x, ziel.x), maxX = Math.Max(start.x, ziel.x);', 53: '            if (y == fx && minX < x && x < maxX)' },
+    text: '<p>Die Richtung steckt schon im Vorzeichen von k – nur der Bereich muss von klein nach groß gehen.</p>', render: st => richtungStage(st, 'minmax') },
+  { ch: 4, small: true, title: 'Fix 2: steil → y abgehen', hl: [OFF + 10, OFF + 28, OFF + 29, OFF + 30, OFF + 31, OFF + 32, OFF + 33, OFF + 34, OFF + 35], full: FULL_ALL,
+    text: '<p>Ist die Linie steil (<code>|dy| &gt; |dx|</code>), fragen wir g(y), sonst f(x). Jetzt klappen alle Richtungen.</p>', render: st => richtungStage(st, 'all') }
 ];
 
 // ===================== Navigation =====================
@@ -668,12 +885,13 @@ function show(i) {
   $('text').innerHTML = typeof s.text === 'function' ? s.text() : s.text;
   if (!userSplit && !presenter) { $('stage').parentElement.style.flex = '1.9'; $('text').parentElement.style.flex = s.small ? '0.45' : '1'; }
   const mod = s.code || {};
-  codeInto($('codebox'), FULL.map((l, i) => i in mod && mod[i] !== null ? mod[i] : l), 'code');
+  CODE = s.full || FULL;
+  codeInto($('codebox'), CODE.map((l, i) => i in mod && mod[i] !== null ? mod[i] : l), 'code');
   Object.keys(mod).forEach(i => { const d = $('code-' + i); if (mod[i] === null) d.style.display = 'none'; else d.classList.add('new'); });
   // Code baut sich auf: sichtbar ist alles, was bis zu diesem Schritt hinzugekommen ist (Tab 3: alles)
   const vis = new Set(); steps.slice(0, cur + 1).forEach(x => (x.add || []).forEach(i => vis.add(i)));
-  const all = s.ch === 2;
-  FULL.forEach((_, i) => { const d = $('code-' + i); if (!all && !vis.has(i) && d.style.display !== 'none') d.style.display = 'none'; if (!all && (s.add || []).includes(i)) d.classList.add('new'); });
+  const all = s.ch >= 2;
+  CODE.forEach((_, i) => { const d = $('code-' + i); if (!all && !vis.has(i) && d.style.display !== 'none') d.style.display = 'none'; if (!all && (s.add || []).includes(i)) d.classList.add('new'); });
   setHl(s.hl || []);
   const st = $('stage'); st.innerHTML = '';
   ctrl = s.render(st) || null;

@@ -4,4 +4,6 @@
   <Project Path="../../../../../../Documents/GitHub/HTL-POS/JahrGang3/L02ExceptionsGenericsCollections/Zetteluebungen/Zetteluebungen.csproj" />
   <Project Path="Aufgabe01-Kaffeeautomat/Loesung/KaffeeautomatProLoesung.csproj" />
   <Project Path="Aufgabe01-Kaffeeautomat/Vorlage/KaffeeautomatProVorlage.csproj" />
+  <Project Path="Aufgabe02-GenerischeListe/Loesung/GenerischeListeLoesung.csproj" />
+  <Project Path="Aufgabe02-GenerischeListe/Vorlage/GenerischeListeVorlage.csproj" />
 </Solution>

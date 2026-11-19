@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generics</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020617; --panel: #0f172a; --panel2: #1e293b; --line: #334155;
+    --text: #f8fafc; --muted: #94a3b8; --accent: #38bdf8; --x: #f59e0b; --y: #a855f7;
+    --ok: #10b981; --bad: #ef4444; --kw: #c084fc; --str: #fbbf24; --num: #34d399; --com: #64748b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; overflow: hidden; }
+  .mono { font-family: 'Fira Code', monospace; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 19px; color: var(--accent); }
+  header p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+  #tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  #tabs button { background: var(--panel2); color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  #tabs button.active { background: #0284c7; color: #fff; border-color: var(--accent); }
+  main { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; overflow: hidden; min-height: 0; }
+  #titlebar { display: flex; align-items: baseline; gap: 12px; }
+  #title { font-size: 22px; font-weight: 700; margin: 0; }
+  #counter { color: var(--muted); font-size: 13px; }
+  #content { flex: 1; min-height: 0; display: flex; gap: 12px; }
+  .pane { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+  .panehead { background: #020617; border-bottom: 1px solid var(--line); padding: 6px 14px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  #left { width: 40%; }
+  #right { width: 60%; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  #codebox { flex: 1; overflow: auto; padding: 10px 0; font-size: 14px; line-height: 1.65; }
+  #stage { flex: 1.9; min-height: 0; background: radial-gradient(circle at center, #0b1430 0%, #020617 75%); display: flex; position: relative; overflow: auto; padding: 16px; }
+  #stage > * { margin: auto; }
+  #text { flex: 1; min-height: 0; overflow: auto; padding: 10px 16px; font-size: 15px; line-height: 1.55; }
+  #text p { margin: 6px 0; }
+  #text code { font-family: 'Fira Code', monospace; background: var(--panel2); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+  .cl { padding: 0 14px; border-left: 4px solid transparent; white-space: pre; }
+  .cl.hl { background: rgba(56,189,248,.18); border-left-color: var(--accent); }
+  .tk-kw { color: var(--kw); } .tk-str { color: var(--str); } .tk-num { color: var(--num); } .tk-com { color: var(--com); font-style: italic; } .tk-ty { color: #38bdf8; } .tk-tp { color: var(--x); font-weight: 600; }
+  nav { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; }
+  nav button { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 18px; font-size: 15px; cursor: pointer; }
+  nav button:hover { border-color: var(--accent); }
+  nav button:disabled { opacity: .35; cursor: default; }
+  nav button#autoBtn:not(:disabled) { border-color: var(--ok); color: var(--ok); }
+  nav button.on { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,.15); }
+  nav span { color: var(--muted); font-size: 12px; }
+  .split-v { flex: none; width: 8px; margin: 0 -6px; cursor: col-resize; border-radius: 4px; position: relative; z-index: 2; }
+  .split-h { flex: none; height: 8px; margin: -6px 0; cursor: row-resize; border-radius: 4px; position: relative; z-index: 2; }
+  .split-v:hover, .split-h:hover, .split-v.drag, .split-h.drag { background: var(--accent); }
+  body.dragging { user-select: none; }
+
+  /* ---- Bausteine ---- */
+  .col { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .row { display: flex; align-items: center; justify-content: center; gap: 18px; flex-wrap: wrap; }
+  .row.top { align-items: flex-start; }
+  .lbl { color: var(--muted); font-size: 13px; }
+  .scene { position: relative; }
+  .ov { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 5; }
+  .vb { display: flex; flex-direction: column; align-items: center; gap: 2px; background: var(--panel); border: 2px solid var(--y); border-radius: 8px; padding: 6px 12px; min-width: 84px; }
+  .vb .vn { color: var(--y); font-size: 13px; } .vb .vv { font-size: 20px; border-radius: 4px; padding: 0 4px; }
+  .vb.ref { border-style: dashed; }
+  .flash { animation: flash 1s ease; } @keyframes flash { 0% { background: rgba(245,158,11,.8); } 100% { background: transparent; } }
+  .obj { background: var(--panel2); border: 2px solid var(--ok); border-radius: 10px; min-width: 200px; overflow: hidden; }
+  .objhead { background: rgba(16,185,129,.18); padding: 6px 12px; font-weight: 600; text-align: center; }
+  .frow { display: flex; gap: 8px; padding: 3px 12px; font-size: 14px; }
+  .frow .fn { color: var(--x); min-width: 70px; } .frow .eq { color: var(--muted); }
+  .fv { border-radius: 4px; padding: 0 4px; }
+  .msec { border-top: 1px solid var(--line); padding: 3px 0; }
+  .mrow { padding: 2px 10px; font-size: 13px; color: var(--ok); border-radius: 4px; }
+  .mrow.mblink { animation: mblink .9s ease; } @keyframes mblink { 0%, 60% { background: rgba(16,185,129,.55); color: #fff; } 100% { background: transparent; } }
+  .tpc { font-family: 'Fira Code', monospace; background: rgba(245,158,11,.12); border: 2px solid var(--x); color: var(--x); border-radius: 8px; padding: 4px 12px; font-size: 16px; font-weight: 600; }
+  .tpc.b { border-color: var(--y); color: var(--y); background: rgba(168,85,247,.12); }
+  .badge { padding: 6px 14px; border-radius: 999px; font-weight: 700; font-size: 14px; }
+  .badge.rt { background: rgba(239,68,68,.15); color: #fca5a5; border: 1px solid var(--bad); }
+  .badge.ct { background: rgba(16,185,129,.15); color: #6ee7b7; border: 1px solid var(--ok); }
+  .errbox { border: 2px solid var(--bad); background: rgba(239,68,68,.12); color: #fca5a5; border-radius: 8px; padding: 8px 12px; font-family: 'Fira Code', monospace; font-size: 14px; max-width: 520px; }
+  .okbox { border: 2px solid var(--ok); background: rgba(16,185,129,.12); color: #a7f3d0; border-radius: 8px; padding: 8px 12px; font-family: 'Fira Code', monospace; font-size: 14px; max-width: 520px; }
+  .card { background: var(--panel2); border: 2px solid var(--accent); border-radius: 10px; padding: 8px 14px; font-family: 'Fira Code', monospace; font-size: 14px; }
+  .card.gen { border-color: var(--x); }
+  .card.ghost { border-style: dashed; opacity: .55; }
+  .arr { display: flex; gap: 4px; }
+  .cell { min-width: 54px; height: 50px; padding: 0 6px; border: 2px solid var(--line); border-radius: 8px; background: var(--panel); display: flex; align-items: center; justify-content: center; font-size: 22px; font-family: 'Fira Code', monospace; transition: all .4s; }
+  .cell.hot { border-color: var(--ok); background: rgba(16,185,129,.25); }
+  .cell.dim { opacity: .35; }
+  .cell.bad { border-color: var(--bad); background: rgba(239,68,68,.25); }
+  .cell.a { border-color: var(--x); } .cell.b { border-color: var(--y); }
+  .idx { font-family: 'Fira Code', monospace; font-size: 11px; color: var(--muted); text-align: center; }
+  .console { background: #000; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; min-height: 54px; min-width: 200px; font-size: 14px; color: #d1fae5; font-family: 'Fira Code', monospace; }
+  .frame { border: 2px dashed var(--accent); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .frame .fh { font-family: 'Fira Code', monospace; font-size: 13px; color: var(--accent); }
+  .chip { font-family: 'Fira Code', monospace; font-size: 15px; padding: 4px 10px; border-radius: 6px; background: var(--panel2); border: 1px solid var(--line); transition: all .5s; }
+  .chip.no { opacity: .35; text-decoration: line-through; border-color: var(--bad); color: #fca5a5; }
+  .chip.yes { border-color: var(--ok); color: #6ee7b7; }
+  .hier { display: grid; grid-template-columns: auto 80px auto; align-items: center; gap: 10px 6px; }
+  .hier .ar { text-align: center; font-size: 26px; font-weight: 700; }
+  .ar.ok { color: var(--ok); } .ar.bad { color: var(--bad); } .ar.k { color: var(--accent); }
+  table.t { border-collapse: collapse; font-size: 14px; max-width: 100%; }
+  table.t th, table.t td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
+  table.t th { color: var(--muted); font-weight: 600; font-size: 12px; background: #020617; }
+  table.t td code { font-family: 'Fira Code', monospace; font-size: 13px; color: var(--accent); }
+  .pop { animation: pop .45s cubic-bezier(.2,.8,.3,1.3) both; }
+  @keyframes pop { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
+  .shake { animation: shake .5s ease; } @keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+  .hidden { visibility: hidden; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🧬 Generics: ein Code für viele Typen</h1>
+    <p>Weiter: Pfeiltasten ← → oder Leertaste · Polymorphie, generische Methoden und Klassen, where, Ko- und Kontravarianz</p>
+  </div>
+  <div id="tabs"></div>
+</header>
+<main>
+  <div id="titlebar"><h2 id="title"></h2><span id="counter"></span></div>
+  <div id="content">
+    <section id="left" class="pane"><div class="panehead">📄 Code</div><div id="codebox" class="mono"></div></section>
+    <div class="split-v" id="sv" title="ziehen: Breite von Code / Animation"></div>
+    <div id="right">
+      <section class="pane" style="flex:1.9"><div class="panehead">🎬 Animation</div><div id="stage"></div></section>
+      <div class="split-h" id="sh" title="ziehen: Höhe von Animation / Erklärung"></div>
+      <section class="pane" style="flex:1"><div class="panehead">💡 Erklärung</div><div id="text"></div></section>
+    </div>
+  </div>
+  <nav>
+    <button onclick="go(-1)">◀ zurück</button>
+    <button onclick="replay()">↻ nochmal</button>
+    <button onclick="go(1)">weiter ▶</button>
+    <button id="autoBtn" onclick="runAuto()" disabled>⏩ automatisch</button>
+    <button id="presBtn" onclick="togglePresenter()" title="Taste P">🎤 Presenter</button>
+    <button class="vbtn" id="vb0" onclick="setView(0)" title="Taste 1">📄🎬 Code + Animation</button>
+    <button class="vbtn" id="vb1" onclick="setView(1)" title="Taste 2">🎬 nur Animation</button>
+    <button class="vbtn" id="vb2" onclick="setView(2)" title="Taste 3">📄 nur Code</button>
+    <span>R = nochmal · P = Presenter · 1/2/3 = Ansicht</span>
+  </nav>
+</main>
+
+<script>
+// ===================== kleine Helfer =====================
+const $ = (id) => document.getElementById(id);
+const SVGNS = 'http://www.w3.org/2000/svg';
+let timers = [];
+function clearTimers() { timers.forEach(t => { clearTimeout(t); clearInterval(t); }); timers = []; }
+function el(tag, cls, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; }
+const C = s => s.replace(/^\n/, '').replace(/\n$/, '').split('\n');
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+function highlight(line) {
+  const re = /(\/\/.*$)|("(?:[^"\\]|\\.)*"|'.')|(\b(?:new|foreach|for|in|out|ref|while|if|else|return|int|string|double|bool|char|void|object|class|interface|abstract|override|public|private|where|struct|var|null|true|false)\b)|(\b(?:T|TA|TB|TName|TPunkte)\b)|(\b(?:Console|Form|Kreis|Quadrat|Stapel|ObjektStapel|Rangliste|Tier|Hund|Katze|List|IEnumerable|IEnumerator|IComparer|IComparable|NachAlter|IQuelle|IAblage|IFalsch|HundeZucht|TierHeim|Hamster|IHatName|Roboter)\b)|(\b\d+(?:\.\d+)?\b)/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(line)) !== null) {
+    out += esc(line.slice(last, m.index));
+    const cls = m[1] ? 'tk-com' : m[2] ? 'tk-str' : m[3] ? 'tk-kw' : m[4] ? 'tk-tp' : m[5] ? 'tk-ty' : 'tk-num';
+    out += `<span class="${cls}">${esc(m[0])}</span>`;
+    last = re.lastIndex;
+  }
+  return out + esc(line.slice(last));
+}
+function renderCode(lines, hl) {
+  const box = $('codebox'); box.innerHTML = '';
+  (lines || []).forEach((l, i) => {
+    const d = el('div', 'cl' + ((hl || []).includes(i) ? ' hl' : ''), highlight(l) || ' ');
+    d.id = 'code-' + i; box.appendChild(d);
+  });
+}
+function setHl(hl) {
+  document.querySelectorAll('.cl').forEach((d, i) => d.classList.toggle('hl', hl.includes(i)));
+  const f = $('code-' + hl[0]); if (f) f.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function vbox(id, name, val, cls) {
+  const v = el('div', 'vb mono ' + (cls || '')); v.id = id;
+  v.innerHTML = `<span class="vn">${name}</span><span class="vv" id="${id}-v">${val}</span>`;
+  return v;
+}
+function setV(id, val) { const e = $(id + '-v') || $(id); if (!e) return; e.innerHTML = val; e.classList.remove('flash'); void e.offsetWidth; e.classList.add('flash'); }
+function objCard(id, head, fields, methods) {
+  const c = el('div', 'obj'); c.id = id;
+  c.appendChild(el('div', 'objhead mono', head));
+  fields.forEach(([f, v]) => c.appendChild(el('div', 'frow mono', `<span class="fn">${f}</span><span class="eq">=</span><span class="fv" id="${id}-${f}">${v}</span>`)));
+  if (methods) {
+    const sec = el('div', 'msec');
+    methods.forEach(m => { const r = el('div', 'mrow mono', '+ ' + m); r.id = id + '-m-' + m.split('(')[0]; sec.appendChild(r); });
+    c.appendChild(sec);
+  }
+  return c;
+}
+function setF(id, f, v) { setV(id + '-' + f, v); }
+function blinkM(id, m) { const e = $(id + '-m-' + m); if (!e) return; e.classList.remove('mblink'); void e.offsetWidth; e.classList.add('mblink'); }
+function cells(id, vals, labels) {
+  const w = el('div', 'col'); w.style.gap = '2px';
+  const a = el('div', 'arr');
+  vals.forEach((v, i) => { const c = el('div', 'cell', v); c.id = id + '-' + i; a.appendChild(c); });
+  w.appendChild(a);
+  if (labels !== false) { const ix = el('div', 'arr'); vals.forEach((_, i) => { const d = el('div', 'idx', '[' + i + ']'); d.style.minWidth = '54px'; ix.appendChild(d); }); w.appendChild(ix); }
+  return w;
+}
+function setCell(id, v, cls) { const c = $(id); if (!c) return; c.innerHTML = v; c.className = 'cell pop' + (cls ? ' ' + cls : ''); }
+function konsole(id) { const k = el('div', 'console'); k.id = id; return k; }
+function print(id, t) { const k = $(id); if (k) k.innerHTML += esc(t) + '<br>'; }
+function show_(id) { const e = $(id); if (e) { e.classList.remove('hidden'); e.classList.add('pop'); } }
+function shake(id) { const e = $(id); if (!e) return; e.classList.remove('shake'); void e.offsetWidth; e.classList.add('shake'); }
+function lab(t) { return el('div', 'lbl', t); }
+function wrap(cls, kids) { const d = el('div', cls); kids.forEach(k => d.appendChild(k)); return d; }
+function hid(e) { e.classList.add('hidden'); return e; }
+function hide_(id) { const e = $(id); if (e) e.classList.add('hidden'); }
+function grid(n, kids, gap) { const g = wrap('', kids); g.style.cssText = `display:grid;grid-template-columns:repeat(${n},auto);gap:${gap || '22px 60px'};align-items:center;justify-items:center`; return g; }
+function arrBox(id, label, v) { const w = wrap('col', [lab(label), cells(id, [v], false)]); w.style.gap = '2px'; w.id = id + 'box'; return w; }
+function say(t) { const c = $('info'); if (!c) return; c.classList.remove('hidden'); c.innerHTML = t; c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); }
+function infoBox() { const i = hid(el('div', 'okbox', '')); i.id = 'info'; i.style.fontFamily = 'Inter, sans-serif'; i.style.maxWidth = '640px'; return i; }
+function relink(sc, from, to, opts) { unlink(sc, from); link(sc, from, to, opts); }
+
+// Szene für Tausche ohne ref: Hauptprogramm, Methode, Arrays im Speicher
+function swapScene(st, head, withInt) {
+  const sc = scene();
+  const tp = el('div', 'tpc', 'T = ?'); tp.id = 'tp';
+  const main = el('div', 'frame'); main.appendChild(el('div', 'fh', 'Hauptprogramm'));
+  main.appendChild(withInt
+    ? grid(2, [vbox('x', 'int x', '?'), vbox('s1', 'string[] s1', '?', 'ref'), vbox('y', 'int y', '?'), vbox('s2', 'string[] s2', '?', 'ref')], '14px 30px')
+    : grid(1, [vbox('s1', 'string[] s1', '?', 'ref'), vbox('s2', 'string[] s2', '?', 'ref')], '14px 30px'));
+  const fr = el('div', 'frame'); fr.appendChild(el('div', 'fh', head));
+  fr.appendChild(grid(2, [vbox('a', 'a  (Kopie)', '–', 'ref'), vbox('tmp', 'T temp', '–'), vbox('b', 'b  (Kopie)', '–', 'ref'), el('div')], '14px 30px'));
+  const arrs = wrap('col', [hid(arrBox('A', 'Array', '🐶')), hid(arrBox('B', 'Array', '🐱'))]); arrs.style.gap = '20px';
+  const row = wrap('row', [main, arrs, fr]); row.style.gap = '70px'; row.style.flexWrap = 'nowrap';
+  sc.appendChild(wrap('col', [tp, row, infoBox(), konsole('k')])); st.appendChild(sc);
+  return sc;
+}
+function setT(t) { const e = $('tp'); if (!e) return; e.textContent = 'T = ' + t; e.classList.remove('pop'); void e.offsetWidth; e.classList.add('pop'); }
+
+// Schritte innerhalb einer Folie
+function seq(acts, delay) {
+  let i = 0;
+  return {
+    next() { if (i >= acts.length) return false; acts[i++](); return true; },
+    auto() { const t = () => { if (this.next()) timers.push(setTimeout(t, delay || 1300)); }; t(); }
+  };
+}
+
+// ---------- Szene mit SVG-Pfeilen ----------
+function scene() {
+  const s = el('div', 'scene');
+  const svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('class', 'ov');
+  svg.innerHTML = '<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>';
+  s.appendChild(svg); s._svg = svg; s._links = [];
+  return s;
+}
+function link(sc, fromId, toId, opts = {}) { sc._links.push({ fromId, toId, opts }); redraw(sc); setTimeout(() => redraw(sc), 450); }
+function unlink(sc, fromId) { sc._links = sc._links.filter(l => l.fromId !== fromId); redraw(sc); }
+function anchor(r, side, base) {
+  const cx = r.left - base.left + r.width / 2, cy = r.top - base.top + r.height / 2;
+  if (side === 'bottom') return [cx, r.bottom - base.top];
+  if (side === 'top') return [cx, r.top - base.top];
+  if (side === 'left') return [r.left - base.left, cy];
+  if (side === 'right') return [r.right - base.left, cy];
+  return [cx, cy];
+}
+function redraw(sc) {
+  if (!sc || !sc._svg) return;
+  const base = sc.getBoundingClientRect();
+  sc._svg.querySelectorAll('.ln').forEach(e => e.remove());
+  sc._links.forEach(({ fromId, toId, opts }) => {
+    const a = $(fromId), b = $(toId); if (!a || !b) return;
+    const [x1, y1] = anchor(a.getBoundingClientRect(), opts.from || 'right', base);
+    let [x2, y2] = anchor(b.getBoundingClientRect(), opts.to || 'left', base);
+    { const d = Math.hypot(x2 - x1, y2 - y1) || 1; x2 -= (x2 - x1) / d * 16; y2 -= (y2 - y1) / d * 16; }
+    const g = document.createElementNS(SVGNS, 'g'); g.setAttribute('class', 'ln'); g.style.color = opts.color || 'var(--accent)';
+    const l = document.createElementNS(SVGNS, 'line');
+    l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+    l.setAttribute('stroke', 'currentColor'); l.setAttribute('stroke-width', '2.5'); l.setAttribute('marker-end', 'url(#ah)');
+    if (opts.dash) l.setAttribute('stroke-dasharray', '6 5');
+    g.appendChild(l);
+    if (opts.label) { const t = document.createElementNS(SVGNS, 'text'); t.setAttribute('x', x1 + (x2 - x1) * 0.3); t.setAttribute('y', y1 + (y2 - y1) * 0.3 + (y2 < y1 ? -10 : 20)); t.setAttribute('text-anchor', 'middle'); t.setAttribute('stroke', 'var(--bg, #0b1020)'); t.setAttribute('stroke-width', '5'); t.setAttribute('paint-order', 'stroke'); t.setAttribute('font-weight', '600'); t.setAttribute('fill', 'currentColor'); t.setAttribute('font-size', '13'); t.setAttribute('font-family', 'Fira Code, monospace'); t.textContent = opts.label; g.appendChild(t); }
+    sc._svg.appendChild(g);
+  });
+}
+
+// ===================== Code der Folien =====================
+const codeDyn = C(`
+abstract class Form { public abstract double Flaeche(); }
+class Kreis : Form   { ... return 3.14 * r * r; }   // r = 1
+class Quadrat : Form { ... return a * a; }          // a = 2
+
+Form[] formen = { new Kreis(1), new Quadrat(2) };
+foreach (Form f in formen)
+{
+    Console.WriteLine(f.Flaeche());
+}`);
+const codeStat = C(`
+T Erstes<T>(T[] werte)
+{
+    return werte[0];
+}
+
+int z = Erstes<int>(new int[] { 4, 8 });
+string s = Erstes<string>(new string[] { "Ab", "Cd" });
+Console.WriteLine(z + " " + s);`);
+const codeKopie = C(`
+void Tausche<T>(T a, T b)          // a, b sind KOPIEN
+{
+    T temp = a;
+    a = b;
+    b = temp;
+}
+
+int x = 1, y = 2;
+Tausche<int>(x, y);
+string[] s1 = { "🐶" };
+string[] s2 = { "🐱" };
+Tausche<string[]>(s1, s2);
+
+Console.WriteLine($"x:{x} - y:{y}");           // x:1 - y:2
+Console.WriteLine($"s1:{s1[0]} - s2:{s2[0]}"); // s1:🐶 - s2:🐱`);
+const codeInhalt = C(`
+void TauscheInhalt<T>(T[] a, T[] b)   // a, b sind wieder KOPIEN
+{
+    T temp = a[0];
+    a[0] = b[0];     // nicht a ändern, sondern das Array, auf das a zeigt
+    b[0] = temp;
+}
+
+string[] s1 = { "🐶" };
+string[] s2 = { "🐱" };
+TauscheInhalt<string>(s1, s2);
+
+Console.WriteLine($"s1:{s1[0]} - s2:{s2[0]}"); // s1:🐱 - s2:🐶
+// int hat keinen Inhalt -> ohne ref nie ein Seiteneffekt`);
+const codeVergleich = C(`
+void TauscheKopie<T>(T a, T b)       { T temp = a; a = b; b = temp; }
+void TauscheRef<T>(ref T a, ref T b) { T temp = a; a = b; b = temp; }
+
+string[] s1 = { "🐶" }, s2 = { "🐱" };
+TauscheKopie(s1, s2);           // s1:🐶 - s2:🐱  nichts passiert
+TauscheRef(ref s1, ref s2);     // s1:🐱 - s2:🐶  s1, s2 umgehängt`);
+const codeHatName = C(`
+interface IHatName { string Name { get; set; } }
+class  Katze   : IHatName { public string Name { get; set; } }
+struct Roboter : IHatName { public string Name { get; set; } }
+
+void Umbenennen<T>(T t) where T : IHatName
+{
+    t.Name = "Neu";               // erst durch IHatName erlaubt
+}
+
+Katze k = new Katze { Name = "Mia" };
+Roboter r = new Roboter { Name = "R2" };
+Umbenennen(k);
+Umbenennen(r);
+Console.WriteLine(k.Name);        // Neu -> Seiteneffekt
+Console.WriteLine(r.Name);        // R2  -> kein Seiteneffekt
+
+// class garantiert: t zeigt auf das Original
+void UmbenennenSicher<T>(T t) where T : class, IHatName
+{
+    t.Name = "Neu";
+}
+UmbenennenSicher(k);              // ✅
+UmbenennenSicher(r);              // ❌ Roboter ist keine class`);
+const codeTausche = C(`
+void Tausche<T>(ref T a, ref T b)
+{
+    T temp = a;
+    a = b;
+    b = temp;
+}
+
+int x = 1, y = 2;
+Tausche<int>(ref x, ref y);
+string s1 = "🐶", s2 = "🐱";
+Tausche(ref s1, ref s2);       // T = string erkennt der Compiler`);
+const codeDrehe = C(`
+(TB, TA) Drehe<TA, TB>((TA a, TB b) paar)
+{
+    return (paar.b, paar.a);
+}
+
+(int, string) p = (7, "Sieben");
+(string, int) q = Drehe(p);         // TA = int, TB = string
+Console.WriteLine(q);               // (Sieben, 7)
+var r = Drehe<bool, char>((true, 'x'));
+Console.WriteLine(r);               // (x, True)`);
+const codeObjekt = C(`
+class ObjektStapel
+{
+    private object[] elemente = new object[4];
+    ...                              // Push(object), Pop() wie unten
+}
+
+ObjektStapel s = new ObjektStapel();
+s.Push("🍎");
+s.Push(42);                     // geht auch: alles ist ein object
+int zahl = (int)s.Pop();        // ok: 42
+int obst = (int)s.Pop();        // 💥 erst zur Laufzeit!`);
+const codeStapel = C(`
+class Stapel<T>
+{
+    private T[] elemente = new T[4];
+    private int anzahl = 0;
+
+    public void Push(T wert)
+    {
+        elemente[anzahl] = wert;
+        anzahl++;
+    }
+
+    public T Pop()
+    {
+        anzahl--;
+        return elemente[anzahl];
+    }
+}
+
+Stapel<string> s = new Stapel<string>();
+s.Push("🍎");
+s.Push("🍌");
+Console.WriteLine(s.Pop());          // 🍌
+Stapel<int> zahlen = new Stapel<int>();
+zahlen.Push(42);
+zahlen.Push("🍎");                   // ❌ Compilerfehler`);
+const codeWhere = C(`
+// Version 1: ohne Einschränkung
+T Groesser<T>(T a, T b)
+{
+    if (a > b) { return a; }          // ❌ Compilerfehler
+    return b;
+}
+
+// Version 2: mit Einschränkung
+T Groesser<T>(T a, T b) where T : IComparable<T>
+{
+    if (a.CompareTo(b) > 0) { return a; }   // ✅
+    return b;
+}
+
+int g = Groesser(3, 8);                     // 8
+string w = Groesser("Hund", "Affe");        // Hund
+Groesser(new Hamster(), new Hamster());     // ❌`);
+const codeRang = C(`
+class Rangliste<TName, TPunkte> where TPunkte : IComparable<TPunkte>
+{
+    private TName? bester;
+    private TPunkte? bestePunkte;
+    private bool leer = true;
+
+    public void Eintragen(TName name, TPunkte punkte)
+    {
+        if (leer || punkte.CompareTo(bestePunkte) > 0)
+        {
+            bester = name;
+            bestePunkte = punkte;
+            leer = false;
+        }
+    }
+
+    public TName? Bester() { return bester; }
+}
+
+Rangliste<string, int> r = new Rangliste<string, int>();
+r.Eintragen("Ana", 12);
+r.Eintragen("Ben", 30);
+r.Eintragen("Cem", 21);
+Console.WriteLine(r.Bester());        // Ben
+Rangliste<string, Hamster> h;         // ❌`);
+const codeArrKo = C(`
+class Tier { public string Name; public int Alter; ... }
+class Hund : Tier { ... }
+class Katze : Tier { ... }
+
+Hund[] hunde = { new Hund("Rex"), new Hund("Bello") };
+Tier[] tiere = hunde;              // erlaubt: jeder Hund ist ein Tier
+Console.WriteLine(tiere[0].Name);  // Rex – lesen ist sicher
+tiere[1] = new Katze("Mia");       // 💥 ArrayTypeMismatchException`);
+const codeInv = C(`
+List<Hund> hunde = new List<Hund>();
+List<Tier> tiere = hunde;          // ❌ Compilerfehler: List<T> ist invariant
+tiere.Add(new Katze("Mia"));       // ... sonst ginge das!`);
+const codeKo = C(`
+public interface IEnumerable<out T>    // out: T kommt nur HERAUS
+{
+    IEnumerator<T> GetEnumerator();
+}
+
+void AlleRufen(IEnumerable<Tier> tiere)
+{
+    foreach (Tier t in tiere)
+    {
+        Console.WriteLine(t.Name + "!");
+    }
+}
+
+List<Hund> hunde = new List<Hund> { new Hund("Rex"), new Hund("Bello") };
+IEnumerable<Tier> tiere = hunde;     // ✅ kovariant
+AlleRufen(hunde);                    // ✅ Rex! Bello!`);
+const codeKontra = C(`
+public interface IComparer<in T>       // in: T geht nur HINEIN
+{
+    int Compare(T a, T b);
+}
+
+class NachAlter : IComparer<Tier>
+{
+    public int Compare(Tier a, Tier b) { return a.Alter - b.Alter; }
+}
+
+List<Hund> hunde = ...;              // Rex (5), Bello (2), Luna (8)
+IComparer<Hund> vergleicher = new NachAlter();   // ✅ kontravariant
+hunde.Sort(vergleicher);             // Bello, Rex, Luna`);
+const codeWarumInv = C(`
+// Wunsch: EINE Methode für alle Tierlisten
+void AlleFuettern(List<Tier> tiere)
+{
+    foreach (Tier t in tiere)
+    {
+        t.Fressen();
+    }
+}
+
+List<Hund> hunde = new List<Hund> { new Hund("Rex"), new Hund("Bello") };
+AlleFuettern(hunde);               // ❌ CS1503: List<T> ist invariant
+
+// Gedankenexperiment: Wäre es erlaubt …
+List<Tier> tiere = hunde;          // dieselbe Liste, nur als Tierliste gesehen
+tiere.Add(new Katze("Mia"));       // für eine List<Tier> völlig in Ordnung
+foreach (Hund h in hunde)
+{
+    h.Bellen();                    // 💥 Mia ist kein Hund
+}`);
+const codeWarumKo = C(`
+public interface IEnumerable<out T>
+{
+    IEnumerator<T> GetEnumerator();   // T kommt nur HERAUS
+}                                     // kein Add, kein Setzen
+
+void AlleFuettern(IEnumerable<Tier> tiere)
+{
+    foreach (Tier t in tiere)
+    {
+        t.Fressen();
+    }
+}
+
+List<Hund> hunde = new List<Hund> { new Hund("Rex"), new Hund("Bello") };
+AlleFuettern(hunde);                  // ✅ IEnumerable<Hund> → IEnumerable<Tier>
+// tiere.Add(new Katze("Mia"));       // ❌ gibt es bei IEnumerable nicht`);
+const codeWarumKontra = C(`
+public interface IAblage<in T>
+{
+    void Lege(T x);                   // T geht nur HINEIN
+}                                     // nichts kommt heraus
+
+class TierHeim : IAblage<Tier>
+{
+    public void Lege(Tier x)
+    {
+        Console.WriteLine(x.Name + " ist im Tierheim");
+    }
+}
+
+void HundAbgeben(IAblage<Hund> ablage)
+{
+    ablage.Lege(new Hund("Rex"));
+}
+
+HundAbgeben(new TierHeim());          // ✅ IAblage<Tier> → IAblage<Hund>
+// IAblage<Tier> a = new HundeHuette(); // ❌ dort könnte eine Katze landen`);
+const codeEigen = C(`
+interface IQuelle<out T> { T Gib(); }          // ✅ T nur als Rückgabe
+interface IAblage<in T>  { void Lege(T x); }   // ✅ T nur als Parameter
+interface IFalsch<out T> { void Lege(T x); }   // ❌ out-T als Parameter
+
+class HundeZucht : IQuelle<Hund> { ... }
+class TierHeim   : IAblage<Tier> { ... }
+
+IQuelle<Tier> quelle = new HundeZucht();   // gibt Hunde → das sind Tiere ✅
+IAblage<Hund> ablage = new TierHeim();     // nimmt Tiere → also auch Hunde ✅`);
+
+// ===================== Folien =====================
+const chapters = ['Polymorphie', 'Generische Methode', 'Mehrere Typparameter', 'Generische Klasse', 'where', 'Ko- & Kontravarianz', 'Warum Varianz?'];
+
+const steps = [
+// ---------- 0: Polymorphie ----------
+{ ch: 0, title: 'Dynamische Polymorphie: ist-ein-Beziehung', code: codeDyn, hl: [4],
+  text: `<p><b>Polymorphie</b> = „Vielgestaltigkeit“: <b>ein</b> Code arbeitet mit <b>verschiedenen</b> Typen.</p>
+<p><b>Dynamisch:</b> <code>f</code> hat den Typ <code>Form</code>, zeigt aber auf einen <code>Kreis</code> bzw. ein <code>Quadrat</code> (<b>ist-ein</b>-Beziehung). <b>Welches</b> <code>Flaeche()</code> läuft, wird erst <b>zur Laufzeit</b> am echten Objekt entschieden (<code>override</code>).</p>`,
+  render(st) {
+    const sc = scene();
+    const left = wrap('col', [vbox('vf', 'Form f', '?', 'ref'), el('div', 'badge rt', '🕒 entschieden zur LAUFZEIT'), konsole('k')]);
+    const right = wrap('col', [objCard('ok', '<u>:Kreis</u>', [['r', '1']], ['Flaeche() → 3.14 · r · r']), objCard('oq', '<u>:Quadrat</u>', [['a', '2']], ['Flaeche() → a · a'])]);
+    right.style.gap = '40px';
+    const row = wrap('row', [left, right]); row.style.gap = '70px'; row.style.flexWrap = 'nowrap';
+    sc.appendChild(row); st.appendChild(sc);
+    return seq([
+      () => { setHl([5]); setV('vf', '→ Kreis'); link(sc, 'vf', 'ok'); },
+      () => { setHl([7]); blinkM('ok', 'Flaeche'); print('k', '3.14'); },
+      () => { setHl([5]); unlink(sc, 'vf'); setV('vf', '→ Quadrat'); link(sc, 'vf', 'oq'); },
+      () => { setHl([7]); blinkM('oq', 'Flaeche'); print('k', '4'); },
+    ]);
+  } },
+{ ch: 0, title: 'Statische Polymorphie: Generics', code: codeStat, hl: [0],
+  text: `<p><b>Statisch:</b> Die <code>Methode</code> hat einen <b>Typparameter</b> <code>T</code> – einen Platzhalter für einen Typ. Beim Aufruf wird <code>T</code> durch einen echten Typ ersetzt. Das steht schon <b>beim Kompilieren</b> fest, der Compiler prüft alles mit <code>T = int</code> bzw. <code>T = string</code>.</p>
+<p>Ja, Generics sind statische Polymorphie (genauer: <b>parametrische</b> Polymorphie). Auch <b>Überladen</b> (gleicher Name, andere Parameter) zählt zur statischen Polymorphie.</p>`,
+  render(st) {
+    const sc = scene();
+    const tpl = el('div', 'card gen', 'T Erstes&lt;T&gt;(T[] werte)'); tpl.id = 'tpl';
+    const vi = hid(el('div', 'card', '<span class="tk-tp">int</span> Erstes(<span class="tk-tp">int</span>[] werte)')); vi.id = 'vi';
+    const vs = hid(el('div', 'card', '<span class="tk-tp">string</span> Erstes(<span class="tk-tp">string</span>[] werte)')); vs.id = 'vs';
+    const left = wrap('col', [el('div', 'badge ct', '🛠️ entschieden beim KOMPILIEREN'), tpl]);
+    const right = wrap('col', [vi, vs]); right.style.gap = '50px';
+    const run = hid(wrap('col', [el('div', 'badge rt', '▶ Ausführen'), konsole('k')])); run.id = 'run';
+    const row = wrap('row', [left, right]); row.style.gap = '110px'; row.style.flexWrap = 'nowrap'; [tpl, vi, vs].forEach(c => c.style.whiteSpace = 'nowrap');
+    sc.appendChild(wrap('col', [row, run])); st.appendChild(sc);
+    return seq([
+      () => { setHl([5]); show_('vi'); link(sc, 'tpl', 'vi', { label: 'T = int', color: 'var(--x)' }); },
+      () => { setHl([6]); show_('vs'); link(sc, 'tpl', 'vs', { label: 'T = string', color: 'var(--x)' }); },
+      () => { setHl([7]); show_('run'); print('k', '4 Ab'); setTimeout(() => redraw(sc), 500); },
+    ]);
+  } },
+{ ch: 0, title: 'Dynamisch vs. statisch', code: codeStat, hl: [], small: false,
+  text: `<p>Beide Arten schreiben <b>einen</b> Code für viele Typen. Der Unterschied ist, <b>wann</b> der Typ feststeht – und damit, <b>wann</b> ein Fehler auffällt.</p>`,
+  render(st) {
+    st.appendChild(el('table', 't pop', `<tr><th></th><th>dynamisch</th><th>statisch (Generics)</th></tr>
+<tr><td>Wie?</td><td>Vererbung, <code>override</code>, Interfaces</td><td>Typparameter <code>&lt;T&gt;</code></td></tr>
+<tr><td>Beziehung</td><td><b>ist-ein</b>: ein Kreis <i>ist eine</i> Form</td><td><b>für jeden Typ</b> <code>T</code> (evtl. eingeschränkt)</td></tr>
+<tr><td>Entschieden</td><td>zur <b>Laufzeit</b> am echten Objekt</td><td>beim <b>Kompilieren</b></td></tr>
+<tr><td>Typ-Fehler</td><td>evtl. erst zur Laufzeit (Cast)</td><td>sofort als Compilerfehler</td></tr>
+<tr><td>Beispiel</td><td><code>Form f = new Kreis(1);</code></td><td><code>Stapel&lt;int&gt;</code>, <code>List&lt;string&gt;</code></td></tr>`));
+  } },
+
+// ---------- 1: Generische Methode ----------
+{ ch: 1, title: 'Tausche<T>: ein Typparameter – ohne Seiteneffekt', code: codeKopie, hl: [7],
+  text: `<p>Ohne Generics bräuchten wir <code>TauscheInt</code>, <code>TauscheArray</code>, … mit gleichem Inhalt. Mit <code>&lt;T&gt;</code> schreiben wir die <code>Methode</code> <b>einmal</b>. Die spitzen Klammern stehen <b>nach dem Methodennamen</b>, danach ist <code>T</code> überall ein Typ (Parameter, <code>T temp</code>).</p>
+<p>Aber: Es wird <b>nichts</b> getauscht. <code>a</code> und <code>b</code> sind <b>Kopien</b>. Bei <code>int</code> eine Kopie der Zahl, bei <code>string[]</code> eine Kopie der <b>Referenz</b>. <code>a = b</code> hängt nur den Pfeil von <code>a</code> um – <code>s1</code> ist eine andere Variable und zeigt weiter auf 🐶.</p>
+<p><b>Merke:</b> Eine Zuweisung ändert nur die Variable links vom <code>=</code>. In der Methode ist das die Kopie, nie <code>s1</code>.</p>`,
+  render(st) {
+    const sc = swapScene(st, 'Tausche&lt;T&gt;(T a, T b)', true);
+    const ka = { color: 'var(--x)', dash: true, from: 'left', to: 'right' };
+    return seq([
+      () => { setHl([7]); setV('x', '1'); setV('y', '2'); },
+      () => { setHl([8, 0]); setT('int'); setV('a', '1'); setV('b', '2'); say('a und b sind <b>Kopien der Zahlen</b> 1 und 2'); },
+      () => { setHl([2]); setV('tmp', '1'); },
+      () => { setHl([3]); setV('a', '2'); },
+      () => { setHl([4]); setV('b', '1'); say('Nur die Kopien sind vertauscht – x und y wurden nie angefasst'); },
+      () => { setHl([5]); ['a', 'b', 'tmp'].forEach(i => setV(i, '–')); say('Methode zu Ende, Kopien weg: x = 1, y = 2'); },
+      () => { setHl([9, 10]); show_('Abox'); show_('Bbox'); setV('s1', '→'); setV('s2', '→'); link(sc, 's1', 'A-0'); link(sc, 's2', 'B-0'); say('s1 und s2 speichern nur <b>Referenzen</b> (Pfeile) auf die Arrays'); },
+      () => { setHl([11, 0]); setT('string[]'); setV('a', '→'); setV('b', '→'); link(sc, 'a', 'A-0', ka); link(sc, 'b', 'B-0', ka); say('a und b sind <b>Kopien der Referenzen</b>: eigene Pfeile auf <b>dieselben</b> Arrays'); },
+      () => { setHl([2]); setV('tmp', '→ 🐶'); },
+      () => { setHl([3]); relink(sc, 'a', 'B-0', ka); say('a = b hängt nur den Pfeil von <b>a</b> um. Der Pfeil von s1 und das Array bleiben gleich'); },
+      () => { setHl([4]); relink(sc, 'b', 'A-0', ka); },
+      () => { setHl([5]); unlink(sc, 'a'); unlink(sc, 'b'); ['a', 'b', 'tmp'].forEach(i => setV(i, '–')); say('Kopien weg: s1 → 🐶, s2 → 🐱 wie vorher. <b>Kein Seiteneffekt!</b>'); },
+      () => { setHl([13]); print('k', 'x:1 - y:2'); },
+      () => { setHl([14]); print('k', 's1:🐶 - s2:🐱'); },
+    ]);
+  } },
+{ ch: 1, title: 'TauscheInhalt<T>: jetzt mit Seiteneffekt', code: codeInhalt, hl: [7],
+  text: `<p>Wieder bekommt die Methode nur <b>Kopien der Referenzen</b>. Diesmal ändern wir aber nicht <code>a</code>, sondern mit <code>a[0] = …</code> das <b>Array, auf das a zeigt</b>.</p>
+<p>Das ist <b>dasselbe Array</b> wie bei <code>s1</code>. Darum sieht das Hauptprogramm die Änderung: ein <b>Seiteneffekt</b>.</p>
+<p>Ein <code>int</code> hat keinen Inhalt, auf den man zeigen könnte. Ohne <code>ref</code> gibt es bei <code>int</code> darum <b>nie</b> einen Seiteneffekt.</p>`,
+  render(st) {
+    const sc = swapScene(st, 'TauscheInhalt&lt;T&gt;(T[] a, T[] b)', false);
+    const ka = { color: 'var(--x)', dash: true, from: 'left', to: 'right' };
+    return seq([
+      () => { setHl([7, 8]); show_('Abox'); show_('Bbox'); setV('s1', '→'); setV('s2', '→'); link(sc, 's1', 'A-0'); link(sc, 's2', 'B-0'); },
+      () => { setHl([9, 0]); setT('string   (also T[] = string[])'); setV('a', '→'); setV('b', '→'); link(sc, 'a', 'A-0', ka); link(sc, 'b', 'B-0', ka); say('Wieder <b>Kopien der Referenzen</b> – a zeigt auf dasselbe Array wie s1'); },
+      () => { setHl([2]); setV('tmp', '🐶'); say('temp bekommt den <b>Inhalt</b> a[0]'); },
+      () => { setHl([3]); setCell('A-0', '🐱', 'hot'); say('a[0] = … folgt dem Pfeil von a und ändert das <b>Array selbst</b> – das ist auch das Array von s1!'); },
+      () => { setHl([4]); setCell('B-0', '🐶', 'hot'); },
+      () => { setHl([5]); unlink(sc, 'a'); unlink(sc, 'b'); ['a', 'b', 'tmp'].forEach(i => setV(i, '–')); say('Kopien weg – die Arrays bleiben verändert. <b>Seiteneffekt!</b>'); },
+      () => { setHl([11]); print('k', 's1:🐱 - s2:🐶'); },
+      () => { setHl([12]); say('int hat keinen Inhalt – ohne ref gibt es bei int nie einen Seiteneffekt'); },
+    ]);
+  } },
+{ ch: 1, title: 'Tausche<T> mit ref: die Variable selbst', code: codeTausche, hl: [7],
+  text: `<p>Mit <code>ref</code> bekommt die Methode <b>keine Kopie</b>, sondern die <b>Variable</b> des Aufrufers. <code>a</code> ist nur ein zweiter Name für <code>x</code> bzw. <code>s1</code>.</p>
+<p>Darum wirkt jetzt auch die Zuweisung <code>a = b</code> nach außen – und zwar bei <b>jedem</b> Typ, auch bei <code>int</code>. Gibt man <code>T</code> beim Aufruf nicht an, <b>erkennt</b> ihn der Compiler aus den Argumenten.</p>`,
+  render(st) {
+    const sc = scene();
+    const tp = el('div', 'tpc', 'T = ?'); tp.id = 'tp';
+    const vars = wrap('row', [vbox('x', 'int x', '?'), vbox('y', 'int y', '?'), vbox('s1', 'string s1', '?'), vbox('s2', 'string s2', '?')]);
+    const fr = el('div', 'frame'); fr.appendChild(el('div', 'fh', 'Tausche&lt;T&gt;(ref T a, ref T b)'));
+    fr.appendChild(wrap('row', [vbox('a', 'T a', '–', 'ref'), vbox('b', 'T b', '–', 'ref'), vbox('tmp', 'T temp', '–')]));
+    sc.appendChild(wrap('col', [tp, vars, fr])); st.appendChild(sc);
+    const T = t => { const e = $('tp'); e.textContent = 'T = ' + t; e.classList.remove('pop'); void e.offsetWidth; e.classList.add('pop'); };
+    return seq([
+      () => { setHl([7]); setV('x', '1'); setV('y', '2'); },
+      () => { setHl([8]); T('int'); setV('a', '→ x'); setV('b', '→ y'); setV('tmp', '–'); },
+      () => { setHl([2]); setV('tmp', '1'); },
+      () => { setHl([3]); setV('x', '2'); },
+      () => { setHl([4]); setV('y', '1'); },
+      () => { setHl([9]); setV('s1', '🐶'); setV('s2', '🐱'); },
+      () => { setHl([10]); T('string  (erkannt)'); setV('a', '→ s1'); setV('b', '→ s2'); setV('tmp', '–'); },
+      () => { setHl([2]); setV('tmp', '🐶'); },
+      () => { setHl([3]); setV('s1', '🐱'); },
+      () => { setHl([4]); setV('s2', '🐶'); },
+    ]);
+  } },
+{ ch: 1, title: 'Kopie der Referenz vs. ref', code: codeVergleich, hl: [3],
+  text: `<p><b>Oben – Kopie:</b> <code>a</code> und <code>b</code> haben <b>eigene Pfeile</b> auf die Arrays. Vertauschen ändert nur diese Pfeile, <code>s1</code> und <code>s2</code> bleiben gleich.</p>
+<p><b>Unten – ref:</b> <code>a</code> und <code>b</code> haben <b>keine eigenen Pfeile</b>, sie <b>sind</b> <code>s1</code> und <code>s2</code>. Vertauschen hängt deshalb <code>s1</code> und <code>s2</code> um. Die Arrays selbst ändern sich in <b>beiden</b> Fällen nicht.</p>
+<table class="t"><tr><th></th><th>ohne ref</th><th>mit ref</th></tr>
+<tr><td><code>a = b;</code></td><td>kein Seiteneffekt (nie, bei keinem T)</td><td>Seiteneffekt (bei jedem T)</td></tr>
+<tr><td><code>a[0] = …;</code> / <code>a.Name = …;</code></td><td>Seiteneffekt, wenn T ein Referenztyp ist</td><td>Seiteneffekt</td></tr></table>`,
+  render(st) {
+    const sc = scene();
+    const lane = (p, head, kids) => { const f = el('div', 'frame'); f.appendChild(el('div', 'fh', head)); f.appendChild(grid(3, kids, '16px 50px')); return f; };
+    const v = (p, n) => vbox(p + n, 'string[] s' + n, '?', 'ref');
+    const kop = lane('k', 'TauscheKopie(s1, s2):  a, b = Kopien der Referenzen',
+      [v('k', 1), arrBox('kA', 'Array', '🐶'), vbox('ka', 'a  (Kopie)', '–', 'ref'), v('k', 2), arrBox('kB', 'Array', '🐱'), vbox('kb', 'b  (Kopie)', '–', 'ref')]);
+    const ref = lane('r', 'TauscheRef(ref s1, ref s2):  a, b = andere Namen für s1, s2',
+      [vbox('ra', 'ref a', '–', 'ref'), v('r', 1), arrBox('rA', 'Array', '🐶'), vbox('rb', 'ref b', '–', 'ref'), v('r', 2), arrBox('rB', 'Array', '🐱')]);
+    sc.appendChild(wrap('col', [wrap('row top', [kop, ref]), infoBox()])); st.appendChild(sc);
+    const ko = { color: 'var(--x)', dash: true, from: 'left', to: 'right' }, ro = { color: 'var(--y)' };
+    return seq([
+      () => { setHl([3]); ['k1', 'k2', 'r1', 'r2'].forEach(i => setV(i, '→')); link(sc, 'k1', 'kA-0'); link(sc, 'k2', 'kB-0'); link(sc, 'r1', 'rA-0'); link(sc, 'r2', 'rB-0'); },
+      () => { setHl([4, 0]); setV('ka', '→'); setV('kb', '→'); link(sc, 'ka', 'kA-0', ko); link(sc, 'kb', 'kB-0', ko); say('<b>Kopie:</b> a und b bekommen <b>eigene Pfeile</b> auf die Arrays'); },
+      () => { setHl([0]); relink(sc, 'ka', 'kB-0', ko); relink(sc, 'kb', 'kA-0', ko); say('a = b; b = temp; vertauscht nur die Pfeile von a und b – s1, s2 unberührt'); },
+      () => { setHl([4]); unlink(sc, 'ka'); unlink(sc, 'kb'); setV('ka', '–'); setV('kb', '–'); say('Methode zu Ende: s1 → 🐶, s2 → 🐱. <b>Kein Seiteneffekt</b>'); },
+      () => { setHl([5, 1]); setV('ra', '≡ s1'); setV('rb', '≡ s2'); link(sc, 'ra', 'r1', ro); link(sc, 'rb', 'r2', ro); say('<b>ref:</b> a und b haben <b>keinen eigenen Pfeil</b> – sie <b>sind</b> die Variablen s1 und s2'); },
+      () => { setHl([1]); relink(sc, 'r1', 'rB-0'); setV('r1', '→'); relink(sc, 'r2', 'rA-0'); setV('r2', '→'); say('a = b; b = temp; hängt deshalb <b>s1 und s2 selbst</b> um'); },
+      () => { setHl([5]); unlink(sc, 'ra'); unlink(sc, 'rb'); setV('ra', '–'); setV('rb', '–'); say('s1 → 🐱, s2 → 🐶: <b>Seiteneffekt</b> auf die <b>Variablen</b>. Die Arrays sind unverändert'); },
+    ]);
+  } },
+
+// ---------- 2: Mehrere Typparameter ----------
+{ ch: 2, title: 'Drehe<TA, TB>: zwei Typparameter', code: codeDrehe, hl: [5],
+  text: `<p>Mehrere Typparameter werden mit Beistrich getrennt: <code>&lt;TA, TB&gt;</code>. Sie dürfen <b>verschieden</b> sein, müssen aber nicht.</p>
+<p>Konvention: ein Typparameter heißt <code>T</code>, mehrere beginnen mit <code>T</code> und haben einen sprechenden Namen (<code>TKey</code>, <code>TValue</code>, <code>TName</code>).</p>`,
+  render(st) {
+    const ta = el('div', 'tpc', 'TA = ?'); ta.id = 'ta';
+    const tb = el('div', 'tpc b', 'TB = ?'); tb.id = 'tb';
+    const tup = (id, n) => wrap('col', [lab(n), wrap('arr', [Object.assign(el('div', 'cell', '?'), { id: id + '0' }), Object.assign(el('div', 'cell', '?'), { id: id + '1' })])]);
+    st.appendChild(wrap('col', [wrap('row', [ta, tb]), wrap('row', [tup('p', 'p'), el('div', 'ar k', '⟶ Drehe ⟶'), tup('q', 'q / r')]), konsole('k')]));
+    const set = (id, t) => { const e = $(id); e.textContent = t; e.classList.remove('pop'); void e.offsetWidth; e.classList.add('pop'); };
+    return seq([
+      () => { setHl([5]); setCell('p0', '7', 'a'); setCell('p1', '"Sieben"', 'b'); },
+      () => { setHl([6]); set('ta', 'TA = int'); set('tb', 'TB = string'); },
+      () => { setHl([3]); setCell('q0', '"Sieben"', 'b'); setCell('q1', '7', 'a'); },
+      () => { setHl([7]); print('k', '(Sieben, 7)'); },
+      () => { setHl([8]); set('ta', 'TA = bool'); set('tb', 'TB = char'); setCell('p0', 'true', 'a'); setCell('p1', "'x'", 'b'); setCell('q0', '?'); setCell('q1', '?'); },
+      () => { setHl([3]); setCell('q0', "'x'", 'b'); setCell('q1', 'true', 'a'); },
+      () => { setHl([9]); print('k', '(x, True)'); },
+    ]);
+  } },
+
+// ---------- 3: Generische Klasse ----------
+{ ch: 3, title: 'Warum nicht einfach object?', code: codeObjekt, hl: [6],
+  text: `<p>In ein <code>object[]</code> passt <b>alles</b>. Klingt praktisch – aber der Compiler weiß nicht mehr, <b>was</b> drin ist. Beim Herausnehmen brauchen wir einen <b>Cast</b>, und ein falscher Cast fällt erst <b>zur Laufzeit</b> auf.</p>`,
+  render(st) {
+    st.appendChild(wrap('col', [objCard('os', '<u>s</u> : ObjektStapel', [['anzahl', '0']]), cells('c', ['', '', '', '']), wrap('row', [vbox('zahl', 'int zahl', '?'), vbox('obst', 'int obst', '?')]), hid(Object.assign(el('div', 'errbox', '💥 InvalidCastException: string kann nicht in int umgewandelt werden.'), { id: 'err' }))]));
+    return seq([
+      () => { setHl([7]); setCell('c-0', '🍎'); setF('os', 'anzahl', '1'); },
+      () => { setHl([8]); setCell('c-1', '42'); setF('os', 'anzahl', '2'); },
+      () => { setHl([9]); setCell('c-1', '42', 'dim'); setF('os', 'anzahl', '1'); setV('zahl', '42'); },
+      () => { setHl([10]); setCell('c-0', '🍎', 'bad'); setF('os', 'anzahl', '0'); show_('err'); shake('obst'); },
+    ]);
+  } },
+{ ch: 3, title: 'Stapel<T>: eine generische Klasse', code: codeStapel, hl: [18],
+  text: `<p>Bei einer generischen <code>Klasse</code> steht <code>&lt;T&gt;</code> <b>nach dem Klassennamen</b>. <code>T</code> gilt dann in <b>allen</b> Feldern und Methoden der Klasse.</p>
+<p>Beim Erzeugen legen wir <code>T</code> fest: <code>Stapel&lt;string&gt;</code> ist ein Stapel <b>nur</b> für Strings. Kein Cast nötig, und ein falscher Typ ist ein <b>Compilerfehler</b> statt einer Exception.</p>`,
+  render(st) {
+    const s1 = wrap('col', [objCard('s', '<u>s</u> : Stapel&lt;<span class="tk-tp">string</span>&gt;', [['anzahl', '0']]), cells('a', ['', '', '', ''])]);
+    const s2 = hid(wrap('col', [objCard('z', '<u>zahlen</u> : Stapel&lt;<span class="tk-tp">int</span>&gt;', [['anzahl', '0']]), cells('b', ['', '', '', ''])])); s2.id = 's2';
+    hid(s1); s1.id = 's1';
+    const err = hid(el('div', 'errbox', '❌ CS1503: Argument 1: Konvertierung von "string" in "int" nicht möglich')); err.id = 'err';
+    st.appendChild(wrap('col', [wrap('row top', [s1, s2]), konsole('k'), err]));
+    return seq([
+      () => { setHl([18]); show_('s1'); },
+      () => { setHl([19, 7]); setCell('a-0', '🍎', 'hot'); },
+      () => { setHl([8]); setF('s', 'anzahl', '1'); },
+      () => { setHl([20, 7]); setCell('a-1', '🍌', 'hot'); },
+      () => { setHl([8]); setF('s', 'anzahl', '2'); },
+      () => { setHl([21, 13]); setF('s', 'anzahl', '1'); },
+      () => { setHl([21, 14]); setCell('a-1', '🍌', 'dim'); print('k', '🍌'); },
+      () => { setHl([22]); show_('s2'); },
+      () => { setHl([23, 7]); setCell('b-0', '42', 'hot'); setF('z', 'anzahl', '1'); },
+      () => { setHl([24]); show_('err'); shake('z'); },
+    ]);
+  } },
+
+// ---------- 4: where ----------
+{ ch: 4, title: 'where: was kann T?', code: codeWhere, hl: [3],
+  text: `<p>Ohne Einschränkung kann <code>T</code> <b>jeder</b> Typ sein – auch einer ohne <code>&gt;</code>. Darum erlaubt der Compiler für <code>T</code> nur, was <b>jeder</b> Typ kann.</p>
+<p>Mit <code>where T : IComparable&lt;T&gt;</code> versprechen wir: <code>T</code> kann sich vergleichen. Jetzt dürfen wir <code>CompareTo</code> aufrufen: Ergebnis <b>&lt; 0</b> (kleiner), <b>0</b> (gleich), <b>&gt; 0</b> (größer). Typen, die das Versprechen nicht halten, sind nicht erlaubt.</p>`,
+  render(st) {
+    const tys = ['int', 'string', 'double', 'Hamster', 'bool[]'];
+    const chips = wrap('row', tys.map((t, i) => Object.assign(el('div', 'chip', t), { id: 'ty' + i })));
+    const e1 = hid(el('div', 'errbox', '❌ CS0019: Der Operator ">" kann nicht auf Operanden vom Typ "T" angewendet werden.')); e1.id = 'e1';
+    const cmp = hid(el('div', 'okbox', '')); cmp.id = 'cmp';
+    const e2 = hid(el('div', 'errbox', '❌ Hamster ist nicht IComparable&lt;Hamster&gt; – T = Hamster nicht erlaubt.')); e2.id = 'e2';
+    const tp = el('div', 'tpc', 'T = ?  (alles möglich)'); tp.id = 'tp';
+    st.appendChild(wrap('col', [tp, chips, e1, cmp, e2, konsole('k')]));
+    const T = t => { $('tp').textContent = t; };
+    return seq([
+      () => { setHl([3]); show_('e1'); },
+      () => { setHl([8]); $('e1').classList.add('hidden'); T('where T : IComparable<T>'); ['ty0', 'ty1', 'ty2'].forEach(i => $(i).classList.add('yes')); ['ty3', 'ty4'].forEach(i => $(i).classList.add('no')); },
+      () => { setHl([13]); T('T = int'); show_('cmp'); $('cmp').textContent = '3.CompareTo(8) = -1  →  nicht > 0  →  return b'; },
+      () => { setHl([11]); print('k', 'g = 8'); },
+      () => { setHl([14]); T('T = string'); $('cmp').textContent = '"Hund".CompareTo("Affe") = 1  →  > 0  →  return a'; shake('cmp'); },
+      () => { setHl([10]); print('k', 'w = Hund'); },
+      () => { setHl([15]); T('T = Hamster ?'); show_('e2'); shake('ty3'); },
+    ]);
+  } },
+{ ch: 4, title: 'Rangliste<TName, TPunkte>: Klasse mit Einschränkung', code: codeRang, hl: [19],
+  text: `<p>Eine Klasse mit <b>zwei</b> Typparametern. Nur <code>TPunkte</code> wird eingeschränkt – <code>TName</code> darf alles sein, mit dem Namen wird ja nicht gerechnet.</p>
+<p>Weil die Klasse <code>CompareTo</code> braucht, steht das <code>where</code> <b>bei der Klasse</b>. Der Compiler prüft es bei jedem <code>new Rangliste&lt;…&gt;</code>.</p>`,
+  render(st) {
+    const o = hid(objCard('r', '<u>r</u> : Rangliste&lt;<span class="tk-tp">string</span>, <span class="tk-tp">int</span>&gt;', [['bester', 'null'], ['bestePunkte', '0'], ['leer', 'true']])); o.id = 'r';
+    const arg = hid(wrap('row', [vbox('nm', 'TName name', '?'), vbox('pk', 'TPunkte punkte', '?')])); arg.id = 'arg';
+    const cmp = hid(el('div', 'okbox', '')); cmp.id = 'cmp';
+    const e = hid(el('div', 'errbox', '❌ CS0315: Hamster kann nicht als TPunkte verwendet werden – keine Konvertierung in IComparable&lt;Hamster&gt;.')); e.id = 'e';
+    st.appendChild(wrap('col', [o, arg, cmp, konsole('k'), e]));
+    const call = (n, p) => { setV('nm', '"' + n + '"'); setV('pk', p); };
+    const cm = t => { const c = $('cmp'); c.classList.remove('hidden'); c.textContent = t; c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); };
+    return seq([
+      () => { setHl([19]); show_('r'); },
+      () => { setHl([20, 8]); show_('arg'); call('Ana', '12'); cm('leer ist true  →  eintragen'); },
+      () => { setHl([10, 11, 12]); setF('r', 'bester', '"Ana"'); setF('r', 'bestePunkte', '12'); setF('r', 'leer', 'false'); },
+      () => { setHl([21, 8]); call('Ben', '30'); cm('30.CompareTo(12) = 1  →  > 0  →  eintragen'); },
+      () => { setHl([10, 11]); setF('r', 'bester', '"Ben"'); setF('r', 'bestePunkte', '30'); },
+      () => { setHl([22, 8]); call('Cem', '21'); cm('21.CompareTo(30) = -1  →  nicht eintragen'); },
+      () => { setHl([23]); print('k', 'Ben'); },
+      () => { setHl([24]); show_('e'); },
+    ]);
+  } },
+{ ch: 4, title: 'where T : class / struct', code: C(`
+// nur Referenztypen: string, Hund, int[] …
+T? ErstesOderNull<T>(T[] werte) where T : class
+{
+    if (werte.Length == 0) { return null; }   // ✅ erst durch class erlaubt
+    return werte[0];
+}
+
+// nur Werttypen: int, double, bool, eigene struct …
+T WertOder<T>(T? wert, T ersatz) where T : struct
+{
+    if (wert.HasValue) { return wert.Value; } // T? = Nullable<T>
+    return ersatz;
+}
+
+string? s = ErstesOderNull(new string[0]);    // null
+int z = WertOder<int>(null, 7);               // 7
+ErstesOderNull(new int[] { 1, 2 });           // ❌ int ist keine class
+WertOder<string>("Hi", "x");                  // ❌ string ist kein struct`), hl: [1],
+  text: `<p>Manchmal wollen wir nur <b>Referenztypen</b> (<code>class</code>) oder nur <b>Werttypen</b> (<code>struct</code>) zulassen.</p>
+<p><code>where T : class</code>: <code>T</code> kann <code>null</code> sein – also dürfen wir <code>return null</code> schreiben. Ohne Einschränkung geht das nicht, denn ein <code>int</code> kann nie <code>null</code> sein.</p>
+<p><code>where T : struct</code>: <code>T</code> ist nie <code>null</code>. Dafür gibt es <code>T?</code> (<code>Nullable&lt;T&gt;</code>) mit <code>HasValue</code> und <code>Value</code> für „kein Wert“.</p>`,
+  render(st) {
+    const tys = ['int', 'double', 'bool', 'string', 'Hund', 'int[]'];
+    const chips = wrap('row', tys.map((t, i) => Object.assign(el('div', 'chip', t), { id: 'cs' + i })));
+    const tp = el('div', 'tpc', 'T = ?  (alles möglich)'); tp.id = 'tp';
+    const ok = hid(el('div', 'okbox', '')); ok.id = 'ok';
+    const e = hid(el('div', 'errbox', '')); e.id = 'e';
+    st.appendChild(wrap('col', [tp, chips, ok, konsole('k'), e]));
+    const T = t => { $('tp').textContent = t; };
+    const mark = (yes) => tys.forEach((_, i) => { const c = $('cs' + i); c.classList.remove('yes', 'no'); c.classList.add(yes.includes(i) ? 'yes' : 'no'); });
+    const box = (id, t) => { const c = $(id); c.classList.remove('hidden'); c.textContent = t; c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); };
+    return seq([
+      () => { setHl([1]); T('where T : class'); mark([3, 4, 5]); },
+      () => { setHl([3]); box('ok', 'T kann null sein  →  return null erlaubt'); },
+      () => { setHl([14, 3]); T('T = string'); box('ok', 'werte.Length == 0  →  return null'); print('k', 's = null'); },
+      () => { setHl([8]); T('where T : struct'); mark([0, 1, 2]); $('ok').classList.add('hidden'); },
+      () => { setHl([15, 10]); T('T = int'); box('ok', 'wert = null  →  HasValue ist false'); },
+      () => { setHl([11]); print('k', 'z = 7'); },
+      () => { setHl([16]); T('T = int ?'); mark([3, 4, 5]); box('e', '❌ CS0452: int muss ein Referenztyp sein, damit es als T verwendet werden kann.'); shake('cs0'); },
+      () => { setHl([17]); T('T = string ?'); mark([0, 1, 2]); box('e', '❌ CS0453: string muss ein Werttyp sein (keine Nullable-Typen), damit es als T verwendet werden kann.'); shake('cs3'); },
+    ]);
+  } },
+{ ch: 4, title: 'where T : class, IHatName: Seiteneffekt garantiert', code: codeHatName, hl: [4],
+  text: `<p>Mit <code>where T : IHatName</code> dürfen wir <code>t.Name</code> ändern. Ein Interface können aber <b>Klassen und structs</b> umsetzen.</p>
+<p><b>Katze (class):</b> <code>t</code> ist eine Kopie der <b>Referenz</b> → zeigt auf dieselbe Katze → Seiteneffekt.<br>
+<b>Roboter (struct):</b> <code>t</code> ist eine Kopie des <b>ganzen Werts</b> → geändert wird nur die Kopie → kein Seiteneffekt.</p>
+<p>Gleicher Code, anderes Verhalten! Mit <code>where T : class, IHatName</code> ist <code>T</code> sicher ein Referenztyp – <code>t.Name = …</code> trifft dann <b>immer</b> das Original.</p>`,
+  render(st) {
+    const sc = scene();
+    const kl = el('div', 'frame'); kl.appendChild(el('div', 'fh', 'Katze: class'));
+    const kv = wrap('col', [vbox('kk', 'Katze k', '?', 'ref'), hid(vbox('kt', 'T t  (Kopie)', '–', 'ref'))]); kv.style.gap = '26px';
+    const kr = wrap('row', [kv, hid(objCard('ko', '<u>:Katze</u>', [['Name', '"Mia"']]))]); kr.style.gap = '70px'; kr.style.flexWrap = 'nowrap';
+    kl.appendChild(kr);
+    const sl = el('div', 'frame'); sl.appendChild(el('div', 'fh', 'Roboter: struct  (der Wert steckt direkt in der Variable)'));
+    const cp = hid(el('div', 'ar k', '⟶ Kopie ⟶')); cp.id = 'cp';
+    const sr = wrap('row', [hid(objCard('ro', '<u>r</u> : Roboter', [['Name', '"R2"']])), cp, hid(objCard('rt', '<u>t</u> : Roboter  (Kopie)', [['Name', '"R2"']]))]); sr.style.flexWrap = 'nowrap';
+    sl.appendChild(sr);
+    const err = hid(el('div', 'errbox', '❌ CS0452: Roboter muss ein Referenztyp sein, damit es als T verwendet werden kann.')); err.id = 'err';
+    sc.appendChild(wrap('col', [wrap('row top', [kl, sl]), infoBox(), konsole('k'), err])); st.appendChild(sc);
+    return seq([
+      () => { setHl([4]); say('where T : IHatName: jetzt darf <b>t.Name</b> verwendet werden'); },
+      () => { setHl([9]); show_('ko'); setV('kk', '→'); link(sc, 'kk', 'ko'); },
+      () => { setHl([10]); show_('ro'); say('r ist ein struct: kein Pfeil, der Wert steckt <b>direkt</b> in r'); },
+      () => { setHl([11, 4]); show_('kt'); setV('kt', '→'); link(sc, 'kt', 'ko', { color: 'var(--x)', dash: true }); say('T = Katze (class): t ist eine Kopie der <b>Referenz</b> – zeigt auf dieselbe Katze'); },
+      () => { setHl([6]); setF('ko', 'Name', '"Neu"'); },
+      () => { setHl([7]); unlink(sc, 'kt'); hide_('kt'); say('t ist weg – die Katze heißt trotzdem "Neu": <b>Seiteneffekt</b>'); },
+      () => { setHl([12, 4]); show_('cp'); show_('rt'); say('T = Roboter (struct): t ist eine Kopie des <b>ganzen Werts</b>'); },
+      () => { setHl([6]); setF('rt', 'Name', '"Neu"'); say('Geändert wird nur die Kopie'); },
+      () => { setHl([7]); hide_('rt'); hide_('cp'); say('Kopie weg – r heißt weiter "R2": <b>kein Seiteneffekt</b>'); },
+      () => { setHl([13]); print('k', 'Neu'); },
+      () => { setHl([14]); print('k', 'R2'); say('Gleicher Code, anderes Verhalten – je nachdem, ob T class oder struct ist'); },
+      () => { setHl([17]); say('where T : <b>class</b>, IHatName: T ist sicher ein Referenztyp → t.Name = … trifft <b>immer</b> das Original'); },
+      () => { setHl([21]); say('Katze ist eine class ✅'); },
+      () => { setHl([22]); show_('err'); shake('ro'); },
+    ]);
+  } },
+{ ch: 4, title: 'Die wichtigsten Einschränkungen', code: C(`
+class Lager<T> where T : class { }          // nur Referenztypen
+class Messung<T> where T : struct { }       // nur Werttypen
+class Fabrik<T> where T : new() { }         // T braucht new T()
+class Tierheim<T> where T : Tier { }        // T ist ein Tier
+class Liste<T> where T : IComparable<T> { } // T kann vergleichen
+
+// mehrere Einschränkungen, mehrere Typparameter
+class Zoo<TA, TB> where TA : Tier, new()
+                  where TB : struct { }`), hl: [],
+  text: `<p>Pro Typparameter <b>ein</b> <code>where</code>. Mehrere Bedingungen für denselben Typparameter werden mit Beistrich getrennt, <code>new()</code> steht immer am Ende.</p>
+<p>Merke: <b>Je mehr</b> wir einschränken, <b>desto mehr</b> dürfen wir mit <code>T</code> im Code machen – aber <b>desto weniger</b> Typen dürfen eingesetzt werden.</p>`,
+  render(st) {
+    st.appendChild(el('table', 't pop', `<tr><th>Einschränkung</th><th>T muss …</th><th>dann dürfen wir im Code …</th></tr>
+<tr><td><code>where T : class</code></td><td>ein Referenztyp sein</td><td><code>null</code> zuweisen</td></tr>
+<tr><td><code>where T : struct</code></td><td>ein Werttyp sein</td><td>sicher sein: nie <code>null</code></td></tr>
+<tr><td><code>where T : new()</code></td><td>einen leeren Konstruktor haben</td><td><code>new T()</code> schreiben</td></tr>
+<tr><td><code>where T : Tier</code></td><td>von <code>Tier</code> erben (ist-ein)</td><td><code>t.Name</code>, alle Mitglieder von <code>Tier</code></td></tr>
+<tr><td><code>where T : IComparable&lt;T&gt;</code></td><td>das Interface umsetzen</td><td><code>a.CompareTo(b)</code></td></tr>
+<tr><td><code>where T : class, IHatName</code></td><td>Referenztyp mit Interface sein</td><td><code>t.Name = …</code> – trifft sicher das Original</td></tr>`));
+  } },
+
+{ ch: 4, title: 'where T : class  vs.  ref T t', code: C(`
+// class: T ist ein Referenztyp – übergeben wird eine KOPIE der Referenz
+class Ablage<T> where T : class
+{
+    public T? Inhalt { get; private set; }
+    public void Lege(T t)
+    {
+        Inhalt = t;                   // Kopie der Referenz merken
+    }
+}
+
+// ref: die VARIABLE des Aufrufers wird übergeben – für jeden Typ T
+void Neu<T>(ref T t) where T : new()
+{
+    t = new T();                      // ändert die Variable des Aufrufers
+}
+
+Hund h = new Hund { Name = "Rex" };   // class Hund { public string Name = "?"; }
+Ablage<Hund> a = new Ablage<Hund>();
+a.Lege(h);                            // h und a.Inhalt zeigen auf DASSELBE Objekt
+h.Name = "Max";                       // Seiteneffekt: über h geändert …
+Console.WriteLine(a.Inhalt.Name);     // Max   … und über a.Inhalt sichtbar
+Neu(ref h);                           // h zeigt jetzt auf einen neuen Hund
+Console.WriteLine(h.Name);            // ?
+Console.WriteLine(a.Inhalt.Name);     // Max   die Ablage zeigt noch auf den alten
+int z = 5;
+Neu(ref z);                           // z = 0: ref geht mit jedem Typ
+Ablage<int> x;                        // ❌ int ist keine class`), hl: [1],
+  text: `<p>Beides klingt nach „Referenz“, ist aber etwas ganz anderes.</p>
+<p><code>where T : class</code> sagt etwas über den <b>Typ</b>: <code>T</code> muss ein Referenztyp sein. Übergeben wird – wie immer in C# – eine <b>Kopie</b>. Bei einem Referenztyp ist das eine <b>Kopie der Referenz</b>: <code>h</code>, <code>t</code> und später <code>a.Inhalt</code> zeigen auf <b>dasselbe Objekt</b>. Darum gibt es <b>Seiteneffekte</b>: Ändern wir das Objekt über <code>h</code>, sieht es auch die Ablage.</p>
+<p><code>ref T t</code> sagt etwas über den <b>Parameter</b>: <code>t</code> ist keine Kopie, sondern ein zweiter Name für die <b>Variable</b> <code>h</code>. <code>t = new T()</code> hängt also <code>h</code> um. Die Ablage hat aber nur eine Kopie der <b>alten</b> Referenz und zeigt weiter auf Max. Und <code>ref</code> geht mit <b>jedem</b> Typ, auch mit <code>int</code>.</p>
+<table class="t"><tr><th></th><th><code>where T : class</code></th><th><code>ref T t</code></th></tr>
+<tr><td>betrifft</td><td>den Typ T</td><td>den Parameter</td></tr>
+<tr><td>erlaubt</td><td>nur Referenztypen</td><td>alle Typen</td></tr>
+<tr><td>übergeben wird</td><td>eine Kopie der Referenz</td><td>die Variable selbst</td></tr>
+<tr><td>Seiteneffekt</td><td>Änderungen am <b>Objekt</b></td><td>Änderungen an der <b>Variable</b></td></tr></table>`,
+  render(st) {
+    const sc = scene();
+    const vars = wrap('col', [vbox('vh', 'Hund h', '?', 'ref'), hid(vbox('vt', 'T t', '?', 'ref')), hid(vbox('vz', 'int z', '5'))]); vars.style.gap = '30px';
+    const ab = hid(objCard('a', '<u>a</u> : Ablage&lt;Hund&gt;', [['Inhalt', 'null']]));
+    const o1 = hid(objCard('o1', '<u>:Hund</u>', [['Name', '"Rex"']]));
+    const o2 = hid(objCard('o2', '<u>:Hund</u>', [['Name', '"?"']]));
+    const objs = wrap('col', [o1, o2]); objs.style.gap = '30px';
+    const row = wrap('row', [vars, ab, objs]); row.style.gap = '70px'; row.style.flexWrap = 'nowrap';
+    const info = hid(el('div', 'okbox', '')); info.id = 'info';
+    const err = hid(el('div', 'errbox', '❌ CS0452: int muss ein Referenztyp sein, damit es als T verwendet werden kann.')); err.id = 'err';
+    sc.appendChild(wrap('col', [row, info, konsole('k'), err])); st.appendChild(sc);
+    const box = t => { const c = $('info'); c.classList.remove('hidden'); c.textContent = t; c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); };
+    const lbl = t => { $('vt').querySelector('.vn').textContent = t; };
+    return seq([
+      () => { setHl([16]); show_('o1'); setV('vh', '→'); link(sc, 'vh', 'o1'); },
+      () => { setHl([17]); show_('a'); },
+      () => { setHl([18, 4]); show_('vt'); lbl('T t  (Kopie)'); setV('vt', '→'); link(sc, 'vt', 'o1', { color: 'var(--x)', dash: true }); box('t ist eine KOPIE der Referenz von h – beide zeigen auf Rex'); },
+      () => { setHl([6]); setF('a', 'Inhalt', '→'); link(sc, 'a-Inhalt', 'o1'); box('Inhalt bekommt wieder eine Kopie der Referenz'); },
+      () => { setHl([7]); unlink(sc, 'vt'); $('vt').classList.add('hidden'); box('t ist weg – Inhalt zeigt weiterhin auf Rex'); },
+      () => { setHl([19]); setF('o1', 'Name', '"Max"'); box('Ein Objekt, zwei Referenzen: die Änderung über h betrifft auch a.Inhalt'); },
+      () => { setHl([20]); print('k', 'Max'); },
+      () => { setHl([21, 13]); show_('vt'); lbl('ref T t  ≡  h'); setV('vt', '= h'); box('t ist KEINE Kopie, sondern ein zweiter Name für die Variable h'); },
+      () => { setHl([13]); show_('o2'); unlink(sc, 'vh'); link(sc, 'vh', 'o2'); box('t = new T() hängt h um – die Ablage merkt davon nichts'); },
+      () => { setHl([22]); $('vt').classList.add('hidden'); print('k', '?'); },
+      () => { setHl([23]); print('k', 'Max'); box('a.Inhalt hat nur eine Kopie der ALTEN Referenz'); },
+      () => { setHl([24, 25]); show_('vz'); setTimeout(() => setV('vz', '0'), 300); box('ref geht mit jedem Typ: z wird über t auf 0 gesetzt'); },
+      () => { setHl([26]); show_('err'); },
+    ]);
+  } },
+
+// ---------- 5: Ko- und Kontravarianz ----------
+{ ch: 5, title: 'Problem: Arrays sind kovariant', code: codeArrKo, hl: [4],
+  text: `<p>Ein <code>Hund[]</code> darf in eine Variable vom Typ <code>Tier[]</code> – jeder Hund ist ja ein Tier. <b>Lesen</b> ist sicher: was herauskommt, ist ein Tier.</p>
+<p><b>Schreiben</b> ist gefährlich: Über <code>tiere</code> könnten wir eine Katze in das <b>Hunde</b>-Array legen. Das merkt erst die Laufzeit.</p>`,
+  render(st) {
+    const sc = scene();
+    const vars = wrap('col', [vbox('vh', 'Hund[] hunde', '?', 'ref'), hid(vbox('vt', 'Tier[] tiere', '?', 'ref'))]); vars.style.gap = '40px';
+    const ar = hid(wrap('col', [lab('Objekt: Hund[]'), cells('h', ['🐶 Rex', '🐶 Bello'])])); ar.id = 'ar';
+    const err = hid(el('div', 'errbox', '💥 ArrayTypeMismatchException: Eine 🐱 Katze passt nicht in ein Hund[].')); err.id = 'err';
+    const row = wrap('row', [vars, ar]); row.style.gap = '70px'; row.style.flexWrap = 'nowrap';
+    sc.appendChild(wrap('col', [row, konsole('k'), err])); st.appendChild(sc);
+    return seq([
+      () => { setHl([4]); show_('ar'); setV('vh', '→'); link(sc, 'vh', 'h-0'); },
+      () => { setHl([5]); show_('vt'); setV('vt', '→'); link(sc, 'vt', 'h-0', { color: 'var(--x)' }); },
+      () => { setHl([6]); setCell('h-0', '🐶 Rex', 'hot'); print('k', 'Rex'); },
+      () => { setHl([7]); setCell('h-0', '🐶 Rex'); setCell('h-1', '🐱 Mia?', 'bad'); shake('h-1'); show_('err'); setTimeout(() => redraw(sc), 500); },
+    ]);
+  } },
+{ ch: 5, title: 'List<T> ist invariant', code: codeInv, hl: [1],
+  text: `<p>Darum ist <code>List&lt;T&gt;</code> <b>invariant</b>: Eine <code>List&lt;Hund&gt;</code> ist <b>keine</b> <code>List&lt;Tier&gt;</code>. Eine Liste kann man nämlich lesen <b>und</b> beschreiben (<code>Add</code>).</p>
+<p>Der Fehler aus dem Array-Beispiel wird so schon <b>beim Kompilieren</b> verhindert.</p>`,
+  render(st) {
+    st.appendChild(wrap('col', [
+      wrap('hier', [el('div', 'card', 'Hund'), el('div', 'ar ok', '⟶'), el('div', 'card', 'Tier'),
+        el('div', 'card', 'List&lt;Hund&gt;'), Object.assign(el('div', 'ar bad', '✖'), { id: 'x' }), el('div', 'card', 'List&lt;Tier&gt;')]),
+      el('div', 'lbl', 'ist-ein ⟶   ·   ✖ keine Beziehung'),
+      Object.assign(hid(el('div', 'card ghost', 'List&lt;Hund&gt;: 🐶 🐶 🐱 ← „Mia“ wäre hier gelandet')), { id: 'g' }),
+      Object.assign(hid(el('div', 'errbox', '❌ CS0029: List&lt;Hund&gt; kann nicht in List&lt;Tier&gt; konvertiert werden.')), { id: 'e' })]));
+    return seq([
+      () => { setHl([1]); show_('e'); shake('x'); },
+      () => { setHl([2]); show_('g'); },
+    ]);
+  } },
+{ ch: 5, title: 'Kovarianz (out): Anwendung IEnumerable<T>', code: codeKo, hl: [0],
+  text: `<p><b>Kovariant</b> (<code>out T</code>): <code>T</code> kommt aus dem Interface nur <b>heraus</b> (Rückgabe), nie hinein. Dann ist Lesen sicher, und die Beziehung geht in <b>dieselbe Richtung</b> wie Hund ⟶ Tier. „ko“ = <b>mit</b>.</p>
+<p><b>Anwendung:</b> Eine Methode, die nur <b>liest</b>, nimmt <code>IEnumerable&lt;Tier&gt;</code> und funktioniert damit für Hunde, Katzen, … – ohne eigene Version pro Tierart.</p>`,
+  render(st) {
+    const t = vbox('vt', 'Tier t', '–', 'ref');
+    st.appendChild(wrap('col', [
+      wrap('hier', [el('div', 'card', 'Hund'), el('div', 'ar ok', '⟶'), el('div', 'card', 'Tier'),
+        el('div', 'card', 'IEnumerable&lt;Hund&gt;'), Object.assign(hid(el('div', 'ar ok', '⟶')), { id: 'a' }), el('div', 'card', 'IEnumerable&lt;Tier&gt;')]),
+      Object.assign(hid(el('div', 'badge ct', 'ko = gleiche Richtung')), { id: 'b' }),
+      wrap('row', [cells('l', ['🐶 Rex', '🐶 Bello']), t]), konsole('k')]));
+    return seq([
+      () => { setHl([14]); show_('a'); show_('b'); },
+      () => { setHl([15, 7]); setV('vt', '🐶 Rex'); setCell('l-0', '🐶 Rex', 'hot'); },
+      () => { setHl([9]); print('k', 'Rex!'); },
+      () => { setHl([7]); setV('vt', '🐶 Bello'); setCell('l-0', '🐶 Rex'); setCell('l-1', '🐶 Bello', 'hot'); },
+      () => { setHl([9]); print('k', 'Bello!'); },
+    ]);
+  } },
+{ ch: 5, title: 'Kontravarianz (in): Anwendung IComparer<T>', code: codeKontra, hl: [0],
+  text: `<p><b>Kontravariant</b> (<code>in T</code>): <code>T</code> geht nur <b>hinein</b> (Parameter). Wer <b>jedes Tier</b> vergleichen kann, kann sicher auch <b>Hunde</b> vergleichen. Die Beziehung dreht sich um: <code>IComparer&lt;Tier&gt;</code> ⟶ <code>IComparer&lt;Hund&gt;</code>. „kontra“ = <b>gegen</b>.</p>
+<p><b>Anwendung:</b> Ein Vergleicher für <code>Tier</code> sortiert Hunde-, Katzen- und alle anderen Tierlisten.</p>`,
+  render(st) {
+    const dog = (n, a) => `🐶 ${n} <small>(${a})</small>`;
+    st.appendChild(wrap('col', [
+      wrap('hier', [el('div', 'card', 'Hund'), el('div', 'ar ok', '⟶'), el('div', 'card', 'Tier'),
+        el('div', 'card', 'IComparer&lt;Hund&gt;'), Object.assign(hid(el('div', 'ar k', '⟵')), { id: 'a' }), el('div', 'card', 'IComparer&lt;Tier&gt;')]),
+      Object.assign(hid(el('div', 'badge ct', 'kontra = Gegenrichtung')), { id: 'b' }),
+      cells('l', [dog('Rex', 5), dog('Bello', 2), dog('Luna', 8)]),
+      Object.assign(hid(el('div', 'okbox', '')), { id: 'cmp' })]));
+    const cm = t => { const c = $('cmp'); c.classList.remove('hidden'); c.textContent = t; c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); };
+    return seq([
+      () => { setHl([11]); show_('a'); show_('b'); },
+      () => { setHl([12, 7]); setCell('l-0', dog('Rex', 5), 'hot'); setCell('l-1', dog('Bello', 2), 'hot'); cm('Compare(Rex, Bello) = 5 - 2 = 3  →  > 0  →  Bello nach vorne'); },
+      () => { setCell('l-0', dog('Bello', 2)); setCell('l-1', dog('Rex', 5)); },
+      () => { setCell('l-1', dog('Rex', 5), 'hot'); setCell('l-2', dog('Luna', 8), 'hot'); cm('Compare(Rex, Luna) = 5 - 8 = -3  →  < 0  →  bleibt'); },
+      () => { setHl([12]); setCell('l-1', dog('Rex', 5)); setCell('l-2', dog('Luna', 8)); cm('sortiert: Bello, Rex, Luna'); },
+    ]);
+  } },
+{ ch: 5, title: 'Eigene Interfaces: out und in', code: codeEigen, hl: [0, 1],
+  text: `<p><code>out</code> und <code>in</code> gibt es nur bei <b>Interfaces</b> (und Delegates), <b>nicht</b> bei Klassen. Der Compiler prüft die Regel: ein <code>out T</code> darf nicht als Parameter vorkommen, ein <code>in T</code> nicht als Rückgabe.</p>
+<p>Merksatz: <b>out = heraus = kovariant</b> (Richtung bleibt), <b>in = hinein = kontravariant</b> (Richtung dreht sich), <b>beides = invariant</b> (wie <code>List&lt;T&gt;</code>).</p>`,
+  render(st) {
+    st.appendChild(el('table', 't pop', `<tr><th></th><th>T kommt …</th><th>Beispiel</th><th>Zuweisung</th></tr>
+<tr><td><b>invariant</b></td><td>hinein <b>und</b> heraus</td><td><code>List&lt;T&gt;</code></td><td><code>List&lt;Hund&gt;</code> ✖ <code>List&lt;Tier&gt;</code></td></tr>
+<tr><td><b>kovariant</b> <code>out</code></td><td>nur heraus</td><td><code>IEnumerable&lt;out T&gt;</code>, <code>IQuelle&lt;out T&gt;</code></td><td><code>…&lt;Hund&gt;</code> ⟶ <code>…&lt;Tier&gt;</code></td></tr>
+<tr><td><b>kontravariant</b> <code>in</code></td><td>nur hinein</td><td><code>IComparer&lt;in T&gt;</code>, <code>IAblage&lt;in T&gt;</code></td><td><code>…&lt;Tier&gt;</code> ⟶ <code>…&lt;Hund&gt;</code></td></tr>`));
+    st.appendChild(Object.assign(hid(el('div', 'errbox', '❌ CS1961: Ungültige Varianz: T muss kontravariant gültig sein, ist aber kovariant (out).')), { id: 'e' }));
+    st.style.flexDirection = 'column'; st.style.gap = '16px';
+    return seq([
+      () => { setHl([2]); show_('e'); },
+      () => { setHl([7, 8]); $('e').classList.add('hidden'); },
+    ]);
+  } },
+// ---------- 6: Warum Varianz? ----------
+{ ch: 6, title: 'Warum ist List<T> invariant?', code: codeWarumInv, hl: [1],
+  text: `<p><b>Der Wunsch:</b> Wir wollen <b>eine</b> Methode <code>AlleFuettern</code>, die für Hunde-, Katzen- und alle anderen Tierlisten funktioniert. Ein Hund <b>ist ein</b> Tier – warum also ist eine <code>List&lt;Hund&gt;</code> keine <code>List&lt;Tier&gt;</code>?</p>
+<p><b>Der Grund:</b> Eine <code>List&lt;T&gt;</code> verwendet <code>T</code> in <b>beide Richtungen</b>: Es kommt heraus (<code>tiere[0]</code>, <code>foreach</code>) <b>und</b> es geht hinein (<code>Add</code>, <code>tiere[0] = …</code>). Der Compiler schaut nur auf den <b>Typ</b> des Parameters, nicht darauf, was die Methode damit macht. Eine <code>List&lt;Tier&gt;</code> <b>erlaubt</b> <code>Add(new Katze())</code> – also muss er die Umwandlung verbieten.</p>
+<p><b>Das Gedankenexperiment</b> zeigt, was sonst passieren würde: <code>hunde</code> und <code>tiere</code> zeigen auf <b>dieselbe</b> Liste. Über <code>tiere</code> landet eine Katze darin, über <code>hunde</code> wird sie später als Hund behandelt. Genau das erlauben Arrays – und deshalb muss dort <b>jede</b> Schreiboperation zur Laufzeit geprüft werden (<code>ArrayTypeMismatchException</code>).</p>
+<p><b>Invariant ist also der sichere Standard.</b> Offen bleibt das Problem: Ohne Umwandlung bräuchten wir <code>AlleFuettern</code> für jede Tierart extra.</p>`,
+  render(st) {
+    const sc = scene();
+    const e1 = hid(el('div', 'errbox', '❌ CS1503: List&lt;Hund&gt; kann nicht in List&lt;Tier&gt; konvertiert werden.')); e1.id = 'e1';
+    const gx = hid(el('div', 'badge rt', '🤔 Gedankenexperiment: Was wäre, wenn es erlaubt wäre?')); gx.id = 'gx';
+    const vh = hid(vbox('vh', 'List&lt;Hund&gt; hunde', '→', 'ref')), vt = hid(vbox('vt', 'List&lt;Tier&gt; tiere', '→', 'ref'));
+    const vars = wrap('col', [vh, vt]); vars.style.gap = '30px';
+    const li = hid(wrap('col', [lab('Objekt: eine Liste'), cells('h', ['🐶 Rex', '🐶 Bello', '&nbsp;'])])); li.id = 'li';
+    const hb = hid(vbox('hb', 'Hund h', '?', 'ref'));
+    const row = wrap('row', [vars, li, hb]); row.style.gap = '70px'; row.style.flexWrap = 'nowrap';
+    const e2 = hid(el('div', 'errbox', '💥 Mia ist eine Katze – sie kann nicht bellen. Dieser Fehler käme erst zur Laufzeit!')); e2.id = 'e2';
+    sc.appendChild(wrap('col', [e1, gx, row, konsole('k'), e2])); st.appendChild(sc);
+    return seq([
+      () => { setHl([10]); show_('vh'); show_('li'); link(sc, 'vh', 'h-0'); },
+      () => { setHl([11]); show_('e1'); },
+      () => { setHl([14]); $('e1').classList.add('hidden'); show_('gx'); show_('vt'); link(sc, 'vt', 'h-0', { color: 'var(--x)', dash: true }); },
+      () => { setHl([15]); setCell('h-2', '🐱 Mia', 'hot'); },
+      () => { setHl([16, 18]); show_('hb'); setV('hb', '🐶 Rex'); setCell('h-2', '🐱 Mia'); setCell('h-0', '🐶 Rex', 'hot'); print('k', 'Rex: Wuff'); },
+      () => { setHl([16, 18]); setV('hb', '🐶 Bello'); setCell('h-0', '🐶 Rex'); setCell('h-1', '🐶 Bello', 'hot'); print('k', 'Bello: Wuff'); },
+      () => { setHl([16, 18]); setV('hb', '🐱 Mia ?!'); setCell('h-1', '🐶 Bello'); setCell('h-2', '🐱 Mia', 'hot'); show_('e2'); shake('hb'); },
+    ]);
+  } },
+{ ch: 6, title: 'Kovarianz (out): nur heraus ist sicher', code: codeWarumKo, hl: [0],
+  text: `<p><b>Die Idee:</b> <code>AlleFuettern</code> braucht gar keine Liste – sie will nur <b>lesen</b>. Also verlangen wir auch nur das: <code>IEnumerable&lt;Tier&gt;</code>. Dieses Interface hat <b>kein</b> <code>Add</code> und keinen Setter. <code>T</code> kommt nur <b>heraus</b>, darum steht <code>out T</code> dabei.</p>
+<p><b>Warum ist das sicher?</b> Die Methode erwartet, dass ein <code>Tier</code> herauskommt. Aus der Hundeliste kommt ein <code>Hund</code> heraus – und ein Hund <b>ist ein</b> Tier. Das passt <b>immer</b>. Eine Katze hineinlegen geht nicht, weil es keinen Weg hinein gibt.</p>
+<p><b>Die Richtung bleibt gleich</b> („ko“ = mit): Hund ⟶ Tier, also <code>IEnumerable&lt;Hund&gt;</code> ⟶ <code>IEnumerable&lt;Tier&gt;</code>. Der Compiler prüft beim Interface, dass <code>T</code> wirklich nur als Rückgabe vorkommt – so ist die Sicherheit schon <b>beim Kompilieren</b> bewiesen.</p>`,
+  render(st) {
+    const li = wrap('col', [lab('List&lt;Hund&gt; hunde'), cells('h', ['🐶 Rex', '🐶 Bello'])]);
+    const pipe = el('div', 'badge ct', 'out ⟶  nur heraus');
+    const t = vbox('vt', 'Tier t', '–', 'ref');
+    const row = wrap('row', [li, pipe, t]); row.style.gap = '30px';
+    const ok = hid(el('div', 'okbox', '')); ok.id = 'ok';
+    const e = hid(el('div', 'errbox', '❌ Einbahnstraße: IEnumerable hat kein Add – eine Katze kommt nicht hinein.')); e.id = 'e';
+    st.appendChild(wrap('col', [row, ok, konsole('k'), e]));
+    const box = x => { const c = $('ok'); c.classList.remove('hidden'); c.textContent = x; c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); };
+    return seq([
+      () => { setHl([2, 3]); box('T steht nur bei der Rückgabe → nur heraus'); },
+      () => { setHl([14]); box('IEnumerable<Hund> wird als IEnumerable<Tier> übergeben ✅'); },
+      () => { setHl([7]); setCell('h-0', '🐶 Rex', 'hot'); setV('vt', '🐶 Rex'); box('erwartet: Tier  ·  kommt heraus: Hund  →  ein Hund ist ein Tier ✅'); },
+      () => { setHl([9]); print('k', 'Rex frisst'); },
+      () => { setHl([7]); setCell('h-0', '🐶 Rex'); setCell('h-1', '🐶 Bello', 'hot'); setV('vt', '🐶 Bello'); },
+      () => { setHl([9]); print('k', 'Bello frisst'); },
+      () => { setHl([15]); setCell('h-1', '🐶 Bello'); show_('e'); },
+    ]);
+  } },
+{ ch: 6, title: 'Kontravarianz (in): nur hinein ist sicher', code: codeWarumKontra, hl: [0],
+  text: `<p><b>Die Idee:</b> Manchmal geben wir Dinge nur <b>ab</b>. <code>HundAbgeben</code> braucht etwas, das Hunde <b>annimmt</b>: eine <code>IAblage&lt;Hund&gt;</code>. Das Interface hat nur <code>Lege(T x)</code> – <code>T</code> geht nur <b>hinein</b>, darum <code>in T</code>.</p>
+<p><b>Warum ist das sicher?</b> Ein <code>TierHeim</code> nimmt <b>jedes</b> Tier an. Wer jedes Tier annimmt, nimmt sicher auch einen Hund. Herausgeben kann die Ablage nichts – also kann auch nie „irgendein Tier“ dort ankommen, wo ein Hund erwartet wird.</p>
+<p><b>Die Richtung dreht sich um</b> („kontra“ = gegen): Hund ⟶ Tier, aber <code>IAblage&lt;Tier&gt;</code> ⟶ <code>IAblage&lt;Hund&gt;</code>. Umgekehrt wäre es gefährlich: Eine Hundehütte als <code>IAblage&lt;Tier&gt;</code> würde auch eine Katze bekommen.</p>`,
+  render(st) {
+    const hh = el('div', 'card', 'HundAbgeben');
+    const pipe = el('div', 'badge ct', 'in ⟶  nur hinein');
+    const o = hid(objCard('o', '<u>:TierHeim</u>  (nimmt jedes Tier)', [['x', '–']])); o.id = 'o';
+    const row = wrap('row', [hh, pipe, o]); row.style.gap = '30px';
+    const ok = hid(el('div', 'okbox', '')); ok.id = 'ok';
+    const e = hid(el('div', 'errbox', '❌ Umgekehrt: Eine Hundehütte als IAblage&lt;Tier&gt; – dann könnte jemand eine 🐱 Katze hineinlegen.')); e.id = 'e';
+    st.appendChild(wrap('col', [row, ok, konsole('k'), e]));
+    const box = x => { const c = $('ok'); c.classList.remove('hidden'); c.textContent = x; c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); };
+    return seq([
+      () => { setHl([2, 3]); box('T steht nur als Parameter → nur hinein'); },
+      () => { setHl([18]); show_('o'); box('IAblage<Tier> wird als IAblage<Hund> übergeben ✅'); },
+      () => { setHl([15, 7]); setF('o', 'x', '🐶 Rex'); box('erwartet: Tier  ·  geht hinein: Hund  →  ein Hund ist ein Tier ✅'); },
+      () => { setHl([9]); print('k', 'Rex ist im Tierheim'); },
+      () => { setHl([19]); show_('e'); },
+    ]);
+  } },
+{ ch: 6, title: 'Zusammenfassung: Welche Richtung ist sicher?', code: C(`
+List<Tier>        l = new List<Hund>();     // ❌ invariant: hinein UND heraus
+IEnumerable<Tier> q = new List<Hund>();     // ✅ out: nur heraus
+IAblage<Hund>     a = new TierHeim();       // ✅ in:  nur hinein`), hl: [],
+  text: `<p><b>Merksatz:</b> Ein Hund darf dort <b>herauskommen</b>, wo ein Tier erwartet wird (<code>out</code>). Ein Hund darf dort <b>hineingehen</b>, wo jedes Tier angenommen wird (<code>in</code>). Geht <code>T</code> in <b>beide</b> Richtungen, ist keine Umwandlung sicher (invariant).</p>
+<p>Varianz löst also das Problem „eine Methode für viele Typen“, <b>ohne</b> die Typsicherheit aufzugeben: Wir versprechen nur so viel, wie wir brauchen, und der Compiler beweist den Rest.</p>`,
+  render(st) {
+    st.appendChild(el('table', 't pop', `<tr><th></th><th>T kommt …</th><th>Umwandlung</th><th>warum sicher?</th><th>Beispiel</th></tr>
+<tr><td><b>invariant</b></td><td>hinein und heraus</td><td>keine</td><td>jede Richtung könnte etwas Falsches hineinlassen</td><td><code>List&lt;T&gt;</code></td></tr>
+<tr><td><b>kovariant</b> <code>out</code></td><td>nur heraus</td><td>Hund ⟶ Tier</td><td>was herauskommt, ist ein Hund – also ein Tier</td><td><code>IEnumerable&lt;out T&gt;</code></td></tr>
+<tr><td><b>kontravariant</b> <code>in</code></td><td>nur hinein</td><td>Tier ⟶ Hund</td><td>wer jedes Tier nimmt, nimmt auch Hunde</td><td><code>IComparer&lt;in T&gt;</code>, <code>IAblage&lt;in T&gt;</code></td></tr>`));
+  } },
+
+];
+
+// ===================== Navigation =====================
+let cur = 0, ctrl = null;
+function buildTabs() {
+  chapters.forEach((c, i) => {
+    const b = el('button', '', (i + 1) + '. ' + c);
+    b.onclick = () => show(steps.findIndex(s => s.ch === i));
+    $('tabs').appendChild(b);
+  });
+}
+function show(i) {
+  clearTimers();
+  cur = Math.max(0, Math.min(steps.length - 1, i));
+  const s = steps[cur];
+  document.querySelectorAll('#tabs button').forEach((b, k) => b.classList.toggle('active', k === s.ch));
+  $('title').textContent = s.title;
+  $('counter').textContent = `Schritt ${cur + 1} / ${steps.length}`;
+  $('text').innerHTML = s.text;
+  renderCode(s.code, s.hl);
+  const st = $('stage'); st.innerHTML = ''; st.style.flexDirection = ''; st.style.gap = '';
+  ctrl = s.render(st) || null;
+  $('autoBtn').disabled = !(ctrl && ctrl.auto);
+}
+function go(d) { if (d > 0 && ctrl && ctrl.next && ctrl.next()) return; show(cur + d); }
+function runAuto() { if (ctrl && ctrl.auto) { $('autoBtn').disabled = true; ctrl.auto(); } }
+function replay() { show(cur); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+  if (e.key === 'r' || e.key === 'R') replay();
+  if (e.key === 'p' || e.key === 'P') togglePresenter();
+  if (e.key === '1' || e.key === '2' || e.key === '3') setView(Number(e.key) - 1);
+});
+// ===================== Trennlinien mit der Maus verschieben =====================
+function dragger(handle, onMove) {
+  handle.addEventListener('pointerdown', e => {
+    e.preventDefault(); handle.setPointerCapture(e.pointerId); handle.classList.add('drag'); document.body.classList.add('dragging');
+    const mv = ev => onMove(ev);
+    const up = () => { handle.removeEventListener('pointermove', mv); handle.removeEventListener('pointerup', up); handle.classList.remove('drag'); document.body.classList.remove('dragging'); redrawAll(); };
+    handle.addEventListener('pointermove', mv); handle.addEventListener('pointerup', up);
+  });
+}
+dragger($('sv'), e => {
+  const r = $('content').getBoundingClientRect();
+  const pct = Math.max(15, Math.min(75, (e.clientX - r.left) / r.width * 100));
+  $('left').style.width = pct + '%'; $('right').style.width = 'auto'; $('right').style.flex = '1';
+  redrawAll();
+});
+dragger($('sh'), e => {
+  const r = $('right').getBoundingClientRect();
+  const y = Math.max(80, Math.min(r.height - 60, e.clientY - r.top));
+  $('stage').parentElement.style.flex = String(y); $('text').parentElement.style.flex = String(r.height - y);
+  redrawAll();
+});
+function redrawAll() { document.querySelectorAll('.scene').forEach(redraw); }
+// ===================== Presenter-Modus und Ansicht =====================
+let presenter = false, view = 0;   // 0 = Code + Animation, 1 = nur Animation, 2 = nur Code
+function applyLayout() {
+  const L = $('left'), R = $('right'), sp = $('stage').parentElement, tp = $('text').parentElement;
+  if (presenter) { L.style.width = '30%'; R.style.width = '70%'; R.style.flex = 'none'; sp.style.flex = '1'; }
+  else { L.style.width = '40%'; R.style.width = '60%'; R.style.flex = ''; sp.style.flex = '1.9'; tp.style.flex = '1'; }
+  tp.style.display = presenter ? 'none' : ''; $('sh').style.display = presenter ? 'none' : '';
+  L.style.display = view === 1 ? 'none' : ''; $('sv').style.display = view === 0 ? '' : 'none'; R.style.display = view === 2 ? 'none' : '';
+  if (view === 1) { R.style.width = '100%'; R.style.flex = '1'; }
+  if (view === 2) { L.style.width = '100%'; }
+  $('presBtn').classList.toggle('on', presenter); [0, 1, 2].forEach(k => $('vb' + k).classList.toggle('on', view === k));
+  setTimeout(redrawAll, 50);
+}
+function togglePresenter() { presenter = !presenter; applyLayout(); }
+function setView(v) { view = v; applyLayout(); }
+window.addEventListener('resize', redrawAll);
+
+buildTabs();
+show(0);
+applyLayout();
+</script>
+</body>
+</html>
