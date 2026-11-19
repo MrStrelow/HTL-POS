@@ -1,4 +1,4 @@
-#### Wir merken uns von [Klassen und Objekte](L05.1_KlassenUndObjekte.md):
+#### Wir merken uns von [Klassen und Objekte](L04.1_KlassenUndObjekte.md):
 >1. Ein Programm besteht aus [``Objekten``](../../../05_Glossar.md#objekt) (Dinge in meiner Welt). Ein [``Objekt``](../../../05_Glossar.md#objekt) hat einen [``Zustand``](../../../05_Glossar.md#zustand) (was es **hat**) und ein [``Verhalten``](../../../05_Glossar.md#verhalten) (was es **kann**).
 >2. Den [``Zustand``](../../../05_Glossar.md#zustand) setzen wir mit [``Feldern``](../../../05_Glossar.md#feld) um, das [``Verhalten``](../../../05_Glossar.md#verhalten) mit [``Methoden``](../../../05_Glossar.md#methode).
 >3. Ein [``Objekt``](../../../05_Glossar.md#objekt) ist der aktuelle [``Zustand``](../../../05_Glossar.md#zustand) und das [``Verhalten``](../../../05_Glossar.md#verhalten) eines Individuums – eine [``Instanz``](../../../05_Glossar.md#instanz) der [``Klasse``](../../../05_Glossar.md#klasse).

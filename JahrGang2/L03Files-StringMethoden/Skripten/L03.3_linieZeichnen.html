@@ -813,7 +813,7 @@ const steps = [
       st.appendChild(r);
     } },
   { ch: 1, small: true, add: [44, 45, 46, 47, 48, 49, 50, 51, 52, 69, 70, 71], title: 'Die Idee: jedes x durchgehen', hl: [51],
-    text: '<p>Für jede Spalte <code>x</code> sagt <code>f(x)</code>, in welcher Zeile <code>y</code> die Linie liegt. Pro Spalte genau <b>ein</b> Punkt.</p>',
+    text: '<p>Für jede Spalte <code>x</code> sagt die <b>mathematische</b> Funktion <code>f(x)</code>, in welcher Zeile <code>y</code> die Linie liegt. Pro Spalte genau <b>ein</b> Punkt.</p><p>Im Code ist <code>f(x)</code> <b>keine</b> eigene C#-Funktion, sondern die Zeile <code>int fx = …</code>.</p>',
     render: st => ideeStage(st) },
   { ch: 1, add: [53, 54, 55, 56], title: 'Begrenzung: nur zwischen Start und Ziel', hl: [53],
     text: '<p><code>f(x)</code> liefert für <b>jedes</b> x eine Zeile. Ohne <code>start.x &lt; x &amp;&amp; x &lt; ziel.x</code> läuft die Linie übers ganze Feld (links) und überdeckt sogar ✅ und ❌, weil der Linien-<code>if</code> zuerst geprüft wird.</p>',
@@ -851,7 +851,7 @@ const steps = [
     text: '<p>Fragen wir <b>jede Spalte</b> „welches y?“ oder <b>jede Zeile</b> „welches x?“. Bei steilen Linien bleiben mit f(x) viele Kästchen frei, bei flachen mit g(y).</p>', render: st => frageStage(st) },
   { ch: 3, small: true, title: 'Koordinatensystem umdrehen', hl: [], full: FULL_Y,
     text: '<p>Wir spiegeln an der Diagonale: x und y tauschen die Rollen. Die steile Linie wird flach.</p>', render: st => drehStage(st) },
-  { ch: 3, small: true, title: 'g(y) als Umkehrfunktion von f(x)', hl: [OFF + 7, OFF + 12], full: FULL_Y,
+  { ch: 3, small: true, title: 'g(y) als mathematische Umkehrfunktion von f(x)', hl: [OFF + 7, OFF + 12], full: FULL_Y,
     text: '<p>Wir formen f(x) nach x um.</p>', render: st => inversStage(st) },
   { ch: 3, small: true, title: 'Zeile für Zeile mit g(y)', hl: [OFF + 12, OFF + 16], full: FULL_Y,
     text: '<p><code>gy</code> hängt nur von y ab – darum steht es in der äußeren Schleife.</p>', render: st => zeilenStage(st) },

@@ -54,7 +54,7 @@ Bevor wir etwas berechnen, müssen wir die Datei finden und einlesen.
 - ``File.Exists(pfad)`` liefert ``true``, wenn es die Datei gibt.
 - ``File.ReadAllLines(pfad)`` liefert ein ``string[]`` – jede Zeile der Datei ist ein Element, **auch Leerzeilen und Kommentare**.
 
-Es gibt hier nichts zu implementieren: Entferne die Kommentarzeichen beim Test für Schritt 1 und überlege dir, warum die Ausgabe so aussieht.
+Es gibt hier nichts zu implementieren: Entferne in ``Program.cs`` das ``/*`` und ``*/`` rund um den Block ``/* ---------- Test Schritt 1 ---------- ... */``, starte das Programm und überlege dir, warum die Ausgabe so aussieht.
 
 | Ausdruck | Ergebnis |
 |---|---|

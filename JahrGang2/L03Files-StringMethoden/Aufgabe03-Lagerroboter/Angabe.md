@@ -145,7 +145,7 @@ True 'zurueck 1'
 True 'vor 2'
 ```
 
-### Schritt 3 - level: 🙂🤔 - Befehl zerlegen
+### Schritt 3 - level: 🤔 - Befehl zerlegen
 🎬 [Animation zu Schritt 3](Animated-Slides-Lagerroboter.html#schritt3)
 
 Implementiere ``bool TryParseBefehl(string befehl, out (string Name, int Anzahl) ergebnis, out string fehlergrund)``.
@@ -252,7 +252,7 @@ False
 False
 ```
 
-### Schritt 6 - level: 🤔😵‍💫 - Pakete und Karte
+### Schritt 6 - level: 😵‍💫 - Pakete und Karte
 🎬 [Animation zu Schritt 6](Animated-Slides-Lagerroboter.html#schritt6)
 
 1. ``void SetzeZeichen(string[] lager, (int X, int Y) p, char zeichen)``
@@ -293,7 +293,7 @@ v
    - ``nr`` immer 2-stellig: ``nr.ToString().PadLeft(2, '0')``
    - ``befehl`` mit ``PadRight(befehlBreite)`` auffüllen. ``befehlBreite`` ist ein **Default-Parameter** (Standard ``10``).
    - ``position`` ist ``"(x|y)"`` und wird mit ``PadLeft(6)`` rechtsbündig gemacht.
-2. ``string[] Kuerze(string[] array, int anzahl)`` – liefert ein neues Array mit nur den ersten ``anzahl`` Elementen (wie in der Drohnenlieferung).
+2. ``string[] Kuerze(string[] array, int anzahl)`` – liefert ein neues Array mit nur den ersten ``anzahl`` Elementen.
 
 | Aufruf | Rückgabe |
 |---|---|
@@ -311,7 +311,7 @@ Zeile 06 | vor 4  |  (5|1) O
 a,b
 ```
 
-### Schritt 8 - level: 🤔😵‍💫 - Alles zusammenbauen
+### Schritt 8 - level: 😵‍💫 - Alles zusammenbauen
 🎬 [Animation zu Schritt 8](Animated-Slides-Lagerroboter.html#schritt8)
 
 Schreibe das Hauptprogramm:

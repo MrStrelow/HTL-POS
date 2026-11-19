@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="Aufgabe02-Drohnenlieferung/Aufgabe02-Drohnenlieferung.csproj" />
   <Project Path="Skripten/Skripten.csproj" />
   <Project Path="ZettelUebungen/ZettelUebungen.csproj" />
 </Solution>

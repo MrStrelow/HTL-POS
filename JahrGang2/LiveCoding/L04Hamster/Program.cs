@@ -1,4 +1,4 @@
-// LiveCoding L05: Erster Kontakt mit Klassen und Objekten 🐹
+// LiveCoding L04: Erster Kontakt mit Klassen und Objekten 🐹
 // paul geht zufaellig, willi startet direkt daneben und macht alles nach.
 
 using System.Text;

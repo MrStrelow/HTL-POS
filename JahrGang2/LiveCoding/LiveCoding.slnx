@@ -12,8 +12,9 @@
     <Project Path="L03CsvLesenUndSchreiben/L03CsvLesenUndSchreiben.csproj" />
     <Project Path="L03DistanzBerechnen/L03DistanzBerechnen.csproj" />
   </Folder>
+  <Project Path="ConsoleApp1/ConsoleApp1.csproj" Id="2d2173f4-4dac-412a-a802-22a364489b6a" />
   <Project Path="L03DistanzZeichnen/L03DistanzZeichnen.csproj" Id="cc893a4d-9480-429c-81ca-ce885acc3e14" />
-  <Folder Name="/L05/">
-    <Project Path="L05Hamster/L05Hamster.csproj" />
+  <Folder Name="/L04/">
+    <Project Path="L04Hamster/L04Hamster.csproj" />
   </Folder>
 </Solution>

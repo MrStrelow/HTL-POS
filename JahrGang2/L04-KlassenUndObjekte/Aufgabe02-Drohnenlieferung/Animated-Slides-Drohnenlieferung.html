@@ -110,13 +110,16 @@
   .file.small { font-size: 11px; line-height: 1.45; min-width: 0; max-width: 100%; overflow-x: auto; }
   .file .cur { outline: 1px solid var(--accent); }
   .ch.sel { border-color: var(--accent); background: rgba(56,189,248,.22); }
+  .obj { border: 1.5px solid #334155; border-radius: 10px; background: #0b1222; min-width: 240px; animation: pop .4s ease; }
+  .obj.ok { border-color: var(--ok); } .obj.bad { border-color: var(--bad); } .obj.new { border-style: dashed; border-color: var(--warn); }
+  .obj-h { padding: 6px 10px; border-bottom: 1px solid #334155; font-family: 'Fira Code', monospace; font-weight: 600; color: var(--accent); text-decoration: underline; }
 </style>
 </head>
 <body>
 <header>
   <div>
     <h1>🚁 Drohnen-Lieferdienst SkyParcel</h1>
-    <small>Die Musterlösung Schritt für Schritt an den echten Daten: Ablauf, Variablen, Entscheidungen (ohne Code)</small>
+    <small>Die Musterlösung mit Klassen und Objekten Schritt für Schritt an den echten Daten</small>
   </div>
   <nav id="nav"></nav>
 </header>
@@ -186,358 +189,288 @@ class Trace {
 const slideOf = (title, text, ...traces) => ({ title, text, frames: traces.flatMap(t => t.frames) });
 
 // ===================== Daten (wie in den Dateien) =====================
-const AUFTRAEGE = ["# Drohnen-Lieferauftraege der Firma SkyParcel", "# Format: nummer=...;start=x|y;ziel=x|y;gewicht=...kg;kunde=...", "# Koordinaten: 0|0 ist oben links. 1 Feld = 0,5 km", "",
-  "  nummer=LF-7 ; start=1|1 ; ziel=6|5 ; gewicht=1,5kg ; kunde=mÜLLER gmbh", "NUMMER=LF-0012;START=2|9;ZIEL=17|3;GEWICHT=3,2KG;KUNDE=  bäckerei huber",
-  "nummer=LF-13 ; start=15|2 ; ziel=3|2 ; gewicht=0,8kg ; kunde=apotheke am platz", "", "nummer=LF-14 ; start=4|10 ; ziel=6|1 ; gewicht=2kg ; kunde=htl werkstätte",
-  "nummer=LF-x15 ; start=1|1 ; ziel=2|2 ; gewicht=1kg ; kunde=tippfehler ag", "nummer=LF-16 ; start=1|1 ; ziel=25|3 ; gewicht=1kg ; kunde=weit weg kg",
-  "nummer=LF-17 ; start=3|3 ; ziel=8|8 ; gewicht=7,5kg ; kunde=schwer und co", "nummer=LF-18 ; start=2|5 ; gewicht=1kg ; kunde=vergessen ohg",
-  "nummer=LF-19 ; start=0|10 ; ziel=19|10 ; gewicht=1kg ; kunde=quer durch gmbh", "nummer=LF-20 ; start=18|11 ; ziel=12|0 ; gewicht=4kg ; kunde=elektro maier",
-  "nummer=LF-21 ; start=(5|3) ; ziel=(11|6) ; gewicht=800g ; kunde=café   CENTRAL ;", "nummer=LF-22 ; start=7|7 ; ziel=7|7 ; gewicht=1kg ; kunde=nirgendwo gmbh",
-  "nummer=lf-12 ; start=1|2 ; ziel=3|4 ; gewicht=1kg ; kunde=doppelt kg", "nummer=LF-23 ; start=2|2 ; ziel=4|4 ; gewicht=-1kg ; kunde=minus ag",
-  "nummer=LF-24 ; start=3|1 ; ziel=8|1 ; gewicht=2,5 kg ; kunde=leer zeichen og"];
-const PLAN = [...Array(8)].map(() => "....................").concat([...Array(4)].map(() => ".........##........."));
+const AUFTRAEGE = ["# Drohnen-Lieferauftraege der Firma SkyParcel", "# Format: nummer;start;ziel;gewicht;kunde", "# Koordinaten x|y: 0|0 ist oben links. 1 Feld = 0,5 km", "",
+  "  LF-7 ; 1|1 ; 6|3 ; 1,5kg ; mÜLLER gmbh", "LF-0012;10|3;1|0;3,2KG;  bäckerei huber", "lf-13 ; 3|7 ; 4|0 ; 2kg ; htl werkstätte", "",
+  "LF-x15 ; 1|1 ; 2|2 ; 1kg ; tippfehler ag", "LF-16 ; 1|1 ; 15|3 ; 1kg ; weit weg kg", "LF-17 ; 3|3 ; 8|1 ; 7,5kg ; schwer und co",
+  "LF-18 ; 2|5 ; 1kg ; vergessen ohg", "LF-19 ; 0|6 ; 11|6 ; 1kg ; quer durch gmbh", "LF-21 ; (5|3) ; (11|1) ; 800g ; café   CENTRAL ;",
+  "LF-22 ; 7|2 ; 7|2 ; 1kg ; nirgendwo gmbh", "lf-12 ; 1|2 ; 3|2 ; 1kg ; doppelt kg"];
+const W = 12, H = 8, FREI = "⬜", SPERR = "⛔";
+const PLAN = [...Array(4)].map(() => FREI.repeat(W)).concat([...Array(4)].map(() => FREI.repeat(6) + SPERR + SPERR + FREI.repeat(4)));
 // --- Musterlösung in JS ---
 function roundEven(v) { const f = Math.floor(v), d = v - f; if (Math.abs(d - 0.5) < 1e-9) return f % 2 === 0 ? f : f + 1; return Math.round(v); }
 function aufRoute(s, z, x, y) { const dx = z[0] - s[0], dy = z[1] - s[1];
-  if (Math.abs(dx) >= Math.abs(dy)) { if (x < Math.min(s[0], z[0]) || x > Math.max(s[0], z[0])) return false; const k = dx === 0 ? 0 : dy / dx; return y === s[1] + roundEven(k * (x - s[0])); }
+  if (Math.abs(dx) >= Math.abs(dy)) { if (x < Math.min(s[0], z[0]) || x > Math.max(s[0], z[0])) return false; return y === s[1] + roundEven(dy / dx * (x - s[0])); }
   if (y < Math.min(s[1], z[1]) || y > Math.max(s[1], z[1])) return false; return x === s[0] + roundEven(dx / dy * (y - s[1])); }
-function leseFeld(teil, key) { const p = teil.indexOf("="); if (p < 0) return null; if (teil.substring(0, p).trim().toLowerCase() !== key) return null; const w = teil.substring(p + 1).trim(); return w.length ? w : null; }
-function normNr(t) { t = t.toUpperCase(); if (!t.startsWith("LF-")) return null; const z = t.substring(3); if (!z.length || z.length > 4 || !/^\d+$/.test(z)) return null; return "LF-" + z.padStart(4, "0"); }
-function koord(t) { t = t.replace(/[()]/g, ""); if (!t.includes("|")) return null; const p = t.split("|"); if (p.length !== 2 || !/^\s*-?\d+\s*$/.test(p[0]) || !/^\s*-?\d+\s*$/.test(p[1])) return null; return [+p[0], +p[1]]; }
-function gewicht(t) { t = t.toLowerCase().trim(); let f = 1, z; if (t.endsWith("kg")) z = t.substring(0, t.length - 2); else if (t.endsWith("g")) { z = t.substring(0, t.length - 1); f = 0.001; } else return null; const g = parseFloat(z.replace(",", ".")) * f; return g > 0 ? g : null; }
+function normNr(t, stellen = 4) { t = t.trim().toUpperCase(); if (!t.startsWith("LF-")) return null; const z = t.substring(3); if (!z.length || z.length > stellen || !/^\d+$/.test(z)) return null; return "LF-" + z.padStart(stellen, "0"); }
+function koord(t) { t = t.replace(/[()]/g, "").trim(); if (!t.includes("|")) return null; const p = t.indexOf("|"), a = t.substring(0, p), b = t.substring(p + 1); if (!/^\s*-?\d+\s*$/.test(a) || !/^\s*-?\d+\s*$/.test(b)) return null; return [+a, +b]; }
+function gewicht(t) { t = t.trim().toLowerCase(); let f = 1, z; if (t.endsWith("kg")) z = t.substring(0, t.length - 2); else if (t.endsWith("g")) { z = t.substring(0, t.length - 1); f = 0.001; } else return null; const g = parseFloat(z.replace(",", ".")) * f; return g > 0 ? g : null; }
 function kunde(t) { return t.trim().split(" ").filter(w => w).map(w => w[0].toUpperCase() + w.substring(1).toLowerCase()).join(" "); }
 function parseAuftrag(z) { z = z.replace(/[ ;]+$/, ""); const t = z.split(";"); if (t.length !== 5) return { e: `${t.length} statt 5 Felder` };
-  const f = ["nummer", "start", "ziel", "gewicht", "kunde"].map((k, i) => leseFeld(t[i], k)); if (f.includes(null)) return { e: "Feld fehlt oder falscher Schlüssel" };
-  const n = normNr(f[0]); if (!n) return { e: `ungültige Auftragsnummer '${f[0]}'` }; const s = koord(f[1]), zi = koord(f[2]); if (!s || !zi) return { e: `${n} – ungültige Koordinate` };
-  const g = gewicht(f[3]); if (!g) return { e: `${n} – ungültiges Gewicht '${f[3]}'` }; return { a: { n, s, z: zi, g, k: kunde(f[4]) } }; }
-const preisVon = (km, kg) => Math.round((3.5 + km * 1.2 + (kg > 2 ? (kg - 2) * 0.8 : 0)) * 100) / 100;
+  const n = normNr(t[0]); if (!n) return { e: `ungültige Auftragsnummer '${t[0].trim()}'` }; const s = koord(t[1]), zi = koord(t[2]); if (!s || !zi) return { e: `${n} – ungültige Koordinate` };
+  const g = gewicht(t[3]); if (!g) return { e: `${n} – ungültiges Gewicht '${t[3].trim()}'` }; return { a: { n, s, z: zi, g, k: kunde(t[4]) } }; }
+const preisVon = (km, kg, o = {}) => { const p = { grundgebuehr: 3.5, preisProKm: 1.2, freigewichtKg: 2, zuschlagProKg: 0.8, ...o };
+  return Math.round((p.grundgebuehr + km * p.preisProKm + (kg > p.freigewichtKg ? (kg - p.freigewichtKg) * p.zuschlagProKg : 0)) * 100) / 100; };
+// Karte wie ZeichneKarte: ✅ Start, ❌ Ziel, ⭐ Route, ⚡ Route trifft ⛔
 function karte(route, probes = {}, upTo = 99, scan = null) {
-  let h = `<div class="grid" style="grid-template-columns: repeat(20, auto)">`;
-  for (let y = 0; y < 12; y++) for (let x = 0; x < 20; x++) {
-    const c = PLAN[y][x]; let cls = c === "#" ? "wall" : "", t = "";
+  let h = `<div class="grid" style="grid-template-columns: repeat(${W}, auto)">`;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const c = PLAN[y][x]; let cls = c === SPERR ? "wall" : "", t = c === SPERR ? SPERR : "";
     if (route && y <= upTo) { const [s, z] = route;
-      if (x === s[0] && y === s[1]) t = "S"; else if (x === z[0] && y === z[1]) t = "Z";
-      else if (aufRoute(s, z, x, y)) { if (c === "#") { t = "X"; cls = "hit"; } else { t = "*"; cls = "route"; } } }
+      if (x === s[0] && y === s[1]) t = "✅"; else if (x === z[0] && y === z[1]) t = "❌";
+      else if (aufRoute(s, z, x, y)) { if (c === SPERR) { t = "⚡"; cls = "hit"; } else { t = "⭐"; cls = "route"; } } }
     if (probes[x + "," + y]) cls += " probe-" + probes[x + "," + y];
     if (scan && scan[0] === x && scan[1] === y) cls += " probe-ok";
-    h += `<div class="cell ${cls}" title="(${x}|${y})" style="width:26px;height:26px">${t}</div>`;
+    h += `<div class="cell ${cls}" title="(${x}|${y})" style="width:30px;height:30px;font-size:17px">${t}</div>`;
   }
   return h + "</div>";
 }
 
-// ===================== Schritt 1 =====================
+// ===================== Objekt-Karten (wie im Objektdiagramm) =====================
+// name: "a1 : Auftrag", props: {Nummer: "LF-0007", ...}, chg: Liste geänderter Properties, cls: ok|bad|""
+function obj(name, props, chg = [], cls = "") {
+  const rows = Object.entries(props).map(([k, v]) =>
+    `<tr class="${chg.includes(k) ? "chg" : ""}"><td>${esc(k)}</td><td>${val(v)}</td></tr>`).join("");
+  return `<div class="obj ${cls}"><div class="obj-h">${esc(name)}</div><table class="vars">${rows}</table></div>`;
+}
+const objs = (...o) => `<div class="cols">${o.join("")}</div>`;
+const T = (x, y) => R(`(${x}, ${y})`);
+const AUFTRAG_LEER = { Nummer: null, Start: R("(0, 0)"), Ziel: R("(0, 0)"), GewichtKg: 0, Kunde: null };
+const kmVon = (s, z) => Math.sqrt((z[0] - s[0]) ** 2 + (z[1] - s[1]) ** 2) * 0.5;
+const zeileVon = (n, k, km, pr, max = 18) => { if (k.length > max) k = k.substring(0, max - 1) + "…"; return n.padEnd(9) + k.padEnd(max + 2) + `${fmt(km)} km`.padStart(10) + `${fmt(pr)} €`.padStart(10); };
+
+// ===================== Schritt 1: Klasse Auftrag – Konstruktor =====================
 function s1() {
-  const t = new Trace("Hauptprogramm – Anfang", [
-    "Guard ❌: auftraege.txt oder stadtplan.txt fehlt → Meldung, return",
-    "<b>zeilen</b> = alle Zeilen von auftraege.txt",
-    "<b>stadtplan</b> = alle Zeilen von stadtplan.txt"]);
-  t.call("");
-  t.f(0, { "auftraege existiert": true, "stadtplan existiert": true, zeilen: null, stadtplan: null }, `<div style="font-size:60px">📄✅ 🗺️✅</div>`, "Beide Dateien existieren → der Guard greift nicht.", { 0: "ok" });
-  t.f(1, { "auftraege existiert": true, "stadtplan existiert": true, zeilen: R("string[20]"), stadtplan: null }, fileView(AUFTRAEGE, -1, {}, true), "20 Zeilen – auch Kommentare und Leerzeilen. Die Zeilennummer zählen wir später in der foreach-Schleife selbst mit.", { 0: "ok" });
-  t.f(2, { "auftraege existiert": true, "stadtplan existiert": true, zeilen: R("string[20]"), stadtplan: R("string[12]"), "stadtplan[0].Length": 20 }, karte(null), "Der Stadtplan: 12 Strings (Zeilen) mit je 20 Zeichen.", { 0: "ok" });
-  t.f(2, { "auftraege existiert": true, "stadtplan existiert": true, zeilen: R("string[20]"), stadtplan: R("string[12]"), "stadtplan[8]": PLAN[8], "stadtplan[8][9]": C("#") }, `${box("stadtplan[8]", chars(PLAN[8], i => i === 9 ? "hl" : ""))}${karte(null, { "9,8": "bad" })}`, "Erst die Zeile (y = 8), dann das Zeichen darin (x = 9): <b>stadtplan[y][x]</b>.", { 0: "ok" });
-  return slideOf("Schritt 1 – Dateien finden und einlesen", "File.Exists als Guard, dann File.ReadAllLines für beide Dateien.", t);
+  const t = new Trace("public Auftrag(string nummer, (int X, int Y) start, (int X, int Y) ziel, double gewichtKg, string kunde)", [
+    "<b>new</b>: Platz für ein neues Auftrag-Objekt, alle Properties haben den Standardwert",
+    "Konstruktor läuft: Nummer = nummer; Start = start; Ziel = ziel",
+    "GewichtKg = gewichtKg; Kunde = kunde",
+    "die Variable bekommt eine <b>Referenz</b> auf das Objekt",
+    "Hauptprogramm: a2.GewichtKg = 2.5"]);
+  const A1 = { Nummer: "LF-0007", Start: T(1, 1), Ziel: T(6, 3), GewichtKg: 1.5, Kunde: "Müller Gmbh" };
+  const A2 = { Nummer: "LF-0013", Start: T(3, 7), Ziel: T(4, 0), GewichtKg: 2.0, Kunde: "Htl Werkstätte" };
+  t.call('Auftrag a1 = new Auftrag("LF-0007", (1, 1), (6, 3), 1.5, "Müller Gmbh");');
+  t.f(0, { a1: null, a2: null }, objs(obj("? : Auftrag", AUFTRAG_LEER, [], "new")), "<b>new</b> legt ein neues Objekt an. Noch hat es nur Standardwerte: null, (0, 0), 0.");
+  t.f(1, { a1: null, a2: null }, objs(obj("? : Auftrag", { ...AUFTRAG_LEER, Nummer: A1.Nummer, Start: A1.Start, Ziel: A1.Ziel }, ["Nummer", "Start", "Ziel"])), "Der Konstruktor kopiert die Parameter in die Properties. Er heißt wie die Klasse und hat <b>keinen</b> Rückgabetyp.", { 0: "ok" });
+  t.f(2, { a1: null, a2: null }, objs(obj("? : Auftrag", A1, ["GewichtKg", "Kunde"])), "Alle 5 Werte sind gesetzt – das ist der <b>Startzustand</b>.", { 0: "ok", 1: "ok" });
+  t.f(3, { a1: R("→ Auftrag LF-0007"), a2: null }, objs(obj("a1 : Auftrag", A1, [], "ok")), "Die Variable <b>a1</b> zeigt jetzt auf dieses Objekt.", { 0: "ok", 1: "ok", 2: "ok" });
+  t.call('Auftrag a2 = new Auftrag("LF-0013", (3, 7), (4, 0), 2.0, "Htl Werkstätte");');
+  t.f(0, { a1: R("→ Auftrag LF-0007"), a2: null }, objs(obj("a1 : Auftrag", A1), obj("? : Auftrag", AUFTRAG_LEER, [], "new")), "Ein <b>zweites</b> new – ein zweites, eigenes Objekt.");
+  t.f(3, { a1: R("→ Auftrag LF-0007"), a2: R("→ Auftrag LF-0013") }, objs(obj("a1 : Auftrag", A1), obj("a2 : Auftrag", A2, Object.keys(A2), "ok")), "Gleiche Klasse, gleiche Properties – aber jedes Objekt hat seine <b>eigenen</b> Werte.", { 0: "ok", 1: "ok", 2: "ok" });
+  t.call("a2.GewichtKg = 2.5;");
+  t.f(4, { a1: R("→ Auftrag LF-0007"), a2: R("→ Auftrag LF-0013") }, objs(obj("a1 : Auftrag", A1), obj("a2 : Auftrag", { ...A2, GewichtKg: 2.5 }, ["GewichtKg"])), "Mit dem <b>Punkt</b> greifen wir auf eine Property zu. Nur a2 ändert sich – a1 hat weiterhin 1,5 kg.", { 4: "ok" });
+  return slideOf("Schritt 1 – Klasse Auftrag: Konstruktor", "Zwei Aufträge mit new erzeugen, dann eine Property eines Objekts ändern.", t);
 }
 
-// ===================== Schritt 2 =====================
+// ===================== Schritt 2: Klasse Auftrag – Methoden =====================
 function s2() {
-  const t = new Trace("bool TryLeseFeld(string teil, string schluessel, out string wert)", [
-    "wert = \"\"; <b>pos</b> = Position von '='",
-    "Guard ❌: pos &lt; 0 → false",
-    "<b>links</b> = Teil vor pos, getrimmt, klein",
-    "Guard ❌: links ≠ schluessel → false",
-    "<b>wert</b> = Teil nach pos, getrimmt",
-    "Rückgabe: wert ist nicht leer"]);
-  const t6 = AUFTRAEGE[5].split(";"), t13 = AUFTRAEGE[12].split(";");
-  for (const [teil, key, info, nr] of [[t6[0], "nummer", "Zeile 6, teile[0]", 6], [t6[4], "kunde", "Zeile 6, teile[4]", 6], [t13[2], "ziel", "Zeile 13, teile[2] – hier fehlt das Ziel", 13], ["kunde huber", "kunde", "Testfall", -1]]) {
-    const v = { teil, schluessel: key, pos: null, links: null, wert: "", Rückgabe: null };
-    const fv = (hl, x = "") => `${nr > 0 ? fileView(AUFTRAEGE, nr - 1, {}, true) : ""}${box("teil", chars(teil, hl))}${x}`;
-    t.call(`TryLeseFeld("${teil}", "${key}", out wert)  // ${info}`);
-    const p = teil.indexOf("="); v.pos = p;
-    t.f(0, v, fv(i => i === p ? "hl" : ""), p < 0 ? "Kein '=' → pos = -1." : `'=' steht an Index <b>${p}</b>.`);
-    if (p < 0) { v.Rückgabe = false; t.f(1, v, fv(() => "bad"), "Guard ❌ → false.", { 1: "bad" }); continue; }
-    const m = { 1: "ok" }; t.f(1, v, fv(i => i === p ? "hl" : ""), "Gefunden → weiter.", m);
-    v.links = teil.substring(0, p).trim().toLowerCase();
-    t.f(2, v, fv(i => i < p ? "ok" : "gone", `<div class="row">${chip("links = " + v.links)}</div>`), "Teil vor dem '=' – getrimmt und klein (aus NUMMER wird nummer).", m);
-    if (v.links !== key) { m[3] = "bad"; v.Rückgabe = false; t.f(3, v, fv(i => i < p ? "bad" : "gone", `<div class="row">${chip(v.links, "bad")}<span class="arrow">≠</span>${chip(key)}</div>`), `"${v.links}" ist nicht "${key}" → false. (So erkennt TryParseAuftrag, dass an Position 2 kein Ziel steht.)`, m); continue; }
-    m[3] = "ok"; t.f(3, v, fv(i => i < p ? "ok" : ""), `"${v.links}" == "${key}" ✔.`, m);
-    v.wert = teil.substring(p + 1).trim();
-    t.f(4, v, fv(i => i > p ? "ok" : "gone", `<div class="row">${chip("wert = " + v.wert, "ok")}</div>`), "Teil nach dem '=' – getrimmt (Groß-/Kleinschreibung bleibt!).", m);
-    v.Rückgabe = v.wert.length > 0; t.f(5, v, fv(i => i > p ? "ok" : "gone", `<div class="badge ok">✅ true</div>`), "wert ist nicht leer → true.", m);
+  const t = new Trace("double BerechneStreckeKm(double kmProFeld = 0.5)  ·  double BerechnePreis(…)", [
+    "BerechneStreckeKm: <b>dx</b> = Ziel.X − Start.X; <b>dy</b> = Ziel.Y − Start.Y – aus den <b>eigenen</b> Properties",
+    "Rückgabe √(dx · dx + dy · dy) · kmProFeld",
+    "BerechnePreis: <b>preis</b> = grundgebuehr + BerechneStreckeKm() · preisProKm",
+    "GewichtKg &gt; freigewichtKg? → preis += (GewichtKg − freigewichtKg) · zuschlagProKg",
+    "Rückgabe preis auf 2 Stellen gerundet"]);
+  const B = [["b1", "LF-0007", [1, 1], [6, 3], 1.5, "Müller Gmbh"], ["b2", "LF-0099", [0, 0], [4, 3], 4.0, "Sehr Lange Kundenfirma Gmbh"]];
+  for (const [vn, n, s, z, kg, k] of B) {
+    const props = { Nummer: n, Start: T(...s), Ziel: T(...z), GewichtKg: kg, Kunde: k };
+    const o = (chg = []) => `${obj(vn + " : Auftrag", props, chg)}${karte([s, z])}`;
+    const dx = z[0] - s[0], dy = z[1] - s[1], d = Math.sqrt(dx * dx + dy * dy), km = d * 0.5;
+    const v = { kmProFeld: R("0,5 (Default)"), dx: null, dy: null, streckeKm: null, grundgebuehr: R("3,50 (Default)"), preisProKm: R("1,20 (Default)"), freigewichtKg: R("2 (Default)"), zuschlagProKg: R("0,80 (Default)"), preis: null };
+    t.call(`${vn}.BerechnePreis()`);
+    v.dx = dx; v.dy = dy;
+    t.f(0, v, objs(o(["Start", "Ziel"])), `Keine Parameter für Start und Ziel nötig: Das Objekt <b>${vn}</b> kennt sie selbst. dx = <b>${dx}</b>, dy = <b>${dy}</b>.`);
+    v.streckeKm = R(fmt(km));
+    t.f(1, v, objs(o()) + `<div class="row">${chip(`√(${dx}·${dx} + ${dy}·${dy}) · 0,5 = ${fmt(km)} km`, "ok")}</div>`, "kmProFeld wurde nicht angegeben → Default 0,5.", { 0: "ok" });
+    let p = 3.5 + km * 1.2; v.preis = R(p.toFixed(4));
+    t.f(2, v, objs(o()) + `<div class="row">${chip(`3,50 + ${fmt(km)} · 1,20 = ${fmt(p)} €`, "ok")}</div>`, "BerechnePreis ruft die <b>eigene</b> Methode BerechneStreckeKm() auf.", { 0: "ok", 1: "ok" });
+    if (kg > 2) { p += (kg - 2) * 0.8; v.preis = R(p.toFixed(4)); t.f(3, v, objs(o(["GewichtKg"])) + `<div class="row">${chip(`+ (${fmt(kg)} − 2) · 0,80 = + ${fmt((kg - 2) * 0.8)} €`, "bad")}</div>`, `${fmt(kg)} kg &gt; 2 kg → Zuschlag.`, { 0: "ok", 1: "ok", 2: "ok", 3: "ok" }); }
+    else t.f(3, v, objs(o(["GewichtKg"])) + `<div class="row">${chip(`${fmt(kg)} kg ≤ 2 kg`, "dim")}</div>`, "Unter dem Freigewicht → kein Zuschlag.", { 0: "ok", 1: "ok", 2: "ok", 3: "bad" });
+    v.preis = Math.round(p * 100) / 100;
+    t.f(4, v, objs(o()) + `<div class="badge ok">✅ ${fmt(v.preis)} €</div>`, `Gerundet → <b>${fmt(v.preis)} €</b>.`, { 0: "ok", 1: "ok", 2: "ok" });
   }
-  return slideOf("Schritt 2 – TryLeseFeld", "Teile echter Auftragszeilen werden gelesen.", t);
+  // Sondertarif
+  const v = { kmProFeld: R("0,5 (Default)"), streckeKm: R("2,69"), grundgebuehr: R("3,50 (Default)"), preisProKm: R("1,50 (benannt)"), freigewichtKg: R("2 (Default)"), zuschlagProKg: R("0,80 (Default)"), preis: null };
+  t.call("b1.BerechnePreis(preisProKm: 1.50)");
+  t.f(2, v, `<div class="row">${chip("preisProKm: 1.50", "bad")}</div>`, "Mit <b>preisProKm:</b> ändern wir genau einen Wert. grundgebuehr bleibt beim Default 3,50 – ohne Named Parameter müssten wir sie extra hinschreiben.");
+  v.preis = preisVon(kmVon([1, 1], [6, 3]), 1.5, { preisProKm: 1.5 });
+  t.f(4, v, `<div class="row">${chip(`3,50 + 2,69 · 1,50 = ${fmt(v.preis)} €`, "ok")}</div><div class="badge ok">✅ ${fmt(v.preis)} €</div>`, "Nur der Kilometerpreis ist anders.");
+  // Berichtzeile
+  const f = new Trace("string FormatiereBerichtZeile(int maxKundenLaenge = 18)", [
+    "<b>kunde</b> = Kunde (lokale Kopie – die Property bleibt unverändert)",
+    "Guard: kunde länger als maxKundenLaenge → Substring(0, maxKundenLaenge − 1) + \"…\"",
+    "Rückgabe: Nummer, kunde, BerechneStreckeKm() und BerechnePreis() mit PadRight / PadLeft"]);
+  const K = "Sehr Lange Kundenfirma Gmbh", P2 = { Nummer: "LF-0099", Start: T(0, 0), Ziel: T(4, 3), GewichtKg: 4.0, Kunde: K };
+  f.call("b2.FormatiereBerichtZeile()");
+  f.f(0, { maxKundenLaenge: R("18 (Default)"), kunde: K, Rückgabe: null }, objs(obj("b2 : Auftrag", P2, ["Kunde"])), `Der Name hat ${K.length} Zeichen.`);
+  const kurz = K.substring(0, 17) + "…";
+  f.f(1, { maxKundenLaenge: R("18 (Default)"), kunde: kurz, Rückgabe: null }, objs(obj("b2 : Auftrag", P2)) + box("kunde", chars(kurz, i => i === 17 ? "new" : "ok", false)), "Zu lang → auf 17 Zeichen + \"…\" gekürzt. Die Property <b>Kunde</b> im Objekt bleibt unverändert!", { 1: "ok" });
+  const zl = zeileVon("LF-0099", K, kmVon([0, 0], [4, 3]), 8.10);
+  f.f(2, { maxKundenLaenge: R("18 (Default)"), kunde: kurz, Rückgabe: zl }, `<div class="log">${esc(zl)}</div>`, "Strecke und Preis holt die Methode wieder aus den <b>eigenen</b> Methoden.", { 1: "ok" });
+  return slideOf("Schritt 2 – Klasse Auftrag: Methoden", "Ein Objekt rechnet mit seinen eigenen Properties – Default- und Named Parameter inklusive.", t, f);
 }
 
-// ===================== Schritt 3 =====================
+// ===================== Schritt 3: Objekte aus Text erzeugen =====================
 function s3() {
-  const a = new Trace("bool TryNormalisiereNummer(string text, out string nummer, int stellen = 4)", [
-    "nummer = \"\"; text groß schreiben",
-    "Guard ❌: text beginnt nicht mit \"LF-\" → false",
-    "<b>ziffern</b> = text ab Index 3",
-    "Guard ❌: ziffern ist leer oder länger als <b>stellen</b> (Default 4) → false",
-    "für jedes Zeichen c in ziffern: Guard ❌ c ist keine Ziffer → false",
-    "✅ nummer = \"LF-\" + ziffern links mit '0' auf <b>stellen</b> Stellen → true"]);
-  for (const [txt, nr] of [["LF-7", 5], ["LF-x15", 10]]) {
-    const v = { text: txt, ziffern: null, c: null, nummer: "", Rückgabe: null };
-    a.call(`TryNormalisiereNummer("${txt}", out nummer)  // Zeile ${nr}`);
-    v.text = txt.toUpperCase(); a.f(0, v, box("text", chars(v.text)), "Groß geschrieben.");
-    a.f(1, v, box("text", chars(v.text, i => i < 3 ? "ok" : "")), "Beginnt mit \"LF-\" ✔.", { 1: "ok" });
-    v.ziffern = v.text.substring(3); a.f(2, v, box("ziffern", chars(v.ziffern, () => "sel")), "Alles ab Index 3.", { 1: "ok" });
-    a.f(3, v, box("ziffern", chars(v.ziffern, () => "sel")), `${v.ziffern.length} Zeichen – zwischen 1 und 4 ✔.`, { 1: "ok", 3: "ok" });
-    let ok = true;
-    for (let k = 0; k < v.ziffern.length; k++) { const c = v.ziffern[k]; v.c = C(c); const d = /\d/.test(c);
-      a.f(4, v, box("ziffern", chars(v.ziffern, i => i === k ? (d ? "ok" : "bad") : i < k ? "ok" : "")), d ? `'${c}' ist eine Ziffer ✔.` : `'${c}' ist <b>keine</b> Ziffer → sofort false.`, { 1: "ok", 3: "ok", 4: d ? "ok" : "bad" });
-      if (!d) { ok = false; v.Rückgabe = false; break; } }
-    if (!ok) { a.f(4, v, `<div class="badge bad">❌ false</div>`, "Im Hauptprogramm wird daraus: „ungültige Auftragsnummer 'LF-x15'“.", { 1: "ok", 3: "ok", 4: "bad" }); continue; }
-    v.nummer = "LF-" + v.ziffern.padStart(4, "0"); v.Rückgabe = true;
-    a.f(5, v, box("nummer", chars(v.nummer, i => i >= 3 && i < 7 - v.ziffern.length ? "new" : "ok")), `Links mit '0' auf stellen = 4 Stellen (Default-Wert, weil nicht angegeben) → <b>${v.nummer}</b>.`, { 1: "ok", 3: "ok", 4: "ok" });
-  }
-  const b = new Trace("bool TryParseKoordinate(string text, out (int X, int Y) punkt)", [
-    "punkt = (0, 0); 🔧 Reparatur: '(' und ')' aus text entfernen",
-    "Guard ❌: text enthält kein '|' → false",
-    "<b>teile</b> = text am '|' zerlegen",
-    "Guard ❌: nicht genau 2 Teile oder ein Teil ist keine Zahl → false",
-    "✅ punkt = (x, y) → true"]);
-  for (const [txt, info] of [["17|3", "Zeile 6, Ziel"], ["(5|3)", "Zeile 16, Start"]]) {
-    const clean = txt.replace(/[()]/g, ""), [x, y] = clean.split("|").map(Number);
-    b.call(`TryParseKoordinate("${txt}", out punkt)  // ${info}`);
-    if (clean !== txt) {
-      b.f(0, { text: txt, teile: null, punkt: R("(0, 0)"), Rückgabe: null }, box("text", chars(txt, (i, c) => c === "(" || c === ")" ? "bad" : "")), "Klammern um die Koordinate – eindeutig gemeint ist (5|3) → 🔧 Klammern entfernen.", { 0: "ok" });
-      b.f(0, { text: clean, teile: null, punkt: R("(0, 0)"), Rückgabe: null }, box("text", chars(clean, () => "ok")), "Repariert – ab jetzt geht es ganz normal weiter.", { 0: "ok" });
-    } else b.f(0, { text: txt, teile: null, punkt: R("(0, 0)"), Rückgabe: null }, box("text", chars(txt)), "Keine Klammern → nichts zu reparieren.");
-    b.f(1, { text: clean, teile: null, punkt: R("(0, 0)"), Rückgabe: null }, box("text", chars(clean, (i, c) => c === "|" ? "hl" : "")), "Enthält ein '|' ✔.", { 1: "ok" });
-    b.f(2, { text: clean, teile: clean.split("|"), punkt: R("(0, 0)"), Rückgabe: null }, `<div class="row">${clean.split("|").map((p, k) => chip(`teile[${k}] = ${p}`)).join("")}</div>`, "Zerlegt in 2 Teile.", { 1: "ok" });
-    b.f(4, { text: clean, teile: clean.split("|"), x, y, punkt: R(`(${x}, ${y})`), Rückgabe: true }, karte(null, { [x + "," + y]: "ok" }), `Beide sind Zahlen → punkt = (${x}, ${y}): Spalte ${x}, Zeile ${y}.`, { 1: "ok", 3: "ok" });
-  }
-  const c = new Trace("bool TryParseGewicht(string text, out double gewicht)", [
-    "gewicht = 0; text klein schreiben und trimmen; <b>faktor</b> = 1",
-    "endet text mit \"kg\"? → <b>zahl</b> = text ohne die letzten 2 Zeichen",
-    "🔧 sonst endet text mit \"g\"? → <b>zahl</b> = text ohne das letzte Zeichen, faktor = 0.001",
-    "Guard ❌: weder \"kg\" noch \"g\" → false",
-    "',' durch '.' ersetzen; Guard ❌: zahl lässt sich nicht umwandeln → false",
-    "gewicht = gewicht · faktor; Guard ❌: gewicht ≤ 0 → gewicht = 0, false",
-    "✅ true"]);
-  for (const [orig, info] of [["3,2KG", "Zeile 6"], ["800g", "Zeile 16"], ["-1kg", "Zeile 19"]]) {
-    const tx = orig.toLowerCase().trim(); const kg = tx.endsWith("kg");
-    const z = kg ? tx.slice(0, -2) : tx.slice(0, -1), f = kg ? 1 : 0.001, zahl = z.replace(",", "."), g0 = parseFloat(zahl), g = g0 * f;
-    c.call(`TryParseGewicht("${orig}", out gewicht)  // ${info}`);
-    const v = { text: tx, faktor: 1, zahl: null, gewicht: 0, Rückgabe: null };
-    c.f(0, v, box("text", chars(tx)), `"${orig}" → klein: "${tx}".`);
-    if (kg) { v.zahl = z; c.f(1, v, box("text", chars(tx, i => i >= tx.length - 2 ? "gone" : "ok")), "Endet mit \"kg\" → die letzten 2 Zeichen abschneiden.", { 1: "ok" }); }
-    else {
-      c.f(1, v, box("text", chars(tx, i => i === tx.length - 1 ? "hl" : "")), "Endet <b>nicht</b> mit \"kg\" …", { 1: "bad" });
-      v.zahl = z; v.faktor = 0.001;
-      c.f(2, v, box("text", chars(tx, i => i === tx.length - 1 ? "gone" : "ok")), "… aber mit \"g\": eine Gramm-Angabe. Eindeutig → 🔧 1 Zeichen abschneiden, später mal 0.001. (Darum zuerst auf \"kg\" prüfen – \"kg\" endet ja auch mit \"g\"!)", { 1: "bad", 2: "ok" });
-    }
-    const m = kg ? { 1: "ok", 3: "ok" } : { 1: "bad", 2: "ok", 3: "ok" };
-    v.zahl = zahl; c.f(4, v, box("zahl", chars(zahl, (i, ch) => ch === "." && z.includes(",") ? "new" : "ok")), `zahl = "${zahl}" → lässt sich umwandeln: ${String(g0).replace(".", ",")}.`, { ...m, 4: "ok" });
-    v.gewicht = g;
-    if (!(g > 0)) { v.gewicht = 0; v.Rückgabe = false; c.f(5, v, `<div class="badge bad">❌ ${String(g).replace(".", ",")} kg ist nicht &gt; 0 → gewicht = 0, false</div>`, "Ein negatives Gewicht ergibt keinen Sinn. Ist vielleicht 1 kg gemeint? Nicht raten → Fehler.", { ...m, 4: "ok", 5: "bad" }); continue; }
-    v.Rückgabe = true; c.f(6, v, `<div class="badge ok">✅ ${String(g).replace(".", ",")} kg</div>`, `${String(g0).replace(".", ",")} · ${String(f).replace(".", ",")} = ${String(g).replace(".", ",")} kg &gt; 0 → true.`, { ...m, 4: "ok", 5: "ok" });
-  }
-  const d = new Trace("string FormatiereKunde(string text)", [
-    "<b>woerter</b> = text getrimmt, an ' ' zerlegt, leere Teile weg",
-    "für jedes Wort i: woerter[i] = erster Buchstabe groß + Rest klein",
-    "Rückgabe: woerter mit ' ' verbunden"]);
-  d.call('FormatiereKunde("  bäckerei huber")  // Zeile 6');
-  d.f(0, { text: "  bäckerei huber", woerter: ["bäckerei", "huber"], i: null, Rückgabe: null }, box("text", chars("  bäckerei huber", (i, ch) => ch === " " ? "gone" : "")), "2 Wörter.");
-  d.f(1, { text: "  bäckerei huber", woerter: ["Bäckerei", "huber"], i: 0, Rückgabe: null }, box("woerter[0]", chars("Bäckerei", i => i === 0 ? "new" : "ok")), "i = 0: b → B, Rest klein.");
-  d.f(1, { text: "  bäckerei huber", woerter: ["Bäckerei", "Huber"], i: 1, Rückgabe: null }, box("woerter[1]", chars("Huber", i => i === 0 ? "new" : "ok")), "i = 1: h → H, Rest klein.");
-  d.f(2, { text: "  bäckerei huber", woerter: ["Bäckerei", "Huber"], i: 1, Rückgabe: "Bäckerei Huber" }, box("Rückgabe", chars("Bäckerei Huber", () => "ok")), "Verbunden mit einem Leerzeichen.");
-  return slideOf("Schritt 3 – Felder umwandeln", "Werte aus echten Auftragszeilen durch die vier Funktionen.", a, b, c, d);
-}
-
-// ===================== Schritt 4 =====================
-function s4() {
-  const t = new Trace("bool TryParseAuftrag(string zeile, out (...) auftrag, out string fehlergrund)", [
-    "🔧 Reparatur: Leerzeichen und ';' am Zeilenende abschneiden (TrimEnd)",
-    "<b>teile</b> = zeile am ';' zerlegen",
-    "Guard ❌: nicht genau 5 Teile → \"{Anzahl} statt 5 Felder\"",
-    "TryLeseFeld für nummer, start, ziel, gewicht, kunde – Guard ❌: eines false → \"Feld fehlt …\"",
-    "TryNormalisiereNummer – Guard ❌ → \"ungültige Auftragsnummer '…'\"",
-    "TryParseKoordinate für Start und Ziel – Guard ❌ → \"ungültige Koordinate\"",
-    "TryParseGewicht – Guard ❌ → \"ungültiges Gewicht\"",
-    "✅ auftrag = (nummer, start, ziel, gewicht, FormatiereKunde(kunde)) → true"]);
-  for (const nr of [6, 13, 10, 16, 19]) {
+  const t = new Trace("bool TryParseAuftrag(string zeile, out Auftrag auftrag, out string fehlergrund)", [
+    "<b>auftrag = null</b> – noch kein Objekt; 🔧 ';' am Zeilenende abschneiden",
+    "<b>teile</b> = zeile am ';' zerlegen – Guard ❌: nicht genau 5 Teile",
+    "TryNormalisiereNummer(teile[0]) – Guard ❌ → \"ungültige Auftragsnummer '…'\"",
+    "TryParseKoordinate, TryParseGewicht – Guards ❌ (fertig aus L03)",
+    "✅ <b>auftrag = new Auftrag(nummer, start, ziel, gewicht, FormatiereKunde(teile[4]))</b> → true"]);
+  for (const nr of [5, 12, 9, 14]) {
     const roh = AUFTRAEGE[nr - 1].trim(), z = roh.replace(/[ ;]+$/, ""), teile = z.split(";");
-    const v = { zeile: roh, teile: null, nummerText: null, startText: null, zielText: null, gewichtText: null, kundeText: null, auftrag: null, fehlergrund: "", Rückgabe: null };
+    const v = { zeile: z, teile: null, nummer: null, auftrag: null, fehlergrund: "", Rückgabe: null };
     const fv = (x = "") => `${fileView(AUFTRAEGE, nr - 1, {}, true)}${x}`;
     const parts = cls => `<div class="row">${teile.map((p, i) => chip(`[${i}]${p}`, cls(i))).join("")}</div>`;
-    t.call(`TryParseAuftrag(zeile, out auftrag, out fehlergrund)  // Zeile ${nr}`);
-    if (z !== roh) {
-      t.f(0, v, fv(box("zeile (Ende)", chars(roh.slice(-12), (i, c) => i >= 12 - (roh.length - z.length) ? "bad" : ""))), `Die Zeile endet mit '${roh.slice(z.length)}'. Ohne Reparatur gäbe Split ein leeres 6. Feld → „6 statt 5 Felder“. Eindeutig nichts gemeint → 🔧 abschneiden.`, { 0: "ok" });
-      v.zeile = z;
-    } else t.f(0, v, fv(), "Kein ';' am Ende → nichts zu reparieren.");
-    v.teile = R(`string[${teile.length}]`); t.f(1, v, fv(parts(() => "")), `Zeile ${nr} zerlegt in <b>${teile.length}</b> Teile.`);
-    if (teile.length !== 5) { v.fehlergrund = `${teile.length} statt 5 Felder`; v.Rückgabe = false; t.f(2, v, fv(parts(() => "bad") + `<div class="badge bad">❌ ${v.fehlergrund}</div>`), "Guard ❌ → fehlergrund setzen, return false. (Das Ziel fehlt – woher sollten wir es nehmen?)", { 2: "bad" }); continue; }
-    const m = { 2: "ok" }; t.f(2, v, fv(parts(() => "ok")), "Genau 5 Teile ✔.", m);
-    ["nummer", "start", "ziel", "gewicht", "kunde"].forEach((k, i) => v[k + "Text"] = leseFeld(teile[i], k));
-    m[3] = "ok"; t.f(3, v, fv(parts(() => "ok")), "Alle 5 Schlüssel passen, alle Werte vorhanden.", m);
-    const n = normNr(v.nummerText);
-    if (!n) { m[4] = "bad"; v.fehlergrund = `ungültige Auftragsnummer '${v.nummerText}'`; v.Rückgabe = false; t.f(4, v, fv(parts(i => i === 0 ? "bad" : "dim") + `<div class="badge bad">❌ ${esc(v.fehlergrund)}</div>`), "TryNormalisiereNummer liefert false → early exit. Die restlichen Felder werden gar nicht mehr umgewandelt.", m); continue; }
-    m[4] = "ok"; v.nummer = n; t.f(4, v, fv(parts(i => i === 0 ? "ok" : "")), `"${v.nummerText}" → <b>${n}</b>.`, m);
-    const s = koord(v.startText), zi = koord(v.zielText); v.start = R(`(${s})`); v.ziel = R(`(${zi})`); m[5] = "ok";
-    t.f(5, v, fv(parts(i => i <= 2 ? "ok" : "")), `Start und Ziel umgewandelt.${v.startText.includes("(") ? " 🔧 Die Klammern hat TryParseKoordinate entfernt." : ""}`, m);
-    const g = gewicht(v.gewichtText);
-    if (!g) { m[6] = "bad"; v.fehlergrund = `${n} – ungültiges Gewicht '${v.gewichtText}'`; v.Rückgabe = false; t.f(6, v, fv(parts(i => i === 3 ? "bad" : i < 3 ? "ok" : "dim") + `<div class="badge bad">❌ ${esc(v.fehlergrund)}</div>`), "TryParseGewicht liefert false → early exit.", m); continue; }
-    v.gewicht = g; m[6] = "ok"; t.f(6, v, fv(parts(i => i <= 3 ? "ok" : "")), `Gewicht ${fmt(g)} kg.${v.gewichtText.endsWith("kg") ? "" : " 🔧 Aus Gramm umgerechnet."}`, m);
-    v.auftrag = R(`(${n}, (${s[0]}, ${s[1]}), (${zi[0]}, ${zi[1]}), ${String(g).replace(".", ",")}, ${kunde(v.kundeText)})`); v.Rückgabe = true;
-    t.f(7, v, fv(`<div class="badge ok">✅ ${esc(v.auftrag.t)}</div>`), "Alle Guards bestanden → Named Tuple zurück.", m);
+    t.call(`TryParseAuftrag(zeile, out Auftrag auftrag, out string fehlergrund)  // Zeile ${nr}`);
+    t.f(0, v, fv(), z !== roh ? "auftrag ist null. 🔧 Das ';' am Ende wird abgeschnitten." : "auftrag ist <b>null</b>: Es gibt noch kein Objekt.");
+    v.teile = R(`string[${teile.length}]`);
+    if (teile.length !== 5) { v.fehlergrund = `${teile.length} statt 5 Felder`; v.Rückgabe = false; t.f(1, v, fv(parts(() => "bad") + `<div class="badge bad">❌ ${v.fehlergrund}</div>`), "Guard ❌ → return false. Es wird <b>kein</b> Objekt erzeugt, auftrag bleibt null.", { 1: "bad" }); continue; }
+    t.f(1, v, fv(parts(() => "ok")), "Genau 5 Teile ✔.", { 1: "ok" });
+    const n = normNr(teile[0]);
+    if (!n) { v.fehlergrund = `ungültige Auftragsnummer '${teile[0].trim()}'`; v.Rückgabe = false; t.f(2, v, fv(parts(i => i === 0 ? "bad" : "dim") + `<div class="badge bad">❌ ${esc(v.fehlergrund)}</div>`), "Guard ❌ → return false, auftrag bleibt null.", { 1: "ok", 2: "bad" }); continue; }
+    v.nummer = n; t.f(2, v, fv(parts(i => i === 0 ? "ok" : "")), `"${teile[0].trim()}" → <b>${n}</b>.`, { 1: "ok", 2: "ok" });
+    const p = parseAuftrag(z).a;
+    t.f(3, v, fv(parts(() => "ok")), `Start (${p.s}), Ziel (${p.z}), ${fmt(p.g)} kg.${nr === 14 ? " 🔧 Klammern und Gramm wurden repariert." : ""}`, { 1: "ok", 2: "ok", 3: "ok" });
+    v.auftrag = R(`→ Auftrag ${n}`); v.Rückgabe = true;
+    t.f(4, v, `${fileView(AUFTRAEGE, nr - 1, {}, true)}${obj("auftrag : Auftrag", { Nummer: n, Start: T(...p.s), Ziel: T(...p.z), GewichtKg: p.g, Kunde: p.k }, ["Nummer", "Start", "Ziel", "GewichtKg", "Kunde"], "ok")}`, "Erst jetzt, wenn alles gültig ist: <b>new Auftrag(…)</b> ruft den Konstruktor aus Schritt 1 auf.", { 1: "ok", 2: "ok", 3: "ok", 4: "ok" });
   }
-  return slideOf("Schritt 4 – TryParseAuftrag", "Fünf echte Zeilen: gültig, Feld fehlt, falsche Nummer, repariert, falsches Gewicht.", t);
+  return slideOf("Schritt 3 – Objekte aus Text erzeugen", "Vier echte Zeilen: Aus gültigen Zeilen entsteht ein Objekt, aus fehlerhaften keines.", t);
 }
 
-// ===================== Schritt 5 =====================
-function s5() {
-  const t = new Trace("double BerechneDistanzFelder(start, ziel)  +  double BerechnePreis(streckeKm, gewichtKg)", [
-    "<b>dx</b> = ziel.X − start.X; <b>dy</b> = ziel.Y − start.Y",
-    "Rückgabe √(dx · dx + dy · dy)",
-    "Hauptprogramm: <b>streckeKm</b> = Distanz · KmProFeld (0,5)",
-    "<b>preis</b> = Grundgebuehr (3,50) + streckeKm · PreisProKm (1,20)",
-    "gewichtKg &gt; FreigewichtKg (2)? → preis += (gewichtKg − 2) · ZuschlagProKg (0,80)",
-    "Rückgabe preis auf 2 Stellen gerundet"]);
-  for (const [nr, s, z, kg, nrS] of [[5, [1, 1], [6, 5], 1.5, "LF-0007"], [6, [2, 9], [17, 3], 3.2, "LF-0012"]]) {
-    const v = { start: P(...s), ziel: P(...z), dx: null, dy: null, distanz: null, streckeKm: null, gewichtKg: kg, preis: null };
-    t.call(`${nrS} – Zeile ${nr}`);
-    v.dx = z[0] - s[0]; v.dy = z[1] - s[1]; t.f(0, v, karte([s, z]), `dx = ${z[0]} − ${s[0]} = <b>${v.dx}</b>, dy = ${z[1]} − ${s[1]} = <b>${v.dy}</b>. (Ein negatives dy heißt: nach oben.)`);
-    const dist = Math.sqrt(v.dx * v.dx + v.dy * v.dy); v.distanz = R(dist.toFixed(4));
-    t.f(1, v, `<div class="row">${chip(`√(${v.dx}·${v.dx} + ${v.dy}·${v.dy}) = √${v.dx * v.dx + v.dy * v.dy} = ${dist.toFixed(2)}`, "ok")}</div>`, "Pythagoras: die Luftlinie in Feldern.");
-    v.streckeKm = R((dist * 0.5).toFixed(4)); t.f(2, v, `<div class="row">${chip(`${dist.toFixed(2)} · 0,5 = ${fmt(dist * 0.5)} km`, "ok")}</div>`, "1 Feld = 0,5 km.");
-    let p = 3.5 + dist * 0.5 * 1.2; v.preis = R(p.toFixed(4));
-    t.f(3, v, `<div class="row">${chip(`3,50 + ${fmt(dist * 0.5)} · 1,20 = ${fmt(p)} €`, "ok")}</div>`, "Grundgebühr plus Kilometerpreis (noch ungerundet).");
-    if (kg > 2) { p += (kg - 2) * 0.8; v.preis = R(p.toFixed(4)); t.f(4, v, `<div class="row">${chip(`+ (${fmt(kg)} − 2) · 0,80 = + ${fmt((kg - 2) * 0.8)} €`, "bad")}</div>`, `${fmt(kg)} kg &gt; 2 kg → Zuschlag.`, { 4: "ok" }); }
-    else t.f(4, v, `<div class="row">${chip(`${fmt(kg)} kg ≤ 2 kg`, "dim")}</div>`, "Unter dem Freigewicht → kein Zuschlag.", { 4: "bad" });
-    v.preis = Math.round(p * 100) / 100; t.f(5, v, `<div class="badge ok">✅ ${fmt(v.preis)} €</div>`, `Gerundet auf 2 Nachkommastellen → <b>${fmt(v.preis)} €</b>.`);
+// ===================== Schritt 4: Klasse Stadtplan =====================
+function s4() {
+  const PL = { Zeilen: R("string[8]  (je 12 Felder)") };
+  const i = new Trace("bool IstInnerhalb((int X, int Y) p)", [
+    "p.X ≥ 0 und p.Y ≥ 0?",
+    "p.Y &lt; Zeilen.Length (8) und p.X &lt; Zeilen[p.Y].Length (12)?"]);
+  for (const [x, y] of [[11, 7], [12, 3], [3, -1]]) {
+    const ok1 = x >= 0 && y >= 0, ok2 = ok1 && y < H && x < W;
+    i.call(`plan.IstInnerhalb((${x}, ${y}))`);
+    i.f(ok1 ? 1 : 0, { "p.X": x, "p.Y": y, Rückgabe: ok2 }, objs(obj("plan : Stadtplan", PL)) + karte(null, ok2 ? { [x + "," + y]: "ok" } : {}),
+      ok2 ? `(${x}|${y}) liegt im Plan → <b>true</b>.` : !ok1 ? "Negative Zeile → <b>false</b>." : `Spalte ${x} gibt es nicht (nur 0–11) → <b>false</b>.`, ok2 ? { 0: "ok", 1: "ok" } : !ok1 ? { 0: "bad" } : { 0: "ok", 1: "bad" });
   }
-  return slideOf("Schritt 5 – Strecke und Preis", "Zwei echte Aufträge werden durchgerechnet.", t);
-}
-
-// ===================== Schritt 6 =====================
-function s6() {
   const t = new Trace("bool IstAufRoute(start, ziel, int x, int y)", [
     "<b>dx</b> = ziel.X − start.X; <b>dy</b> = ziel.Y − start.Y",
-    "|dx| ≥ |dy| (flach)? → Laufachse x:",
-    "   ↳ Guard ❌: x nicht zwischen start.X und ziel.X (Min/Max) → false",
-    "   ↳ <b>k</b> = dy / dx (dx = 0 → 0); Rückgabe y == start.Y + Round(k · (x − start.X))",
-    "sonst (steil) → Laufachse y:",
-    "   ↳ Guard ❌: y nicht zwischen start.Y und ziel.Y → false",
-    "   ↳ <b>k'</b> = dx / dy; Rückgabe x == start.X + Round(k' · (y − start.Y))"]);
-  for (const [nrS, s, z, x, y] of [["LF-0007", [1, 1], [6, 5], 4, 3], ["LF-0007", [1, 1], [6, 5], 2, 4], ["LF-0013", [15, 2], [3, 2], 16, 2], ["LF-0013", [15, 2], [3, 2], 7, 2], ["LF-0014", [4, 10], [6, 1], 5, 6], ["LF-0014", [4, 10], [6, 1], 4, 6]]) {
+    "|dx| ≥ |dy| (flach)? → Guard ❌: x nicht zwischen start.X und ziel.X → false",
+    "   ↳ <b>k</b> = dy / dx; Rückgabe y == start.Y + Round(k · (x − start.X))",
+    "sonst (steil) → Guard ❌: y nicht zwischen start.Y und ziel.Y → false",
+    "   ↳ <b>m</b> = dx / dy; Rückgabe x == start.X + Round(m · (y − start.Y))"]);
+  for (const [s, z, x, y] of [[[1, 1], [6, 3], 3, 2], [[1, 1], [6, 3], 3, 3], [[10, 3], [1, 0], 4, 1], [[3, 7], [4, 0], 4, 2]]) {
     const dx = z[0] - s[0], dy = z[1] - s[1], flach = Math.abs(dx) >= Math.abs(dy), r = aufRoute(s, z, x, y);
-    const v = { start: P(...s), ziel: P(...z), x, y, dx: null, dy: null, flach: null, k: null, soll: null, Rückgabe: null };
-    const kv = (pr) => karte([s, z], { [x + "," + y]: pr });
-    t.call(`IstAufRoute((${s}), (${z}), ${x}, ${y})  // ${nrS}`);
-    v.dx = dx; v.dy = dy; t.f(0, v, kv("ok"), `Ist das Feld (${x}|${y}) Teil der Route von ${nrS}?`);
-    v.flach = flach;
-    if (flach) {
-      t.f(1, v, kv("ok"), `|${dx}| ≥ |${dy}| → <b>flach</b>, wir laufen über x.${dx < 0 ? " dx ist negativ – das Ziel liegt links!" : ""}`, { 1: "ok" });
-      const lo = Math.min(s[0], z[0]), hi = Math.max(s[0], z[0]);
-      if (x < lo || x > hi) { v.Rückgabe = false; t.f(2, v, kv("bad"), `x = ${x} liegt nicht zwischen ${lo} und ${hi} → false. (Ohne Min/Max würde das bei dx &lt; 0 nicht funktionieren.)`, { 1: "ok", 2: "bad" }); continue; }
-      t.f(2, v, kv("ok"), `${lo} ≤ ${x} ≤ ${hi} ✔.`, { 1: "ok", 2: "ok" });
-      const k = dx === 0 ? 0 : dy / dx, soll = s[1] + roundEven(k * (x - s[0]));
-      v.k = R(k.toFixed(3)); v.soll = soll; v.Rückgabe = r;
-      t.f(3, v, `${kv(r ? "ok" : "bad")}<div class="row">${chip(`soll y = ${s[1]} + Round(${k.toFixed(2)} · ${x - s[0]}) = ${soll}`, r ? "ok" : "bad")}</div>`, `Auf der Geraden liegt bei x = ${x} das Feld y = ${soll}. Unser y ist ${y} → <b>${r}</b>.`, { 1: "ok", 2: "ok", 3: r ? "ok" : "bad" });
-    } else {
-      t.f(4, v, kv("ok"), `|${dx}| &lt; |${dy}| → <b>steil</b>. Mit x als Laufachse gäbe es Lücken, also laufen wir über y.`, { 1: "bad", 4: "ok" });
-      t.f(5, v, kv("ok"), `${Math.min(s[1], z[1])} ≤ ${y} ≤ ${Math.max(s[1], z[1])} ✔.`, { 1: "bad", 4: "ok", 5: "ok" });
-      const k = dx / dy, soll = s[0] + roundEven(k * (y - s[1]));
-      v.k = R(k.toFixed(3)); v.soll = soll; v.Rückgabe = r;
-      t.f(6, v, `${kv(r ? "ok" : "bad")}<div class="row">${chip(`soll x = ${s[0]} + Round(${k.toFixed(2)} · ${y - s[1]}) = ${soll}`, r ? "ok" : "bad")}</div>`, `In Zeile y = ${y} liegt die Route bei x = ${soll}. Unser x ist ${x} → <b>${r}</b>.`, { 1: "bad", 4: "ok", 5: "ok", 6: r ? "ok" : "bad" });
-    }
+    const kv = pr => karte([s, z], { [x + "," + y]: pr });
+    t.call(`plan.IstAufRoute((${s}), (${z}), ${x}, ${y})`);
+    const v = { dx, dy, flach, "k / m": null, soll: null, Rückgabe: null };
+    t.f(0, v, kv("ok"), `Ist (${x}|${y}) Teil der Route? ${flach ? "|dx| ≥ |dy| → flach, wir fragen f(x)." : "|dx| &lt; |dy| → steil, wir fragen g(y)."}${dx < 0 ? " dx &lt; 0: das Ziel liegt links." : ""}`);
+    if (flach) { const k = dy / dx, soll = s[1] + roundEven(k * (x - s[0])); v["k / m"] = R(k.toFixed(3)); v.soll = soll; v.Rückgabe = r;
+      t.f(2, v, `${kv(r ? "ok" : "bad")}<div class="row">${chip(`f(${x}) = ${s[1]} + Round(${k.toFixed(2)} · ${x - s[0]}) = ${soll}`, r ? "ok" : "bad")}</div>`, `In Spalte ${x} liegt die Route in Zeile ${soll}. Unser y ist ${y} → <b>${r}</b>.`, { 1: "ok", 2: r ? "ok" : "bad" }); }
+    else { const m = dx / dy, soll = s[0] + roundEven(m * (y - s[1])); v["k / m"] = R(m.toFixed(3)); v.soll = soll; v.Rückgabe = r;
+      t.f(4, v, `${kv(r ? "ok" : "bad")}<div class="row">${chip(`g(${y}) = ${s[0]} + Round(${m.toFixed(2)} · ${y - s[1]}) = ${soll}`, r ? "ok" : "bad")}</div>`, `In Zeile ${y} liegt die Route in Spalte ${soll}. Unser x ist ${x} → <b>${r}</b>.`, { 1: "bad", 3: "ok", 4: r ? "ok" : "bad" }); }
   }
-  const f = new Trace("bool IstRouteFrei(string[] plan, start, ziel)", [
-    "für jede Zeile y, für jedes x:",
-    "   plan[y][x] ist '#' und IstAufRoute(start, ziel, x, y)? → false",
-    "nichts gefunden → true"]);
-  f.call("IstRouteFrei(stadtplan, (0, 10), (19, 10))  // LF-0019");
-  f.f(0, { y: 0, x: 0, "plan[y][x]": C("."), aufRoute: null, Rückgabe: null }, karte([[0, 10], [19, 10]], {}, 99, [0, 0]), "Der ganze Plan wird Zeile für Zeile durchsucht. Zeilen 0–7 haben gar kein '#'.");
-  for (const [x, y] of [[9, 8], [10, 8], [9, 9], [10, 9], [9, 10]]) {
-    const on = aufRoute([0, 10], [19, 10], x, y);
-    f.f(1, { y, x, "plan[y][x]": C("#"), aufRoute: on, Rückgabe: on ? false : null }, karte([[0, 10], [19, 10]], { [x + "," + y]: on ? "bad" : "ok" }), on ? `(${x}|${y}) ist '#' <b>und</b> liegt auf der Route → sofort <b>false</b>.` : `(${x}|${y}) ist '#', liegt aber nicht auf der Route → weiter suchen.`, { 1: on ? "bad" : "ok" });
+  const k = new Trace("bool ZeichneRoute(Auftrag auftrag)", [
+    "<b>frei</b> = true; für jede Zeile y: <b>zeile</b> = \"\"",
+    "   für jedes x: <b>feld</b> = Zeilen[y][x]",
+    "   (x|y) ist <b>auftrag.Start</b>? → '✅'; sonst <b>auftrag.Ziel</b>? → '❌'",
+    "   sonst IstAufRoute(auftrag.Start, auftrag.Ziel, x, y)? → '⛔' ? ('⚡', frei = false) : '⭐'",
+    "   zeile += feld.ToString(); nach der Zeile: ausgeben",
+    "Rückgabe frei"]);
+  const S = [0, 6], Z = [11, 6], AU = { Nummer: "LF-0019", Start: T(0, 6), Ziel: T(11, 6), GewichtKg: 1, Kunde: "Quer Durch Gmbh" };
+  k.call('plan.ZeichneRoute(new Auftrag("LF-0019", (0, 6), (11, 6), 1.0, "Quer Durch Gmbh"))');
+  k.f(0, { frei: true }, objs(obj("plan : Stadtplan", PL), obj("auftrag : Auftrag", AU, ["Start", "Ziel"])), "Der Stadtplan bekommt ein <b>ganzes Objekt</b> als Parameter und holt sich Start und Ziel mit dem Punkt: <b>auftrag.Start</b>.");
+  let frei = true;
+  for (let y = 0; y < H; y++) {
+    let z = "";
+    for (let x = 0; x < W; x++) { let c = PLAN[y][x]; if (x === S[0] && y === S[1]) c = "✅"; else if (x === Z[0] && y === Z[1]) c = "❌"; else if (aufRoute(S, Z, x, y)) c = c === SPERR ? "⚡" : "⭐"; z += c;
+      if (y === 6 && [0, 5, 6, 11].includes(x)) { if (c === "⚡") frei = false;
+        k.f(c === "✅" || c === "❌" ? 2 : 3, { y, x, "Zeilen[y][x]": C(PLAN[y][x]), feld: C(c), frei, zeile: z }, karte([S, Z], { [x + "," + y]: c === "⚡" ? "bad" : "ok" }, y - 1),
+          c === "✅" ? "auftrag.Start → '✅'." : c === "❌" ? "auftrag.Ziel → '❌'." : c === "⚡" ? "Route <b>und</b> '⛔' → '⚡', <b>frei = false</b>." : "Route, Feld frei → '⭐'.", c === "⚡" ? { 3: "bad" } : {}); } }
+    if (y === 0 || y >= 5) k.f(4, { y, frei, zeile: z }, karte([S, Z], {}, y), `Zeile ${y} fertig und ausgegeben.`);
   }
-  const k = new Trace("void ZeichneKarte(string[] plan, start, ziel)", [
-    "für jede Zeile y: <b>zeile</b> = \"\"",
-    "   für jedes x: <b>feld</b> = plan[y][x]",
-    "   (x|y) ist Start? → 'S'; sonst Ziel? → 'Z'",
-    "   sonst IstAufRoute? → plan[y][x] ist '#' ? 'X' : '*'",
-    "   zeile += feld + \" \"",
-    "zeile ohne letztes Leerzeichen ausgeben"]);
-  k.call("ZeichneKarte(stadtplan, (4, 10), (6, 1))  // LF-0014");
-  for (let y = 0; y < 12; y++) {
-    let z = ""; for (let x = 0; x < 20; x++) { let c = PLAN[y][x]; if (x === 4 && y === 10) c = "S"; else if (x === 6 && y === 1) c = "Z"; else if (aufRoute([4, 10], [6, 1], x, y)) c = c === "#" ? "X" : "*"; z += c + " "; }
-    if (y === 4 || y === 10 || y === 0) {
-      for (const x of (y === 10 ? [3, 4, 5] : [4, 5, 6])) {
-        let feld = PLAN[y][x], step = 1; if (x === 4 && y === 10) { feld = "S"; step = 2; } else if (aufRoute([4, 10], [6, 1], x, y)) { feld = "*"; step = 3; }
-        k.f(step, { y, x, feld: C(feld), zeile: z.substring(0, 2 * x + 2) }, karte([[4, 10], [6, 1]], { [x + "," + y]: "ok" }, y - 1), `y = ${y}, x = ${x}: ${step === 2 ? "Start → 'S'" : step === 3 ? "liegt auf der Route → '*'" : `nicht Start/Ziel/Route → '${feld}' aus dem Plan`}.`);
-      }
-    }
-    k.f(5, { y, x: 19, zeile: z.trimEnd() }, karte([[4, 10], [6, 1]], {}, y), `Zeile ${y} fertig und ausgegeben.`);
-  }
-  return slideOf("Schritt 6 – IstAufRoute, IstRouteFrei, ZeichneKarte", "Einzelne Felder echter Routen prüfen, Sperrzone suchen, Karte zeilenweise aufbauen.", t, f, k);
+  k.f(5, { frei, Rückgabe: frei }, `${karte([S, Z])}<div class="badge bad">❌ false – Route durch Sperrzone</div>`, "Zeilen wurde dabei <b>nicht</b> verändert – der Plan ist für den nächsten Auftrag wieder sauber.", { 5: "bad" });
+  return slideOf("Schritt 4 – Klasse Stadtplan", "IstInnerhalb und IstAufRoute an echten Punkten, dann ZeichneRoute mit einem Auftrag-Objekt.", i, t, k);
 }
 
-// ===================== Schritt 7 =====================
-function s7() {
+// ===================== Schritt 5: Klasse Drohne – hat-Beziehung =====================
+function s5() {
+  const t = new Trace("class Drohne – Konstruktor und bool TryLiefern(Auftrag auftrag, out string fehlergrund)", [
+    "Konstruktor: Name, <b>Plan</b>, MaxGewichtKg setzen; 0 Lieferungen, 0 km",
+    "Guard ❌: !Plan.IstInnerhalb(Start) oder (Ziel) → \"außerhalb des Stadtplans\"",
+    "Guard ❌: auftrag.Start == auftrag.Ziel → \"Start und Ziel sind gleich\"",
+    "Guard ❌: auftrag.GewichtKg &gt; <b>MaxGewichtKg</b> → \"zu schwer\"",
+    "Guard ❌: !Plan.ZeichneRoute(auftrag) → \"Route durch Sperrzone\"",
+    "✅ AnzahlLieferungen++; GeflogeneKm += auftrag.BerechneStreckeKm() → true"]);
+  const PL = obj("wien : Stadtplan", { Zeilen: R("string[8]") });
+  const D = (n, max, anz = 0, km = 0) => ({ Name: n, Plan: R("→ wien"), MaxGewichtKg: max, AnzahlLieferungen: anz, GeflogeneKm: R(fmt(km)) });
+  const SW = { Nummer: "LF-0017", Start: T(3, 3), Ziel: T(8, 1), GewichtKg: 7.5, Kunde: "Schwer Und Co" };
+  const bild = (d1, d2, c1 = [], c2 = [], cls1 = "", cls2 = "") => `<div class="cols">${d1 ? obj("sky1 : Drohne", d1, c1, cls1) : ""}${d2 ? obj("sky2 : Drohne", d2, c2, cls2) : ""}<div class="box"><div class="arrow">${d1 && d2 ? "⬊ Plan  Plan ⬋" : "⬊ Plan"}</div>${PL}</div></div>`;
+  t.call('Drohne sky1 = new Drohne("Sky-1", wien);');
+  t.f(0, { sky1: R("→ Drohne Sky-1"), sky2: null }, bild(D("Sky-1", 5.0), null, ["Name", "Plan", "MaxGewichtKg"]), "maxGewichtKg nicht angegeben → Default 5,0. <b>Plan</b> ist eine Property vom Typ Stadtplan: die <b>hat-Beziehung</b>.", { 0: "ok" });
+  t.call('Drohne sky2 = new Drohne("Sky-2", wien, maxGewichtKg: 8.0);');
+  t.f(0, { sky1: R("→ Drohne Sky-1"), sky2: R("→ Drohne Sky-2") }, bild(D("Sky-1", 5.0), D("Sky-2", 8.0), [], ["Name", "Plan", "MaxGewichtKg"]), "Zwei Drohnen, aber nur <b>ein</b> Stadtplan-Objekt: Beide Plan-Properties zeigen auf <b>wien</b>. Darum ist sky1.Plan == sky2.Plan <b>True</b>.", { 0: "ok" });
+  for (const [vn, d, max] of [["sky1", "Sky-1", 5.0], ["sky2", "Sky-2", 8.0]]) {
+    t.call(`${vn}.TryLiefern(schwer, out string grund)`);
+    const v = { "auftrag.Nummer": "LF-0017", "auftrag.GewichtKg": 7.5, MaxGewichtKg: max, fehlergrund: "", Rückgabe: null };
+    const dd = vn === "sky1" ? [D("Sky-1", 5), D("Sky-2", 8)] : [D("Sky-1", 5), D("Sky-2", 8)];
+    const au = obj("schwer : Auftrag", SW, ["GewichtKg"]);
+    t.f(1, v, `<div class="cols">${au}${karte(null, { "3,3": "ok", "8,1": "ok" })}</div>`, `${d} fragt <b>ihren</b> Plan: Plan.IstInnerhalb(…) → beide Punkte liegen innen ✔.`, { 1: "ok" });
+    t.f(2, v, `<div class="cols">${au}</div>`, "(3, 3) ≠ (8, 1) ✔.", { 1: "ok", 2: "ok" });
+    if (7.5 > max) { v.fehlergrund = "LF-0017 – zu schwer (7,50 kg)"; v.Rückgabe = false;
+      t.f(3, v, `<div class="cols">${au}${obj("sky1 : Drohne", dd[0], ["MaxGewichtKg"], "bad")}</div><div class="badge bad">❌ zu schwer</div>`, "7,5 kg &gt; 5,0 kg – für <b>diese</b> Drohne zu schwer. Ihr Zustand bleibt unverändert.", { 1: "ok", 2: "ok", 3: "bad" }); continue; }
+    t.f(3, v, `<div class="cols">${au}${obj("sky2 : Drohne", dd[1], ["MaxGewichtKg"], "ok")}</div>`, "7,5 kg ≤ 8,0 kg ✔ – sky2 hat ein anderes Höchstgewicht als sky1.", { 1: "ok", 2: "ok", 3: "ok" });
+    t.f(4, v, karte([[3, 3], [8, 1]]), "Plan.ZeichneRoute(auftrag) → keine Sperrzone ✔.", { 1: "ok", 2: "ok", 3: "ok", 4: "ok" });
+    const km = kmVon([3, 3], [8, 1]); v.Rückgabe = true;
+    t.f(5, v, bild(D("Sky-1", 5), D("Sky-2", 8, 1, km), [], ["AnzahlLieferungen", "GeflogeneKm"], "", "ok"), `sky2 merkt sich die Lieferung: 1 Lieferung, ${fmt(km)} km. sky1 hat weiterhin 0 – jedes Objekt hat seine <b>eigenen</b> Properties.`, { 1: "ok", 2: "ok", 3: "ok", 4: "ok" });
+  }
+  return slideOf("Schritt 5 – Klasse Drohne mit hat-Beziehung", "Zwei Drohnen teilen sich einen Stadtplan und bekommen denselben schweren Auftrag.", t);
+}
+
+// ===================== Schritt 6: Hauptprogramm =====================
+function s6() {
   const t = new Trace("Hauptprogramm", [
-    "Guard ❌ Dateien fehlen; einlesen; Kopfzeile in berichtZeilen; <b>bekannteNummern</b> = leeres Array",
-    "foreach über alle Zeilen: <b>zeilenNummer</b> um 1 erhöhen; <b>zeile</b> = Zeile getrimmt",
-    "Guard ❌: leer oder Kommentar → continue",
+    "Guard ❌ Dateien fehlen; <b>stadtplan = new Stadtplan(…)</b>; <b>drohne = new Drohne(\"Sky-1\", stadtplan)</b>",
+    "foreach über alle Zeilen: zeilenNummer++; Guard ❌: leer oder Kommentar → continue",
     "Guard ❌: TryParseAuftrag false → Fehler \"Zeile {zeilenNummer}: …\", continue",
-    "foreach über bekannteNummern – Guard ❌: Nummer schon dabei → \"doppelte Auftragsnummer\", continue; sonst Nummer merken",
-    "Guard ❌: Start oder Ziel nicht IstImStadtplan → Fehler, continue",
-    "Guard ❌: Start == Ziel → \"Start und Ziel sind gleich\", continue",
-    "<b>streckeKm</b> = BerechneDistanzFelder · 0,5",
-    "Guard ❌: gewicht &gt; MaxGewichtKg (5) → Fehler, continue",
-    "Guard ❌: streckeKm &gt; MaxStreckeKm (10) → Fehler, continue",
-    "<b>frei</b> = IstRouteFrei; Karte ausgeben",
-    "Guard ❌: nicht frei → Fehler, continue",
-    "✅ preis berechnen, Berichtzeile merken, gesamtUmsatz += preis, längste Strecke merken",
-    "Trennlinie, Gesamtumsatz, längste Strecke; Kuerze; Dateien schreiben"]);
-  const bericht = ["NUMMER   KUNDE                  STRECKE   GEWICHT     PREIS"], fehler = [], marks = {}, bekannt = [];
-  let umsatz = 0, lang = 0, langNr = "-", map = null;
-  const V = (i, x = {}) => ({ zeilenNummer: i === null ? null : i + 1, nummer: null, start: null, ziel: null, gewicht: null, streckeKm: null, frei: null, preis: null, bekannteNummern: [...bekannt], gesamtUmsatz: R(fmt(umsatz)), anzahlFehler: fehler.length, ...x });
-  const view = cur => `<div class="cols">${fileView(AUFTRAEGE, cur, marks, true)}<div class="box">${map ? karte(map) : ""}
+    "Guard ❌: Nummer schon in bekannteNummern → \"doppelte Auftragsnummer\", continue",
+    "Guard ❌: <b>drohne.TryLiefern(auftrag, out grund)</b> false → Fehler, continue",
+    "✅ <b>auftrag.FormatiereBerichtZeile()</b> merken, gesamtUmsatz += <b>auftrag.BerechnePreis()</b>",
+    "Trennlinie, Gesamtumsatz; Dateien schreiben; <b>drohne.Statistik()</b>"]);
+  const bericht = ["NUMMER   KUNDE                  STRECKE     PREIS"], fehler = [], marks = {}, bekannt = [];
+  let umsatz = 0, map = null, anz = 0, kmSum = 0, chg = [];
+  const V = (i, x = {}) => ({ zeilenNummer: i === null ? null : i + 1, auftrag: null, grund: null, bekannteNummern: [...bekannt], gesamtUmsatz: R(fmt(umsatz)), ...x });
+  const view = cur => `<div class="cols">${fileView(AUFTRAEGE, cur, marks, true)}<div class="box">${obj("drohne : Drohne", { Name: "Sky-1", Plan: R("→ stadtplan"), MaxGewichtKg: 5, AnzahlLieferungen: anz, GeflogeneKm: R(fmt(kmSum)) }, chg)}${map ? karte(map) : ""}
     ${box("bericht", `<div class="log" style="font-size:10.5px">${bericht.map((b, k) => `<span class="p ${k === bericht.length - 1 ? "new" : ""}">${esc(b)}</span>`).join("\n")}</div>`)}
     ${box("fehler", `<div class="log" style="font-size:10.5px">${fehler.map(e => `<span class="e">${esc(e)}</span>`).join("\n")}</div>`)}</div></div>`;
-  const notiz = { 16: " 🔧 Klammern, Gramm und das ';' am Ende wurden beim Zerlegen repariert.", 20: " „2,5 kg“ mit Leerzeichen: TryParse verträgt Leerzeichen am Rand – hier ist nichts zu tun." };
   t.call("");
-  t.f(0, V(null), view(-1), "Beide Dateien da, eingelesen, Kopfzeile ist die erste Berichtzeile.", { 0: "ok" });
+  t.f(0, V(null), view(-1), "Zuerst die Objekte: <b>ein</b> Stadtplan und <b>eine</b> Drohne, die ihn kennt.", { 0: "ok" });
   AUFTRAEGE.forEach((raw, i) => {
-    const z = raw.trim(), nr = i + 1; map = null;
-    if (!z || z.startsWith("#")) { marks[i] = "skip"; t.f(2, V(i), view(i), `zeilenNummer = ${nr}: ${z ? "Kommentar" : "Leerzeile"} → continue.`, { 2: "bad" }); return; }
-    const ok = { 2: "ok" }; const fail = (st, msg, x, why = "") => { fehler.push(`Zeile ${nr}: ${msg}`); marks[i] = "err"; t.f(st, V(i, x), view(i), `Zeile ${nr}: ❌ ${esc(msg)} → continue.${why}`, { ...ok, [st]: "bad" }); };
+    const z = raw.trim(), nr = i + 1; map = null; chg = [];
+    if (!z || z.startsWith("#")) { marks[i] = "skip"; t.f(1, V(i), view(i), `Zeile ${nr}: ${z ? "Kommentar" : "Leerzeile"} → continue.`, { 1: "bad" }); return; }
+    const ok = { 1: "ok" };
+    const fail = (st, msg, x, why = "") => { fehler.push(`Zeile ${nr}: ${msg}`); marks[i] = "err"; t.f(st, V(i, x), view(i), `Zeile ${nr}: ❌ ${esc(msg)} → continue.${why}`, { ...ok, [st]: "bad" }); };
     const p = parseAuftrag(z);
-    if (p.e) return fail(3, p.e);
-    const a = p.a; ok[3] = "ok"; const x = { nummer: a.n, start: P(...a.s), ziel: P(...a.z), gewicht: a.g };
-    t.f(3, V(i, x), view(i), `Zeile ${nr}: Auftrag <b>${a.n}</b> erfolgreich zerlegt.${notiz[nr] || ""}`, ok);
-    if (bekannt.includes(a.n)) return fail(4, `${a.n} – doppelte Auftragsnummer`, x, ` ${a.n} steht schon in bekannteNummern (aus Zeile 6). Welcher der beiden Aufträge gilt? Nicht raten!`);
-    bekannt.push(a.n); ok[4] = "ok";
-    const inP = q => q[0] >= 0 && q[1] >= 0 && q[1] < 12 && q[0] < 20;
-    if (!inP(a.s) || !inP(a.z)) return fail(5, `${a.n} – Koordinate außerhalb des Stadtplans`, x);
-    ok[5] = "ok";
-    if (a.s[0] === a.z[0] && a.s[1] === a.z[1]) return fail(6, `${a.n} – Start und Ziel sind gleich`, x, " Wohin soll geliefert werden?");
-    ok[6] = "ok";
-    const km = Math.sqrt((a.z[0] - a.s[0]) ** 2 + (a.z[1] - a.s[1]) ** 2) * 0.5; x.streckeKm = R(fmt(km));
-    t.f(7, V(i, x), view(i), `streckeKm = ${fmt(km)}.`, ok);
-    if (a.g > 5) return fail(8, `${a.n} – zu schwer (${fmt(a.g)} kg, max. 5,00 kg)`, x);
-    ok[8] = "ok"; if (km > 10) return fail(9, `${a.n} – Strecke zu lang (${fmt(km)} km)`, x);
-    ok[9] = "ok";
-    let frei = true; for (let yy = 0; yy < 12; yy++) for (let xx = 0; xx < 20; xx++) if (PLAN[yy][xx] === "#" && aufRoute(a.s, a.z, xx, yy)) frei = false;
-    x.frei = frei; map = [a.s, a.z];
-    t.f(10, V(i, x), view(i), `Route ${frei ? "ist frei" : "trifft eine Sperrzone (X)"} – die Karte wird in beiden Fällen ausgegeben.`, ok);
-    if (!frei) return fail(11, `${a.n} – Route durch Sperrzone`, x);
-    ok[11] = "ok";
-    const pr = preisVon(km, a.g); x.preis = R(fmt(pr)); umsatz += pr; if (km > lang) { lang = km; langNr = a.n; }
-    let k = a.k; if (k.length > 18) k = k.substring(0, 17) + "…";
-    bericht.push(a.n.padEnd(9) + k.padEnd(20) + `${fmt(km)} km`.padStart(10) + `${fmt(a.g)} kg`.padStart(10) + `${fmt(pr)} €`.padStart(10));
-    t.f(12, V(i, x), view(i), `✅ ${a.n}: ${fmt(pr)} € → Berichtzeile. gesamtUmsatz = ${fmt(umsatz)} €, längste Strecke bisher ${langNr}.`, { ...ok, 12: "ok" });
+    if (p.e) return fail(2, p.e, {}, " Es entsteht kein Objekt.");
+    const a = p.a; ok[2] = "ok"; const x = { auftrag: R(`→ Auftrag ${a.n}`) };
+    if (bekannt.includes(a.n)) return fail(3, `${a.n} – doppelte Auftragsnummer`, x, " Welcher der beiden Aufträge gilt? Nicht raten!");
+    bekannt.push(a.n); ok[3] = "ok";
+    const inP = q => q[0] >= 0 && q[1] >= 0 && q[1] < H && q[0] < W;
+    let grund = null;
+    if (!inP(a.s) || !inP(a.z)) grund = `${a.n} – außerhalb des Stadtplans`;
+    else if (a.s[0] === a.z[0] && a.s[1] === a.z[1]) grund = `${a.n} – Start und Ziel sind gleich`;
+    else if (a.g > 5) grund = `${a.n} – zu schwer (${fmt(a.g)} kg)`;
+    else { let frei = true; for (let yy = 0; yy < H; yy++) for (let xx = 0; xx < W; xx++) if (PLAN[yy][xx] === SPERR && aufRoute(a.s, a.z, xx, yy)) frei = false;
+      map = [a.s, a.z]; if (!frei) grund = `${a.n} – Route durch Sperrzone`; }
+    if (grund) { x.grund = grund; return fail(4, grund, x, " Den Grund hat die <b>Drohne</b> geliefert."); }
+    ok[4] = "ok";
+    const km = kmVon(a.s, a.z), pr = preisVon(km, a.g);
+    anz++; kmSum += km; umsatz += pr; chg = ["AnzahlLieferungen", "GeflogeneKm"];
+    bericht.push(zeileVon(a.n, a.k, km, pr));
+    t.f(5, V(i, x), view(i), `✅ ${a.n}: Die Drohne zählt mit, der Auftrag liefert seine Berichtzeile und seinen Preis (${fmt(pr)} €).`, { ...ok, 5: "ok" });
   });
-  map = null;
-  bericht.push("-".repeat(59), `Gesamtumsatz: ${fmt(umsatz)} €`, `Längste Strecke: ${langNr} (${fmt(lang)} km)`);
-  t.f(13, V(null), view(-1), `Fertig: ${bericht.length - 4} Aufträge im Bericht, ${fehler.length} Fehler. Kuerze schneidet die leeren Plätze ab, dann werden bericht.txt und fehler.txt geschrieben.`);
-  return slideOf("Schritt 7 – Hauptprogramm", "Die ganze auftraege.txt, Zeile für Zeile, mit allen Guards in der Reihenfolge der Musterlösung.", t);
+  map = null; chg = [];
+  bericht.push("-".repeat(49), `Gesamtumsatz: ${fmt(umsatz)} €`);
+  t.f(6, V(null), view(-1) + `<div class="log">${esc(`Sky-1: ${anz} Lieferungen, ${fmt(kmSum)} km`)}</div>`, `Fertig: ${anz} Aufträge im Bericht, ${fehler.length} Fehler. Die Statistik kommt aus dem Zustand der Drohne.`);
+  return slideOf("Schritt 6 – Hauptprogramm", "Die ganze auftraege.txt: Objekte erzeugen und miteinander reden lassen.", t);
 }
-const slides = [s7(), s1(), s2(), s3(), s4(), s5(), s6()];
+const slides = [s6(), s1(), s2(), s3(), s4(), s5()];
 
 // ===================== Steuerung =====================
 let s = 0, f = 0, timer = null;

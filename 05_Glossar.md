@@ -163,7 +163,7 @@ Ein [``Schlüsselwort``](#schlüsselwort) (eingeführt mit C# 13 / .NET 10), das
 Eine sehr kompakte Schleifenart, bei der Initialisierung der [``Zählvariable``](#zählvariable), die Bedingung und das Inkrement übersichtlich im Schleifenkopf gebündelt sind. Ideal für eine vorher bekannte, endliche Anzahl an Wiederholungen.
 
 ### Funktion
-Ein allgemeiner Begriff für einen ausführbaren Codeblock. In objektorientierten Sprachen wie C# sind Funktionen nahezu immer an [``Klassen``](#klasse) oder [``Objekte``](#objekt) gebunden und werden deshalb streng genommen [``Methoden``](#methode) genannt.
+*(im Programm – nicht zu verwechseln mit einer [``mathematischen Funktion``](#mathematische-funktion))* Ein allgemeiner Begriff für einen ausführbaren Codeblock mit Namen, [``Parametern``](#parameter) und [``Rückgabewert``](#rückgabewert). In objektorientierten Sprachen wie C# sind Funktionen nahezu immer an [``Klassen``](#klasse) oder [``Objekte``](#objekt) gebunden und werden deshalb streng genommen [``Methoden``](#methode) genannt.
 
 ### Git
 Ein Versionskontrollsystem, das Änderungen am Quellcode nachverfolgt. Es speichert den gesamten Verlauf eines [``Projektes``](#projekt) und ermöglicht es, jederzeit zu älteren Versionen zurückzukehren.
@@ -172,7 +172,7 @@ Ein Versionskontrollsystem, das Änderungen am Quellcode nachverfolgt. Es speich
 Die webbasierte Plattform, auf der unsere [``Git``](#git)-Repositories gehostet werden. Es dient im Unterricht als öffentliches Archiv für alle Skripten, Mitschriften und Code-Beispiele.
 
 ### Guard Clause
-Eine spezielle [``If-Anweisung``](#if-anweisung) ganz am Anfang einer Methode oder Schleife, die als eine Art "Türsteher" auf Fehler oder unerwünschte Zustände (❌) prüft. Trifft der Fehler zu, wird sofort ein [``Early Exit``](#early-exit) ausgeführt. 
+Eine spezielle [``If-Anweisung``](#bedingte-anweisung) ganz am Anfang einer Methode oder Schleife, die als eine Art "Türsteher" auf Fehler oder unerwünschte Zustände (❌) prüft. Trifft der Fehler zu, wird sofort ein [``Early Exit``](#early-exit) ausgeführt. 
 
 ### Heap
 Der große, flexible Teil des Arbeitsspeichers, in dem komplexe Datenstrukturen wie [``Arrays``](#array) und Objekte ([``Verweistypen``](#verweistypen)) gespeichert werden, da ihre Größe oft variabel ist oder sie viel Platz benötigen.
@@ -312,7 +312,7 @@ Ein Symbol oder Zeichen (wie `+`, `-`, `==`, `=`), das dem [``Compiler``](#compi
 Die Eingabewerte, die einer [``Methode``](#methode) in den runden Klammern übergeben werden, damit sie mit diesen Daten arbeiten kann.
 
 ### Pattern-Matching
-Ein fortgeschrittenes C#-Feature (oft in [``Switch-Ausdrücken``](#switch-ausdruck) genutzt), das es erlaubt, den [``Wert``](#wert) oder den [``Typ``](#typ) eines Objekts sehr kompakt gegen komplexe Muster (Patterns) zu prüfen.
+Ein fortgeschrittenes C#-Feature (oft in [``Switch-Ausdrücken``](#switch-expression) genutzt), das es erlaubt, den [``Wert``](#wert) oder den [``Typ``](#typ) eines Objekts sehr kompakt gegen komplexe Muster (Patterns) zu prüfen.
 
 ### PoS
 Programmieren und Software-Engineering. Das zentrale Fach, in dem wir die Grundlagen der Softwareentwicklung erlernen.
@@ -337,7 +337,7 @@ Eine Vorlage (z. B. für eine [``Console-App``](#console-app)), die automatisch 
 Eine Erweiterung der [``iterativen Programmierung``](#iterative-programmierung), bei der der Code zusätzlich in wiederverwendbare, benannte Blöcke (Prozeduren bzw. [``Funktionen``](#funktion)/[``Methoden``](#methode)) strukturiert und ausgelagert wird, um Aufgaben zu [``delegieren``](#delegieren).
 
 ### Referenz
-Eine [``Speicheradresse``](#Speicheradresse), die wie ein Wegweiser auf den tatsächlichen Ort der Daten im [``Heap``](#heap) zeigt.
+Eine [``Speicheradresse``](#speicheradresse), die wie ein Wegweiser auf den tatsächlichen Ort der Daten im [``Heap``](#heap) zeigt.
 
 ### return
 Ein Schlüsselwort, das die Ausführung der aktuellen Methode sofort beendet. Bei Methoden mit einem Rückgabetyp übergibt es das ermittelte Ergebnis an den Aufrufer; bei `void`-Methoden dient es als reiner Abbruch (Early Exit).
@@ -448,7 +448,7 @@ Schleifen, die sich innerhalb des Codeblocks einer anderen Schleife befinden (ei
 Eine [``Verzweigung``](#verzweigung) (wie z. B. eine If-Anweisung), die sich innerhalb des Code-[``Blocks``](#block) einer anderen Verzweigung befindet. Dies stellt logisch oft ein zusätzliches UND (`&&`) dar.
 
 ### Verweistypen
-*(Reference Types)* Datentypen, bei denen die Variable nicht den eigentlichen [``Wert``](#wert) speichert, sondern nur die [``Speicheradresse``](#Speicheradresse) ([``Referenz``](#referenz)), wo die Daten im Arbeitsspeicher liegen.
+*(Reference Types)* Datentypen, bei denen die Variable nicht den eigentlichen [``Wert``](#wert) speichert, sondern nur die [``Speicheradresse``](#speicheradresse) ([``Referenz``](#referenz)), wo die Daten im Arbeitsspeicher liegen.
 
 ### Verzweigung
 Eine Kontrollstruktur (wie `if` mit `else`), die den Programmfluss basierend auf einer bestimmten Bedingung in genau zwei verschiedene Richtungen lenkt (wahr oder falsch). Bei mehr als zwei Wegen spricht man von einer [``Mehrfachverzweigung``](#mehrfachverzweigung).
@@ -537,7 +537,7 @@ Eine Division zweier ganzzahliger Werte (`int / int`). Das Ergebnis ist wieder g
 Die direkte Luftlinie zwischen zwei Punkten nach dem Satz des Pythagoras: `Math.Sqrt(dx * dx + dy * dy)`.
 
 ### Lineare Funktion
-Eine Funktion der Form `y = k · x + d`. `k` ist die Steigung, `d` die Verschiebung nach oben oder unten. Im 2D-Gitter liefert sie für jede Spalte `x` die Zeile `y`, in der eine Linie liegt.
+Eine [``mathematische Funktion``](#mathematische-funktion) der Form `y = k · x + d`. `k` ist die Steigung, `d` die Verschiebung nach oben oder unten. Im 2D-Gitter liefert sie für jede Spalte `x` die Zeile `y`, in der eine Linie liegt.
 
 ### Commit
 Ein gespeicherter Stand eines [``Git``](#git)-[``Repositorys``](#repository). Er enthält die Änderungen, eine Nachricht und eine [``Referenz``](#referenz) auf seinen Vorgänger. Alle Commits zusammen bilden eine Kette wie eine Linked List.
@@ -583,3 +583,9 @@ Eine Einschränkung mit `where`, welche [``Typen``](#typ) für einen [``Typparam
 
 ### Boxing
 Das Einpacken eines [``Werttyps``](#werttyp) in ein `object` auf dem [``Heap``](#heap). Das Auspacken heißt Unboxing. Beides kostet Zeit, [``Generics``](#generics) vermeiden es.
+
+### Named Parameter
+*(benanntes Argument)* Ein Argument, das beim [``Aufruf``](#aufruf) mit dem Namen des [``Parameters``](#parameter) angegeben wird, z. B. `ErzeugeUeberschrift("Ende", n: 3)`. So kann man [``Default-Parameter``](#default-parameter) überspringen, und die Reihenfolge ist egal.
+
+### Mathematische Funktion
+Eine Zuordnung, die jedem `x` genau ein `y` zuweist, z. B. `f(x) = k · x + d`. Im Programm ist sie meist **keine** eigene [``Funktion``](#funktion), sondern eine Rechnung in einer Zeile: `int fx = start.y + (int)Math.Round(k * xVerschoben);`.

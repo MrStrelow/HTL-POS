@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parameter und Tuples</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020617; --panel: #0f172a; --panel2: #1e293b; --line: #334155;
+    --text: #f8fafc; --muted: #94a3b8; --accent: #38bdf8; --x: #f59e0b; --y: #a855f7;
+    --ok: #10b981; --bad: #ef4444; --kw: #c084fc; --str: #fbbf24; --num: #34d399; --com: #64748b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; overflow: hidden; }
+  .mono { font-family: 'Fira Code', monospace; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 19px; color: var(--accent); }
+  header p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+  #tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  #tabs button { background: var(--panel2); color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  #tabs button.active { background: #0284c7; color: #fff; border-color: var(--accent); }
+  main { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; overflow: hidden; min-height: 0; }
+  #titlebar { display: flex; align-items: baseline; gap: 12px; }
+  #title { font-size: 22px; font-weight: 700; margin: 0; }
+  #counter { color: var(--muted); font-size: 13px; }
+  #content { flex: 1; min-height: 0; display: flex; gap: 12px; }
+  .pane { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+  .panehead { background: #020617; border-bottom: 1px solid var(--line); padding: 6px 14px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  #left { width: 42%; }
+  #right { flex: 1; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  #codebox { flex: 1; overflow: auto; padding: 10px 0; font-size: 14px; line-height: 1.7; }
+  #stage { flex: 1.9; min-height: 0; background: radial-gradient(circle at center, #0b1430 0%, #020617 75%); display: flex; align-items: safe center; justify-content: safe center; overflow: auto; padding: 16px; }
+  #text { flex: .5; min-height: 0; overflow: auto; padding: 10px 16px; font-size: 15px; line-height: 1.55; }
+  #text p { margin: 6px 0; }
+  code { font-family: 'Fira Code', monospace; background: var(--panel2); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+  .cl { padding: 0 14px; border-left: 4px solid transparent; white-space: pre; }
+  .cl.hl { background: rgba(56,189,248,.18); border-left-color: var(--accent); }
+  .cl.new { animation: fade .5s ease both; background: rgba(16,185,129,.12); }
+  .tk-kw { color: var(--kw); } .tk-str { color: var(--str); } .tk-num { color: var(--num); } .tk-com { color: var(--com); font-style: italic; } .tk-ty { color: #38bdf8; } .tk-nm { color: var(--x); font-weight: 600; }
+  nav { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; }
+  nav button { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 14px; font-size: 14px; cursor: pointer; }
+  nav button:hover { border-color: var(--accent); }
+  nav button:disabled { opacity: .35; cursor: default; }
+  nav button#autoBtn:not(:disabled) { border-color: var(--ok); color: var(--ok); }
+  nav button.on { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,.15); }
+  nav span { color: var(--muted); font-size: 12px; }
+
+  .col { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; align-items: stretch; }
+  .lbl { color: var(--muted); font-size: 13px; }
+  .chip { font-family: 'Fira Code', monospace; font-size: 16px; padding: 6px 12px; border-radius: 8px; background: var(--panel2); border: 2px solid var(--line); transition: all .35s; }
+  .chip .nm { color: var(--x); }
+  .chip.act { border-color: var(--accent); box-shadow: 0 0 14px rgba(56,189,248,.5); transform: translateY(-4px); }
+  .chip.done { opacity: .45; }
+  .slot { min-width: 120px; border: 2px solid var(--line); border-radius: 10px; background: var(--panel); overflow: hidden; transition: border-color .3s; }
+  .slot .sh { background: #020617; padding: 4px 10px; font-family: 'Fira Code', monospace; font-size: 13px; text-align: center; }
+  .slot .sh small { display: block; color: var(--muted); font-size: 11px; }
+  .slot .sv { padding: 10px; font-family: 'Fira Code', monospace; font-size: 18px; text-align: center; min-height: 46px; }
+  .slot .sv.def { color: var(--com); font-size: 14px; }
+  .slot .how { font-size: 11px; text-align: center; padding: 0 6px 6px; color: var(--muted); min-height: 18px; }
+  .slot.pos { border-color: var(--accent); } .slot.name { border-color: var(--x); } .slot.dflt { border-color: var(--ok); }
+  .slot.pos .how { color: var(--accent); } .slot.name .how { color: var(--x); } .slot.dflt .how { color: var(--ok); }
+  .slot .sv.set { animation: pop .4s cubic-bezier(.2,.8,.3,1.3) both; color: var(--text); font-size: 18px; }
+  .console { background: #000; border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; min-width: 360px; min-height: 40px; font-family: 'Fira Code', monospace; font-size: 15px; color: #d1fae5; white-space: pre; }
+  .pill { font-family: 'Fira Code', monospace; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 14px; }
+  .pill.ok { border-color: var(--ok); color: #a7f3d0; } .pill.bad { border-color: var(--bad); color: #fecaca; }
+  .tcard { border: 2px solid var(--accent); border-radius: 10px; background: var(--panel); min-width: 150px; overflow: hidden; }
+  .tcard.new { border-color: var(--ok); } .tcard.bad { border-color: var(--bad); } .tcard.heap { border-color: var(--y); }
+  .tcard .th { background: #020617; padding: 4px 10px; font-family: 'Fira Code', monospace; font-size: 13px; display: flex; gap: 8px; justify-content: space-between; }
+  .tcard .th small { color: var(--muted); }
+  .trow { display: flex; gap: 10px; align-items: center; padding: 4px 10px; font-family: 'Fira Code', monospace; font-size: 15px; border-radius: 4px; }
+  .trow.hl { background: rgba(245,158,11,.25); }
+  .tn { color: var(--x); min-width: 46px; } .tn.un { color: var(--muted); }
+  .trow .tcard { min-width: 120px; }
+  .arrv { display: flex; gap: 6px; padding: 8px 10px; font-family: 'Fira Code', monospace; }
+  .arrv span { border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; } .arrv span.hl { background: rgba(245,158,11,.3); border-color: var(--x); }
+  .stackbox { border: 1px dashed var(--line); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .stackbox .lbl { font-size: 11px; }
+  .note { color: var(--muted); font-size: 14px; margin-top: 14px; text-align: center; max-width: 620px; }
+  #stage { flex-direction: column; }
+  .pop { animation: pop .4s cubic-bezier(.2,.8,.3,1.3) both; }
+  @keyframes pop { from { opacity: 0; transform: scale(.5); } to { opacity: 1; transform: scale(1); } }
+  .fade { animation: fade .5s ease both; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🎛️ Default-Parameter, Named Parameter &amp; Tuples</h1>
+    <p>Weiter: Pfeiltasten ← → oder Leertaste · Parameter weglassen, beim Namen nennen · Tuples mit und ohne Namen, Werttyp, out oder Tuple</p>
+  </div>
+  <div id="tabs"></div>
+</header>
+<main>
+  <div id="titlebar"><h2 id="title"></h2><span id="counter"></span></div>
+  <div id="content">
+    <section id="left" class="pane"><div class="panehead">📄 Program.cs</div><div id="codebox" class="mono"></div></section>
+    <div id="right">
+      <section class="pane" style="flex:1.9"><div class="panehead">🎬 Animation</div><div id="stage"></div></section>
+      <section class="pane" style="flex:.5"><div class="panehead">💡 Erklärung</div><div id="text"></div></section>
+    </div>
+  </div>
+  <nav>
+    <button onclick="go(-1)">◀ zurück</button>
+    <button onclick="show(cur)">↻ nochmal</button>
+    <button onclick="go(1)">weiter ▶</button>
+    <button id="autoBtn" onclick="runAuto()" disabled>⏩ Durchlauf</button>
+    <button class="vbtn" id="vb0" onclick="setView(0)" title="Taste 1">📄🎬 Code + Animation</button>
+    <button class="vbtn" id="vb1" onclick="setView(1)" title="Taste 2">🎬 nur Animation</button>
+    <span>R = nochmal · A = Durchlauf · 1/2 = Ansicht</span>
+  </nav>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let timers = [];
+function later(ms, fn) { timers.push(setTimeout(fn, ms)); }
+function clearTimers() { timers.forEach(t => clearTimeout(t)); timers = []; }
+function el(tag, cls, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; }
+
+function highlight(line) {
+  const re = /(\/\/.*$)|("(?:[^"\\]|\\.)*"|'.')|(\b[a-z]\w*(?=:\s))|(\b(?:string|char|int|return|void)\b)|(\b(?:Console)\b)|(\b\d+\b)/g;
+  let out = '', last = 0, m;
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  while ((m = re.exec(line)) !== null) {
+    out += esc(line.slice(last, m.index));
+    const cls = m[1] ? 'tk-com' : m[2] ? 'tk-str' : m[3] ? 'tk-nm' : m[4] ? 'tk-kw' : m[5] ? 'tk-ty' : 'tk-num';
+    out += `<span class="${cls}">${esc(m[0])}</span>`;
+    last = re.lastIndex;
+  }
+  return out + esc(line.slice(last));
+}
+
+// ===================== Code =====================
+const CODE = [
+  /* 0*/ '// Default-Parameter: "= wert" macht einen Parameter optional',
+  /* 1*/ "string ErzeugeUeberschrift(string s, char links = '=', char rechts = '=', int n = 10)",
+  /* 2*/ '{',
+  /* 3*/ '    string linkerRand = "".PadLeft(n, links);',
+  /* 4*/ '    string rechterRand = "".PadLeft(n, rechts);',
+  /* 5*/ '    return linkerRand + " " + s.ToUpper() + " " + rechterRand;',
+  /* 6*/ '}',
+  /* 7*/ '',
+  /* 8*/ 'Console.WriteLine(ErzeugeUeberschrift("Start"));',
+  /* 9*/ "Console.WriteLine(ErzeugeUeberschrift(\"Pause\", '<', '>'));",
+  /*10*/ 'Console.WriteLine(ErzeugeUeberschrift("Ende", n: 3));',
+  /*11*/ "Console.WriteLine(ErzeugeUeberschrift(n: 2, s: \"Mix\", links: '*'));"
+];
+function renderCode(hl, upto, lines) {
+  const box = $('codebox'); box.innerHTML = '';
+  (lines || CODE).forEach((l, i) => {
+    if (i > upto) return;
+    const d = el('div', 'cl' + (hl.includes(i) ? ' hl' : ''), highlight(l) || ' ');
+    box.appendChild(d);
+  });
+}
+
+// ===================== Parameter-Slots =====================
+const PARAMS = [
+  { name: 's', type: 'string', def: null },
+  { name: 'links', type: 'char', def: "'='" },
+  { name: 'rechts', type: 'char', def: "'='" },
+  { name: 'n', type: 'int', def: '10' },
+];
+function strip(v) { return v.replace(/^['"]|['"]$/g, ''); }
+function ergebnis(vals) {
+  const n = Number(vals.n), l = strip(vals.links), r = strip(vals.rechts);
+  return l.repeat(n) + ' ' + strip(vals.s).toUpperCase() + ' ' + r.repeat(n);
+}
+// args: [{ val, name? }] – ohne name = positional, mit name = benannt
+function callStage(st, args, line) {
+  const wrap = el('div', 'col');
+  const call = el('div', 'row');
+  call.appendChild(el('span', 'lbl', 'Aufruf:'));
+  args.forEach((a, i) => { const c = el('div', 'chip', a.name ? `<span class="nm">${a.name}:</span> ${a.val}` : a.val); c.id = 'ch' + i; call.appendChild(c); });
+  wrap.appendChild(call);
+  const slots = el('div', 'row');
+  PARAMS.forEach(p => {
+    const s = el('div', 'slot'); s.id = 'sl-' + p.name;
+    s.innerHTML = `<div class="sh">${p.type} ${p.name}<small>${p.def === null ? 'Pflicht' : 'Default ' + p.def}</small></div><div class="sv" id="sv-${p.name}">?</div><div class="how" id="hw-${p.name}"></div>`;
+    slots.appendChild(s);
+  });
+  wrap.appendChild(el('span', 'lbl', 'Parameter der Funktion:'));
+  wrap.appendChild(slots);
+  const kon = el('div', 'console'); kon.id = 'kon'; wrap.appendChild(kon);
+  st.appendChild(wrap);
+
+  // Ereignisse: zuerst jedes Argument zuordnen, dann Defaults, dann Ergebnis
+  const vals = {}, ev = [];
+  let pos = 0;
+  args.forEach((a, i) => {
+    const p = a.name ? PARAMS.find(q => q.name === a.name) : PARAMS[pos];
+    if (!a.name) pos++;
+    vals[p.name] = a.val;
+    ev.push({ t: 'arg', i, p: p.name, val: a.val, how: a.name ? `beim Namen „${a.name}:“` : `Position ${PARAMS.indexOf(p) + 1}`, cls: a.name ? 'name' : 'pos' });
+  });
+  const fehlt = PARAMS.filter(p => !(p.name in vals));
+  if (fehlt.length) ev.push({ t: 'def', ps: fehlt });
+  fehlt.forEach(p => vals[p.name] = p.def);
+  ev.push({ t: 'res' });
+  let k = 0;
+  const step = (e) => {
+    document.querySelectorAll('.chip.act').forEach(c => { c.classList.remove('act'); c.classList.add('done'); });
+    if (e.t === 'arg') {
+      $('ch' + e.i).classList.add('act');
+      $('sl-' + e.p).classList.add(e.cls);
+      const v = $('sv-' + e.p); v.textContent = e.val; v.className = 'sv set';
+      $('hw-' + e.p).textContent = e.how;
+    } else if (e.t === 'def') {
+      e.ps.forEach(p => { $('sl-' + p.name).classList.add('dflt'); const v = $('sv-' + p.name); v.textContent = p.def; v.className = 'sv set'; $('hw-' + p.name).textContent = 'Default'; });
+    } else {
+      $('kon').textContent = ergebnis(vals); $('kon').classList.add('pop');
+    }
+  };
+  return {
+    next() { if (k >= ev.length) return false; step(ev[k++]); return true; },
+    auto() { const t = () => { if (this.next()) later(900, t); }; t(); }
+  };
+}
+function signatureStage(st) {
+  const wrap = el('div', 'col');
+  const slots = el('div', 'row');
+  PARAMS.forEach((p, i) => {
+    const s = el('div', 'slot pop' + (p.def === null ? '' : ' dflt')); s.style.animationDelay = (i * .25) + 's';
+    s.innerHTML = `<div class="sh">${p.type} ${p.name}</div><div class="sv ${p.def === null ? '' : 'def'}">${p.def === null ? 'muss kommen' : '= ' + p.def}</div><div class="how">${p.def === null ? 'Pflicht' : 'optional'}</div>`;
+    slots.appendChild(s);
+  });
+  wrap.appendChild(slots);
+  wrap.appendChild(el('div', 'pill ok fade', 'Pflicht-Parameter zuerst – Default-Parameter immer am Ende'));
+  st.appendChild(wrap);
+}
+function rulesStage(st, items) {
+  const wrap = el('div', 'col');
+  items.forEach(([ok, code, note], i) => {
+    const p = el('div', 'pill fade ' + (ok ? 'ok' : 'bad'), `${ok ? '✔' : '✘'} ${highlight(code)}<br><small>${note}</small>`);
+    p.style.animationDelay = (i * .6) + 's'; p.style.alignSelf = 'stretch';
+    wrap.appendChild(p);
+  });
+  st.appendChild(wrap);
+}
+
+// ===================== Tuples: Karten und Frames =====================
+// fields: [[name, wert, unbenannt?]], opts: { hl: [Feldnamen], sub: {feld: html}, cls }
+function tcard(name, type, fields, o = {}) {
+  const rows = fields.map(([n, v, unnamed]) => {
+    const hl = (o.hl || []).includes(n) ? ' hl' : '';
+    const val = (o.sub && o.sub[n]) || `<span class="tv">${v}</span>`;
+    return `<div class="trow${hl}"><span class="tn${unnamed ? ' un' : ''}">${n}</span>${val}</div>`;
+  }).join('');
+  return `<div class="tcard ${o.cls || ''}"><div class="th"><b>${name}</b><small>${type}</small></div>${rows}</div>`;
+}
+const out = (t) => `<div class="console">${t}</div>`;
+const row = (...h) => `<div class="row">${h.join('')}</div>`;
+const col = (...h) => `<div class="col">${h.join('')}</div>`;
+const heap = (addr, vals, hl) => `<div class="tcard heap"><div class="th"><b>Heap ${addr}</b><small>int[]</small></div><div class="arrv">${vals.map((v, i) => `<span class="${i === hl ? 'hl' : ''}">[${i}] ${v}</span>`).join('')}</div></div>`;
+const ref = (name, addr) => `<div class="tcard"><div class="th"><b>${name}</b><small>int[]</small></div><div class="trow"><span class="tn">Referenz</span><span class="tv">${addr} ──▶</span></div></div>`;
+const stack = (...h) => `<div class="stackbox"><div class="lbl">Stack</div>${h.join('')}</div>`;
+const pill = (t, c = '') => `<div class="pill ${c}">${t}</div>`;
+// frames: [{ hl, html, note }] – "weiter" geht Frame für Frame
+function framesStage(st, frames) {
+  const box = el('div', 'col'); const cap = el('div', 'note');
+  st.appendChild(box); st.appendChild(cap);
+  let k = 0;
+  const step = () => { const f = frames[k++]; box.innerHTML = f.html; box.classList.remove('fade'); void box.offsetWidth; box.classList.add('fade'); cap.innerHTML = f.note || ''; renderCode(f.hl || [], 99, steps[cur].code); };
+  step();
+  return {
+    next() { if (k >= frames.length) return false; step(); return true; },
+    auto() { const t = () => { if (this.next()) later(1600, t); }; t(); }
+  };
+}
+const xy = (x, y, un) => un ? [['Item1', x, true], ['Item2', y, true]] : [['x', x], ['y', y]];
+
+const T_NAMEN = [
+  'var p1 = (3, 5);                  // ohne Namen',
+  'Console.WriteLine(p1.Item1);      // 3',
+  '',
+  '(int x, int y) p2 = (3, 5);       // Namen im Typ',
+  'Console.WriteLine(p2.x);          // 3',
+  '',
+  'var p3 = (x: 3, y: 5);            // Namen im Wert',
+  'Console.WriteLine(p3.y);          // 5'];
+const T_WANN = [
+  '(int x, int y) p = (3, 5);',
+  'var q = p;                        // Namen werden übernommen',
+  '(int, int) r = p;                 // Typ ohne Namen',
+  'Console.WriteLine(q.x);           // ✔ 3',
+  'Console.WriteLine(r.x);           // ✘ Compilerfehler: r hat kein x',
+  'Console.WriteLine(r.Item1);       // ✔ 3 – Item1 geht immer'];
+const T_SCHACHTEL = [
+  '((int x, int y) start, (int x, int y) ziel) punkte = ((1, 1), (6, 5));',
+  'Console.WriteLine(punkte.start.x);   // 1',
+  'Console.WriteLine(punkte.ziel.y);    // 5',
+  '(int x, int y) s = punkte.start;     // inneres Tuple herausholen'];
+const T_ZERLEGEN = [
+  '(int x, int y) p = (6, 5);',
+  'var (a, b) = p;                   // zerlegen in zwei Variablen',
+  'Console.WriteLine(a + b);         // 11',
+  'Console.WriteLine(p == (6, 5));   // True – alle Teile gleich'];
+const V_TUPLE = [
+  '(int x, int y) a = (1, 1);',
+  'var b = a;                        // Kopie!',
+  'b.x = 9;',
+  'Console.WriteLine(a.x);           // 1'];
+const V_ARRAY = [
+  'int[] a = { 1, 1 };',
+  'int[] b = a;                      // nur die Referenz wird kopiert',
+  'b[0] = 9;',
+  'Console.WriteLine(a[0]);          // 9'];
+const V_FUNK = [
+  'void Verschiebe((int x, int y) p)',
+  '{',
+  '    p.x++;                        // ändert nur die Kopie',
+  '}',
+  '(int x, int y) Verschoben((int x, int y) p)',
+  '{',
+  '    p.x++;',
+  '    return p;                     // Kopie zurückgeben',
+  '}',
+  '',
+  '(int x, int y) start = (1, 1);',
+  'Verschiebe(start);                // start bleibt (1, 1)!',
+  'start = Verschoben(start);        // start ist jetzt (2, 1)'];
+const O_CODE = [
+  '// erwartbar fehlerhaft -> bool Try...(..., out ...)',
+  'if (!TryParseKoordinate(teile[1], out var start) ||',
+  '    !TryParseKoordinate(teile[2], out var ziel))',
+  '{',
+  '    return false;',
+  '}',
+  '',
+  '// mit Tuple: erst zerlegen, dann prüfen',
+  'var (okStart, start) = ParseKoordinate(teile[1]);',
+  'var (okZiel, ziel) = ParseKoordinate(teile[2]);',
+  'if (!okStart || !okZiel) { return false; }',
+  '',
+  '// mehrere Ergebnisse, die immer da sind -> Tuple',
+  '(int min, int max) MinMax(int[] werte) { ... }',
+  'var (min, max) = MinMax(zahlen);'];
+
+const tupleSteps = [
+  { ch: 3, title: 'Tuple ohne und mit Namen', code: T_NAMEN,
+    text: '<p>Ein Tuple fasst mehrere Werte zusammen. Ohne Namen heißen die Teile <code>Item1</code>, <code>Item2</code>, …</p>',
+    render: st => framesStage(st, [
+      { hl: [0], html: tcard('p1', '(int, int)', xy(3, 5, true)), note: 'Ohne Namen: die Teile heißen <b>Item1</b> und <b>Item2</b>.' },
+      { hl: [1], html: row(tcard('p1', '(int, int)', xy(3, 5, true), { hl: ['Item1'] }), out('3')), note: 'Zugriff mit dem Punkt: <code>p1.Item1</code>.' },
+      { hl: [3], html: row(tcard('p1', '(int, int)', xy(3, 5, true)), tcard('p2', '(int x, int y)', xy(3, 5))), note: 'Namen im <b>Typ</b> der Variable: <code>(int x, int y)</code>.' },
+      { hl: [4], html: row(tcard('p1', '(int, int)', xy(3, 5, true)), tcard('p2', '(int x, int y)', xy(3, 5), { hl: ['x'] }), out('3')), note: 'Jetzt lesbar: <code>p2.x</code> statt <code>p2.Item1</code>.' },
+      { hl: [6, 7], html: row(tcard('p1', '(int, int)', xy(3, 5, true)), tcard('p2', '(int x, int y)', xy(3, 5)), tcard('p3', 'var → (int x, int y)', xy(3, 5), { hl: ['y'] }), out('5')), note: 'Namen im <b>Wert</b>: <code>(x: 3, y: 5)</code> – <code>var</code> übernimmt sie.' },
+    ]) },
+  { ch: 3, title: 'Wann können wir über den Namen zugreifen?', code: T_WANN,
+    text: '<p>Die Namen gehören zum <b>Typ der Variable</b>. Nur wo der Typ Namen hat, gibt es <code>.x</code> – <code>Item1</code> geht immer.</p>',
+    render: st => framesStage(st, [
+      { hl: [0], html: tcard('p', '(int x, int y)', xy(3, 5)), note: 'p hat die Namen x und y.' },
+      { hl: [1], html: row(tcard('p', '(int x, int y)', xy(3, 5)), tcard('q', 'var → (int x, int y)', xy(3, 5))), note: '<code>var</code> übernimmt den Typ von p – <b>mit</b> Namen.' },
+      { hl: [2], html: row(tcard('p', '(int x, int y)', xy(3, 5)), tcard('q', '(int x, int y)', xy(3, 5)), tcard('r', '(int, int)', xy(3, 5, true))), note: 'r hat einen Typ <b>ohne</b> Namen – die Werte sind gleich, die Namen sind weg.' },
+      { hl: [3], html: row(tcard('q', '(int x, int y)', xy(3, 5), { hl: ['x'] }), out('3')), note: '<code>q.x</code> ✔' },
+      { hl: [4], html: row(tcard('r', '(int, int)', xy(3, 5, true), { cls: 'bad' }), pill('✘ r.x – Compilerfehler', 'bad')), note: 'r kennt kein x. Der Name ist nur für den Compiler da, nicht im Speicher.' },
+      { hl: [5], html: row(tcard('r', '(int, int)', xy(3, 5, true), { hl: ['Item1'] }), out('3')), note: '<code>r.Item1</code> ✔ – Item1 funktioniert bei jedem Tuple.' },
+    ]) },
+  { ch: 3, title: 'Tuples schachteln', code: T_SCHACHTEL,
+    text: '<p>Ein Teil eines Tuples darf selbst ein Tuple sein. Der Zugriff geht dann Punkt für Punkt nach innen.</p>',
+    render: st => {
+      const inner = (n, x, y, hl) => tcard(n, '(int x, int y)', xy(x, y), { hl });
+      const outer = (hlS, hlZ) => `<div class="tcard"><div class="th"><b>punkte</b><small>(start, ziel)</small></div><div class="trow${hlS ? ' hl' : ''}"><span class="tn">start</span>${inner('', 1, 1, hlS)}</div><div class="trow${hlZ ? ' hl' : ''}"><span class="tn">ziel</span>${inner('', 6, 5, hlZ)}</div></div>`;
+      return framesStage(st, [
+        { hl: [0], html: outer(), note: 'Außen: start und ziel. Innen: jeweils x und y.' },
+        { hl: [1], html: row(outer(['x']), out('1')), note: '<code>punkte</code> → <code>.start</code> → <code>.x</code>' },
+        { hl: [2], html: row(outer(null, ['y']), out('5')), note: '<code>punkte</code> → <code>.ziel</code> → <code>.y</code>' },
+        { hl: [3], html: row(outer(['x', 'y']), inner('s', 1, 1)), note: 'Das innere Tuple als Ganzes herausholen – s ist eine <b>Kopie</b> von punkte.start.' },
+      ]);
+    } },
+  { ch: 3, title: 'Zerlegen und vergleichen', code: T_ZERLEGEN,
+    text: '<p>Ein Tuple lässt sich in einzelne Variablen <b>zerlegen</b> und mit <code>==</code> vergleichen.</p>',
+    render: st => framesStage(st, [
+      { hl: [0], html: tcard('p', '(int x, int y)', xy(6, 5)), note: '' },
+      { hl: [1], html: row(tcard('p', '(int x, int y)', xy(6, 5)), pill('a = 6'), pill('b = 5')), note: '<code>var (a, b) = p;</code> – zwei neue Variablen, der Reihe nach befüllt.' },
+      { hl: [2], html: row(pill('a = 6'), pill('b = 5'), out('11')), note: '' },
+      { hl: [3], html: row(tcard('p', '(int x, int y)', xy(6, 5)), pill('== (6, 5)', 'ok'), out('True')), note: '<code>==</code> vergleicht <b>alle</b> Teile der Reihe nach. So prüft Aufgabe02 „Start und Ziel sind gleich“.' },
+    ]) },
+  // ---------- Werttyp vs. Referenztyp ----------
+  { ch: 4, title: 'Tuple ist ein Werttyp: Zuweisung kopiert', code: V_TUPLE,
+    text: '<p>Ein Tuple ist ein <b>Werttyp</b>: Bei <code>=</code> wird der ganze Inhalt kopiert.</p>',
+    render: st => framesStage(st, [
+      { hl: [0], html: stack(tcard('a', '(int x, int y)', xy(1, 1))), note: '' },
+      { hl: [1], html: stack(tcard('a', '(int x, int y)', xy(1, 1)), tcard('b', '(int x, int y)', xy(1, 1), { cls: 'new' })), note: 'b ist eine eigene <b>Kopie</b> mit eigenen Werten.' },
+      { hl: [2], html: stack(tcard('a', '(int x, int y)', xy(1, 1)), tcard('b', '(int x, int y)', xy(9, 1), { hl: ['x'] })), note: 'Nur b ändert sich.' },
+      { hl: [3], html: row(stack(tcard('a', '(int x, int y)', xy(1, 1), { hl: ['x'] }), tcard('b', '(int x, int y)', xy(9, 1))), out('1')), note: 'a ist unverändert → <b>1</b>.' },
+    ]) },
+  { ch: 4, title: 'Array ist ein Referenztyp: Zuweisung teilt', code: V_ARRAY,
+    text: '<p>Ein Array ist ein <b>Referenztyp</b>: Bei <code>=</code> wird nur die Adresse kopiert – beide zeigen auf dasselbe Array.</p>',
+    render: st => framesStage(st, [
+      { hl: [0], html: row(stack(ref('a', '0xA10')), heap('0xA10', [1, 1])), note: 'Im Stack steht nur die Adresse, das Array liegt im Heap.' },
+      { hl: [1], html: row(stack(ref('a', '0xA10'), ref('b', '0xA10')), heap('0xA10', [1, 1])), note: 'b bekommt dieselbe Adresse – es gibt weiterhin nur <b>ein</b> Array.' },
+      { hl: [2], html: row(stack(ref('a', '0xA10'), ref('b', '0xA10')), heap('0xA10', [9, 1], 0)), note: 'Über b wird das gemeinsame Array geändert …' },
+      { hl: [3], html: row(stack(ref('a', '0xA10'), ref('b', '0xA10')), heap('0xA10', [9, 1], 0), out('9')), note: '… darum sieht auch a die <b>9</b>.' },
+    ]) },
+  { ch: 4, title: 'Auswirkung in Funktionen', code: V_FUNK,
+    text: '<p>Ein Tuple-Parameter ist eine <b>Kopie</b>. Die Funktion kann das Original nicht ändern – sie muss das Ergebnis <b>zurückgeben</b>.</p>',
+    render: st => framesStage(st, [
+      { hl: [10], html: stack(tcard('start', '(int x, int y)', xy(1, 1))), note: '' },
+      { hl: [11, 0], html: row(stack(tcard('start', '(int x, int y)', xy(1, 1))), stack(tcard('p (Kopie)', 'Verschiebe', xy(1, 1), { cls: 'new' }))), note: 'Beim Aufruf wird start in p <b>kopiert</b>.' },
+      { hl: [2], html: row(stack(tcard('start', '(int x, int y)', xy(1, 1))), stack(tcard('p (Kopie)', 'Verschiebe', xy(2, 1), { hl: ['x'] }))), note: 'p.x wird 2 – aber nur in der Kopie.' },
+      { hl: [11], html: stack(tcard('start', '(int x, int y)', xy(1, 1), { cls: 'bad' })), note: 'Funktion fertig, p ist weg. <b>start ist immer noch (1, 1)!</b>' },
+      { hl: [12, 4, 6, 7], html: row(stack(tcard('start', '(int x, int y)', xy(1, 1))), stack(tcard('p (Kopie)', 'Verschoben', xy(2, 1), { hl: ['x'] })), pill('return p', 'ok')), note: 'Verschoben ändert die Kopie und <b>gibt sie zurück</b> …' },
+      { hl: [12], html: stack(tcard('start', '(int x, int y)', xy(2, 1), { hl: ['x'] })), note: '… und erst die Zuweisung <code>start = …</code> ändert start.' },
+    ]) },
+  // ---------- out oder Tuple ----------
+  { ch: 5, title: 'Try mit out oder Tuple zurückgeben?', code: O_CODE,
+    text: '<p>Beides funktioniert. Die Faustregel entscheidet, was lesbarer ist.</p>',
+    render: st => framesStage(st, [
+      { hl: [0, 1, 2], html: col(pill('Kann es schiefgehen – und ist das <b>erwartbar</b>?<br>→ <code>bool Try…(…, out …)</code>', 'ok'), pill('wie <code>int.TryParse</code>: direkt im <code>if</code>, mit <code>||</code> verkettbar')), note: 'Scheitert der erste Aufruf, wird der zweite gar nicht mehr gemacht (Early Exit).' },
+      { hl: [8, 9, 10], html: col(pill('mit Tuple: <code>(bool ok, … wert)</code>'), pill('zuerst zerlegen, dann prüfen – zwei Zeilen mehr, beide Aufrufe laufen immer', 'bad')), note: 'Geht auch – ist aber umständlicher.' },
+      { hl: [12, 13, 14], html: col(pill('Mehrere Ergebnisse, die <b>immer</b> da sind?<br>→ Tuple zurückgeben', 'ok'), pill('z. B. <code>(int min, int max)</code>, <code>(int x, int y)</code>')), note: '' },
+      { hl: [], html: col(pill('erwartbar fehlerhaft → <code>bool Try…(…, out …)</code>', 'ok'), pill('mehrere Ergebnisse, immer gültig → Tuple', 'ok'), pill('beides kombiniert: <code>TryParseAuftrag(…, out (string Nummer, …) auftrag, …)</code>')), note: 'Aufgabe02 kombiniert beides: das Ergebnis ist ein Named Tuple, geliefert über <code>out</code>.' },
+    ]) },
+];
+
+// ===================== Folien =====================
+const chapters = ['Default-Parameter', 'Named Parameter', 'Regeln', 'Tuples', 'Werttyp vs. Referenztyp', 'out oder Tuple?'];
+const steps = [
+  { ch: 0, title: 'Die Signatur: Pflicht und optional', hl: [1], upto: 6,
+    text: '<p><code>= wert</code> gibt einem Parameter einen Standardwert. Wer ihn beim Aufruf weglässt, bekommt diesen Wert.</p>',
+    render: st => signatureStage(st) },
+  { ch: 0, title: 'Nur das Nötigste angeben', hl: [8], upto: 8,
+    text: '<p>Nur <code>s</code> wird übergeben. <code>links</code>, <code>rechts</code> und <code>n</code> bekommen ihren Default.</p>',
+    render: st => callStage(st, [{ val: '"Start"' }]) },
+  { ch: 0, title: 'Von vorne nach hinten auffüllen', hl: [9], upto: 9,
+    text: '<p>Argumente ohne Namen werden <b>der Reihe nach</b> verteilt. Was am Ende fehlt, kommt aus dem Default.</p>',
+    render: st => callStage(st, [{ val: '"Pause"' }, { val: "'<'" }, { val: "'>'" }]) },
+  { ch: 1, title: 'Beim Namen nennen: n: 3', hl: [10], upto: 10,
+    text: '<p>Wir wollen nur <code>n</code> ändern. Mit <code>n: 3</code> springen wir über <code>links</code> und <code>rechts</code> – die bleiben auf Default.</p>',
+    render: st => callStage(st, [{ val: '"Ende"' }, { val: '3', name: 'n' }]) },
+  { ch: 1, title: 'Mit Namen ist die Reihenfolge egal', hl: [11], upto: 11,
+    text: '<p>Jedes Argument findet seinen Parameter über den Namen. Das macht Aufrufe auch lesbarer: man sieht, wofür die <code>2</code> steht.</p>',
+    render: st => callStage(st, [{ val: '2', name: 'n' }, { val: '"Mix"', name: 's' }, { val: "'*'", name: 'links' }]) },
+  { ch: 2, title: 'Was erlaubt ist – und was nicht', hl: [1], upto: 11,
+    text: '<p>Der Compiler muss jedes Argument eindeutig einem Parameter zuordnen können.</p>',
+    render: st => rulesStage(st, [
+      [true, "string F(string s, int n = 10)", 'Default-Parameter am Ende'],
+      [false, "string F(int n = 10, string s)", 'Default-Parameter vor einem Pflicht-Parameter (CS1737)'],
+      [true, 'F("Ende", n: 3)', 'erst positional, dann benannt'],
+      [false, 'F(n: 3, "Ende")', 'benannt an falscher Stelle, danach positional (CS8323)'],
+      [false, 'F()', 's ist Pflicht und fehlt (CS7036)'],
+      [true, 'ZeichneLinie(start, ziel)  // groesse = 10', 'Default statt „magischer Zahl“ im Code'],
+    ]) },
+].concat(tupleSteps);
+
+// ===================== Navigation =====================
+let cur = 0, ctrl = null, view = 0;
+function buildTabs() {
+  chapters.forEach((c, i) => {
+    const b = el('button', '', (i + 1) + '. ' + c);
+    b.onclick = () => show(steps.findIndex(s => s.ch === i));
+    $('tabs').appendChild(b);
+  });
+}
+function show(i) {
+  clearTimers();
+  cur = Math.max(0, Math.min(steps.length - 1, i));
+  const s = steps[cur];
+  document.querySelectorAll('#tabs button').forEach((b, k) => b.classList.toggle('active', k === s.ch));
+  $('title').textContent = s.title;
+  $('counter').textContent = `Schritt ${cur + 1} / ${steps.length}`;
+  $('text').innerHTML = s.text;
+  renderCode(s.hl || [], s.upto === undefined ? 99 : s.upto, s.code);
+  const st = $('stage'); st.innerHTML = '';
+  ctrl = s.render(st) || null;
+  $('autoBtn').disabled = !(ctrl && ctrl.auto);
+}
+function go(d) { if (d > 0 && ctrl && ctrl.next && ctrl.next()) return; show(cur + d); }
+function runAuto() { if (ctrl && ctrl.auto) { $('autoBtn').disabled = true; ctrl.auto(); } }
+function setView(v) { view = v; $('left').style.display = v === 1 ? 'none' : ''; [0, 1].forEach(k => $('vb' + k).classList.toggle('on', v === k)); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+  if (e.key === 'r' || e.key === 'R') show(cur);
+  if (e.key === 'a' || e.key === 'A') runAuto();
+  if (e.key === '1' || e.key === '2') setView(Number(e.key) - 1);
+});
+buildTabs(); show(0); setView(0);
+</script>
+</body>
+</html>
