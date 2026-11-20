@@ -204,175 +204,143 @@ const konsole = lines => `<div class="log">${lines.map((l, i) => `<span class="p
 
 // ===================== Schritt 1: Seedling =====================
 function s1() {
-  const t = new Trace('public Seedling((int x, int y) start, string darstellung = "🌱")', [
+  const t = new Trace("public Seedling((int x, int y) start)", [
     "<b>new</b>: Platz für ein neues Seedling-Objekt, alle Felder haben den Standardwert",
-    "Konstruktor: position = start; this.darstellung = darstellung; gefressen = false",
+    "Konstruktor: position = start; darstellung = \"🌱\"; gefressen = false",
     "die Variable bekommt eine <b>Referenz</b> auf das Objekt",
-    "Hauptprogramm: s2.gefressen = true",
-    "Beschreiben(): gefressen? → Text bauen"]);
+    "Beschreiben(): gefressen? → Text bauen",
+    "Hauptprogramm: s2.gefressen = true"]);
   const LEER = { p: [0, 0], d: null, g: false };
-  const A = { p: [2, 0], d: SEED, g: false }, B = { p: [4, 1], d: SEED, g: false };
+  const A = { p: [2, 1], d: SEED, g: false }, B = { p: [4, 3], d: SEED, g: false };
   const out = [];
-  t.call("Seedling s1 = new Seedling((2, 0));");
+  t.call("Seedling s1 = new Seedling((2, 1));");
   t.f(0, { s1: null, s2: null }, objs(seedObj("?", LEER, [], "new")), "<b>new</b> legt ein neues Objekt an: position = (0, 0), darstellung = null, gefressen = false.");
-  t.f(1, { start: T(2, 0), darstellung: SEED }, objs(seedObj("?", A, ["position", "darstellung"])), "Kein zweites Argument angegeben → der <b>Default-Parameter</b> \"🌱\" wird verwendet.", { 0: "ok" });
-  t.f(2, { s1: R("→ Seedling (2, 0)"), s2: null }, objs(seedObj("s1", A, [], "ok")), "<b>s1</b> zeigt jetzt auf das Objekt.", { 0: "ok", 1: "ok" });
-  t.call("Seedling s2 = new Seedling((4, 1));");
-  t.f(2, { s1: R("→ Seedling (2, 0)"), s2: R("→ Seedling (4, 1)") }, objs(seedObj("s1", A), seedObj("s2", B, ["position", "darstellung"], "ok")), "Ein zweites <b>new</b> → ein zweites, <b>eigenes</b> Objekt mit eigenen Feldern.", { 0: "ok", 1: "ok" });
-  out.push(beschr(A)); t.call("Console.WriteLine(s1.Beschreiben());");
-  t.f(4, { gefressen: false }, objs(seedObj("s1", A), seedObj("s2", B)) + box("Konsole", konsole(out)), "s1 ist nicht gefressen → <code>$\"{darstellung} auf {position}\"</code>.", { 4: "ok" });
-  out.push(beschr(B));
-  t.f(4, { gefressen: false }, objs(seedObj("s1", A), seedObj("s2", B)) + box("Konsole", konsole(out)), "Gleiche Methode, anderes Objekt → anderer Text.", { 4: "ok" });
-  B.g = true; t.call("s2.gefressen = true;");
-  t.f(3, { s1: R("→ Seedling (2, 0)"), s2: R("→ Seedling (4, 1)") }, objs(seedObj("s1", A), seedObj("s2", B, ["gefressen"])) + box("Konsole", konsole(out)), "Mit dem <b>Punkt</b> ändern wir ein Feld von <b>s2</b>. s1 hat sein <b>eigenes</b> Feld gefressen und bleibt false.", { 3: "ok" });
+  t.f(1, { start: T(2, 1) }, objs(seedObj("?", A, ["position", "darstellung"])), "Der Konstruktor legt den <b>Startzustand</b> fest.", { 0: "ok" });
+  t.f(2, { s1: R("→ Seedling (2, 1)"), s2: null }, objs(seedObj("s1", A, [], "ok")), "<b>s1</b> zeigt jetzt auf das Objekt.", { 0: "ok", 1: "ok" });
+  t.call("Seedling s2 = new Seedling((4, 3));");
+  t.f(2, { s1: R("→ Seedling (2, 1)"), s2: R("→ Seedling (4, 3)") }, objs(seedObj("s1", A), seedObj("s2", B, ["position", "darstellung"], "ok")), "Ein zweites <b>new</b> → ein zweites, <b>eigenes</b> Objekt mit eigenen Feldern.", { 0: "ok", 1: "ok" });
   out.push(beschr(A), beschr(B)); t.call("Console.WriteLine(s1.Beschreiben()); Console.WriteLine(s2.Beschreiben());");
-  t.f(4, { "s2.gefressen": true }, objs(seedObj("s1", A), seedObj("s2", B)) + box("Konsole", konsole(out)), "Jetzt hängt Beschreiben() bei s2 \" (gefressen)\" an.", { 4: "ok" });
-  const C = { p: [0, 3], d: "🌼", g: false }; out.push(beschr(C)); t.call('Seedling blume = new Seedling((0, 3), "🌼");');
-  t.f(1, { start: T(0, 3), darstellung: "🌼" }, objs(seedObj("s1", A), seedObj("s2", B), seedObj("blume", C, ["position", "darstellung"], "ok")) + box("Konsole", konsole(out)), "Mit zweitem Argument wird der Default-Parameter <b>überschrieben</b>.", { 0: "ok", 2: "ok" });
-  return slideOf("Schritt 1 – Klasse Seedling", "Felder, Konstruktor mit Default-Parameter und die erste Methode.", t);
+  t.f(3, { gefressen: false }, objs(seedObj("s1", A), seedObj("s2", B)) + box("Konsole", konsole(out)), "Gleiche Methode, anderes Objekt → anderer Text. Beschreiben() verwendet die <b>eigenen</b> Felder.", { 3: "ok" });
+  B.g = true; t.call("s2.gefressen = true;");
+  t.f(4, { s1: R("→ Seedling (2, 1)"), s2: R("→ Seedling (4, 3)") }, objs(seedObj("s1", A), seedObj("s2", B, ["gefressen"])) + box("Konsole", konsole(out)), "Mit dem <b>Punkt</b> ändern wir ein Feld von <b>s2</b>. s1 hat sein <b>eigenes</b> Feld und bleibt false.", { 4: "ok" });
+  out.push(beschr(A), beschr(B)); t.call("Console.WriteLine(s1.Beschreiben()); Console.WriteLine(s2.Beschreiben());");
+  t.f(3, { "s2.gefressen": true }, objs(seedObj("s1", A), seedObj("s2", B)) + box("Konsole", konsole(out)), "Bei s2 hängt Beschreiben() jetzt \" (gefressen)\" an.", { 3: "ok", 4: "ok" });
+  return slideOf("Schritt 1 – Seedling", "Konstruktor und die erste Methode.", t);
 }
 
 // ===================== Schritt 2: Wiese =====================
 function s2() {
-  const b = neuesBeet(), out = [];
-  const wObj = (chg = []) => obj("testWiese : Wiese", { breite: 6, hoehe: 4, seedlings: R("→ Seedling[4]") }, chg, "ok");
+  const b = [{ p: [2, 1], d: SEED, g: false }];
+  const wObj = (chg = []) => obj("wiese : Wiese", { breite: 6, hoehe: 4, seedling: R("→ Seedling (2, 1)") }, chg, "ok");
   const t = new Trace("class Wiese", [
-    "Konstruktor: breite, hoehe, seedlings merken",
+    "Konstruktor: this.breite = breite; this.hoehe = hoehe; this.seedling = seedling",
     "IstInnerhalb(p): 0 &lt;= x &lt; breite und 0 &lt;= y &lt; hoehe",
-    "SeedlingAuf(p): foreach seedling – gleiche Position und nicht gefressen? → return seedling",
-    "nach der Schleife: return null",
-    "AlleGefressen(): ein nicht gefressener → false, sonst true",
-    "Zeichnen: für jedes (x, y): feld = Erde → SeedlingAuf? → Hamster? → Console.Write(feld)"]);
-  t.call("Wiese testWiese = new Wiese(6, 4, beet);");
-  t.f(0, { breite: 6, hoehe: 4, seedlings: R("→ beet") }, objs(wObj(["breite", "hoehe", "seedlings"])) + box("beet : Seedling[]", `<div class="cols">${b.map((s, i) => seedObj(`beet[${i}]`, s)).join("")}</div>`), "Die Wiese <b>hat</b> Seedlings: Das Feld <b>seedlings</b> zeigt auf dasselbe Array wie <b>beet</b> – es wird nichts kopiert.", { 0: "ok" });
-  t.call("testWiese.IstInnerhalb((5, 3))");
-  t.f(1, { p: T(5, 3), return: true }, wiese(b, 6, 4, null, [5, 3, "ok"], 1), "x = 5 < 6 und y = 3 < 4 → <b>true</b>.", { 1: "ok" });
-  t.call("testWiese.IstInnerhalb((6, 3))");
+    "Zeichnen: für jedes (x, y): feld = Erde → Seedling? → Hamster? → Console.Write(feld)"]);
+  t.call("Wiese wiese = new Wiese(6, 4, s1);");
+  t.f(0, { breite: 6, hoehe: 4, seedling: R("→ s1") }, objs(wObj(["breite", "hoehe", "seedling"]), seedObj("s1", b[0])), "Die Wiese <b>hat</b> einen Seedling: Ihr Feld <b>seedling</b> zeigt auf <b>dasselbe</b> Objekt wie s1 – es wird nichts kopiert.", { 0: "ok" });
+  t.call("wiese.IstInnerhalb((5, 3))");
+  t.f(1, { p: T(5, 3), return: true }, wiese(b, 6, 4, null, [5, 3, "ok"], 1), "x = 5 &lt; 6 und y = 3 &lt; 4 → <b>true</b>.", { 1: "ok" });
+  t.call("wiese.IstInnerhalb((6, 3))");
   t.f(1, { p: T(6, 3), return: false }, wiese(b, 6, 4, null, [6, 3, "bad"], 1), "x = 6 ist <b>nicht</b> kleiner als breite = 6 → false. Die Spalten gehen von 0 bis 5!", { 1: "bad" });
-  t.call("testWiese.IstInnerhalb((0, -1))");
+  t.call("wiese.IstInnerhalb((0, -1))");
   t.f(1, { p: T(0, -1), return: false }, wiese(b, 6, 4, null, [0, -1, "bad"], 1), "y = -1 liegt oberhalb der Wiese → false.", { 1: "bad" });
-  t.call("testWiese.SeedlingAuf((1, 2))");
-  b.forEach((s, i) => {
-    const hit = s.p[0] === 1 && s.p[1] === 2;
-    t.f(2, { p: T(1, 2), seedling: R(`→ beet[${i}] ${beschr(s)}`) }, wiese(b, 6, 4, null, [s.p[0], s.p[1], hit ? "ok" : "bad"], 2),
-      hit ? "Position (1, 2) passt und er ist nicht gefressen → <b>return</b> dieses Objekt." : `(${s.p[0]}, ${s.p[1]}) == (1, 2)? Nein → weiter.`, { 2: hit ? "ok" : "" });
-  });
-  t.call("testWiese.SeedlingAuf((3, 3))");
-  t.f(3, { p: T(3, 3), return: null }, wiese(b, 6, 4, null, [3, 3, "bad"], 2), "Kein Seedling passt → <b>null</b>: „hier ist kein Objekt“.", { 2: "bad", 3: "ok" });
-  t.call("testWiese.AlleGefressen()");
-  t.f(4, { "beet[0].gefressen": false, return: false }, wiese(b, 6, 4, null, [2, 0, "bad"], 2), "Schon der erste Seedling ist nicht gefressen → sofort <b>false</b>.", { 4: "ok" });
-  t.call("testWiese.Zeichnen(null)");
-  const zeilen = ["🟫🟫🌱🟫🟫🟫", "🟫🟫🟫🟫🌱🟫", "🟫🌱🟫🟫🟫🟫", "🟫🟫🟫🟫🟫🌱"];
+  t.call("wiese.Zeichnen(null)");
+  const zeilen = ["🟫🟫🟫🟫🟫🟫", "🟫🟫🌱🟫🟫🟫", "🟫🟫🟫🟫🟫🟫", "🟫🟫🟫🟫🟫🟫"];
   const teil = n => { const o = []; for (let y = 0; y < 4; y++) { const z = [...zeilen[y]].slice(0, Math.max(0, Math.min(6, n - y * 6))).join(""); if (z) o.push(z); } return o; };
-  [[0, 0], [1, 0], [2, 0]].forEach(([x, y]) => {
-    const s = b.find(s => !s.g && s.p[0] === x && s.p[1] === y);
-    t.f(5, { y, x, "SeedlingAuf((x, y))": s ? R(`→ ${beschr(s)}`) : null, feld: s ? s.d : ERDE }, wiese(b, 6, 4, null, [x, y, s ? "ok" : "bad"], 0) + box("Konsole", konsole(teil(y * 6 + x + 1))),
-      s ? `Feld (${x}, ${y}): Die Wiese fragt ihre <b>eigene</b> Methode SeedlingAuf → ein Seedling! feld = "🌱".` : `Feld (${x}, ${y}): feld = Erde. SeedlingAuf liefert <b>null</b> → bleibt Erde. hamster ist null → Console.Write(feld).`, { 5: "" });
+  [[0, 0], [1, 0], [2, 1]].forEach(([x, y]) => {
+    const hit = x === 2 && y === 1;
+    t.f(2, { y, x, hamster: null, feld: hit ? SEED : ERDE }, wiese(b, 6, 4, null, [x, y, hit ? "ok" : "bad"], 0) + box("Konsole", konsole(teil(y * 6 + x + 1))),
+      hit ? "Feld (2, 1): Der Seedling ist nicht gefressen und steht hier → feld = \"🌱\"." : `Feld (${x}, ${y}): kein Seedling, hamster ist <b>null</b> → feld bleibt Erde → Console.Write(feld).`, {});
   });
-  t.f(5, { y: 0, x: 5 }, wiese(b, 6, 4, null, null, 0) + box("Konsole", konsole(teil(6))), "Ende der Zeile → Console.WriteLine(). <b>Kein 2D-Array</b>: Für jedes Feld wird nur nachgefragt, was dort steht.", { 5: "" });
-  t.f(5, { y: 3, x: 5 }, box("Konsole", konsole(zeilen)), "Alle 4 Zeilen sind ausgegeben.", { 5: "ok" });
-  return slideOf("Schritt 2 – Klasse Wiese", "Die Wiese hat Seedlings und weiß, wo ihr Rand ist und was auf ihr steht.", t);
+  t.f(2, { hamster: null }, box("Konsole", konsole(zeilen)), "Alle Zeilen ausgegeben. <b>null</b> heißt: Es gibt keinen Hamster zum Zeichnen.", { 2: "ok" });
+  return slideOf("Schritt 2 – Wiese", "Die Wiese hat einen Seedling und weiß, wo ihr Rand ist.", t);
 }
 
 // ===================== Hamster-Hilfen =====================
-const hamObj = (name, h, chg = [], wname = "wiese") => obj(name + " : Hamster", { position: T(h.p[0], h.p[1]), darstellung: h.d, anzahlSchritte: h.s, anzahlGefressen: h.e, wiese: R("→ " + wname + " : Wiese") }, chg, "ok");
+const hamObj = (name, h, chg = []) => obj(name + " : Hamster", { position: T(h.p[0], h.p[1]), darstellung: h.d, anzahlSchritte: h.s, wiese: R("→ wiese : Wiese") }, chg, "ok");
 const DIR = { N: [0, -1], S: [0, 1], O: [1, 0], W: [-1, 0] };
 const inside = (p, w, h) => p[0] >= 0 && p[0] < w && p[1] >= 0 && p[1] < h;
+const WEG = ["N", "O", "O", "S", "O", "W"];
 
 // ===================== Schritt 3: Hamster bewegen =====================
 function s3() {
-  const b = neuesBeet(), h = { p: [0, 0], d: "🐹", s: 0, e: 0 }, out = [];
+  const b = [{ p: [2, 1], d: SEED, g: false }], h = { p: [0, 0], d: "🐹", s: 0 }, out = [];
   const t = new Trace("public void Bewegen(string richtung)", [
     "ziel = position; je nach richtung ziel.x oder ziel.y ändern",
     "Guard: <b>wiese.IstInnerhalb(ziel)</b>? Nein → Meldung, return",
-    "position = ziel; anzahlSchritte++",
-    "Meldung ausgeben"]);
-  t.call("Hamster paul = new Hamster((0, 0), wiese3);");
-  t.f(-1, { paul: R("→ Hamster"), "paul.wiese": R("→ wiese3") }, objs(hamObj("paul", h, ["position", "darstellung", "wiese"], "wiese3"), obj("wiese3 : Wiese", { breite: 6, hoehe: 4, seedlings: R("→ beet3") })) + wiese(b, 6, 4, h),
-    "Der Konstruktor bekommt die Wiese → <b>hat-Beziehung</b>: paul kennt jetzt wiese3. darstellung = \"🐹\" (Default-Parameter).");
-  for (const r of ["N", "S", "O"]) {
+    "position = ziel; anzahlSchritte++; Meldung"]);
+  t.call('Hamster paul = new Hamster((0, 0), wiese, "🐹");');
+  out.push("🐹 auf (0, 0), 0 Schritte");
+  t.f(-1, { paul: R("→ Hamster"), "paul.wiese": R("→ wiese") }, objs(hamObj("paul", h, ["position", "darstellung", "wiese"]), obj("wiese : Wiese", { breite: 6, hoehe: 4, seedling: R("→ s1") })) + wiese(b, 6, 4, h) + box("Konsole", konsole(out)),
+    "Der Konstruktor bekommt die Wiese → <b>hat-Beziehung</b>: paul kennt jetzt die Wiese.");
+  for (const r of WEG) {
     t.call(`paul.Bewegen("${r}");`);
     const z = [h.p[0] + DIR[r][0], h.p[1] + DIR[r][1]];
-    t.f(0, { richtung: r, ziel: T(z[0], z[1]) }, hamObj("paul", h, [], "wiese3") + wiese(b, 6, 4, h, [z[0], z[1], inside(z, 6, 4) ? "ok" : "bad"]) + box("Konsole", konsole(out)),
-      `"${r}" → ${r === "N" ? "y - 1" : r === "S" ? "y + 1" : r === "O" ? "x + 1" : "x - 1"}. Noch ist nur <b>ziel</b> geändert, nicht position.`, { 0: "ok" });
     if (!inside(z, 6, 4)) {
-      out.push(`🐹 stößt im ${r} an den Rand und bleibt auf (${h.p[0]}, ${h.p[1]})`);
-      t.f(1, { richtung: r, ziel: T(z[0], z[1]), "wiese.IstInnerhalb(ziel)": false }, hamObj("paul", h, [], "wiese3") + wiese(b, 6, 4, h, [z[0], z[1], "bad"]) + box("Konsole", konsole(out)),
+      out.push("🐹 stößt an den Rand");
+      t.f(1, { richtung: r, ziel: T(z[0], z[1]), "wiese.IstInnerhalb(ziel)": false }, hamObj("paul", h) + wiese(b, 6, 4, h, [z[0], z[1], "bad"]) + box("Konsole", konsole(out)),
         "Der Hamster <b>fragt seine Wiese</b> über die hat-Beziehung. Antwort false → Guard greift, position bleibt.", { 0: "ok", 1: "bad" });
       continue;
     }
-    t.f(1, { richtung: r, ziel: T(z[0], z[1]), "wiese.IstInnerhalb(ziel)": true }, hamObj("paul", h, [], "wiese3") + wiese(b, 6, 4, h, [z[0], z[1], "ok"]) + box("Konsole", konsole(out)), "Die Wiese sagt true → weiter.", { 0: "ok", 1: "ok" });
     h.p = z; h.s++;
-    t.f(2, { position: T(z[0], z[1]), anzahlSchritte: h.s }, hamObj("paul", h, ["position", "anzahlSchritte"], "wiese3") + wiese(b, 6, 4, h) + box("Konsole", konsole(out)), "Jetzt erst ändern sich die <b>Felder</b> des Hamsters.", { 0: "ok", 1: "ok", 2: "ok" });
-    out.push(`🐹 Schritt ${h.s}: geht nach ${r} -> (${z[0]}, ${z[1]})`);
-    t.f(3, { position: T(z[0], z[1]), anzahlSchritte: h.s }, hamObj("paul", h, [], "wiese3") + wiese(b, 6, 4, h) + box("Konsole", konsole(out)), "Meldung ausgeben.", { 0: "ok", 1: "ok", 2: "ok", 3: "ok" });
+    out.push(`🐹 geht nach ${r} -> (${z[0]}, ${z[1]})`);
+    t.f(2, { richtung: r, ziel: T(z[0], z[1]), "wiese.IstInnerhalb(ziel)": true }, hamObj("paul", h, ["position", "anzahlSchritte"]) + wiese(b, 6, 4, h) + box("Konsole", konsole(out)),
+      `Die Wiese sagt true → position und anzahlSchritte ändern sich.`, { 0: "ok", 1: "ok", 2: "ok" });
   }
   return slideOf("Schritt 3 – Hamster: sich bewegen", "Der Hamster fragt seine Wiese, ob er dort hin darf.", t);
 }
 
 // ===================== Schritt 4: Hamster frisst =====================
 function s4() {
-  const b = neuesBeet(), h = { p: [0, 0], d: "🐭", s: 0, e: 0 }, out = [];
+  const S = { p: [2, 1], d: SEED, g: false }, b = [S], h = { p: [0, 0], d: "🐹", s: 0 }, out = ["🐹 auf (0, 0), 0 Schritte", "🐹 stößt an den Rand"];
   const t = new Trace("public void Fressen()", [
-    "Bewegen war erfolgreich → Fressen() aufrufen",
-    "seedling = <b>wiese.SeedlingAuf(position)</b>",
-    "Guard: seedling == null → return",
-    "seedling.gefressen = true; anzahlGefressen++; Meldung"]);
-  const seeds = (chg = -1) => `<div class="cols">${b.map((s, i) => seedObj(`beet4[${i}]`, s, i === chg ? ["gefressen"] : [])).join("")}</div>`;
-  for (const r of "OOSOOSSO") {
+    "am Ende von Bewegen: Fressen() aufrufen",
+    "seedling = <b>wiese.seedling</b> (über die hat-Beziehung)",
+    "Guard: schon gefressen oder nicht auf meiner position → return",
+    "seedling.gefressen = true; Meldung"]);
+  for (const r of WEG.slice(1)) {
     const z = [h.p[0] + DIR[r][0], h.p[1] + DIR[r][1]];
-    h.p = z; h.s++;
-    out.push(`🐭 Schritt ${h.s}: geht nach ${r} -> (${z[0]}, ${z[1]})`);
-    t.call(`willi.Bewegen("${r}");`);
-    t.f(0, { position: T(z[0], z[1]), anzahlSchritte: h.s }, hamObj("willi", h, ["position", "anzahlSchritte"], "wiese4") + wiese(b, 6, 4, h) + box("Konsole", konsole(out)), `Schritt nach ${r} gelungen → am Ende von Bewegen wird <b>Fressen()</b> aufgerufen.`, { 0: "ok" });
-    const i = b.findIndex(s => !s.g && s.p[0] === z[0] && s.p[1] === z[1]);
-    if (i < 0) {
-      t.f(2, { position: T(z[0], z[1]), seedling: null }, hamObj("willi", h, [], "wiese4") + wiese(b, 6, 4, h, [z[0], z[1], "bad"]) + box("Konsole", konsole(out)), "SeedlingAuf liefert <b>null</b> → Guard → return. Nichts passiert.", { 0: "ok", 1: "ok", 2: "bad" });
-      continue;
-    }
-    t.f(1, { position: T(z[0], z[1]), seedling: R(`→ beet4[${i}]`) }, hamObj("willi", h, [], "wiese4") + wiese(b, 6, 4, h, [z[0], z[1], "ok"]) + seeds() + box("Konsole", konsole(out)), `Die Wiese liefert eine <b>Referenz</b> auf beet4[${i}] – dasselbe Objekt, das im Array liegt.`, { 0: "ok", 1: "ok" });
-    b[i].g = true; h.e++;
-    out.push(`🐭 frisst 🌱 auf (${z[0]}, ${z[1]}) - schon ${h.e} gefressen`);
-    t.f(3, { "seedling.gefressen": true, anzahlGefressen: h.e }, hamObj("willi", h, ["anzahlGefressen"], "wiese4") + wiese(b, 6, 4, h) + seeds(i) + box("Konsole", konsole(out)),
-      `Über die Referenz ändert der Hamster ein Feld eines <b>anderen</b> Objekts. Darum ist auch <b>beet4[${i}]</b> gefressen.`, { 0: "ok", 1: "ok", 2: "ok", 3: "ok" });
+    h.p = z; h.s++; out.push(`🐹 geht nach ${r} -> (${z[0]}, ${z[1]})`);
+    t.call(`paul.Bewegen("${r}");  →  Fressen();`);
+    const view = (chg = []) => objs(hamObj("paul", h), seedObj("s1  =  wiese.seedling", S, chg)) + wiese(b, 6, 4, h) + box("Konsole", konsole(out));
+    if (S.g) { t.f(2, { position: T(z[0], z[1]), "seedling.gefressen": true }, view(), "Der Seedling ist <b>schon gefressen</b> → Guard → return.", { 0: "ok", 1: "ok", 2: "bad" }); continue; }
+    if (z[0] !== 2 || z[1] !== 1) { t.f(2, { position: T(z[0], z[1]), "seedling.position": T(2, 1) }, view(), `(${z[0]}, ${z[1]}) ist nicht (2, 1) → Guard → return.`, { 0: "ok", 1: "ok", 2: "bad" }); continue; }
+    t.f(1, { position: T(2, 1), seedling: R("→ s1") }, view(), "Über <b>wiese.seedling</b> bekommt der Hamster eine Referenz auf <b>dasselbe</b> Objekt wie s1.", { 0: "ok", 1: "ok" });
+    S.g = true; out.push("🐹 frisst 🌱");
+    t.f(3, { "seedling.gefressen": true }, view(["gefressen"]), "Der Hamster ändert ein Feld eines <b>anderen</b> Objekts. Darum ist auch <b>s1</b> im Hauptprogramm gefressen!", { 0: "ok", 1: "ok", 2: "ok", 3: "ok" });
   }
-  out.push(`🐭 auf (5, 3), 8 Schritte, 3 gefressen`, beschr(b[0]), "False");
-  t.call("Console.WriteLine(willi.Beschreiben()); ... wiese4.AlleGefressen()");
-  t.f(-1, { "wiese4.AlleGefressen()": false }, hamObj("willi", h, [], "wiese4") + wiese(b, 6, 4, h) + box("Konsole", konsole(out)), "Der Seedling auf (1, 2) steht noch → AlleGefressen() ist false.");
-  t.call("Hamster gast = new Hamster((2, 0), wiese4); gast.Fressen();");
-  const g = { p: [2, 0], d: "🐹", s: 0, e: 0 };
-  t.f(2, { "gast.position": T(2, 0), seedling: null }, objs(hamObj("willi", h, [], "wiese4"), hamObj("gast", g, [], "wiese4")) + wiese(b, 6, 4, g, [2, 0, "bad"]) + seeds(),
-    "Zwei Hamster, <b>eine</b> Wiese. Der Seedling auf (2, 0) ist schon gefressen → SeedlingAuf liefert null → gast frisst nichts.", { 1: "ok", 2: "bad" });
-  return slideOf("Schritt 4 – Hamster: fressen", "Der Hamster fragt die Wiese nach einem Seedling und ändert ihn über die Referenz.", t);
+  out.push("🐹 auf (2, 1), 5 Schritte", beschr(S));
+  t.call("Console.WriteLine(paul.Beschreiben()); Console.WriteLine(s1.Beschreiben());");
+  t.f(-1, { "s1.gefressen": true }, objs(hamObj("paul", h), seedObj("s1", S)) + wiese(b, 6, 4, h) + box("Konsole", konsole(out)), "Der Hamster hat s1 nie gesehen – aber über die Wiese dasselbe Objekt geändert.");
+  return slideOf("Schritt 4 – Hamster: fressen", "Über die hat-Beziehungen Hamster → Wiese → Seedling.", t);
 }
 
 // ===================== Schritt 5: Simulation =====================
 function s5() {
-  let seed = 7; const rnd = n => { seed = (seed * 1103515245 + 12345) % 2147483648; return Math.floor(seed / 2147483648 * n); };
-  const W = 10, H = 6, b = [];
-  for (let i = 0; i < 6; i++) b.push({ p: [rnd(W), rnd(H)], d: SEED, g: false });
-  const h = { p: [0, 0], d: "🐹", s: 0, e: 0 }, rs = ["N", "O", "S", "W"];
+  let seed = 11; const rnd = n => { seed = (seed * 1103515245 + 12345) % 2147483648; return Math.floor(seed / 2147483648 * n); };
+  const W = 10, H = 6, S = { p: [6, 3], d: SEED, g: false }, b = [S];
+  const h = { p: [0, 0], d: "🐭", s: 0 }, rs = ["N", "O", "S", "W"];
   const t = new Trace("Hauptprogramm: Simulation", [
-    "6 Seedlings mit zufälligen Positionen, eine 10 × 6 Wiese, ein Hamster",
-    "while (!wiese.AlleGefressen())",
-    "wiese.Zeichnen(hamster)",
-    "hamster.Bewegen(zufällige Richtung)",
-    "fertig: alles gefressen"]);
+    "futter (zufällig), grosseWiese (10 × 6), willi",
+    "while (!futter.gefressen &amp;&amp; runde &lt; 500)",
+    "grosseWiese.Zeichnen(willi)",
+    "willi.Bewegen(zufällige Richtung)",
+    "fertig"]);
   t.call("");
-  t.f(0, { seedlings: R("Seedling[6]"), hamster: R("→ Hamster (0, 0)") }, wiese(b, W, H, h), "Die Objekte werden erzeugt. Zwei Seedlings können auf demselben Feld landen – kein Problem, siehe Angabe.", { 0: "ok" });
+  t.f(0, { futter: R("→ Seedling (6, 3)"), willi: R("→ Hamster (0, 0)") }, wiese(b, W, H, h), "Drei Objekte: willi kennt grosseWiese, grosseWiese kennt futter.", { 0: "ok" });
   let runde = 0;
-  while (b.some(s => !s.g) && runde < 400) {
+  while (!S.g && runde < 500) {
     runde++;
     const r = rs[rnd(4)], z = [h.p[0] + DIR[r][0], h.p[1] + DIR[r][1]];
     let cap = `Runde ${runde}: Richtung ${r}`;
-    if (inside(z, W, H)) { h.p = z; h.s++; const s = b.find(s => !s.g && s.p[0] === z[0] && s.p[1] === z[1]); if (s) { s.g = true; h.e++; cap += ` → frisst 🌱 (${h.e} von 6)`; } }
-    else cap += " → Rand, bleibt stehen";
-    if (runde % 10 === 0 || cap.includes("frisst")) t.f(3, { runde, richtung: r, "hamster.anzahlGefressen": h.e }, wiese(b, W, H, h), cap, { 0: "ok", 1: "ok", 2: "ok", 3: "ok" });
+    if (inside(z, W, H)) { h.p = z; h.s++; if (z[0] === S.p[0] && z[1] === S.p[1]) { S.g = true; cap += " → frisst 🌱"; } } else cap += " → Rand";
+    if (runde % 5 === 0 || S.g) t.f(3, { runde, richtung: r, "futter.gefressen": S.g }, wiese(b, W, H, h), cap, { 0: "ok", 1: "ok", 2: "ok", 3: "ok" });
   }
-  t.f(4, { runde, "hamster.anzahlSchritte": h.s, "hamster.anzahlGefressen": h.e }, wiese(b, W, H, h) + box("Konsole", konsole([`Alles gefressen! 🐹 auf (${h.p[0]}, ${h.p[1]}), ${h.s} Schritte, ${h.e} gefressen`])), "wiese.AlleGefressen() ist true → die Schleife endet.", { 0: "ok", 1: "ok", 2: "ok", 3: "ok", 4: "ok" });
-  return slideOf("Schritt 5 – Die Simulation", "Alle Objekte arbeiten zusammen: Der Hamster läuft zufällig, bis die Wiese leer ist.", t);
+  t.f(4, { runde, "futter.gefressen": S.g }, wiese(b, W, H, h) + box("Konsole", konsole([beschr(S), `🐭 auf (${h.p[0]}, ${h.p[1]}), ${h.s} Schritte`])), "futter.gefressen ist true – willi hat es über grosseWiese geändert → die Schleife endet.", { 0: "ok", 1: "ok", 2: "ok", 3: "ok", 4: "ok" });
+  return slideOf("Schritt 5 – Die Simulation", "Die Maus läuft zufällig, bis sie den Seedling gefressen hat.", t);
 }
 const slides = [s1(), s2(), s3(), s4(), s5()];
+
 
 // ===================== Steuerung =====================
 let s = 0, f = 0, timer = null;

@@ -2,81 +2,60 @@ using System.Text;
 
 Console.OutputEncoding = Encoding.UTF8;
 
-// ---------- Test Schritt 1 ----------
+// Dieses Hauptprogramm ist FERTIG. Es testet von Anfang an alle Methoden.
+// Je mehr du in den Klassen programmierst, desto mehr stimmt die Ausgabe
+// mit dem erwarteten Output in der Angabe ueberein.
+
+// ---------- Schritt 1: Seedling ----------
 Console.WriteLine("--- Schritt 1 ---");
-Seedling s1 = new Seedling((2, 0));
-Seedling s2 = new Seedling((4, 1));
+Seedling s1 = new Seedling((2, 1));
+Seedling s2 = new Seedling((4, 3));
 Console.WriteLine(s1.Beschreiben());
 Console.WriteLine(s2.Beschreiben());
 s2.gefressen = true;
 Console.WriteLine(s1.Beschreiben());
 Console.WriteLine(s2.Beschreiben());
-Seedling blume = new Seedling((0, 3), "🌼");
-Console.WriteLine(blume.Beschreiben());
 
-// ---------- Test Schritt 2 ----------
+// ---------- Schritt 2: Wiese ----------
 Console.WriteLine("--- Schritt 2 ---");
-Seedling[] beet = { new Seedling((2, 0)), new Seedling((4, 1)), new Seedling((1, 2)), new Seedling((5, 3)) };
-Wiese testWiese = new Wiese(6, 4, beet);
-Console.WriteLine(testWiese.breite + " x " + testWiese.hoehe);
-Console.WriteLine(testWiese.IstInnerhalb((5, 3)) + " " + testWiese.IstInnerhalb((6, 3)) + " " + testWiese.IstInnerhalb((0, -1)));
-Console.WriteLine(testWiese.SeedlingAuf((1, 2)).Beschreiben());
-Console.WriteLine(testWiese.SeedlingAuf((3, 3)) == null);
-Console.WriteLine(testWiese.AlleGefressen());
-testWiese.Zeichnen(null);
+Wiese wiese = new Wiese(6, 4, s1);
+Console.WriteLine(wiese.breite + " x " + wiese.hoehe);
+Console.WriteLine(wiese.IstInnerhalb((5, 3)));
+Console.WriteLine(wiese.IstInnerhalb((6, 3)));
+Console.WriteLine(wiese.IstInnerhalb((0, -1)));
+wiese.Zeichnen(null);
 
-// ---------- Test Schritt 3 ----------
-Console.WriteLine("--- Schritt 3 ---");
-Seedling[] beet3 = { new Seedling((2, 0)), new Seedling((4, 1)), new Seedling((1, 2)), new Seedling((5, 3)) };
-Wiese wiese3 = new Wiese(6, 4, beet3);
-Hamster paul = new Hamster((0, 0), wiese3);
+// ---------- Schritt 3 und 4: Hamster ----------
+Console.WriteLine("--- Schritt 3 und 4 ---");
+Hamster paul = new Hamster((0, 0), wiese, "🐹");
 Console.WriteLine(paul.Beschreiben());
-paul.Bewegen("N");
-paul.Bewegen("S");
-paul.Bewegen("O");
-Console.WriteLine(paul.Beschreiben());
-Console.WriteLine(paul.wiese == wiese3);
-wiese3.Zeichnen(paul);
-
-// ---------- Test Schritt 4 ----------
-Console.WriteLine("--- Schritt 4 ---");
-Seedling[] beet4 = { new Seedling((2, 0)), new Seedling((4, 1)), new Seedling((1, 2)), new Seedling((5, 3)) };
-Wiese wiese4 = new Wiese(6, 4, beet4);
-Hamster willi = new Hamster((0, 0), wiese4, "🐭");
-string weg = "OOSOOSSO";
-foreach (char schritt in weg)
+string[] weg = { "N", "O", "O", "S", "O", "W" };
+foreach (string richtung in weg)
 {
-    willi.Bewegen(schritt.ToString());
+    paul.Bewegen(richtung);
 }
-Console.WriteLine(willi.Beschreiben());
-Console.WriteLine(beet4[0].Beschreiben());
-Console.WriteLine(wiese4.AlleGefressen());
-wiese4.Zeichnen(willi);
-Hamster gast = new Hamster((2, 0), wiese4);
-gast.Fressen();
-Console.WriteLine(gast.anzahlGefressen);
+Console.WriteLine(paul.Beschreiben());
+Console.WriteLine(s1.Beschreiben());
+wiese.Zeichnen(paul);
 
-// ---------- Test Schritt 5 ----------
-Console.WriteLine("--- Schritt 5 --- (Enter startet die Simulation)");
+// ---------- Schritt 5: Simulation ----------
+Console.WriteLine("--- Schritt 5 --- Enter startet die Simulation");
 Console.ReadLine();
 
-string[] richtungen = { "N", "O", "S", "W" };
 Random generator = new Random();
-Seedling[] seedlings = new Seedling[6];
-for (int i = 0; i < seedlings.Length; i++)
-{
-    seedlings[i] = new Seedling((generator.Next(0, 10), generator.Next(0, 6)));
-}
-Wiese wiese = new Wiese(10, 6, seedlings);
-Hamster hamster = new Hamster((0, 0), wiese);
+string[] richtungen = { "N", "O", "S", "W" };
+Seedling futter = new Seedling((generator.Next(0, 10), generator.Next(0, 6)));
+Wiese grosseWiese = new Wiese(10, 6, futter);
+Hamster willi = new Hamster((0, 0), grosseWiese, "🐭");
 
-while (!wiese.AlleGefressen())
+int runde = 0;
+while (!futter.gefressen && runde < 500)      // hoechstens 500 Runden
 {
+    runde++;
     Console.Clear();
-    wiese.Zeichnen(hamster);
-    hamster.Bewegen(richtungen[generator.Next(0, richtungen.Length)]);
+    grosseWiese.Zeichnen(willi);
+    willi.Bewegen(richtungen[generator.Next(0, richtungen.Length)]);
     Thread.Sleep(200);
 }
-Console.Clear();
-wiese.Zeichnen(hamster);
-Console.WriteLine("Alles gefressen! " + hamster.Beschreiben());
+Console.WriteLine(futter.Beschreiben());
+Console.WriteLine(willi.Beschreiben());

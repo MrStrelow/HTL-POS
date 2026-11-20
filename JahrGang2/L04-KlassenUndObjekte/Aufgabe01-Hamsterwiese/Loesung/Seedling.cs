@@ -1,4 +1,4 @@
-// Ein Seedling (Keimling) steht an einer Stelle der Wiese und wartet darauf, gefressen zu werden.
+// Ein Seedling (Keimling) steht auf der Wiese und wartet darauf, gefressen zu werden.
 class Seedling
 {
     // Felder: der Zustand
@@ -7,10 +7,10 @@ class Seedling
     public bool gefressen;
 
     // Konstruktor: der Startzustand
-    public Seedling((int x, int y) start, string darstellung = "🌱")
+    public Seedling((int x, int y) start)
     {
         position = start;
-        this.darstellung = darstellung;
+        darstellung = "🌱";
         gefressen = false;
     }
 
