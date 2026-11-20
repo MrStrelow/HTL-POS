@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Klassen und Objekte</title>
+<title>Klassen und Objekte – Stunde</title>
 <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -151,12 +151,16 @@
   .split-v:hover, .split-h:hover, .split-v.drag, .split-h.drag { background: var(--accent); }
   body.dragging { user-select: none; }
   nav button.on { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,.15); }
+  .ztab { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; }
+  .zcol { border: 2px dashed; border-radius: 10px; min-height: 190px; padding: 8px; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  .zh { font-weight: 700; font-size: 17px; text-align: center; } .zh small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; }
+  .story { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-size: 15px; line-height: 1.5; max-width: 900px; }
 </style>
 </head>
 <body>
 <header>
   <div>
-    <h1>🐹 Klassen und Objekte: vom Bauplan zum Hamster</h1>
+    <h1>🐹 Klassen und Objekte – Ablauf der Stunde</h1>
     <p>Weiter: Pfeiltasten ← → oder Leertaste · Klasse, Objekt, Felder, Konstruktor, Methoden, new, hat-Beziehung</p>
   </div>
   <div id="tabs"></div>
@@ -214,7 +218,7 @@ function renderCode(lines, hl) {
     d.id = 'code-' + i; box.appendChild(d);
   });
 }
-function setHl(hl) { document.querySelectorAll('.cl').forEach((d, i) => { d.classList.toggle('hl', hl.includes(i)); if (!hl.includes(i)) d.classList.remove('blink'); }); }
+function setHl(hl) { document.querySelectorAll('.cl').forEach((d, i) => { d.classList.toggle('hl', hl.includes(i)); if (!hl.includes(i)) d.classList.remove('blink'); }); const f = document.getElementById('code-' + Math.min(...hl)); if (f && hl.length) f.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
 // Schleifenkopf blinkt, wenn die Schleife (weiter)laeuft
 function blink(i) { const d = $('code-' + i); if (!d) return; d.classList.add('hl'); d.classList.remove('blink'); void d.offsetWidth; d.classList.add('blink'); }
 
@@ -357,12 +361,20 @@ function redraw(sc) {
     const [x1, y1] = anchor(a.getBoundingClientRect(), opts.from || 'bottom', base);
     const [x2, y2] = anchor(b.getBoundingClientRect(), opts.to || 'center', base);
     const g = document.createElementNS(SVGNS, 'g'); g.setAttribute('class', 'ln'); g.style.color = opts.color || 'var(--accent)';
-    const l = document.createElementNS(SVGNS, 'line');
-    l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+    let l, lx = (x1 + x2) / 2 + 6, ly = (y1 + y2) / 2 - 6;
+    if (opts.curve) {   // Bogen nach unten, damit keine Schrift überdeckt wird
+      const cy = Math.max(y1, y2) + opts.curve;
+      l = document.createElementNS(SVGNS, 'path');
+      l.setAttribute('d', `M ${x1} ${y1} Q ${(x1 + x2) / 2} ${cy} ${x2} ${y2}`); l.setAttribute('fill', 'none');
+      lx = (x1 + x2) / 2; ly = Math.max(y1, y2) + opts.curve / 2 + 16;
+    } else {
+      l = document.createElementNS(SVGNS, 'line');
+      l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+    }
     l.setAttribute('stroke', 'currentColor'); l.setAttribute('stroke-width', '2.5'); l.setAttribute('marker-end', 'url(#ah)');
     if (opts.dash) l.setAttribute('stroke-dasharray', '6 5');
     g.appendChild(l);
-    if (opts.label) { const t = document.createElementNS(SVGNS, 'text'); t.setAttribute('x', (x1 + x2) / 2 + 6); t.setAttribute('y', (y1 + y2) / 2 - 6); t.setAttribute('fill', 'currentColor'); t.setAttribute('font-size', '13'); t.setAttribute('font-family', 'Fira Code, monospace'); t.textContent = opts.label; g.appendChild(t); }
+    if (opts.label) { const t = document.createElementNS(SVGNS, 'text'); t.setAttribute('x', lx); t.setAttribute('y', ly); if (opts.curve) t.setAttribute('text-anchor', 'middle'); t.setAttribute('stroke', '#020617'); t.setAttribute('stroke-width', '4'); t.setAttribute('paint-order', 'stroke'); t.setAttribute('font-weight', '700'); t.setAttribute('fill', 'currentColor'); t.setAttribute('font-size', '13'); t.setAttribute('font-family', 'Fira Code, monospace'); t.textContent = opts.label; g.appendChild(t); }
     sc._svg.appendChild(g);
   });
 }
@@ -425,12 +437,10 @@ const codeHat = [
   'paul.Bewegen("O");',
   'willi.Nachmachen();',
   '',
-  '// in der Klasse Hamster:',
-  'public void Nachmachen()',
-  '{',
-  '    Bewegen(freund.richtung);',
-  '}'
-];
+  '// ---------- Hamster.cs (eigene Datei) ----------'
+].concat(codeKlasse);
+const OFF = 7;   // ab dieser Zeile steht die Klasse
+const HL_NACH = [25, 26, 27, 28].map(i => i + OFF), HL_BEW = [18, 19, 20, 21, 22, 23].map(i => i + OFF), HL_NACH_CALL = 27 + OFF;
 const codeMain = [
   'string[] richtungen = { "N", "O", "S", "W" };',
   'Random generator = new Random();',
@@ -464,9 +474,9 @@ const codeFehler = [
 ];
 
 // ===================== Schritte =====================
-const chapters = ['Teile eines Programms', 'Objekt vs. Klasse', 'Klasse', 'Mitglieder', 'new', 'Punkt', 'hat-Beziehung', 'Diagramme', 'Alles zusammen'];
+const ALL_CHAPTERS = ['Teile eines Programms', 'Objekt vs. Klasse', 'Klasse', 'Mitglieder', 'new', 'Punkt', 'hat-Beziehung', 'Diagramme', 'Alles zusammen'];
 const N = 8;
-const steps = [
+const ALL_STEPS = [
   // ---------- 0: Teile ----------
   { ch: 0, title: 'Was passiert hier?', code: ['// Noch kein Code -', '// zuerst nur zuschauen 👀'], hl: [],
     text: '<p>Ein Hamster 🐹 läuft rauf, rauf, runter, runter, rechts, links. Ein zweiter Hamster 🐭 macht <b>jeden Schritt nach</b>.</p><p><b>Frage:</b> Aus welchen <b>Teilen</b> besteht dieses Programm? Was <b>haben</b> die Teile, was <b>können</b> sie?</p>',
@@ -478,7 +488,7 @@ const steps = [
       every(700, () => { const d = MUSTER[i % MUSTER.length]; p = move(p, d, N); w = move(w, d, N); i++; draw(); });
     } },
   { ch: 0, title: 'Dinge in meiner Welt, Zustand, Verhalten', code: [], hl: [],
-    text: '<p>Weiter ▶ sortiert die Begriffe aus dem Hamster-Programm in drei Kisten:</p><ul><li><b>Dinge in meiner Welt</b> – was gibt es?</li><li><b>Zustand</b> – was <b>hat</b> ein Ding?</li><li><b>Verhalten</b> – was <b>kann</b> ein Ding?</li></ul><p>Danach bekommen die Kisten ihre <b>Fachbegriffe</b>.</p>',
+    text: '<p>Weiter ▶ sortiert die Begriffe aus dem Hamster-Programm in drei Kisten:</p><ul><li><b>Dinge in meiner Welt</b> – was gibt es?</li><li><b>Zustand</b> – was <b>hat</b> ein Ding?</li><li><b>Verhalten</b> – was <b>kann</b> ein Ding?</li></ul><p>Danach bekommen die Kisten ihre <b>Fachbegriffe</b>, die Felder und Methoden wandern in die <b>Objekte</b> – und willi lernt paul kennen.</p>',
     render(st) {
       const words = [
         ['Hamster', 'o', 'paul, willi'], ['Position', 'z', 'position'], ['Darstellung', 'z', 'darstellung'], ['Richtung', 'z', 'richtung'],
@@ -491,30 +501,27 @@ const steps = [
       [['o', '🌍 Dinge in meiner Welt', 'var(--accent)'], ['z', '📦 Zustand (hat)', 'var(--x)'], ['v', '⚙️ Verhalten (kann)', 'var(--ok)']].forEach(([k, t, col]) => {
         const b = el('div', 'bucket'); b.style.borderColor = col; b.innerHTML = `<div class="bh" id="bkh-${k}" style="color:${col}">${t}</div>`; b.id = 'bk-' + k; boxes.appendChild(b);
       });
-      const top = classBox({ id: 'c0' }); top.style.visibility = 'hidden';
-      const wrap = el('div', 'col'); wrap.appendChild(top); wrap.appendChild(pool); wrap.appendChild(boxes); sc.appendChild(wrap); st.appendChild(sc);
+      const wrap = el('div', 'col'); wrap.appendChild(pool); wrap.appendChild(boxes); sc.appendChild(wrap); st.appendChild(sc);
       const acts = words.map(([, k], i) => () => { const c = $('wd-' + i); c.classList.remove('pop'); void c.offsetWidth; $('bk-' + k).appendChild(c); c.classList.add('pop'); });
       acts.push(() => {   // Fachbegriffe
         $('bkh-o').innerHTML = '🧩 Objekte'; $('bkh-z').innerHTML = '📦 Felder'; $('bkh-v').innerHTML = '⚙️ Methoden';
         words.forEach(([, , code], i) => { const c = $('wd-' + i); c.innerHTML = code; c.classList.add('mono'); c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); });
         $('wd-0').innerHTML = 'paul';
         const wi = el('div', 'pill mono pop', 'willi'); wi.id = 'wd-0b'; $('bk-o').appendChild(wi);
-        renderCode(codeKlasse, []);
       });
-      acts.push(() => {   // Konstruktor
-        const c = el('div', 'pill mono pop konstr', 'Hamster(start, darstellung, freund)<br><small>Konstruktor</small>'); c.id = 'wd-k';
-        $('bk-v').insertBefore(c, $('bk-v').children[1]); setHl(HL_KONSTR);
+      acts.push(() => {   // Felder und Methoden sind Teile jedes Objekts
+        const bo = $('bk-o'); $('wd-0').remove(); $('wd-0b').remove();
+        const inner = el('div', 'row'); inner.style.gap = '14px'; inner.style.alignItems = 'flex-start'; inner.style.marginBottom = '58px';
+        inner.appendChild(objCard('o0', 'paul', [['position', '(0, 0)'], ['darstellung', '"🐹"'], ['richtung', 'null'], ['anzahlSchritte', '0'], ['freund', 'null']], { pop: true, small: true, methods: METHODEN }));
+        inner.appendChild(objCard('o1', 'willi', [['position', '(1, 0)'], ['darstellung', '"🐭"'], ['richtung', 'null'], ['anzahlSchritte', '0'], ['freund', 'null']], { pop: true, small: true, methods: METHODEN }));
+        bo.appendChild(inner);
+        bo.appendChild(el('div', 'label fade', 'Felder und Methoden sind Teile <b>jedes</b> Objekts'));
+        $('bk-z').style.opacity = '.45'; $('bk-v').style.opacity = '.45';
       });
-      acts.push(() => {   // Klasse gibt vor
-        const cb = $('c0'); cb.style.visibility = 'visible'; cb.classList.add('pop');
-        later(500, () => { link(sc, 'c0', 'bk-z', { from: 'bottom', to: 'top', color: 'var(--x)', label: 'gibt vor' }); link(sc, 'c0', 'bk-v', { from: 'bottom', to: 'top', color: 'var(--ok)', label: 'gibt vor' }); });
-        setHl([0, ...HL_FELDER, ...HL_KONSTR, ...HL_METH]);
-      });
-      acts.push(() => {   // freund = hat-Beziehung
-        const f = $('wd-5'); f.classList.add('hat'); f.innerHTML = 'freund<br><small>hat-Beziehung → Hamster</small>';
-        link(sc, 'wd-5', 'wd-0', { from: 'left', to: 'right', color: 'var(--x)', dash: true, label: 'hat' });
-        link(sc, 'wd-5', 'wd-0b', { from: 'left', to: 'right', color: 'var(--x)', dash: true });
-        setHl([7]);
+      acts.push(() => {   // Objekte kennen sich: freund = hat-Beziehung
+        const f = $('wd-5'); f.classList.add('hat'); f.innerHTML = 'freund<br><small>hat-Beziehung</small>';
+        setField('o1', 'freund', '● paul'); $('o1-freund').classList.add('read');
+        later(400, () => link(sc, 'o1', 'o0', { from: 'bottom', to: 'bottom', color: 'var(--x)', dash: true, curve: 60, label: 'kennt (freund)' }));
       });
       return seq(acts, 900);
     } },
@@ -686,8 +693,8 @@ const steps = [
       c.appendChild(r); c.appendChild(konsole('out')); st.appendChild(c);
       const acts = [
         () => { setHl([3]); setField('p', 'richtung', '"O"'); setField('p', 'anzahlSchritte', '1'); print('out', '🐹 Schritt 1: geht nach O'); },
-        () => { setHl([4, 9]); $('af').classList.add('pulse'); $('p-richtung').classList.add('read'); },
-        () => { setHl([9]); $('af').classList.remove('pulse'); $('p-richtung').classList.remove('read'); setField('w', 'richtung', '"O"'); setField('w', 'anzahlSchritte', '1'); print('out', '🐭 Schritt 1: geht nach O'); }
+        () => { setHl([4, ...HL_NACH]); $('af').classList.add('pulse'); $('p-richtung').classList.add('read'); },
+        () => { setHl([HL_NACH_CALL, ...HL_BEW]); $('af').classList.remove('pulse'); $('p-richtung').classList.remove('read'); setField('w', 'richtung', '"O"'); setField('w', 'anzahlSchritte', '1'); print('out', '🐭 Schritt 1: geht nach O'); }
       ];
       return stepper(acts.length, i => acts[i](), 1300);
     } },
@@ -739,6 +746,94 @@ const steps = [
     } }
 ];
 
+
+// ===================== Ablauf dieser Stunde (L04.1) =====================
+// Die Folien aus L04.1 werden wiederverwendet und nach dem Stundenablauf neu angeordnet.
+const ZETTEL = [
+  ['Buch', 'k'], ['"Der kleine Hobbit"', 'o'], ['titel', 'f'], ['seiten', 'f'], ['Ausleihen()', 'm'], ['Zurueckgeben()', 'm'],
+  ['Leser', 'k'], ['Anna', 'o'], ['Ben', 'o'], ['name', 'f'], ['Suchen()', 'm'], ['ausgeliehenVon', 'f']
+];
+const SPALTEN = [['k', 'Klasse', 'Bauplan', 'var(--accent)'], ['o', 'Objekt', 'Individuum', '#a78bfa'], ['f', 'Feld', 'Zustand', 'var(--x)'], ['m', 'Methode', 'Verhalten', 'var(--ok)']];
+function zettelTabelle(id) {
+  const t = el('div', 'ztab'); t.id = id;
+  SPALTEN.forEach(([k, n, s, col]) => {
+    const c = el('div', 'zcol'); c.style.borderColor = col; c.id = id + '-' + k;
+    c.innerHTML = `<div class="zh" style="color:${col}">${n}<small>${s}</small></div>`;
+    t.appendChild(c);
+  });
+  return t;
+}
+const pick = t => ALL_STEPS.find(s => s.title === t);
+const NEU = {
+  ziele: { title: 'Heute lernst du …', code: [], hl: [],
+    text: '<p>Am Ende der Stunde kannst du …</p>',
+    render(st) {
+      const c = el('div', 'col'); c.style.alignItems = 'flex-start'; c.style.gap = '12px';
+      ['Klasse und Objekt unterscheiden', 'eine Klasse mit Feldern und Konstruktor schreiben', 'mit new ein Objekt erzeugen', 'eine hat-Beziehung umsetzen', 'Methoden eines Objekts aufrufen']
+        .forEach((z, i) => { const p = el('div', 'pill pop', `✅ ${z}`); p.style.animationDelay = (i * .25) + 's'; p.style.fontSize = '20px'; c.appendChild(p); });
+      const a = el('div', 'label fade', "Ablauf: Fishbowl (5') → Theorie (10') → Zettelübung (5') → gemeinsam programmieren (20') → Ausblick (5')"); a.style.marginTop = '12px'; c.appendChild(a);
+      st.appendChild(c);
+    } },
+  fishbowl: { title: 'So funktioniert die Fishbowl', code: [], hl: [],
+    text: '<p><b>Leitfrage:</b> Aus welchen Teilen besteht das Hamster-Programm? Was <b>hat</b> jedes Teil, was <b>kann</b> es?</p>',
+    render(st) {
+      const r = el('div', 'row'); r.style.gap = '40px'; r.style.alignItems = 'center';
+      const sv = document.createElementNS(SVGNS, 'svg'); sv.setAttribute('width', '260'); sv.setAttribute('height', '260');
+      let s = '<circle cx="130" cy="130" r="120" fill="none" stroke="#334155" stroke-width="2" stroke-dasharray="6 6"/>';
+      for (let i = 0; i < 10; i++) { const w = i / 10 * 2 * Math.PI; s += `<circle cx="${130 + 112 * Math.cos(w)}" cy="${130 + 112 * Math.sin(w)}" r="11" fill="#1e293b" stroke="#94a3b8"/>`; }
+      for (let i = 0; i < 4; i++) { const w = i / 4 * 2 * Math.PI + .4; const frei = i === 3; s += `<circle cx="${130 + 45 * Math.cos(w)}" cy="${130 + 45 * Math.sin(w)}" r="15" fill="${frei ? 'none' : '#0284c7'}" stroke="${frei ? '#f59e0b' : '#38bdf8'}" stroke-width="3" ${frei ? 'stroke-dasharray="4 3"' : ''}/>`; }
+      s += '<text x="130" y="135" text-anchor="middle" fill="#94a3b8" font-size="12">Innenkreis</text>';
+      sv.innerHTML = s; r.appendChild(sv);
+      const c = el('div', 'col'); c.style.alignItems = 'flex-start'; c.style.gap = '10px';
+      [['🗣️', 'Nur der Innenkreis (4 Stühle) spricht.'], ['🪑', 'Ein Stuhl bleibt frei: Wer aus dem Publikum etwas sagen will, setzt sich dorthin.'], ['👀', 'Der Außenkreis beobachtet.'], ['🤖', 'Die Begriffe tippe ich ein, die KI ordnet sie zu.']]
+        .forEach(([i, t], k) => { const p = el('div', 'pill pop', `${i} ${t}`); p.style.animationDelay = (k * .3) + 's'; p.style.fontSize = '17px'; c.appendChild(p); });
+      r.appendChild(c); st.appendChild(r);
+    } },
+  csharp: { title: 'So sieht das in C# aus', code: codeKlasse, hl: [],
+    text: '<p><b>Zuerst nur anschauen.</b> Welche Wörter erkennt ihr wieder? Wo stehen position, richtung, freund? Wo steht Bewegen?</p>',
+    render(st) {
+      const q = el('div', 'col fade'); q.innerHTML = '<div style="font-size:64px">🤔</div><div class="label" style="font-size:20px">Was erkennt ihr wieder?</div>';
+      st.appendChild(q);
+    } },
+  zettel: { small: true, title: 'Zettelübung: Objekt, Klasse, Feld oder Methode?', code: [], hl: [],
+    text: '<p><b>Mit deiner Sitznachbarin oder deinem Sitznachbarn:</b> Ordnet jeden Begriff in <b>genau eine</b> Spalte ein. Welcher Begriff ist eine hat-Beziehung?</p>',
+    render(st) {
+      const c = el('div', 'col'); c.style.gap = '16px'; c.style.width = '100%';
+      c.appendChild(el('div', 'story', 'In der Schulbibliothek gibt es viele Bücher. Jedes Buch hat einen Titel, eine Seitenanzahl und kann ausgeliehen und zurückgegeben werden. Das Buch „Der kleine Hobbit“ hat 320 Seiten und ist gerade von Anna ausgeliehen. Jede Leserin und jeder Leser hat einen Namen und kann Bücher suchen. Anna und Ben sind Leser.'));
+      const pool = el('div', 'row'); pool.style.flexWrap = 'wrap'; pool.style.justifyContent = 'center';
+      ZETTEL.forEach(([w], i) => { const p = el('div', 'pill mono pop', w); p.style.animationDelay = (i * .08) + 's'; pool.appendChild(p); });
+      c.appendChild(pool); c.appendChild(zettelTabelle('zt'));
+      st.appendChild(c);
+    } },
+  loesung: { small: true, title: 'Auflösung – bitte mitschreiben', code: [], hl: [],
+    text: '<p>Weiter ▶ löst Spalte für Spalte auf. <b>Vergleicht mit eurer Lösung und schreibt die richtigen Begriffe mit.</b></p>',
+    render(st) {
+      const c = el('div', 'col'); c.style.gap = '14px'; c.style.width = '100%';
+      c.appendChild(zettelTabelle('zl')); st.appendChild(c);
+      const acts = SPALTEN.map(([k]) => () => ZETTEL.filter(z => z[1] === k).forEach(([w], i) => later(i * 250, () => { const p = el('div', 'pill mono pop', w); if (w === 'ausgeliehenVon') { p.classList.add('hat'); p.innerHTML = 'ausgeliehenVon<br><small>hat-Beziehung → Leser</small>'; } $('zl-' + k).appendChild(p); })));
+      acts.push(() => c.appendChild(el('div', 'sticker pop', '<b>Tipp:</b> allgemein → Klasse · konkret mit Namen → Objekt · Hauptwort, das ein Ding <i>hat</i> → Feld · Zeitwort → Methode')));
+      return seq(acts, 1500);
+    } },
+  ausblick: { title: 'Ausblick: Wie geht es weiter?', code: [], hl: [],
+    text: '<p>Heute haben wir ein Objekt mit Feldern und Konstruktor erzeugt, eine hat-Beziehung gebaut und Methoden aufgerufen.</p>',
+    render(st) {
+      const c = el('div', 'col'); c.style.alignItems = 'flex-start'; c.style.gap = '14px';
+      [['✅ Heute', 'Klasse und Objekt, Felder, Konstruktor, Methoden, hat-Beziehung'], ['📅 In den nächsten Wochen', '2D-Arrays: die Hamster bekommen eine Wiese'], ['📅 In den nächsten Wochen', 'Zufallszahlen: die Hamster laufen zufällig herum']]
+        .forEach(([t, x], i) => { const p = el('div', 'pill pop', `<b>${t}:</b> ${x}`); p.style.animationDelay = (i * .3) + 's'; p.style.fontSize = '18px'; c.appendChild(p); });
+      st.appendChild(c);
+    } }
+};
+const PLAN = [
+  ["Ankommen (5')", [pick('Was passiert hier?'), NEU.ziele, NEU.fishbowl]],
+  ["Theorie (10')", [pick('Dinge in meiner Welt, Zustand, Verhalten'), pick('Ein Objekt: Zustand + Verhalten'), pick('Die Klasse gibt vor, was Objekte dürfen'), pick('Objekt und Klasse auf einen Blick'), NEU.csharp, pick('Felder: Typ + Name'), pick('Konstruktor: der Startzustand'), pick('Methoden: das Verhalten'), pick('new: aus dem Bauplan wird ein Objekt'), pick('Zweites Objekt: willi'), pick('hat-Beziehung: willi hat einen Freund'), pick('Nachmachen: über die Beziehung zugreifen')]],
+  ["Zettelübung (5')", [NEU.zettel, NEU.loesung]],
+  ["Live-Coding (20')", [Object.assign({}, pick('paul geht, willi macht nach'), { code: codeMain.concat(['', '// ---------- Hamster.cs (eigene Datei) ----------'], codeKlasse) })]],
+  ["Ausblick (5')", [NEU.ausblick]]
+];
+const chapters = PLAN.map(p => p[0]);
+const steps = [];
+PLAN.forEach(([, list], ch) => list.forEach(s => { if (!s) throw new Error('Folie fehlt'); steps.push(Object.assign({}, s, { ch })); }));
+
 // ===================== Navigation =====================
 let cur = 0, ctrl = null;
 function stepper(n, step, delay) {
@@ -767,6 +862,8 @@ function show(i) {
   renderCode(s.code, s.hl);
   const st = $('stage'); st.innerHTML = '';
   ctrl = s.render(st) || null;
+  const noCode = !(s.code || []).length;
+  if (typeof applyLayout === 'function' && noCode !== lastNoCode) { lastNoCode = noCode; applyLayout(); }
   $("autoBtn").disabled = !(ctrl && ctrl.auto);
 }
 function go(d) { if (d > 0 && ctrl && ctrl.next && ctrl.next()) return; show(cur + d); }
@@ -799,15 +896,17 @@ dragger($('sh'), e => {
   userSplit = true;
 });
 // ===================== Presenter-Modus und Ansicht =====================
-let presenter = false, view = 0;   // 0 = Code + Animation, 1 = nur Animation, 2 = nur Code
+let presenter = false, view = 0, lastNoCode = null;   // 0 = Code + Animation, 1 = nur Animation, 2 = nur Code
 function applyLayout() {
   const L = $('left'), R = $('right'), sp = $('stage').parentElement, tp = $('text').parentElement;
   if (presenter) { L.style.width = '30%'; R.style.width = '70%'; R.style.flex = 'none'; sp.style.flex = '1'; }
   else { L.style.width = '40%'; R.style.width = '60%'; R.style.flex = ''; sp.style.flex = '1.9'; tp.style.flex = steps[cur].small ? '0.35' : '1'; userSplit = false; }
   tp.style.display = presenter ? 'none' : ''; $('sh').style.display = presenter ? 'none' : '';
-  L.style.display = view === 1 ? 'none' : ''; $('sv').style.display = view === 0 ? '' : 'none'; R.style.display = view === 2 ? 'none' : '';
-  if (view === 1) { R.style.width = '100%'; R.style.flex = '1'; }
-  if (view === 2) { L.style.width = '100%'; }
+  // Folien ohne Code: Code-Bereich automatisch ausblenden
+  const v = (view === 0 && !(steps[cur].code || []).length) ? 1 : view;
+  L.style.display = v === 1 ? 'none' : ''; $('sv').style.display = v === 0 ? '' : 'none'; R.style.display = v === 2 ? 'none' : '';
+  if (v === 1) { R.style.width = '100%'; R.style.flex = '1'; }
+  if (v === 2) { L.style.width = '100%'; }
   $('presBtn').classList.toggle('on', presenter); [0, 1, 2].forEach(k => $('vb' + k).classList.toggle('on', view === k));
   setTimeout(() => document.querySelectorAll('.scene').forEach(redraw), 50);
 }

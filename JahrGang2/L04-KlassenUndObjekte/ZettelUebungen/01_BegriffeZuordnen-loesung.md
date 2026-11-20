@@ -5,7 +5,7 @@ Musterlösung
 **Datum:** 
 _ _ _ _ _ _ _ _ _ _ _ _ 
 
-**Übung 1: Ordne zu**
+## Übung 1: Ordne zu
 
 | ``Klasse`` (Bauplan) | ``Objekt`` (Individuum) | ``Feld`` (Zustand) | ``Methode`` (Verhalten) |
 | :--- | :--- | :--- | :--- |
@@ -16,7 +16,7 @@ _ _ _ _ _ _ _ _ _ _ _ _
 
 >Tipp: **Allgemein** (gilt für alle) → ``Klasse``. **Konkret** mit Namen oder Wert → ``Objekt``. **Hauptwort**, das ein Ding *hat* → ``Feld``. **Zeitwort** → ``Methode``.
 
-**Übung 2: Kurz gefragt**
+## Übung 2: Kurz gefragt
 
 #### 1. - hat-Beziehung
 ``ausgeliehenVon``: Ein ``Buch`` **hat** einen ``Leser``, der es ausgeliehen hat. Das ``Feld`` hat den ``Typ`` ``Leser`` – genau wie beim Hamster ``freund`` den ``Typ`` ``Hamster`` hat.

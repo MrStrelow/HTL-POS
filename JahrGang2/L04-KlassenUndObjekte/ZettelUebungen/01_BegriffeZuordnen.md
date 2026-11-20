@@ -7,9 +7,9 @@ _ _ _ _ _ _ _ _ _ _ _ _
 
 **Unsere Welt: eine Bibliothek**
 
-In der Schulbibliothek gibt es viele Bücher. Jedes Buch hat einen Titel, eine Seitenanzahl und kann ausgeliehen und zurückgegeben werden. Das Buch *„Der kleine Hobbit“* hat 320 Seiten und ist gerade von *Anna* ausgeliehen. Jede Leserin und jeder Leser hat einen Namen und kann Bücher suchen. *Anna* und *Ben* sind Leser*innen.
+In der Schulbibliothek gibt es viele Bücher. Jedes Buch hat einen Titel, eine Seitenanzahl und kann ausgeliehen und zurückgegeben werden. Das Buch *„Der kleine Hobbit“* hat 320 Seiten und ist gerade von *Anna* ausgeliehen. Jede Leserin und jeder Leser hat einen Namen und kann Bücher suchen. *Anna* und *Ben* sind Leser.
 
-**Übung 1: Ordne zu**
+## Übung 1: Ordne zu
 
 Trage jeden Begriff in **genau eine** Spalte ein.
 
@@ -29,7 +29,8 @@ Trage jeden Begriff in **genau eine** Spalte ein.
 <tr><td style="height:3em; border:1px solid;"></td><td style="border:1px solid;"></td><td style="border:1px solid;"></td><td style="border:1px solid;"></td></tr>
 </table>
 
-**Übung 2: Kurz gefragt**
+
+## Übung 2: Kurz gefragt
 
 #### 1. - hat-Beziehung
 Welcher Begriff ist eine **hat-Beziehung**? Zwischen welchen ``Klassen``?

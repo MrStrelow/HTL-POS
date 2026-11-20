@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hamsterwiese – Schritt für Schritt</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020617; --panel: #0f172a; --line: #1e293b; --muted: #64748b; --text: #f1f5f9;
+    --accent: #38bdf8; --ok: #34d399; --bad: #fb7185; --warn: #fbbf24; --pkg: #f59e0b; --wall: #475569;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+  .mono { font-family: 'Fira Code', monospace; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 12px 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 20px; color: var(--accent); }
+  header small { color: var(--muted); }
+  nav { display: flex; flex-wrap: wrap; gap: 6px; }
+  nav button { background: #111827; color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; font: inherit; font-size: 13px; }
+  nav button.active { color: var(--accent); border-color: var(--accent); background: rgba(56,189,248,.1); }
+  main { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 20px 16px; gap: 16px; }
+  .title { text-align: center; max-width: 900px; }
+  .title h2 { margin: 0 0 6px; font-size: 22px; }
+  .title p { margin: 0; color: #cbd5e1; }
+  .stage { width: 100%; max-width: 1000px; min-height: 380px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; overflow-x: auto; }
+  .caption { min-height: 48px; max-width: 900px; text-align: center; font-size: 17px; padding: 10px 16px; border-radius: 10px; background: rgba(56,189,248,.08); border: 1px solid rgba(56,189,248,.3); }
+  .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .controls button { background: #1e293b; color: var(--text); border: 1px solid #334155; border-radius: 8px; padding: 8px 14px; cursor: pointer; font: inherit; }
+  .controls button:hover { border-color: var(--accent); }
+  .controls .counter { color: var(--muted); font-size: 14px; min-width: 70px; text-align: center; }
+  .speed { color: var(--muted); font-size: 13px; display: flex; gap: 6px; align-items: center; }
+
+  .row { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .ch { width: 30px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: #111827; border: 1.5px solid #334155; font-family: 'Fira Code', monospace; font-size: 18px; transition: all .35s ease; position: relative; }
+  .ch .idx { position: absolute; bottom: -16px; font-size: 10px; color: var(--muted); }
+  .ch.space { color: transparent; background: repeating-linear-gradient(45deg, #111827, #111827 4px, #1f2937 4px, #1f2937 8px); }
+  .ch.hl { border-color: var(--warn); background: rgba(251,191,36,.18); transform: translateY(-4px); }
+  .ch.gone { opacity: .15; transform: scale(.8); }
+  .ch.ok { border-color: var(--ok); background: rgba(52,211,153,.15); }
+  .ch.bad { border-color: var(--bad); background: rgba(251,113,133,.15); }
+  .ch.new { animation: pop .5s ease; border-color: var(--ok); background: rgba(52,211,153,.2); }
+  .chip { padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--accent); background: rgba(56,189,248,.12); font-family: 'Fira Code', monospace; font-size: 18px; animation: pop .45s ease; }
+  .chip.ok { border-color: var(--ok); background: rgba(52,211,153,.15); }
+  .chip.bad { border-color: var(--bad); background: rgba(251,113,133,.15); }
+  .chip.dim { opacity: .35; }
+  .badge { padding: 6px 12px; border-radius: 8px; font-weight: 700; animation: pop .45s ease; }
+  .badge.ok { color: var(--ok); border: 1.5px solid var(--ok); background: rgba(52,211,153,.12); }
+  .badge.bad { color: var(--bad); border: 1.5px solid var(--bad); background: rgba(251,113,133,.12); }
+  .label { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+  .arrow { color: var(--muted); font-size: 22px; }
+
+  .grid { display: grid; gap: 3px; }
+  .cell { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 18px; background: #111827; border: 1px solid #1f2937; transition: all .3s ease; position: relative; }
+  .cell.wall { background: var(--wall); border-color: #64748b; }
+  .cell.pkg::after { content: "📦"; }
+  .cell.goal { background: rgba(52,211,153,.15); border-color: var(--ok); }
+  .cell.goal::after { content: "🏁"; font-size: 15px; }
+  .cell.probe-ok { outline: 3px solid var(--ok); z-index: 2; }
+  .cell.probe-bad { outline: 3px solid var(--bad); z-index: 2; }
+  .cell.trail { background: rgba(56,189,248,.12); }
+  .robot { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; transition: transform .35s ease; z-index: 3; }
+  .robot .dir { position: absolute; font-size: 14px; color: var(--accent); font-weight: 700; }
+  .carry { position: absolute; top: -8px; right: -6px; font-size: 13px; }
+
+  .file { border: 1px solid #334155; border-radius: 10px; background: #0b1222; padding: 10px 14px; font-family: 'Fira Code', monospace; font-size: 13px; line-height: 1.55; min-width: 260px; }
+  .file .ln { color: var(--muted); display: inline-block; width: 24px; }
+  .file .cur { background: rgba(56,189,248,.15); border-radius: 4px; }
+  .file .err { color: var(--bad); }
+  .file .skip { color: #475569; }
+  .arr { display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; max-width: 900px; }
+  .arr .slot { min-width: 46px; height: 34px; padding: 0 6px; border: 1.5px solid #334155; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-family: 'Fira Code', monospace; font-size: 11px; color: #cbd5e1; animation: pop .35s ease; }
+  .cols { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; align-items: flex-start; }
+  .compass { position: relative; width: 220px; height: 220px; border-radius: 50%; border: 2px dashed #334155; }
+  .compass .d { position: absolute; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; background: #111827; border: 2px solid #334155; transition: all .3s; }
+  .compass .d.on { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,.18); transform: scale(1.15); }
+  .compass .bot { position: absolute; left: 50%; top: 50%; width: 60px; height: 60px; margin: -30px; display: flex; align-items: center; justify-content: center; font-size: 34px; transition: transform .5s ease; }
+  .compass .needle { position: absolute; left: 50%; top: 50%; width: 4px; height: 70px; margin-left: -2px; margin-top: -70px; background: var(--accent); border-radius: 2px; transform-origin: 50% 100%; transition: transform .5s ease; }
+  .log { font-family: 'Fira Code', monospace; font-size: 12px; background: #0b1222; border: 1px solid #334155; border-radius: 10px; padding: 8px 12px; min-width: 300px; min-height: 60px; white-space: pre; }
+  .log .e { color: var(--bad); }
+  .log .p { color: #cbd5e1; }
+  .log .new { animation: flash 1s ease; }
+  .stat { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  .stat div { background: #111827; border: 1px solid #334155; border-radius: 8px; padding: 6px 12px; }
+  .cell.route { background: rgba(56,189,248,.25); border-color: var(--accent); color: var(--accent); }
+  .cell.hit { background: rgba(251,113,133,.35); border-color: var(--bad); color: var(--bad); font-weight: 700; }
+  .cell { font-family: 'Fira Code', monospace; font-size: 14px; }
+  @keyframes pop { 0% { transform: scale(.6); opacity: 0; } 70% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes flash { 0% { background: rgba(251,191,36,.35); } 100% { background: transparent; } }
+  @media (max-width: 600px) { .cell { width: 24px; height: 24px; font-size: 13px; } .ch { width: 22px; height: 30px; font-size: 14px; } }
+  .stage { max-width: 1320px !important; align-items: stretch !important; }
+  .trace { display: flex; gap: 22px; flex-wrap: wrap; width: 100%; align-items: flex-start; justify-content: center; }
+  .tview { flex: 1 1 460px; display: flex; flex-direction: column; align-items: center; gap: 14px; min-width: 0; }
+  .tside { flex: 0 1 430px; min-width: 300px; display: flex; flex-direction: column; gap: 6px; }
+  .sig { font-family: 'Fira Code', monospace; font-size: 14px; color: var(--accent); font-weight: 600; }
+  .sig .call { display: block; color: #cbd5e1; font-weight: 400; font-size: 12px; margin-top: 2px; }
+  .steps { margin: 0 0 8px; padding-left: 26px; font-size: 13.5px; }
+  .steps li { padding: 4px 8px; margin: 2px 0; border-radius: 6px; color: #94a3b8; transition: all .25s; }
+  .steps li.cur { background: rgba(56,189,248,.16); color: #fff; outline: 1.5px solid var(--accent); }
+  .steps li.ok::after { content: "  ✔"; color: var(--ok); font-weight: 700; }
+  .steps li.bad::after { content: "  ✘"; color: var(--bad); font-weight: 700; }
+  .vars { border-collapse: collapse; font-family: 'Fira Code', monospace; font-size: 12.5px; width: 100%; }
+  .vars td { border-bottom: 1px solid #1e293b; padding: 4px 8px; vertical-align: top; word-break: break-all; }
+  .vars td:first-child { color: #94a3b8; width: 38%; word-break: normal; }
+  .vars tr.chg td { background: rgba(251,191,36,.16); }
+  .vars tr.chg td:first-child { color: var(--warn); }
+  .v-str { color: #fde68a; } .v-num { color: #93c5fd; } .v-raw { color: #c4b5fd; } .v-none { color: #475569; }
+  .v-true { color: var(--ok); font-weight: 700; } .v-false { color: var(--bad); font-weight: 700; }
+  .box { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .file.small { font-size: 11px; line-height: 1.45; min-width: 0; max-width: 100%; overflow-x: auto; }
+  .file .cur { outline: 1px solid var(--accent); }
+  .ch.sel { border-color: var(--accent); background: rgba(56,189,248,.22); }
+  .obj { border: 1.5px solid #334155; border-radius: 10px; background: #0b1222; min-width: 240px; animation: pop .4s ease; }
+  .obj.ok { border-color: var(--ok); } .obj.bad { border-color: var(--bad); } .obj.new { border-style: dashed; border-color: var(--warn); }
+  .obj-h { padding: 6px 10px; border-bottom: 1px solid #334155; font-family: 'Fira Code', monospace; font-weight: 600; color: var(--accent); text-decoration: underline; }
+  .cell.ghost { background: transparent; border: 1px dashed #334155; color: var(--bad); font-weight: 700; }
+  .cell { font-size: 20px !important; }
+  .caption code, .steps code { font-family: 'Fira Code', monospace; background: #1e293b; padding: 0 4px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🐹 Die Hamsterwiese</h1>
+    <small>Die Musterlösung mit Klassen und Objekten Schritt für Schritt an den echten Daten</small>
+  </div>
+  <nav id="nav"></nav>
+</header>
+<main>
+  <div class="title"><h2 id="slideTitle"></h2><p id="slideText"></p></div>
+  <div class="stage" id="stage"></div>
+  <div class="caption" id="caption"></div>
+  <div class="controls">
+    <button id="btnReset" title="Von vorne">↺</button>
+    <button id="btnPrev">◀ zurück</button>
+    <span class="counter" id="counter"></span>
+    <button id="btnNext">weiter ▶</button>
+    <button id="btnPlay">▶ Abspielen</button>
+    <label class="speed">Tempo <input id="speed" type="range" min="300" max="2500" step="100" value="1400"></label>
+  </div>
+</main>
+
+<script>
+// ===================== Trace-Engine: Ablauf der Musterlösung + Variablen =====================
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const R = t => ({ t });
+function val(v) {
+  if (v === null || v === undefined) return '<span class="v-none">null</span>';
+  if (typeof v === "string") return `<span class="v-str">"${esc(v)}"</span>`;
+  if (typeof v === "boolean") return `<span class="${v ? "v-true" : "v-false"}">${v}</span>`;
+  if (typeof v === "object" && "t" in v) return `<span class="v-raw">${esc(v.t)}</span>`;
+  return `<span class="v-num">${esc(v)}</span>`;
+}
+const box = (label, inner) => `<div class="box"><div class="label">${label}</div>${inner}</div>`;
+class Trace {
+  constructor(fn, steps) { this.fn = fn; this.steps = steps; this.frames = []; this.prev = {}; }
+  call(sig) { this.sig = sig; this.prev = {}; return this; }
+  f(cur, vars, view, cap, mark = {}) {
+    const rows = Object.entries(vars).map(([k, v]) => {
+      const chg = JSON.stringify(this.prev[k]) !== JSON.stringify(v) && v !== undefined;
+      return `<tr class="${chg ? "chg" : ""}"><td>${esc(k)}</td><td>${val(v)}</td></tr>`;
+    }).join("");
+    this.prev = JSON.parse(JSON.stringify(vars));
+    const steps = this.steps.map((s, i) => `<li class="${i === cur ? "cur" : ""} ${mark[i] || ""}">${s}</li>`).join("");
+    this.frames.push({ caption: cap, html: `<div class="trace"><div class="tview">${view}</div>
+      <div class="tside"><div class="sig">${esc(this.fn)}${this.sig ? `<span class="call">${esc(this.sig)}</span>` : ""}</div>
+      <div class="label">Ablauf der Musterlösung</div><ol class="steps">${steps}</ol>
+      <div class="label">Variablen</div><table class="vars">${rows}</table></div></div>` });
+    return this;
+  }
+}
+const slideOf = (title, text, ...traces) => ({ title, text, frames: traces.flatMap(t => t.frames) });
+
+// ===================== Objekt-Karten und Wiese =====================
+function obj(name, props, chg = [], cls = "") {
+  const rows = Object.entries(props).map(([k, v]) => `<tr class="${chg.includes(k) ? "chg" : ""}"><td>${esc(k)}</td><td>${val(v)}</td></tr>`).join("");
+  return `<div class="obj ${cls}"><div class="obj-h">${esc(name)}</div><table class="vars">${rows}</table></div>`;
+}
+const objs = (...o) => `<div class="cols">${o.join("")}</div>`;
+const T = (x, y) => R(`(${x}, ${y})`);
+const ERDE = "🟫", SEED = "🌱";
+const BEET = [[2, 0], [4, 1], [1, 2], [5, 3]];
+const neuesBeet = () => BEET.map(p => ({ p: [...p], d: SEED, g: false }));
+const beschr = s => `${s.d} auf (${s.p[0]}, ${s.p[1]})${s.g ? " (gefressen)" : ""}`;
+const seedObj = (name, s, chg = [], cls = "") => obj(name + " : Seedling", { position: T(s.p[0], s.p[1]), darstellung: s.d, gefressen: s.g }, chg, cls);
+// Wiese zeichnen: probe = [x, y, "ok"|"bad"], ham = {p, d}
+function wiese(b, w, h, ham = null, probe = null, fill = 3) {
+  let html = `<div class="grid" style="grid-template-columns: repeat(${w + (probe && probe[0] >= w ? 1 : 0)}, auto)">`;
+  const extraTop = probe && probe[1] < 0;
+  if (extraTop) for (let x = 0; x < w; x++) html += `<div class="cell ghost ${x === probe[0] ? "probe-bad" : ""}">${x === probe[0] ? "?" : ""}</div>`;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let t = fill >= 1 ? ERDE : "";
+      if (fill >= 2) for (const s of b) if (!s.g && s.p[0] === x && s.p[1] === y) t = s.d;
+      if (fill >= 3 && ham && ham.p[0] === x && ham.p[1] === y) t = ham.d;
+      const pr = probe && probe[0] === x && probe[1] === y ? " probe-" + probe[2] : "";
+      html += `<div class="cell${pr}" title="(${x}, ${y})">${t}</div>`;
+    }
+    if (probe && probe[0] >= w) html += `<div class="cell ghost ${probe[1] === y ? "probe-bad" : ""}">${probe[1] === y ? "?" : ""}</div>`;
+  }
+  return html + "</div>";
+}
+const konsole = lines => `<div class="log">${lines.map((l, i) => `<span class="p ${i === lines.length - 1 ? "new" : ""}">${esc(l)}</span>`).join("\n") || " "}</div>`;
+
+// ===================== Schritt 1: Seedling =====================
+function s1() {
+  const t = new Trace('public Seedling((int x, int y) start, string darstellung = "🌱")', [
+    "<b>new</b>: Platz für ein neues Seedling-Objekt, alle Felder haben den Standardwert",
+    "Konstruktor: position = start; this.darstellung = darstellung; gefressen = false",
+    "die Variable bekommt eine <b>Referenz</b> auf das Objekt",
+    "Hauptprogramm: s2.gefressen = true",
+    "Beschreiben(): gefressen? → Text bauen"]);
+  const LEER = { p: [0, 0], d: null, g: false };
+  const A = { p: [2, 0], d: SEED, g: false }, B = { p: [4, 1], d: SEED, g: false };
+  const out = [];
+  t.call("Seedling s1 = new Seedling((2, 0));");
+  t.f(0, { s1: null, s2: null }, objs(seedObj("?", LEER, [], "new")), "<b>new</b> legt ein neues Objekt an: position = (0, 0), darstellung = null, gefressen = false.");
+  t.f(1, { start: T(2, 0), darstellung: SEED }, objs(seedObj("?", A, ["position", "darstellung"])), "Kein zweites Argument angegeben → der <b>Default-Parameter</b> \"🌱\" wird verwendet.", { 0: "ok" });
+  t.f(2, { s1: R("→ Seedling (2, 0)"), s2: null }, objs(seedObj("s1", A, [], "ok")), "<b>s1</b> zeigt jetzt auf das Objekt.", { 0: "ok", 1: "ok" });
+  t.call("Seedling s2 = new Seedling((4, 1));");
+  t.f(2, { s1: R("→ Seedling (2, 0)"), s2: R("→ Seedling (4, 1)") }, objs(seedObj("s1", A), seedObj("s2", B, ["position", "darstellung"], "ok")), "Ein zweites <b>new</b> → ein zweites, <b>eigenes</b> Objekt mit eigenen Feldern.", { 0: "ok", 1: "ok" });
+  out.push(beschr(A)); t.call("Console.WriteLine(s1.Beschreiben());");
+  t.f(4, { gefressen: false }, objs(seedObj("s1", A), seedObj("s2", B)) + box("Konsole", konsole(out)), "s1 ist nicht gefressen → <code>$\"{darstellung} auf {position}\"</code>.", { 4: "ok" });
+  out.push(beschr(B));
+  t.f(4, { gefressen: false }, objs(seedObj("s1", A), seedObj("s2", B)) + box("Konsole", konsole(out)), "Gleiche Methode, anderes Objekt → anderer Text.", { 4: "ok" });
+  B.g = true; t.call("s2.gefressen = true;");
+  t.f(3, { s1: R("→ Seedling (2, 0)"), s2: R("→ Seedling (4, 1)") }, objs(seedObj("s1", A), seedObj("s2", B, ["gefressen"])) + box("Konsole", konsole(out)), "Mit dem <b>Punkt</b> ändern wir ein Feld von <b>s2</b>. s1 hat sein <b>eigenes</b> Feld gefressen und bleibt false.", { 3: "ok" });
+  out.push(beschr(A), beschr(B)); t.call("Console.WriteLine(s1.Beschreiben()); Console.WriteLine(s2.Beschreiben());");
+  t.f(4, { "s2.gefressen": true }, objs(seedObj("s1", A), seedObj("s2", B)) + box("Konsole", konsole(out)), "Jetzt hängt Beschreiben() bei s2 \" (gefressen)\" an.", { 4: "ok" });
+  const C = { p: [0, 3], d: "🌼", g: false }; out.push(beschr(C)); t.call('Seedling blume = new Seedling((0, 3), "🌼");');
+  t.f(1, { start: T(0, 3), darstellung: "🌼" }, objs(seedObj("s1", A), seedObj("s2", B), seedObj("blume", C, ["position", "darstellung"], "ok")) + box("Konsole", konsole(out)), "Mit zweitem Argument wird der Default-Parameter <b>überschrieben</b>.", { 0: "ok", 2: "ok" });
+  return slideOf("Schritt 1 – Klasse Seedling", "Felder, Konstruktor mit Default-Parameter und die erste Methode.", t);
+}
+
+// ===================== Schritt 2: Wiese =====================
+function s2() {
+  const b = neuesBeet(), out = [];
+  const wObj = (chg = []) => obj("testWiese : Wiese", { breite: 6, hoehe: 4, seedlings: R("→ Seedling[4]") }, chg, "ok");
+  const t = new Trace("class Wiese", [
+    "Konstruktor: breite, hoehe, seedlings merken",
+    "IstInnerhalb(p): 0 &lt;= x &lt; breite und 0 &lt;= y &lt; hoehe",
+    "SeedlingAuf(p): foreach seedling – gleiche Position und nicht gefressen? → return seedling",
+    "nach der Schleife: return null",
+    "AlleGefressen(): ein nicht gefressener → false, sonst true",
+    "Zeichnen: für jedes (x, y): feld = Erde → SeedlingAuf? → Hamster? → Console.Write(feld)"]);
+  t.call("Wiese testWiese = new Wiese(6, 4, beet);");
+  t.f(0, { breite: 6, hoehe: 4, seedlings: R("→ beet") }, objs(wObj(["breite", "hoehe", "seedlings"])) + box("beet : Seedling[]", `<div class="cols">${b.map((s, i) => seedObj(`beet[${i}]`, s)).join("")}</div>`), "Die Wiese <b>hat</b> Seedlings: Das Feld <b>seedlings</b> zeigt auf dasselbe Array wie <b>beet</b> – es wird nichts kopiert.", { 0: "ok" });
+  t.call("testWiese.IstInnerhalb((5, 3))");
+  t.f(1, { p: T(5, 3), return: true }, wiese(b, 6, 4, null, [5, 3, "ok"], 1), "x = 5 < 6 und y = 3 < 4 → <b>true</b>.", { 1: "ok" });
+  t.call("testWiese.IstInnerhalb((6, 3))");
+  t.f(1, { p: T(6, 3), return: false }, wiese(b, 6, 4, null, [6, 3, "bad"], 1), "x = 6 ist <b>nicht</b> kleiner als breite = 6 → false. Die Spalten gehen von 0 bis 5!", { 1: "bad" });
+  t.call("testWiese.IstInnerhalb((0, -1))");
+  t.f(1, { p: T(0, -1), return: false }, wiese(b, 6, 4, null, [0, -1, "bad"], 1), "y = -1 liegt oberhalb der Wiese → false.", { 1: "bad" });
+  t.call("testWiese.SeedlingAuf((1, 2))");
+  b.forEach((s, i) => {
+    const hit = s.p[0] === 1 && s.p[1] === 2;
+    t.f(2, { p: T(1, 2), seedling: R(`→ beet[${i}] ${beschr(s)}`) }, wiese(b, 6, 4, null, [s.p[0], s.p[1], hit ? "ok" : "bad"], 2),
+      hit ? "Position (1, 2) passt und er ist nicht gefressen → <b>return</b> dieses Objekt." : `(${s.p[0]}, ${s.p[1]}) == (1, 2)? Nein → weiter.`, { 2: hit ? "ok" : "" });
+  });
+  t.call("testWiese.SeedlingAuf((3, 3))");
+  t.f(3, { p: T(3, 3), return: null }, wiese(b, 6, 4, null, [3, 3, "bad"], 2), "Kein Seedling passt → <b>null</b>: „hier ist kein Objekt“.", { 2: "bad", 3: "ok" });
+  t.call("testWiese.AlleGefressen()");
+  t.f(4, { "beet[0].gefressen": false, return: false }, wiese(b, 6, 4, null, [2, 0, "bad"], 2), "Schon der erste Seedling ist nicht gefressen → sofort <b>false</b>.", { 4: "ok" });
+  t.call("testWiese.Zeichnen(null)");
+  const zeilen = ["🟫🟫🌱🟫🟫🟫", "🟫🟫🟫🟫🌱🟫", "🟫🌱🟫🟫🟫🟫", "🟫🟫🟫🟫🟫🌱"];
+  const teil = n => { const o = []; for (let y = 0; y < 4; y++) { const z = [...zeilen[y]].slice(0, Math.max(0, Math.min(6, n - y * 6))).join(""); if (z) o.push(z); } return o; };
+  [[0, 0], [1, 0], [2, 0]].forEach(([x, y]) => {
+    const s = b.find(s => !s.g && s.p[0] === x && s.p[1] === y);
+    t.f(5, { y, x, "SeedlingAuf((x, y))": s ? R(`→ ${beschr(s)}`) : null, feld: s ? s.d : ERDE }, wiese(b, 6, 4, null, [x, y, s ? "ok" : "bad"], 0) + box("Konsole", konsole(teil(y * 6 + x + 1))),
+      s ? `Feld (${x}, ${y}): Die Wiese fragt ihre <b>eigene</b> Methode SeedlingAuf → ein Seedling! feld = "🌱".` : `Feld (${x}, ${y}): feld = Erde. SeedlingAuf liefert <b>null</b> → bleibt Erde. hamster ist null → Console.Write(feld).`, { 5: "" });
+  });
+  t.f(5, { y: 0, x: 5 }, wiese(b, 6, 4, null, null, 0) + box("Konsole", konsole(teil(6))), "Ende der Zeile → Console.WriteLine(). <b>Kein 2D-Array</b>: Für jedes Feld wird nur nachgefragt, was dort steht.", { 5: "" });
+  t.f(5, { y: 3, x: 5 }, box("Konsole", konsole(zeilen)), "Alle 4 Zeilen sind ausgegeben.", { 5: "ok" });
+  return slideOf("Schritt 2 – Klasse Wiese", "Die Wiese hat Seedlings und weiß, wo ihr Rand ist und was auf ihr steht.", t);
+}
+
+// ===================== Hamster-Hilfen =====================
+const hamObj = (name, h, chg = [], wname = "wiese") => obj(name + " : Hamster", { position: T(h.p[0], h.p[1]), darstellung: h.d, anzahlSchritte: h.s, anzahlGefressen: h.e, wiese: R("→ " + wname + " : Wiese") }, chg, "ok");
+const DIR = { N: [0, -1], S: [0, 1], O: [1, 0], W: [-1, 0] };
+const inside = (p, w, h) => p[0] >= 0 && p[0] < w && p[1] >= 0 && p[1] < h;
+
+// ===================== Schritt 3: Hamster bewegen =====================
+function s3() {
+  const b = neuesBeet(), h = { p: [0, 0], d: "🐹", s: 0, e: 0 }, out = [];
+  const t = new Trace("public void Bewegen(string richtung)", [
+    "ziel = position; je nach richtung ziel.x oder ziel.y ändern",
+    "Guard: <b>wiese.IstInnerhalb(ziel)</b>? Nein → Meldung, return",
+    "position = ziel; anzahlSchritte++",
+    "Meldung ausgeben"]);
+  t.call("Hamster paul = new Hamster((0, 0), wiese3);");
+  t.f(-1, { paul: R("→ Hamster"), "paul.wiese": R("→ wiese3") }, objs(hamObj("paul", h, ["position", "darstellung", "wiese"], "wiese3"), obj("wiese3 : Wiese", { breite: 6, hoehe: 4, seedlings: R("→ beet3") })) + wiese(b, 6, 4, h),
+    "Der Konstruktor bekommt die Wiese → <b>hat-Beziehung</b>: paul kennt jetzt wiese3. darstellung = \"🐹\" (Default-Parameter).");
+  for (const r of ["N", "S", "O"]) {
+    t.call(`paul.Bewegen("${r}");`);
+    const z = [h.p[0] + DIR[r][0], h.p[1] + DIR[r][1]];
+    t.f(0, { richtung: r, ziel: T(z[0], z[1]) }, hamObj("paul", h, [], "wiese3") + wiese(b, 6, 4, h, [z[0], z[1], inside(z, 6, 4) ? "ok" : "bad"]) + box("Konsole", konsole(out)),
+      `"${r}" → ${r === "N" ? "y - 1" : r === "S" ? "y + 1" : r === "O" ? "x + 1" : "x - 1"}. Noch ist nur <b>ziel</b> geändert, nicht position.`, { 0: "ok" });
+    if (!inside(z, 6, 4)) {
+      out.push(`🐹 stößt im ${r} an den Rand und bleibt auf (${h.p[0]}, ${h.p[1]})`);
+      t.f(1, { richtung: r, ziel: T(z[0], z[1]), "wiese.IstInnerhalb(ziel)": false }, hamObj("paul", h, [], "wiese3") + wiese(b, 6, 4, h, [z[0], z[1], "bad"]) + box("Konsole", konsole(out)),
+        "Der Hamster <b>fragt seine Wiese</b> über die hat-Beziehung. Antwort false → Guard greift, position bleibt.", { 0: "ok", 1: "bad" });
+      continue;
+    }
+    t.f(1, { richtung: r, ziel: T(z[0], z[1]), "wiese.IstInnerhalb(ziel)": true }, hamObj("paul", h, [], "wiese3") + wiese(b, 6, 4, h, [z[0], z[1], "ok"]) + box("Konsole", konsole(out)), "Die Wiese sagt true → weiter.", { 0: "ok", 1: "ok" });
+    h.p = z; h.s++;
+    t.f(2, { position: T(z[0], z[1]), anzahlSchritte: h.s }, hamObj("paul", h, ["position", "anzahlSchritte"], "wiese3") + wiese(b, 6, 4, h) + box("Konsole", konsole(out)), "Jetzt erst ändern sich die <b>Felder</b> des Hamsters.", { 0: "ok", 1: "ok", 2: "ok" });
+    out.push(`🐹 Schritt ${h.s}: geht nach ${r} -> (${z[0]}, ${z[1]})`);
+    t.f(3, { position: T(z[0], z[1]), anzahlSchritte: h.s }, hamObj("paul", h, [], "wiese3") + wiese(b, 6, 4, h) + box("Konsole", konsole(out)), "Meldung ausgeben.", { 0: "ok", 1: "ok", 2: "ok", 3: "ok" });
+  }
+  return slideOf("Schritt 3 – Hamster: sich bewegen", "Der Hamster fragt seine Wiese, ob er dort hin darf.", t);
+}
+
+// ===================== Schritt 4: Hamster frisst =====================
+function s4() {
+  const b = neuesBeet(), h = { p: [0, 0], d: "🐭", s: 0, e: 0 }, out = [];
+  const t = new Trace("public void Fressen()", [
+    "Bewegen war erfolgreich → Fressen() aufrufen",
+    "seedling = <b>wiese.SeedlingAuf(position)</b>",
+    "Guard: seedling == null → return",
+    "seedling.gefressen = true; anzahlGefressen++; Meldung"]);
+  const seeds = (chg = -1) => `<div class="cols">${b.map((s, i) => seedObj(`beet4[${i}]`, s, i === chg ? ["gefressen"] : [])).join("")}</div>`;
+  for (const r of "OOSOOSSO") {
+    const z = [h.p[0] + DIR[r][0], h.p[1] + DIR[r][1]];
+    h.p = z; h.s++;
+    out.push(`🐭 Schritt ${h.s}: geht nach ${r} -> (${z[0]}, ${z[1]})`);
+    t.call(`willi.Bewegen("${r}");`);
+    t.f(0, { position: T(z[0], z[1]), anzahlSchritte: h.s }, hamObj("willi", h, ["position", "anzahlSchritte"], "wiese4") + wiese(b, 6, 4, h) + box("Konsole", konsole(out)), `Schritt nach ${r} gelungen → am Ende von Bewegen wird <b>Fressen()</b> aufgerufen.`, { 0: "ok" });
+    const i = b.findIndex(s => !s.g && s.p[0] === z[0] && s.p[1] === z[1]);
+    if (i < 0) {
+      t.f(2, { position: T(z[0], z[1]), seedling: null }, hamObj("willi", h, [], "wiese4") + wiese(b, 6, 4, h, [z[0], z[1], "bad"]) + box("Konsole", konsole(out)), "SeedlingAuf liefert <b>null</b> → Guard → return. Nichts passiert.", { 0: "ok", 1: "ok", 2: "bad" });
+      continue;
+    }
+    t.f(1, { position: T(z[0], z[1]), seedling: R(`→ beet4[${i}]`) }, hamObj("willi", h, [], "wiese4") + wiese(b, 6, 4, h, [z[0], z[1], "ok"]) + seeds() + box("Konsole", konsole(out)), `Die Wiese liefert eine <b>Referenz</b> auf beet4[${i}] – dasselbe Objekt, das im Array liegt.`, { 0: "ok", 1: "ok" });
+    b[i].g = true; h.e++;
+    out.push(`🐭 frisst 🌱 auf (${z[0]}, ${z[1]}) - schon ${h.e} gefressen`);
+    t.f(3, { "seedling.gefressen": true, anzahlGefressen: h.e }, hamObj("willi", h, ["anzahlGefressen"], "wiese4") + wiese(b, 6, 4, h) + seeds(i) + box("Konsole", konsole(out)),
+      `Über die Referenz ändert der Hamster ein Feld eines <b>anderen</b> Objekts. Darum ist auch <b>beet4[${i}]</b> gefressen.`, { 0: "ok", 1: "ok", 2: "ok", 3: "ok" });
+  }
+  out.push(`🐭 auf (5, 3), 8 Schritte, 3 gefressen`, beschr(b[0]), "False");
+  t.call("Console.WriteLine(willi.Beschreiben()); ... wiese4.AlleGefressen()");
+  t.f(-1, { "wiese4.AlleGefressen()": false }, hamObj("willi", h, [], "wiese4") + wiese(b, 6, 4, h) + box("Konsole", konsole(out)), "Der Seedling auf (1, 2) steht noch → AlleGefressen() ist false.");
+  t.call("Hamster gast = new Hamster((2, 0), wiese4); gast.Fressen();");
+  const g = { p: [2, 0], d: "🐹", s: 0, e: 0 };
+  t.f(2, { "gast.position": T(2, 0), seedling: null }, objs(hamObj("willi", h, [], "wiese4"), hamObj("gast", g, [], "wiese4")) + wiese(b, 6, 4, g, [2, 0, "bad"]) + seeds(),
+    "Zwei Hamster, <b>eine</b> Wiese. Der Seedling auf (2, 0) ist schon gefressen → SeedlingAuf liefert null → gast frisst nichts.", { 1: "ok", 2: "bad" });
+  return slideOf("Schritt 4 – Hamster: fressen", "Der Hamster fragt die Wiese nach einem Seedling und ändert ihn über die Referenz.", t);
+}
+
+// ===================== Schritt 5: Simulation =====================
+function s5() {
+  let seed = 7; const rnd = n => { seed = (seed * 1103515245 + 12345) % 2147483648; return Math.floor(seed / 2147483648 * n); };
+  const W = 10, H = 6, b = [];
+  for (let i = 0; i < 6; i++) b.push({ p: [rnd(W), rnd(H)], d: SEED, g: false });
+  const h = { p: [0, 0], d: "🐹", s: 0, e: 0 }, rs = ["N", "O", "S", "W"];
+  const t = new Trace("Hauptprogramm: Simulation", [
+    "6 Seedlings mit zufälligen Positionen, eine 10 × 6 Wiese, ein Hamster",
+    "while (!wiese.AlleGefressen())",
+    "wiese.Zeichnen(hamster)",
+    "hamster.Bewegen(zufällige Richtung)",
+    "fertig: alles gefressen"]);
+  t.call("");
+  t.f(0, { seedlings: R("Seedling[6]"), hamster: R("→ Hamster (0, 0)") }, wiese(b, W, H, h), "Die Objekte werden erzeugt. Zwei Seedlings können auf demselben Feld landen – kein Problem, siehe Angabe.", { 0: "ok" });
+  let runde = 0;
+  while (b.some(s => !s.g) && runde < 400) {
+    runde++;
+    const r = rs[rnd(4)], z = [h.p[0] + DIR[r][0], h.p[1] + DIR[r][1]];
+    let cap = `Runde ${runde}: Richtung ${r}`;
+    if (inside(z, W, H)) { h.p = z; h.s++; const s = b.find(s => !s.g && s.p[0] === z[0] && s.p[1] === z[1]); if (s) { s.g = true; h.e++; cap += ` → frisst 🌱 (${h.e} von 6)`; } }
+    else cap += " → Rand, bleibt stehen";
+    if (runde % 10 === 0 || cap.includes("frisst")) t.f(3, { runde, richtung: r, "hamster.anzahlGefressen": h.e }, wiese(b, W, H, h), cap, { 0: "ok", 1: "ok", 2: "ok", 3: "ok" });
+  }
+  t.f(4, { runde, "hamster.anzahlSchritte": h.s, "hamster.anzahlGefressen": h.e }, wiese(b, W, H, h) + box("Konsole", konsole([`Alles gefressen! 🐹 auf (${h.p[0]}, ${h.p[1]}), ${h.s} Schritte, ${h.e} gefressen`])), "wiese.AlleGefressen() ist true → die Schleife endet.", { 0: "ok", 1: "ok", 2: "ok", 3: "ok", 4: "ok" });
+  return slideOf("Schritt 5 – Die Simulation", "Alle Objekte arbeiten zusammen: Der Hamster läuft zufällig, bis die Wiese leer ist.", t);
+}
+const slides = [s1(), s2(), s3(), s4(), s5()];
+
+// ===================== Steuerung =====================
+let s = 0, f = 0, timer = null;
+const $ = id => document.getElementById(id);
+
+const nrOf = sl => +(sl.title.match(/Schritt (\d+)/) || [0, 0])[1];
+$("nav").innerHTML = slides.map((sl, i) => `<button data-i="${i}">Schritt ${nrOf(sl)}</button>`).join("");
+$("nav").addEventListener("click", e => { if (e.target.dataset.i) { stop(); s = +e.target.dataset.i; f = 0; render(); } });
+
+function render() {
+  const sl = slides[s], fr = sl.frames[f];
+  $("slideTitle").textContent = sl.title;
+  $("slideText").textContent = sl.text;
+  $("stage").innerHTML = fr.html;
+  $("caption").innerHTML = fr.caption;
+  $("counter").textContent = `${f + 1} / ${sl.frames.length}`;
+  [...$("nav").querySelectorAll("button")].forEach((b, i) => b.classList.toggle("active", i === s));
+  try { history.replaceState(null, "", "#schritt" + nrOf(slides[s])); } catch (e) {}
+}
+function next() {
+  if (f < slides[s].frames.length - 1) f++;
+  else if (s < slides.length - 1) { s++; f = 0; }
+  else stop();
+  render();
+}
+function prev() { if (f > 0) f--; else if (s > 0) { s--; f = slides[s].frames.length - 1; } render(); }
+function play() { if (timer) return stop(); $("btnPlay").textContent = "⏸ Pause"; timer = setInterval(() => {
+  if (f === slides[s].frames.length - 1) stop(); else next(); }, +$("speed").value); }
+function stop() { clearInterval(timer); timer = null; $("btnPlay").textContent = "▶ Abspielen"; }
+
+$("btnNext").onclick = () => { stop(); next(); };
+$("btnPrev").onclick = () => { stop(); prev(); };
+$("btnReset").onclick = () => { stop(); f = 0; render(); };
+$("btnPlay").onclick = play;
+$("speed").oninput = () => { if (timer) { stop(); play(); } };
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight") { stop(); next(); }
+  if (e.key === "ArrowLeft") { stop(); prev(); }
+  if (e.key === " ") { e.preventDefault(); play(); }
+});
+
+const m = location.hash.match(/schritt(\d)/);
+if (m) { const k = slides.findIndex(sl => nrOf(sl) === +m[1]); if (k >= 0) s = k; }
+render();
+</script>
+</body>
+</html>
