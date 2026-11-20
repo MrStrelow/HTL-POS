@@ -34,7 +34,7 @@ public class Plane
 
         for (int i = 0; i < numberOfSeedings; i++)
         {
-            Seedling seedling = new Seedling();
+            Seedling seedling = new Seedling(this);
             _seedlings[seedling.Position] = seedling;
         }
 

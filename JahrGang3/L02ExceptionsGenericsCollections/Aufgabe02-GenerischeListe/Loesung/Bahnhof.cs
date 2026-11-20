@@ -1,3 +1,5 @@
+using System.Collections;
+
 // Teil 2, 3, 5 und 6: Die Klasse selbst ist NICHT generisch.
 // Jede Methode hat ihren eigenen Typparameter.
 public static class Bahnhof
@@ -105,12 +107,43 @@ public static class Bahnhof
         return zug.Head.Ladung;
     }
 
-    // ---------- Teil 5: Kopie der Referenz vs. ref ----------
+    // ---------- Teil 5: Wert- und Referenzsemantik ----------
+    // 5b: a und b sind KOPIEN -> nach aussen aendert sich nichts
+    public static void TauschenOhneRef<T>(T a, T b)
+    {
+        T temp = a;
+        a = b;
+        b = temp;
+    }
+
+    // 5b: a und b SIND die Variablen des Aufrufers -> Seiteneffekt bei jedem T
     public static void Tauschen<T>(ref T a, ref T b)
     {
         T temp = a;
         a = b;
         b = temp;
+    }
+
+    // 5c: where T : IList -> a[0] ist erlaubt. Kopie der Referenz, aber wir
+    // aendern das Objekt, auf das a zeigt -> Seiteneffekt
+    public static void ErstesTauschen<T>(T a, T b) where T : IList
+    {
+        object? temp = a[0];
+        a[0] = b[0];
+        b[0] = temp;
+    }
+
+    // 5d: class -> Kopie der Referenz -> Seiteneffekt
+    //     struct -> Kopie des Werts -> KEIN Seiteneffekt
+    public static void Etikettieren<T>(T ladung, string etikett) where T : IEtikett
+    {
+        ladung.Etikett = etikett;
+    }
+
+    // 5d: class garantiert: ladung zeigt auf das Original
+    public static void EtikettierenSicher<T>(T ladung, string etikett) where T : class, IEtikett
+    {
+        ladung.Etikett = etikett;
     }
 
     // ---------- Teil 6: Ko- und Kontravarianz ----------

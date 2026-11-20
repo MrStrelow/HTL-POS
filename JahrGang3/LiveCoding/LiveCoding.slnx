@@ -1,7 +1,13 @@
 <Solution>
-  <Project Path="L012DArrays/L012DArrays.csproj" Id="5f17f636-4388-467c-8be7-3bce6ca06e24" />
-  <Project Path="L01Hamster/L01Hamster.csproj" Id="7850a072-bf4d-4b9a-b5cb-1f567329f1e7" />
-  <Project Path="L01LinkedList/L01LinkedList.csproj" Id="43d19f29-c1c8-415d-9604-af555edc75e1" />
-  <Project Path="L01HatBeziehungenDelgieren/L01HatBeziehungenDelgieren.csproj" Id="43d19f29-c1c8-415d-9604-af555edc75e1" />
-  <Project Path="L02Generics/L02Generics.csproj" />
+  <Folder Name="/L01/">
+    <Project Path="L012DArrays/2DArrays.csproj" />
+    <Project Path="L01Hamster/Hamster.csproj" />
+    <Project Path="L01HatBeziehungenDelgieren/HatBeziehungenDelgieren.csproj" />
+    <Project Path="L01LinkedList/L01LinkedList.csproj" />
+    <Project Path="L01RobotterTestkorrektur/RobotterTestkorrektur/RobotterTestkorrektur.csproj" />
+  </Folder>
+  <Folder Name="/L02/">
+    <Project Path="L02Generics/L02Generics.csproj" />
+    <Project Path="L02GenerizitaetWertUndReferenzen/L02GenerizitaetWertUndReferenzen.csproj" />
+  </Folder>
 </Solution>

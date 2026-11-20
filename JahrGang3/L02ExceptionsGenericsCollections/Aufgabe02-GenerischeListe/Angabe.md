@@ -9,7 +9,8 @@ Welche ``Konzepte`` üben wir hier?
   - generische ``Klassen`` mit einem und mit zwei Typparametern (``Waggon<T>``, ``Zug<T>``, ``Paar<TLinks, TRechts>``)
   - generische ``Methoden`` mit einem und mit zwei Typparametern in einer **nicht** generischen ``Klasse``
   - Einschränkungen mit ``where``: ``IComparable<T>``, Basisklasse, ``new()``, ``class``, ``struct``
-  - Kopie der Referenz vs. ``ref``
+  - Wert- vs. Referenzsemantik: Kopie des Werts, Kopie der Referenz, ``ref``
+  - Einschränkungen ``where T : IList`` und ``where T : class, IEtikett``
   - Kovarianz (``out T``), Kontravarianz (``in T``) und warum ``Zug<T>`` invariant ist
 - **Wiederholung aus L01:**
   - Doubly Linked List: ``Head``, ``Tail``, ``Next``, ``Prev``
@@ -207,19 +208,34 @@ Erwartete Ausgabe:
 
 ---
 
-### Teil 5 - level: 🤔 - Kopie der Referenz vs. ref - ~10 min
-1. Ergänze in ``Bahnhof`` die Methode ``void Tauschen<T>(ref T a, ref T b)``, die die Inhalte der beiden **Variablen** vertauscht.
-2. **Überlege zuerst** auf Papier, was ausgegeben wird. Prüfe danach mit dem Programm.
+### Teil 5 - level: 🤔 - Wert- und Referenzsemantik: Kopie, Inhalt oder ref? - ~25 min
+In der [Animation](../Skripten/L02.2_Generics.html) (Kapitel 2) haben wir gesehen: Bei der Übergabe bekommt eine Methode **immer eine Kopie**. Bei einem Werttyp (``int``, ``struct``) ist das eine Kopie des **Werts**, bei einem Referenztyp (``class``, Array) eine Kopie der **Referenz**. Eine Zuweisung ``a = …`` ändert nur die Variable links vom ``=``. Einen Seiteneffekt gibt es nur, wenn wir **über** die Referenz das Objekt ändern – oder mit ``ref`` die Variable selbst bekommen.
 
+**Überlege bei jeder Teilaufgabe zuerst auf Papier** (Stackframes links und rechts, Heap in der Mitte, Pfeile wie in der [Zettelübung](../ZettelUebungen/03_KopieVsRef.md)), was ausgegeben wird. Prüfe danach mit dem Programm.
+
+**5a – Kopie der Referenz: das Objekt ändern**
 ```csharp
 Holz stamm = new Holz(8);
 Zug<Holz> a = new Zug<Holz>();
 a.AnhaengenHinten(stamm);
 stamm.Nachladen(4);
 Console.WriteLine(a);
+```
 
+**5b – Zuweisung ohne und mit ref**
+
+Ergänze in ``Bahnhof``:
+
+| Methode | Verhalten |
+|---|---|
+| ``void TauschenOhneRef<T>(T a, T b)`` | vertauscht ``a`` und ``b`` mit ``temp`` – **ohne** ``ref`` |
+| ``void Tauschen<T>(ref T a, ref T b)`` | gleicher Inhalt, aber **mit** ``ref`` |
+
+```csharp
 Zug<Holz> b = Bahnhof.AusArray(new Holz[] { new Holz(1), new Holz(2) });
 Zug<Holz> c = a;
+Bahnhof.TauschenOhneRef(a, b);
+Console.WriteLine("a = " + a);
 Bahnhof.Tauschen(ref a, ref b);
 Console.WriteLine("a = " + a);
 Console.WriteLine("b = " + b);
@@ -227,22 +243,78 @@ Console.WriteLine("c = " + c);
 
 int links = 1;
 int rechts = 2;
+Bahnhof.TauschenOhneRef(links, rechts);
+Console.WriteLine(links + " " + rechts);
 Bahnhof.Tauschen(ref links, ref rechts);
 Console.WriteLine(links + " " + rechts);
 ```
-Erwartete Ausgabe:
+
+**5c – where T : IList: den Inhalt tauschen**
+
+``T`` soll diesmal das **ganze** Array sein (``<string[]>``), nicht der Elementtyp. Damit wir ``a[0]`` schreiben dürfen, braucht ``T`` eine Einschränkung. Schau dir dazu die Hierarchie der Collections in der Animation an: Welches Interface haben ``string[]``, ``List<T>`` und ``ArrayList`` gemeinsam, das einen Index-Zugriff hat?
+
+| Methode | Verhalten |
+|---|---|
+| ``void ErstesTauschen<T>(T a, T b)`` | vertauscht ``a[0]`` und ``b[0]`` – **ohne** ``ref``. Finde das passende ``where`` selbst. |
+
+```csharp
+string[] gleis1 = { "Briefe", "Pakete" };
+string[] gleis2 = { "Holz", "Kohle" };
+Bahnhof.ErstesTauschen<string[]>(gleis1, gleis2);
+Console.WriteLine(gleis1[0] + " " + gleis2[0]);
+
+List<int> l1 = new List<int> { 10 };
+List<int> l2 = new List<int> { 20 };
+Bahnhof.ErstesTauschen(l1, l2);
+Console.WriteLine(l1[0] + " " + l2[0]);
+// Bahnhof.ErstesTauschen<int>(1, 2);
+```
+
+**5d – class oder struct? where T : class, IEtikett**
+
+1. Lege das Interface ``IEtikett`` mit ``string Etikett { get; set; }`` an.
+2. ``Fracht`` setzt ``IEtikett`` um. Das Etikett ist am Anfang ``""``.
+3. Lege die **struct** ``Palette : IEtikett`` an (nur die Eigenschaft ``Etikett``).
+4. Ergänze in ``Bahnhof``:
+
+| Methode | Verhalten |
+|---|---|
+| ``void Etikettieren<T>(T ladung, string etikett)`` | setzt ``ladung.Etikett``. Welche Einschränkung braucht ``T`` mindestens? |
+| ``void EtikettierenSicher<T>(T ladung, string etikett)`` | gleicher Inhalt, aber so eingeschränkt, dass **sicher** das Original geändert wird |
+
+```csharp
+Holz brett = new Holz(2);
+Palette palette = new Palette { Etikett = "leer" };
+Bahnhof.Etikettieren(brett, "Wien");
+Bahnhof.Etikettieren(palette, "Wien");
+Console.WriteLine(brett.Etikett);
+Console.WriteLine(palette.Etikett);
+Bahnhof.EtikettierenSicher(brett, "Graz");
+Console.WriteLine(brett.Etikett);
+// Bahnhof.EtikettierenSicher(palette, "Graz");
+```
+Erwartete Ausgabe von Teil 5:
 ```
 🚂-[🪵 12 t]
+a = 🚂-[🪵 12 t]
 a = 🚂-[🪵 1 t]-[🪵 2 t]
 b = 🚂-[🪵 12 t]
 c = 🚂-[🪵 12 t]
+1 2
 2 1
+Holz Briefe
+20 10
+Wien
+leer
+Graz
 ```
 **Fragen:**
-1. Warum zeigt der Waggon 12 t, obwohl wir ``Nachladen`` erst **nach** ``AnhaengenHinten`` aufgerufen haben?
-2. ``a`` und ``b`` wurden getauscht, ``c`` aber nicht. Warum?
-3. ``Holz`` ist ein Referenztyp. Warum braucht ``Tauschen`` trotzdem ``ref``? Was würde ohne ``ref`` passieren?
-4. Warum funktioniert ``Tauschen`` auch mit ``int`` – obwohl dort **keine** Einschränkung ``where T : class`` steht?
+1. Warum zeigt der Waggon in 5a 12 t, obwohl wir ``Nachladen`` erst **nach** ``AnhaengenHinten`` aufgerufen haben?
+2. ``TauschenOhneRef`` ändert weder ``a`` noch ``links``. Zeichne die Pfeile für ``a`` und ``b`` vor und nach ``a = b;`` in der Methode. Warum hilft es nicht, dass ``Zug<Holz>`` ein Referenztyp ist?
+3. Nach ``Tauschen(ref a, ref b)`` wurden ``a`` und ``b`` getauscht, ``c`` aber nicht. Warum? Worauf zeigt der Parameter ``a`` in ``Tauschen`` – auf den Zug oder auf die Variable?
+4. ``ErstesTauschen`` hat **kein** ``ref`` und ändert trotzdem ``gleis1``. Warum? Welche Fehlernummer liefert die auskommentierte Zeile mit ``<int>``?
+5. ``Etikettieren`` ändert ``brett``, aber nicht ``palette`` – gleicher Code! Erkläre den Unterschied mit Wert- und Referenzsemantik.
+6. Welche Fehlernummer liefert die letzte, auskommentierte Zeile? Warum ist das bei ``EtikettierenSicher`` ein **Vorteil**?
 
 ---
 

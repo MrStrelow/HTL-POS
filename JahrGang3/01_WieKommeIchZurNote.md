@@ -52,7 +52,7 @@ Mitarbeit = Hausübungen (HÜ) + Mitarbeit unter der Stunde + Stundenwiederholun
 
 ## Prüfungen
 * Bei einer **negativen Gesamtnote** wird eine Prüfung als weitere Leistung herangezogen.
-* Ist die **Anwesenheit bei den SMÜs nicht ausreichend**, wird eine Prüfung ausgegeben. Die Kompetenzen der ``Lektionen`` müssen in der Beurteilung ausreichend abgedeckt sein; fehlt diese Grundlage, wird sie über die Prüfung nachgeholt.
+* Liegen **nicht genügend Hausübungen oder SMÜs** vor (z. B. wegen zu geringer Anwesenheit bei den SMÜs), kann die Lehrperson am Ende des Semesters eine Prüfung **zuweisen**. Die Kompetenzen der ``Lektionen`` müssen in der Beurteilung ausreichend abgedeckt sein; fehlt diese Grundlage, wird sie über die Prüfung nachgeholt.
 * Prüfungen biete ich 2 Mal im Jahr jeweils am Ende der Semesters an. Der Stoff sind alle ``Lektionen`` welche bis dahin behandelt wurden. Ziel ist es eine ***weitere erbrachte Leistung*** welche *gesamtheitlich* in die Benotung einfließt. Das kann zu einer **Verbesserung**, aber auch **Verschlechterung** führen. Pürfungen haben einen schriftlichen Ausarbeitugnsteil und ein mündliches Gespräch.
 
 ## Gesamtnote

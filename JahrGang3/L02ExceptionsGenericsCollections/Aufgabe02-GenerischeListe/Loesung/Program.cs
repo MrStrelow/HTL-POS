@@ -66,25 +66,54 @@ nachGewicht.Einreihen(new Kohle(20));
 Console.WriteLine(nachGewicht);
 Console.WriteLine(nachGewicht.Kleinste());
 
-// ---------- Teil 5: Kopie der Referenz vs. ref ----------
+// ---------- Teil 5: Wert- und Referenzsemantik ----------
 Console.WriteLine("--- Teil 5 ---");
+// 5a: Kopie der Referenz, das Objekt wird geaendert
 Holz stamm = new Holz(8);
 Zug<Holz> a = new Zug<Holz>();
 a.AnhaengenHinten(stamm);             // der Waggon bekommt eine Kopie der Referenz
 stamm.Nachladen(4);                   // Seiteneffekt: dasselbe Objekt
 Console.WriteLine(a);
 
+// 5b: Zuweisung ohne und mit ref
 Zug<Holz> b = Bahnhof.AusArray(new Holz[] { new Holz(1), new Holz(2) });
 Zug<Holz> c = a;                      // c ist eine Kopie der Referenz von a
-Bahnhof.Tauschen(ref a, ref b);
+Bahnhof.TauschenOhneRef(a, b);        // nur die Kopien werden umgehaengt
+Console.WriteLine("a = " + a);
+Bahnhof.Tauschen(ref a, ref b);       // a und b selbst werden umgehaengt
 Console.WriteLine("a = " + a);
 Console.WriteLine("b = " + b);
 Console.WriteLine("c = " + c);
 
 int links = 1;
 int rechts = 2;
+Bahnhof.TauschenOhneRef(links, rechts);
+Console.WriteLine(links + " " + rechts);
 Bahnhof.Tauschen(ref links, ref rechts);
 Console.WriteLine(links + " " + rechts);
+
+// 5c: where T : IList -> Inhalt tauschen, T ist das ganze Array
+string[] gleis1 = { "Briefe", "Pakete" };
+string[] gleis2 = { "Holz", "Kohle" };
+Bahnhof.ErstesTauschen<string[]>(gleis1, gleis2);
+Console.WriteLine(gleis1[0] + " " + gleis2[0]);
+
+List<int> l1 = new List<int> { 10 };
+List<int> l2 = new List<int> { 20 };
+Bahnhof.ErstesTauschen(l1, l2);
+Console.WriteLine(l1[0] + " " + l2[0]);
+// Bahnhof.ErstesTauschen<int>(1, 2);          // ❌ CS0315: int ist keine IList
+
+// 5d: class vs. struct
+Holz brett = new Holz(2);
+Palette palette = new Palette { Etikett = "leer" };
+Bahnhof.Etikettieren(brett, "Wien");           // class: Kopie der Referenz -> Original
+Bahnhof.Etikettieren(palette, "Wien");         // struct: Kopie des Werts -> nur Kopie
+Console.WriteLine(brett.Etikett);
+Console.WriteLine(palette.Etikett);
+Bahnhof.EtikettierenSicher(brett, "Graz");
+Console.WriteLine(brett.Etikett);
+// Bahnhof.EtikettierenSicher(palette, "Graz"); // ❌ CS0452: Palette ist kein Referenztyp
 
 // ---------- Teil 6: Ko- und Kontravarianz ----------
 Console.WriteLine("--- Teil 6 ---");

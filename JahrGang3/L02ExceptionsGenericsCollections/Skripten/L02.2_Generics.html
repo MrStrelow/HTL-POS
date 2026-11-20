@@ -104,6 +104,10 @@
   @keyframes pop { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
   .shake { animation: shake .5s ease; } @keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
   .hidden { visibility: hidden; }
+  .tree { font-family: 'Fira Code', monospace; font-size: 13px; line-height: 1.75; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; }
+  .tree .tl { white-space: pre; border-radius: 4px; padding: 0 6px; transition: all .4s; }
+  .tree .tl.i { color: var(--accent); } .tree .tl.c { color: #6ee7b7; } .tree .tl.h { color: var(--muted); font-size: 11px; letter-spacing: .08em; }
+  .tree .tl.hot { background: rgba(245,158,11,.3); color: #fff; }
 </style>
 </head>
 <body>
@@ -149,7 +153,7 @@ const C = s => s.replace(/^\n/, '').replace(/\n$/, '').split('\n');
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 function highlight(line) {
-  const re = /(\/\/.*$)|("(?:[^"\\]|\\.)*"|'.')|(\b(?:new|foreach|for|in|out|ref|while|if|else|return|int|string|double|bool|char|void|object|class|interface|abstract|override|public|private|where|struct|var|null|true|false)\b)|(\b(?:T|TA|TB|TName|TPunkte)\b)|(\b(?:Console|Form|Kreis|Quadrat|Stapel|ObjektStapel|Rangliste|Tier|Hund|Katze|List|IEnumerable|IEnumerator|IComparer|IComparable|NachAlter|IQuelle|IAblage|IFalsch|HundeZucht|TierHeim|Hamster|IHatName|Roboter)\b)|(\b\d+(?:\.\d+)?\b)/g;
+  const re = /(\/\/.*$)|("(?:[^"\\]|\\.)*"|'.')|(\b(?:new|foreach|for|in|out|ref|while|if|else|return|int|string|double|bool|char|void|object|class|interface|abstract|override|public|private|where|struct|var|null|true|false)\b)|(\b(?:T|TA|TB|TName|TPunkte)\b)|(\b(?:Console|Form|Kreis|Quadrat|Stapel|ObjektStapel|Rangliste|Tier|Hund|Katze|List|IEnumerable|IEnumerator|IComparer|IComparable|NachAlter|IQuelle|IAblage|IFalsch|HundeZucht|TierHeim|Hamster|IHatName|Roboter|IList|ICollection|Array)\b)|(\b\d+(?:\.\d+)?\b)/g;
   let out = '', last = 0, m;
   while ((m = re.exec(line)) !== null) {
     out += esc(line.slice(last, m.index));
@@ -214,7 +218,8 @@ function infoBox() { const i = hid(el('div', 'okbox', '')); i.id = 'info'; i.sty
 function relink(sc, from, to, opts) { unlink(sc, from); link(sc, from, to, opts); }
 
 // Szene für Tausche ohne ref: Hauptprogramm, Methode, Arrays im Speicher
-function swapScene(st, head, withInt) {
+function swapScene(st, head, withInt, isRef) {
+  const pa = isRef ? 'ref a' : 'a  (Kopie)', pb = isRef ? 'ref b' : 'b  (Kopie)';
   const sc = scene();
   const tp = el('div', 'tpc', 'T = ?'); tp.id = 'tp';
   const main = el('div', 'frame'); main.appendChild(el('div', 'fh', 'Hauptprogramm'));
@@ -222,9 +227,10 @@ function swapScene(st, head, withInt) {
     ? grid(2, [vbox('x', 'int x', '?'), vbox('s1', 'string[] s1', '?', 'ref'), vbox('y', 'int y', '?'), vbox('s2', 'string[] s2', '?', 'ref')], '14px 30px')
     : grid(1, [vbox('s1', 'string[] s1', '?', 'ref'), vbox('s2', 'string[] s2', '?', 'ref')], '14px 30px'));
   const fr = el('div', 'frame'); fr.appendChild(el('div', 'fh', head));
-  fr.appendChild(grid(2, [vbox('a', 'a  (Kopie)', '–', 'ref'), vbox('tmp', 'T temp', '–'), vbox('b', 'b  (Kopie)', '–', 'ref'), el('div')], '14px 30px'));
+  fr.appendChild(grid(2, [vbox('a', pa, '–', 'ref'), vbox('tmp', 'T temp', '–'), vbox('b', pb, '–', 'ref'), el('div')], '14px 30px'));
   const arrs = wrap('col', [hid(arrBox('A', 'Array', '🐶')), hid(arrBox('B', 'Array', '🐱'))]); arrs.style.gap = '20px';
   const row = wrap('row', [main, arrs, fr]); row.style.gap = '70px'; row.style.flexWrap = 'nowrap';
+  if (isRef) { row.style.margin = '40px 0'; }
   sc.appendChild(wrap('col', [tp, row, infoBox(), konsole('k')])); st.appendChild(sc);
   return sc;
 }
@@ -265,11 +271,13 @@ function redraw(sc) {
     const a = $(fromId), b = $(toId); if (!a || !b) return;
     const [x1, y1] = anchor(a.getBoundingClientRect(), opts.from || 'right', base);
     let [x2, y2] = anchor(b.getBoundingClientRect(), opts.to || 'left', base);
-    { const d = Math.hypot(x2 - x1, y2 - y1) || 1; x2 -= (x2 - x1) / d * 16; y2 -= (y2 - y1) / d * 16; }
+    const cx = (x1 + x2) / 2, cy = opts.down ? Math.max(y1, y2) + opts.curve : Math.min(y1, y2) - (opts.curve || 0);
+    { const [px, py] = opts.curve ? [cx, cy] : [x1, y1]; const d = Math.hypot(x2 - px, y2 - py) || 1; x2 -= (x2 - px) / d * 16; y2 -= (y2 - py) / d * 16; }
     const g = document.createElementNS(SVGNS, 'g'); g.setAttribute('class', 'ln'); g.style.color = opts.color || 'var(--accent)';
-    const l = document.createElementNS(SVGNS, 'line');
-    l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
-    l.setAttribute('stroke', 'currentColor'); l.setAttribute('stroke-width', '2.5'); l.setAttribute('marker-end', 'url(#ah)');
+    let l;
+    if (opts.curve) { l = document.createElementNS(SVGNS, 'path'); l.setAttribute('d', `M${x1},${y1} Q${cx},${cy} ${x2},${y2}`); l.setAttribute('fill', 'none'); }
+    else { l = document.createElementNS(SVGNS, 'line'); l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2); }
+    l.setAttribute('stroke', 'currentColor'); l.setAttribute('stroke-width', opts.width || '2.5'); l.setAttribute('marker-end', 'url(#ah)');
     if (opts.dash) l.setAttribute('stroke-dasharray', '6 5');
     g.appendChild(l);
     if (opts.label) { const t = document.createElementNS(SVGNS, 'text'); t.setAttribute('x', x1 + (x2 - x1) * 0.3); t.setAttribute('y', y1 + (y2 - y1) * 0.3 + (y2 < y1 ? -10 : 20)); t.setAttribute('text-anchor', 'middle'); t.setAttribute('stroke', 'var(--bg, #0b1020)'); t.setAttribute('stroke-width', '5'); t.setAttribute('paint-order', 'stroke'); t.setAttribute('font-weight', '600'); t.setAttribute('fill', 'currentColor'); t.setAttribute('font-size', '13'); t.setAttribute('font-family', 'Fira Code, monospace'); t.textContent = opts.label; g.appendChild(t); }
@@ -327,6 +335,21 @@ TauscheInhalt<string>(s1, s2);
 
 Console.WriteLine($"s1:{s1[0]} - s2:{s2[0]}"); // s1:🐱 - s2:🐶
 // int hat keinen Inhalt -> ohne ref nie ein Seiteneffekt`);
+const codeIList = C(`
+using System.Collections;              // IList (nicht generisch)
+
+void TauscheInhalt<T>(T a, T b) where T : IList
+{
+    object? temp = a[0];               // erst durch IList erlaubt
+    a[0] = b[0];
+    b[0] = temp;
+}
+
+string[] s1 = { "🐶" };
+string[] s2 = { "🐱" };
+TauscheInhalt<string[]>(s1, s2);       // ✅ string[] ist eine IList
+Console.WriteLine($"s1:{s1[0]} - s2:{s2[0]}"); // s1:🐱 - s2:🐶
+TauscheInhalt<int>(1, 2);              // ❌ int ist keine IList`);
 const codeVergleich = C(`
 void TauscheKopie<T>(T a, T b)       { T temp = a; a = b; b = temp; }
 void TauscheRef<T>(ref T a, ref T b) { T temp = a; a = b; b = temp; }
@@ -359,7 +382,7 @@ void UmbenennenSicher<T>(T t) where T : class, IHatName
 UmbenennenSicher(k);              // ✅
 UmbenennenSicher(r);              // ❌ Roboter ist keine class`);
 const codeTausche = C(`
-void Tausche<T>(ref T a, ref T b)
+void Tausche<T>(ref T a, ref T b)      // a, b sind KEINE Kopien
 {
     T temp = a;
     a = b;
@@ -368,8 +391,12 @@ void Tausche<T>(ref T a, ref T b)
 
 int x = 1, y = 2;
 Tausche<int>(ref x, ref y);
-string s1 = "🐶", s2 = "🐱";
-Tausche(ref s1, ref s2);       // T = string erkennt der Compiler`);
+string[] s1 = { "🐶" };
+string[] s2 = { "🐱" };
+Tausche(ref s1, ref s2);               // T = string[] erkennt der Compiler
+
+Console.WriteLine($"x:{x} - y:{y}");           // x:2 - y:1
+Console.WriteLine($"s1:{s1[0]} - s2:{s2[0]}"); // s1:🐱 - s2:🐶`);
 const codeDrehe = C(`
 (TB, TA) Drehe<TA, TB>((TA a, TB b) paar)
 {
@@ -671,28 +698,62 @@ const steps = [
       () => { setHl([12]); say('int hat keinen Inhalt – ohne ref gibt es bei int nie einen Seiteneffekt'); },
     ]);
   } },
+{ ch: 1, title: 'where T : IList – T ist das ganze Array', code: codeIList, hl: [2],
+  text: `<p>Bei <code>TauscheInhalt&lt;T&gt;(T[] a, T[] b)</code> ist <code>T</code> nur der <b>Elementtyp</b> (<code>string</code>). Wollen wir <code>T</code> wie im ersten Beispiel als <b>ganzes Array</b> (<code>&lt;string[]&gt;</code>), wüsste der Compiler nicht, dass <code>a[0]</code> erlaubt ist.</p>
+<p>Mit <code>where T : IList</code> versprechen wir: <code>T</code> hat einen <b>Index-Zugriff</b>. Jedes Array, jede <code>List&lt;T&gt;</code> und <code>ArrayList</code> setzen <code>IList</code> um (siehe Hierarchie). <code>IList</code> ist nicht generisch, darum liefert <code>a[0]</code> ein <code>object</code>.</p>
+<p>Der Seiteneffekt bleibt derselbe: <code>a</code> ist eine Kopie der Referenz, <code>a[0] = …</code> ändert das Array von <code>s1</code>. Ein <code>int</code> ist keine <code>IList</code> → Compilerfehler.</p>`,
+  render(st) {
+    const nodes = [
+      ['h', 'NICHT GENERISCH', 0, 'h0'], ['i', 'IEnumerable', 0, 'n0'], ['i', 'ICollection', 1, 'n1'], ['i', 'IList', 2, 'nIL'],
+      ['c', 'Array   (string[], int[], …)', 3, 'nAr'], ['c', 'ArrayList', 3, 'nAL'], ['c', 'List<T>   (auch IList<T>)', 3, 'nLi'],
+      ['h', 'GENERISCH', 0, 'h1'], ['i', 'IEnumerable<T>   (erbt IEnumerable)', 0, 'g0'], ['i', 'ICollection<T>', 1, 'g1'],
+      ['i', 'IList<T>', 2, 'g2'], ['c', 'List<T>, T[]', 3, 'g3'], ['i', 'ISet<T>', 2, 'g4'], ['c', 'HashSet<T>', 3, 'g5'],
+      ['i', 'IDictionary<TKey, TValue>', 2, 'g6'], ['c', 'Dictionary<TKey, TValue>', 3, 'g7'], ['c', 'Queue<T>, Stack<T>', 1, 'g8'],
+    ];
+    const tree = el('div', 'tree');
+    nodes.forEach(([k, t, d, id]) => { const l = el('div', 'tl ' + k, esc((d ? '   '.repeat(d - 1) + '└─ ' : '') + t)); l.id = id; tree.appendChild(l); });
+    const leg = el('div', 'lbl', '<span style="color:var(--accent)">■ Interface</span> &nbsp; <span style="color:#6ee7b7">■ Klasse</span>');
+    const right = wrap('col', [lab('Collections in C#'), tree, leg]); right.style.gap = '6px';
+    const tp = el('div', 'tpc', 'T = ?'); tp.id = 'tp';
+    const arrs = wrap('row', [wrap('col', [lab('s1 →'), cells('A', ['🐶'], false)]), wrap('col', [lab('s2 →'), cells('B', ['🐱'], false)])]);
+    const err = hid(el('div', 'errbox', '❌ CS0315: int kann nicht als T verwendet werden – keine Konvertierung in IList.')); err.id = 'err';
+    const left = wrap('col', [tp, arrs, infoBox(), konsole('k'), err]);
+    const row = wrap('row top', [left, right]); row.style.gap = '40px';
+    st.appendChild(row);
+    const hot = ids => document.querySelectorAll('.tree .tl').forEach(l => l.classList.toggle('hot', ids.includes(l.id)));
+    return seq([
+      () => { setHl([2]); setT('? (muss IList sein)'); hot(['nIL', 'nAr', 'nAL', 'nLi', 'g3']); say('where T : IList: nur Typen mit Index-Zugriff – Arrays, List&lt;T&gt;, ArrayList'); },
+      () => { setHl([11, 2]); setT('string[]'); hot(['n0', 'n1', 'nIL', 'nAr']); say('string[] ist ein Array → ICollection → IList ✅'); },
+      () => { setHl([4]); say('IList kennt a[0], liefert aber object: temp = "🐶"'); },
+      () => { setHl([5]); setCell('A-0', '🐱', 'hot'); say('a[0] = … ändert das Array, auf das auch s1 zeigt'); },
+      () => { setHl([6]); setCell('B-0', '🐶', 'hot'); },
+      () => { setHl([12]); print('k', 's1:🐱 - s2:🐶'); say('<b>Seiteneffekt</b> – wie bei T[], aber T ist jetzt string[]'); },
+      () => { setHl([13]); setT('int ?'); hot([]); show_('err'); say('int steht nirgends in der Hierarchie → keine IList'); },
+    ]);
+  } },
 { ch: 1, title: 'Tausche<T> mit ref: die Variable selbst', code: codeTausche, hl: [7],
   text: `<p>Mit <code>ref</code> bekommt die Methode <b>keine Kopie</b>, sondern die <b>Variable</b> des Aufrufers. <code>a</code> ist nur ein zweiter Name für <code>x</code> bzw. <code>s1</code>.</p>
+<p>Gleiches Bild wie ohne <code>ref</code>: links der Stackframe des Hauptprogramms, in der Mitte der Heap, rechts der Stackframe der Methode. Aber <code>a</code> und <code>b</code> haben <b>keinen eigenen Pfeil in den Heap</b>, sie führen direkt zu <code>s1</code> und <code>s2</code>.</p>
 <p>Darum wirkt jetzt auch die Zuweisung <code>a = b</code> nach außen – und zwar bei <b>jedem</b> Typ, auch bei <code>int</code>. Gibt man <code>T</code> beim Aufruf nicht an, <b>erkennt</b> ihn der Compiler aus den Argumenten.</p>`,
   render(st) {
-    const sc = scene();
-    const tp = el('div', 'tpc', 'T = ?'); tp.id = 'tp';
-    const vars = wrap('row', [vbox('x', 'int x', '?'), vbox('y', 'int y', '?'), vbox('s1', 'string s1', '?'), vbox('s2', 'string s2', '?')]);
-    const fr = el('div', 'frame'); fr.appendChild(el('div', 'fh', 'Tausche&lt;T&gt;(ref T a, ref T b)'));
-    fr.appendChild(wrap('row', [vbox('a', 'T a', '–', 'ref'), vbox('b', 'T b', '–', 'ref'), vbox('tmp', 'T temp', '–')]));
-    sc.appendChild(wrap('col', [tp, vars, fr])); st.appendChild(sc);
-    const T = t => { const e = $('tp'); e.textContent = 'T = ' + t; e.classList.remove('pop'); void e.offsetWidth; e.classList.add('pop'); };
+    const sc = swapScene(st, 'Tausche&lt;T&gt;(ref T a, ref T b)', true, true);
+    const ro = { color: 'var(--y)', from: 'top', to: 'top', curve: 90, width: '3.5' };
+    const rb = Object.assign({}, ro, { from: 'bottom', to: 'bottom', down: true });
     return seq([
       () => { setHl([7]); setV('x', '1'); setV('y', '2'); },
-      () => { setHl([8]); T('int'); setV('a', '→ x'); setV('b', '→ y'); setV('tmp', '–'); },
+      () => { setHl([8, 0]); setT('int'); setV('a', '≡ x'); setV('b', '≡ y'); link(sc, 'a', 'x', ro); link(sc, 'b', 'y', rb); say('<b>ref:</b> keine Kopie! a und b führen <b>direkt</b> zu den Variablen x und y im Stackframe des Hauptprogramms'); },
       () => { setHl([2]); setV('tmp', '1'); },
-      () => { setHl([3]); setV('x', '2'); },
+      () => { setHl([3]); setV('x', '2'); say('a = b schreibt über a <b>direkt in x</b>'); },
       () => { setHl([4]); setV('y', '1'); },
-      () => { setHl([9]); setV('s1', '🐶'); setV('s2', '🐱'); },
-      () => { setHl([10]); T('string  (erkannt)'); setV('a', '→ s1'); setV('b', '→ s2'); setV('tmp', '–'); },
-      () => { setHl([2]); setV('tmp', '🐶'); },
-      () => { setHl([3]); setV('s1', '🐱'); },
-      () => { setHl([4]); setV('s2', '🐶'); },
+      () => { setHl([5]); unlink(sc, 'a'); unlink(sc, 'b'); ['a', 'b', 'tmp'].forEach(i => setV(i, '–')); say('x = 2, y = 1: <b>Seiteneffekt</b> – auch bei int'); },
+      () => { setHl([9, 10]); show_('Abox'); show_('Bbox'); setV('s1', '→'); setV('s2', '→'); link(sc, 's1', 'A-0'); link(sc, 's2', 'B-0'); },
+      () => { setHl([11, 0]); setT('string[]'); setV('a', '≡ s1'); setV('b', '≡ s2'); link(sc, 'a', 's1', ro); link(sc, 'b', 's2', rb); say('Kein eigener Pfeil in den Heap: a und b zeigen auf die <b>Variablen</b> s1 und s2 – nicht auf die Arrays'); },
+      () => { setHl([2]); setV('tmp', '→ 🐶'); },
+      () => { setHl([3]); relink(sc, 's1', 'B-0'); say('a = b hängt über a <b>den Pfeil von s1</b> um'); },
+      () => { setHl([4]); relink(sc, 's2', 'A-0'); },
+      () => { setHl([5]); unlink(sc, 'a'); unlink(sc, 'b'); ['a', 'b', 'tmp'].forEach(i => setV(i, '–')); say('s1 → 🐱, s2 → 🐶: <b>Seiteneffekt</b> auf die Variablen. Die Arrays im Heap sind unverändert'); },
+      () => { setHl([13]); print('k', 'x:2 - y:1'); },
+      () => { setHl([14]); print('k', 's1:🐱 - s2:🐶'); },
     ]);
   } },
 { ch: 1, title: 'Kopie der Referenz vs. ref', code: codeVergleich, hl: [3],

@@ -130,22 +130,45 @@ Hilfe: [Animation Generics](../Skripten/L02.2_Generics.html) · [Zettelübung Ko
 
 ---
 
-## Teil 5 – Kopie der Referenz vs. ref
+## Teil 5 – Wert- und Referenzsemantik: Kopie, Inhalt oder ref?
 
-**Ziel:** Verstehen, **welcher Pfeil** sich bei einer Zuweisung ändert.
+**Ziel:** Bei jeder Zuweisung wissen, **welcher Pfeil** oder **welcher Wert** sich ändert.
+**Bild im Kopf:** links Stackframe Hauptprogramm, Mitte Heap, rechts Stackframe der Methode (wie in der Animation).
 
-1. [ ] **Zuerst auf Papier!** Zeichne für den Testcode Variablen und Objekte als Kästchen mit Pfeilen (wie in der Zettelübung):
-   - [ ] nach ``a.AnhaengenHinten(stamm)``: Wohin zeigen ``stamm`` und ``Ladung`` des Waggons?
-   - [ ] nach ``stamm.Nachladen(4)``: Was ändert sich – ein Pfeil oder das Objekt?
-   - [ ] nach ``Zug<Holz> c = a;``: Wohin zeigt ``c``?
-   - [ ] nach ``Tauschen(ref a, ref b)``: Welche Pfeile haben sich geändert? Welcher **nicht**?
-2. [ ] Ausgabe vorhersagen und aufschreiben.
-3. [ ] ``Tauschen<T>(ref T a, ref T b)`` in ``Bahnhof`` schreiben (3 Zeilen mit ``temp``).
-4. [ ] Test ausführen und mit deiner Vorhersage vergleichen.
-5. [ ] **Experiment:** Entferne bei ``Tauschen`` die beiden ``ref`` (auch beim Aufruf). Was ändert sich an der Ausgabe? Warum? Danach wieder zurück.
-6. [ ] Fragen 1–4 beantworten.
+1. [ ] **5a – Objekt ändern**
+   - [ ] Auf Papier: Wohin zeigen ``stamm`` und die ``Ladung`` des Waggons nach ``AnhaengenHinten``?
+   - [ ] Ändert ``stamm.Nachladen(4)`` einen Pfeil oder das Objekt?
+   - [ ] Test ausführen, Vorhersage prüfen.
+2. [ ] **5b – Zuweisung ohne und mit ref**
+   - [ ] ``TauschenOhneRef<T>(T a, T b)`` schreiben (3 Zeilen mit ``temp``).
+   - [ ] ``Tauschen<T>(ref T a, ref T b)`` schreiben – gleicher Inhalt, nur ``ref`` davor.
+   - [ ] Auf Papier: Pfeile von ``a``, ``b``, ``c`` **vor** und **nach** jedem Aufruf zeichnen.
+     - ohne ``ref``: die Parameter haben **eigene** Pfeile in den Heap → nur diese werden umgehängt.
+     - mit ``ref``: die Parameter zeigen auf die **Variablen** ``a`` und ``b`` → diese werden umgehängt, ``c`` nicht.
+   - [ ] Gleiches mit ``links``/``rechts``: Was ist bei ``int`` anders? (kein Pfeil, die Zahl selbst wird kopiert)
+3. [ ] **5c – where T : IList**
+   - [ ] ``ErstesTauschen<T>(T a, T b)`` **ohne** ``where`` schreiben → Fehler bei ``a[0]`` lesen.
+   - [ ] In der Animation die Collection-Hierarchie ansehen: Welches Interface haben ``string[]`` und ``List<int>`` gemeinsam?
+   - [ ] ``where`` ergänzen, ``using System.Collections;`` nicht vergessen.
+   - [ ] ``a[0]`` liefert ``object?`` → ``temp`` hat diesen Typ.
+   - [ ] Test, dann ``<int>``-Zeile einkommentieren → Fehlernummer notieren.
+4. [ ] **5d – class oder struct?**
+   - [ ] Interface ``IEtikett`` anlegen.
+   - [ ] ``Fracht : IComparable<Fracht>, IEtikett`` – Eigenschaft ``Etikett`` mit Startwert ``""``.
+   - [ ] ``struct Palette : IEtikett`` anlegen.
+   - [ ] ``Etikettieren<T>`` zuerst ohne ``where`` → Fehler bei ``ladung.Etikett`` → mindestens ``where T : IEtikett``.
+   - [ ] Test: ``brett`` ändert sich, ``palette`` nicht. Auf Papier erklären: ``Holz`` → Kopie der **Referenz**, ``Palette`` → Kopie des **ganzen Werts**.
+   - [ ] ``EtikettierenSicher<T>`` mit ``where T : class, IEtikett``.
+   - [ ] Letzte Zeile einkommentieren → Fehlernummer notieren.
+5. [ ] Ausgabe mit der Angabe vergleichen, Fragen 1–6 beantworten.
 
-> **Merke:** ``a = …`` ändert nur die Variable links vom ``=``. Ohne ``ref`` ist das eine Kopie, mit ``ref`` die Variable des Aufrufers.
+| Was passiert in der Methode? | Werttyp (``int``, ``struct``) | Referenztyp (``class``, Array) |
+|---|---|---|
+| ``a = …`` ohne ``ref`` | kein Seiteneffekt | kein Seiteneffekt |
+| ``a = …`` mit ``ref`` | Seiteneffekt | Seiteneffekt |
+| ``a[0] = …`` / ``a.Etikett = …`` ohne ``ref`` | kein Seiteneffekt (Kopie) | **Seiteneffekt** |
+
+> **Merke:** ``a = …`` ändert nur die Variable links vom ``=``. Ohne ``ref`` ist das eine Kopie, mit ``ref`` die Variable des Aufrufers. ``where T : class`` garantiert, dass ``a.X = …`` das Original trifft.
 
 ---
 

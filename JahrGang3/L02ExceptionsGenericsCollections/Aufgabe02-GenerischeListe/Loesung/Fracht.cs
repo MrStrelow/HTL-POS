@@ -1,8 +1,11 @@
 // Teil 3: Basisklasse fuer alle Frachtstuecke.
 // Symbol ist abstract -> dynamische Polymorphie (entschieden zur LAUFZEIT).
-public abstract class Fracht : IComparable<Fracht>
+public abstract class Fracht : IComparable<Fracht>, IEtikett
 {
     public int Tonnen { get; private set; }
+
+    // Teil 5d: class -> Referenzsemantik
+    public string Etikett { get; set; } = "";
 
     protected Fracht(int tonnen)
     {
