@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OOP-Begriffe zuordnen</title>
+<style>
+:root{--bg:#0b1020;--panel:#141b2f;--panel2:#1d2640;--line:#2e3a5c;--fg:#eef2ff;--muted:#9aa6c4;--acc:#38bdf8;
+  --bad:#ef4444;
+  /* Fachbegriffe in der Farbe ihrer allgemeinen Kiste, aber je eigener Ton */
+  --ind:#a78bfa;--k:#c084fc;--o:#818cf8;--zu:#f59e0b;--f:#fbbf24;--h:#fb923c;--ve:#10b981;--m:#34d399}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:18px/1.45 "Segoe UI",system-ui,sans-serif}
+main{max-width:1400px;margin:0 auto;padding:18px 16px 60px}
+h1{margin:0 0 4px;font-size:1.7rem}
+.sub{color:var(--muted);margin:0 0 14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+h2{margin:0 0 10px;font-size:1.05rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+form{display:flex;gap:8px;flex-wrap:wrap}
+input{flex:1;min-width:220px;font-size:1.3rem;padding:10px 12px;border:2px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)}
+button{font:inherit;font-size:.95rem;padding:9px 14px;border:0;border-radius:8px;background:var(--acc);color:#04111d;font-weight:600;cursor:pointer}
+button.ghost{background:transparent;color:var(--acc);border:1px solid var(--acc)}
+button:disabled{opacity:.4;cursor:default}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.chips{display:flex;flex-wrap:wrap;gap:10px;min-height:52px}
+.chip{background:var(--panel2);border:2px solid var(--line);border-radius:999px;padding:7px 14px;font-size:1.2rem;display:inline-flex;gap:8px;align-items:center;transition:opacity .4s}
+.chip b{cursor:pointer;color:var(--muted);font-weight:400}
+.chip.used{opacity:.3}
+.chip.rejected{opacity:.55;border-color:var(--bad);text-decoration:line-through}
+.bucket.trash{min-height:90px;flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:flex-start;border-style:dotted}
+.bucket.trash h3{width:100%;text-align:center}
+.bucket.trash .chip{flex-direction:column;gap:2px;border-radius:12px}
+.bucket.trash .nm{text-decoration:line-through;text-decoration-color:var(--bad)}
+.bucket.trash .why{font-size:.8rem;color:#fca5a5;text-decoration:none;display:block}
+.chip .code{font-family:Consolas,monospace;font-size:.85rem;color:var(--muted)}
+.pop{animation:pop .35s cubic-bezier(.2,.8,.3,1.3) both}
+@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
+#kiPanel{display:none}
+#kiPanel.open{display:block}
+textarea{width:100%;min-height:150px;font:13px/1.4 Consolas,monospace;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:900px){.two{grid-template-columns:1fr}}
+.buckets{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+@media(max-width:1000px){.buckets{grid-template-columns:repeat(2,1fr)}}
+.buckets.allg{grid-template-columns:repeat(3,1fr);margin-bottom:12px}
+.buckets.fach{margin-bottom:12px}
+.buckets.hidden{display:none}
+.bucket{border:3px dashed;border-radius:14px;min-height:240px;padding:10px;display:flex;flex-direction:column;gap:8px;align-items:center;background:rgba(255,255,255,.02)}
+.bucket h3{margin:0 0 6px;font-size:1.15rem}
+.bucket .chip{font-size:1.05rem}
+.fly{position:absolute;z-index:50;pointer-events:none;margin:0;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.bucket{transition:background .3s, transform .3s}
+.bucket.hit{background:rgba(255,255,255,.08);transform:scale(1.03)}
+.ghostslot{visibility:hidden}
+#msg{color:var(--muted);font-size:.9rem}
+.status{font-size:.95rem;color:var(--muted);min-height:1.4em;margin-top:8px}
+.tip{position:relative}
+.tip:hover::after{content:attr(data-grund);position:absolute;left:50%;top:110%;transform:translateX(-50%);background:#000;color:#fff;font-size:.8rem;padding:6px 8px;border-radius:6px;width:220px;z-index:60}
+</style>
+</head>
+<body>
+<main>
+  <h1>🐹 Was hat und was kann das Programm?</h1>
+  <p class="sub">Begriffe der SuS eintippen – sie erscheinen sofort darunter.</p>
+
+  <section class="card">
+    <form id="f"><input id="term" placeholder="Begriff eingeben, Enter …" autocomplete="off"><button>Hinzufügen</button></form>
+    <div class="row">
+      <button class="ghost" id="demo">🧪 Dummy-Antworten laden</button>
+      <button class="ghost" id="clear">Alle löschen</button>
+      <button id="toggleKi">🤖 KI-Prompt einblenden</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Begriffe der SuS</h2>
+    <div class="chips" id="list"></div>
+  </section>
+
+  <section class="card" id="kiPanel">
+    <div class="two">
+      <div>
+        <h2>1 · Prompt für die KI</h2>
+        <textarea id="prompt" readonly></textarea>
+        <div class="row"><button id="copy">Prompt kopieren</button><span id="msg"></span></div>
+      </div>
+      <div>
+        <h2>2 · Antwort der KI (JSON)</h2>
+        <textarea id="answer" placeholder='[{"begriff":"Hamster","buckets":["Klassen"],"code":"class Hamster","grund":"…"}]'></textarea>
+        <div class="row">
+          <button class="ghost" id="demoAnswer">🧪 Demo-Antwort</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="row" style="margin-top:0">
+      <button id="step">▶ nächster Begriff</button>
+      <button id="auto">⏩ alle zuordnen</button>
+      <button id="fach" disabled title="erst wenn alles in die 3 Kisten sortiert ist">🎓 Fachbegriffe einblenden</button>
+      <button class="ghost" id="reset">↺ zurücksetzen</button>
+    </div>
+    <div class="status" id="status"></div>
+  </section>
+
+  <!-- Zeile 1: allgemeine Kisten · Zeile 2: Fachbegriffe (erst nach Klick) · darunter: verworfen -->
+  <section class="buckets allg" id="bucketsAllg"></section>
+  <section class="buckets fach hidden" id="buckets"></section>
+  <section id="trash"></section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const BUCKETS = [
+  { key: 'Klassen', icon: '📐', col: 'var(--k)' },
+  { key: 'Objekte', icon: '🐹', col: 'var(--o)' },
+  { key: 'Felder', icon: '📦', col: 'var(--f)' },
+  { key: 'hat-Beziehung', icon: '🔗', col: 'var(--h)' },   // wird als Feld umgesetzt -> neben Felder
+  { key: 'Methoden', icon: '⚙️', col: 'var(--m)' }
+];
+// Schritt 1: zuerst in diese drei allgemeinen Kisten
+const ALLG = [
+  { key: 'Individuum', icon: '🌍', title: 'Dinge in meiner Welt (Individuum)', col: 'var(--ind)' },
+  { key: 'Zustand', icon: '📦', title: 'Zustand (hat)', col: 'var(--zu)' },
+  { key: 'Verhalten', icon: '⚙️', title: 'Verhalten (kann)', col: 'var(--ve)' }
+];
+// Falls die KI keine kategorien liefert: aus den Fachbegriffen ableiten
+const ZU_ALLG = { 'Klassen': 'Individuum', 'Objekte': 'Individuum', 'Felder': 'Zustand', 'hat-Beziehung': 'Zustand', 'Methoden': 'Verhalten' };
+const ALLE = BUCKETS.concat(ALLG);
+const DEMO_TERMS = ['Hamster', 'paul', 'willi', 'gerri', 'Name', 'Position', 'läuft', 'macht nach', 'Freund', 'frisst', 'Hunger', 'wütend', 'Samen', 'Aussehen', 'Bauplan', 'Wiese'];
+const DEMO_ANSWER = [
+  { begriff: 'Hamster', buckets: ['Klassen'], code: 'class Hamster', grund: 'Der allgemeine Bauplan für alle Hamster.' },
+  { begriff: 'paul', buckets: ['Objekte'], code: 'paul', grund: 'Ein konkreter Hamster.' },
+  { begriff: 'willi', buckets: ['Objekte'], code: 'willi', grund: 'Ein zweiter konkreter Hamster.' },
+  { begriff: 'gerri', buckets: ['Objekte'], code: 'gerri', grund: 'Noch ein Hamster aus demselben Bauplan.' },
+  { begriff: 'Name', buckets: ['Felder'], code: 'name', grund: 'Jeder Hamster merkt sich seinen eigenen Namen – nur so kann man sie unterscheiden.' },
+  { begriff: 'Position', buckets: ['Felder'], code: 'position', grund: 'Das hat jeder Hamster: wo er steht.' },
+  { begriff: 'läuft', buckets: ['Methoden'], code: 'Bewegen()', grund: 'Das kann ein Hamster.' },
+  { begriff: 'macht nach', buckets: ['Methoden'], code: 'Nachmachen()', grund: 'Das kann ein Hamster mit Freund.' },
+  { begriff: 'Freund', buckets: ['Felder', 'hat-Beziehung'], code: 'freund', grund: 'Ein Feld, das auf einen anderen Hamster zeigt.' },
+  { begriff: 'frisst', buckets: ['Methoden'], code: 'Fressen()', grund: 'Das kann ein Hamster, wenn er auf einem Samen steht.' },
+  { begriff: 'Hunger', buckets: ['Felder'], code: 'hunger', grund: 'Jeder Hamster zählt selbst mit, wie lange er nichts gefressen hat.' },
+  { begriff: 'wütend', buckets: ['Felder'], code: 'hunger', grund: 'Das 😡 zeigt nur den Zustand an: Der Hunger ist zu groß.' },
+  { begriff: 'Samen', buckets: ['Klassen', 'Objekte'], code: 'class Samen', grund: 'Die 🌱 sind eigene Dinge in der Welt – ein eigener Bauplan mit vielen Objekten.' },
+  { begriff: 'Aussehen', buckets: [], code: '', grund: 'Alle Hamster sehen gleich aus (🐹) – das muss sich kein Hamster einzeln merken.' },
+  { begriff: 'Bauplan', buckets: ['Klassen'], code: 'class', grund: 'Fachbegriff für Klasse.' },
+  { begriff: 'Wiese', buckets: [], code: '', grund: 'Nur der Hintergrund – kommt in unserem Programm (noch) nicht als Klasse vor.' }
+];
+
+let terms = [];
+try { terms = JSON.parse(localStorage.getItem('oop-buckets-terms') || '[]'); } catch (e) {}
+const save = () => { try { localStorage.setItem('oop-buckets-terms', JSON.stringify(terms)); } catch (e) {} };
+
+// ---------- Liste ----------
+function drawList(popLast) {
+  const l = $('list'); l.innerHTML = '';
+  terms.forEach((t, i) => {
+    const c = document.createElement('span'); c.className = 'chip' + (popLast && i === terms.length - 1 ? ' pop' : '');
+    c.dataset.term = t; c.textContent = t;
+    const x = document.createElement('b'); x.textContent = '✕'; x.title = 'entfernen';
+    x.onclick = () => { terms.splice(i, 1); save(); drawList(); drawPrompt(); };
+    c.appendChild(x); l.appendChild(c);
+  });
+  drawPrompt();
+}
+$('f').onsubmit = e => {
+  e.preventDefault(); const v = $('term').value.trim();
+  if (v && !terms.includes(v)) { terms.push(v); save(); drawList(true); }
+  $('term').value = ''; $('term').focus();
+};
+$('demo').onclick = () => { terms = DEMO_TERMS.slice(); save(); drawList(); resetBuckets(); };
+// ohne confirm(): Bestätigungsdialoge werden in manchen Ansichten (z. B. Vorschau) blockiert
+$('clear').onclick = () => { terms = []; save(); $('answer').value = ''; drawList(); resetBuckets(); status('Alle Begriffe gelöscht.'); };
+
+// ---------- Prompt ----------
+function drawPrompt() {
+  $('prompt').value =
+`Du bist Informatik-Lehrkraft an einer HTL (2. Jahrgang, C#). Die SuS haben ein Hamster-Programm beobachtet: Auf einer Wiese laufen mehrere Hamster. Alle sehen gleich aus (🐹), über jedem steht sein Name (paul, willi, gerri, susi). paul läuft rauf, rauf, runter, runter, rechts, links, willi macht als sein Freund jeden Schritt nach, gerri und susi laufen zufällig. Auf der Wiese liegen Samen 🌱: Läuft ein Hamster darüber, frisst er ihn und der Samen verschwindet. Frisst ein Hamster lange nichts, wird er hungrig und bekommt ein 😡. Mögliche Klassen: Hamster (Felder z. B. name, position, richtung, hunger, freund; Methoden z. B. Bewegen(richtung), Nachmachen(), Fressen()) und eventuell Samen. Weil alle Hamster gleich aussehen, braucht es kein eigenes Feld für das Aussehen. Die Objekte heißen paul, willi, gerri und susi.
+
+Die SuS haben diese Begriffe gesammelt:
+${terms.length ? terms.map(t => '- ' + t).join('\n') : '- (noch keine Begriffe)'}
+
+Aufgabe: Ordne jeden Begriff in zwei Schritten zu.
+1. "kategorien": in eine oder mehrere dieser allgemeinen Kisten: Individuum (ein Ding in meiner Welt), Zustand (was ein Ding hat), Verhalten (was ein Ding kann).
+2. "buckets": in einen oder mehrere dieser Fachbegriffe: Klassen, Objekte, Felder, Methoden, hat-Beziehung.
+Mehrfachzuordnung ist erlaubt (z. B. "Freund" → Zustand bzw. Felder und hat-Beziehung). Passt ein Begriff nirgends, gib bei beiden eine leere Liste an.
+
+Antworte NUR mit gültigem JSON, ohne Erklärtext, genau in diesem Format (Reihenfolge wie oben, Begriff exakt wie oben geschrieben):
+[
+  {"begriff": "…", "kategorien": ["Zustand"], "buckets": ["Felder"], "code": "Name im C#-Code, z. B. position oder Bewegen()", "grund": "ein kurzer, schülergerechter Satz"}
+]`;
+}
+$('toggleKi').onclick = () => {
+  const open = $('kiPanel').classList.toggle('open');
+  $('toggleKi').textContent = open ? '🤖 KI-Prompt ausblenden' : '🤖 KI-Prompt einblenden';
+};
+$('copy').onclick = async () => {
+  try { await navigator.clipboard.writeText($('prompt').value); } catch (e) { $('prompt').select(); document.execCommand('copy'); }
+  $('msg').textContent = 'Kopiert ✓'; setTimeout(() => $('msg').textContent = '', 2000);
+};
+$('demoAnswer').onclick = () => { $('answer').value = JSON.stringify(DEMO_ANSWER, null, 1); prepare(); };
+
+// ---------- Buckets + Animation ----------
+function bucketDiv(k, title) {
+  const d = document.createElement('div'); d.className = 'bucket'; d.style.borderColor = k.col; d.id = 'bk-' + k.key;
+  d.innerHTML = `<h3 style="color:${k.col}">${k.icon} ${title || k.key}</h3>`; return d;
+}
+function resetBuckets() {
+  const a = $('bucketsAllg'); a.innerHTML = '';
+  ALLG.forEach(k => a.appendChild(bucketDiv(k, k.title)));
+  const b = $('buckets'); b.innerHTML = ''; b.classList.add('hidden');
+  BUCKETS.forEach(k => b.appendChild(bucketDiv(k)));
+  // Verworfen: Begriffe ohne passende Kiste oder Begriffe, die die SuS gar nicht genannt haben
+  const tr = $('trash'); tr.innerHTML = '';
+  const t = document.createElement('div'); t.className = 'bucket trash'; t.id = 'bk-verworfen'; t.style.borderColor = 'var(--bad)';
+  t.innerHTML = '<h3 style="color:var(--bad)">🗑️ Verworfen – passt in keine Kiste</h3>'; tr.appendChild(t);
+  document.querySelectorAll('#list .chip').forEach(c => c.classList.remove('used', 'rejected'));
+  queue = []; idx = 0; phase = 1; $('fach').disabled = true; clearInterval(autoTimer); status('');
+}
+let queue = [], idx = 0, autoTimer = null, phase = 1;   // phase 1: allgemeine Kisten, phase 2: Fachbegriffe
+function status(t) { $('status').textContent = t; }
+function parseAnswer() {
+  let txt = $('answer').value.trim();
+  txt = txt.replace(/^```(json)?/i, '').replace(/```$/, '').replace(/^window\.ZUORDNUNG\s*=\s*/, '').replace(/;\s*$/, '');
+  const data = JSON.parse(txt);
+  if (!Array.isArray(data)) throw new Error('Kein Array');
+  return data;
+}
+function prepare() {
+  resetBuckets();
+  try { queue = parseAnswer(); } catch (e) { status('Antwort ist kein gültiges JSON: ' + e.message); return false; }
+  // Begriffe, die die SuS gar nicht genannt haben, werden NICHT übernommen, sondern später verworfen
+  drawList();
+  status(`${queue.length} Begriffe bereit – zuerst in die 3 Kisten: „▶ nächster Begriff“ oder „⏩ alle zuordnen“.`);
+  return true;
+}
+const FLUG_MS = 2200;   // Flugdauer eines Begriffs
+function flyTo(src, bucketKey, z) {
+  const bucket = $('bk-' + bucketKey); if (!bucket) return;
+  const weg = bucketKey === 'verworfen';
+  const col = weg ? 'var(--bad)' : ALLE.find(b => b.key === bucketKey).col;
+  const html = weg ? `<span class="nm">✖ ${z.begriff}</span><span class="why">${z.grund || 'passt in keinen Bucket'}</span>`
+                   : `${z.begriff}${z.code ? ` <span class="code">${z.code}</span>` : ''}`;
+  // fliegendes Kärtchen startet genau über dem Begriff in der Liste
+  const fly = document.createElement('span'); fly.className = 'chip fly'; fly.innerHTML = html; fly.style.borderColor = col;
+  document.body.appendChild(fly);
+  // Seitenkoordinaten (nicht Bildschirm): Scrollen während des Flugs verschiebt das Ziel nicht
+  const page = r => ({ x: r.left + scrollX + r.width / 2, y: r.top + scrollY + r.height / 2 });
+  const a = page(src.getBoundingClientRect()), f = fly.getBoundingClientRect();
+  fly.style.left = (a.x - f.width / 2) + 'px';
+  fly.style.top = (a.y - f.height / 2) + 'px';
+  fly.style.transition = `transform ${FLUG_MS}ms cubic-bezier(.45,.05,.35,1)`;
+  const b = page(bucket.getBoundingClientRect());   // Ziel: Mitte des Buckets
+  void fly.offsetWidth;   // Startposition festschreiben, dann losfliegen
+  setTimeout(() => { fly.style.transform = `translate(${b.x - a.x}px, ${b.y - a.y}px) scale(1.15)`; }, 30);
+  bucket.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  setTimeout(() => {
+    bucket.classList.add('hit'); setTimeout(() => bucket.classList.remove('hit'), 500);
+    const chip = document.createElement('span'); chip.className = 'chip tip pop'; chip.dataset.grund = z.grund || ''; chip.dataset.term = z.begriff;
+    chip.innerHTML = html; chip.style.borderColor = col; bucket.appendChild(chip);
+    fly.remove();
+  }, FLUG_MS + 50);
+}
+function kategorien(z) {
+  if (Array.isArray(z.kategorien)) return z.kategorien;
+  return [...new Set((z.buckets || []).map(k => ZU_ALLG[k]).filter(Boolean))];
+}
+function next() {
+  if (!queue.length && !prepare()) return false;
+  // Phase 2: nur die Begriffe, die in Phase 1 nicht verworfen wurden
+  const liste = phase === 1 ? queue : queue.filter(z => document.querySelector(`#bucketsAllg .chip[data-term="${CSS.escape(z.begriff)}"]`));
+  if (idx >= liste.length) {
+    clearInterval(autoTimer);
+    if (phase === 1) { $('fach').disabled = false; status('Fertig mit den 3 Kisten ✓ – „🎓 Fachbegriffe einblenden“.'); }
+    else status('Fertig ✓ – alle Begriffe den Fachbegriffen zugeordnet.');
+    return false;
+  }
+  const z = liste[idx++];
+  const fremd = !terms.includes(z.begriff);   // hat die KI einen Begriff erfunden?
+  const ziele = phase === 1 ? ALLG : BUCKETS;
+  const ks = fremd ? [] : (phase === 1 ? kategorien(z) : (z.buckets || [])).filter(k => ziele.some(b => b.key === k));
+  // Phase 1 fliegt aus der Liste, Phase 2 aus der allgemeinen Kiste
+  const listChip = [...document.querySelectorAll('#list .chip')].find(c => c.dataset.term === z.begriff);
+  const quelle = phase === 1 ? listChip : document.querySelector(`#bucketsAllg .chip[data-term="${CSS.escape(z.begriff)}"]`);
+  const src = quelle || ($('kiPanel').classList.contains('open') ? $('answer') : $('list'));
+  if (!ks.length) {
+    const grund = fremd ? 'Diesen Begriff haben die SuS nicht genannt.' : (z.grund || 'passt in keine Kiste');
+    flyTo(src, 'verworfen', Object.assign({}, z, { grund }));
+    if (listChip) listChip.classList.add('rejected');
+    status(`${idx}/${liste.length}: „${z.begriff}“ → 🗑️ verworfen – ${grund}`);
+    return true;
+  }
+  ks.forEach((k, j) => setTimeout(() => flyTo(src, k, phase === 1 ? Object.assign({}, z, { code: '' }) : z), j * 900));
+  if (listChip) listChip.classList.add('used');
+  status(`${idx}/${liste.length}: „${z.begriff}“ → ${ks.join(' + ')}${phase === 2 && z.grund ? ' – ' + z.grund : ''}`);
+  return true;
+}
+$('fach').onclick = () => {
+  phase = 2; idx = 0; $('fach').disabled = true; $('buckets').classList.remove('hidden');
+  $('buckets').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  status('Jetzt dieselben Begriffe den Fachbegriffen zuordnen: „▶ nächster Begriff“ oder „⏩ alle zuordnen“.');
+};
+$('step').onclick = () => next();
+$('auto').onclick = () => { clearInterval(autoTimer); if (!queue.length && !prepare()) return; autoTimer = setInterval(() => { if (!next()) clearInterval(autoTimer); }, FLUG_MS + 1600); };
+$('reset').onclick = () => { const a = $('answer').value; resetBuckets(); $('answer').value = a; };
+
+resetBuckets(); drawList();
+</script>
+</body>
+</html>

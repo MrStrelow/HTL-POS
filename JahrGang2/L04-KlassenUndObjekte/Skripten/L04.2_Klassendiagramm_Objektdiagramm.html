@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Klassendiagramm und Objektdiagramm</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020617; --panel: #0f172a; --panel2: #1e293b; --line: #334155; --text: #f1f5f9; --muted: #94a3b8;
+    --accent: #38bdf8; --ok: #34d399; --x: #f59e0b; --obj: #a78bfa; --bad: #fb7185;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+  .mono, code { font-family: 'Fira Code', monospace; }
+  code { background: var(--panel2); padding: 0 5px; border-radius: 4px; font-size: .92em; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 10px 18px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 19px; color: var(--accent); }
+  nav { display: flex; flex-wrap: wrap; gap: 6px; }
+  nav button { background: var(--panel2); color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+  nav button.active { color: var(--accent); border-color: var(--accent); }
+  main { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 18px 16px; gap: 14px; }
+  h2 { margin: 0; font-size: 24px; text-align: center; }
+  .stage { width: 100%; max-width: 1200px; min-height: 420px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; overflow-x: auto; }
+  .text { max-width: 1000px; font-size: 18px; line-height: 1.5; text-align: center; min-height: 60px; }
+  .controls { display: flex; gap: 8px; align-items: center; }
+  .controls button { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 16px; font: inherit; cursor: pointer; }
+  .controls .counter { color: var(--muted); font-size: 14px; min-width: 80px; text-align: center; }
+  .row { display: flex; gap: 0; align-items: center; justify-content: center; flex-wrap: wrap; }
+  .gap { gap: 26px; }
+  .hide { opacity: 0; transform: translateY(8px); pointer-events: none; }
+  .rev { transition: opacity .5s, transform .5s; }
+
+  /* UML-Box */
+  .uml { border: 2px solid var(--accent); border-radius: 8px; background: #0b1222; min-width: 250px; font-family: 'Fira Code', monospace; font-size: 14px; }
+  .uml .h { padding: 7px 12px; text-align: center; font-weight: 700; color: var(--accent); border-bottom: 2px solid var(--accent); }
+  .uml .sec { padding: 6px 12px; border-bottom: 1px solid var(--line); min-height: 26px; }
+  .uml .sec:last-child { border-bottom: 0; }
+  .uml .m { color: var(--ok); }
+  .uml.obj { border-color: var(--obj); }
+  .uml.obj .h { color: var(--obj); border-color: var(--obj); text-decoration: underline; }
+  .uml .hl { background: rgba(245,158,11,.2); border-radius: 4px; color: var(--x); }
+  .tag { display: block; font-family: 'Inter', sans-serif; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px; }
+  .ann { color: var(--x); font-size: 13px; font-family: 'Inter', sans-serif; }
+
+  /* Pfeil zwischen zwei Boxen */
+  .arrow { display: flex; flex-direction: column; align-items: center; padding: 0 6px; font-family: 'Fira Code', monospace; color: var(--x); min-width: 170px; }
+  .arrow .lbl { font-size: 14px; font-weight: 600; }
+  .arrow .line { font-size: 22px; letter-spacing: -2px; white-space: nowrap; }
+  .arrow .mult { align-self: flex-end; font-size: 13px; color: var(--muted); }
+  .arrow.obj { color: var(--obj); }
+
+  .console { background: #000; border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; font-family: 'Fira Code', monospace; font-size: 14px; color: #d1fae5; min-width: 420px; white-space: pre; }
+  .code { background: #0b1222; border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; font-family: 'Fira Code', monospace; font-size: 14px; white-space: pre; }
+  .code .k { color: #c084fc; } .code .t { color: var(--accent); } .code .c { color: #64748b; } .code .s { color: #fde68a; }
+  .badge { padding: 8px 14px; border-radius: 10px; font-weight: 700; border: 2px solid var(--ok); color: var(--ok); background: rgba(52,211,153,.1); }
+  .badge.x { border-color: var(--x); color: var(--x); background: rgba(245,158,11,.1); }
+  .col { display: flex; flex-direction: column; gap: 14px; align-items: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>📐 Klassendiagramm und Objektdiagramm – die hat-Beziehung</h1>
+  <nav id="nav"></nav>
+</header>
+<main>
+  <h2 id="title"></h2>
+  <div class="stage" id="stage"></div>
+  <div class="text" id="text"></div>
+  <div class="controls">
+    <button id="prev">◀ zurück</button>
+    <span class="counter" id="counter"></span>
+    <button id="next">weiter ▶</button>
+  </div>
+</main>
+
+<script>
+// ===================== Bausteine =====================
+const uml = (name, felder, methoden, cls = '', id = '') =>
+  `<div class="uml ${cls}" ${id ? `id="${id}"` : ''}><div class="h">${name}</div>` +
+  `<div class="sec">${felder.join('<br>')}</div>` + (methoden ? `<div class="sec m">${methoden.join('<br>') || '&nbsp;'}</div>` : '') + `</div>`;
+const pfeil = (lbl, mult, cls = '', id = '') => `<div class="arrow ${cls}" ${id ? `id="${id}"` : ''}><span class="lbl">${lbl}</span><span class="line">──────────▶</span><span class="mult">${mult}</span></div>`;
+// Element, das mit "weiter" eingeblendet wird (step = ab welchem Klick sichtbar)
+const rev = (step, html, extra = '') => `<div class="rev" data-step="${step}" ${extra}>${html}</div>`;
+
+const HAMSTER = uml('Hamster',
+  ['+ _representation : string', '+ _position : (int x, int y)', '<span id="mouthKD">+ _mouth : Seedling</span>', '+ _planeSize : int = 10'],
+  ['+ Hamster(position, mouth)', '+ Move()']);
+const SEEDLING = uml('Seedling', ['+ _representation : string = "🌱"', '+ _position : (int x, int y)'], []);
+const hamObj = (id, pos, mund, hl = false) => uml(`#${id} : Hamster`,
+  ['_representation = "🐹"', `_position = ${pos}`, `<span class="${hl ? 'hl' : ''}">_mouth = ● ${mund}</span>`, '_planeSize = 10'], null, 'obj');
+const seedObj = (id, pos) => uml(`#${id} : Seedling`, ['_representation = "🌱"', `_position = ${pos}`], null, 'obj');
+
+// ===================== Folien =====================
+const SLIDES = [
+  { title: 'Vom Code zum Klassendiagramm', steps: 3,
+    html: () => `<div class="row gap" style="align-items:flex-start">
+        ${rev(0, `<div class="col"><span class="tag">Hamster.cs</span><div class="code"><span class="k">class</span> <span class="t">Hamster</span>
+{
+    <span class="k">public string</span> _representation;
+    <span class="k">public</span> (<span class="k">int</span> x, <span class="k">int</span> y) _position;
+    <span class="k">public</span> <span class="t">Seedling</span> _mouth;
+    <span class="k">public int</span> _planeSize = 10;
+
+    <span class="k">public</span> Hamster((<span class="k">int</span> x, <span class="k">int</span> y) position, <span class="t">Seedling</span> mouth) { … }
+    <span class="k">public void</span> Move() { … }
+}</div></div>`)}
+        ${rev(1, `<div class="col"><span class="tag">Klassendiagramm</span>${HAMSTER}</div>`)}
+      </div>`,
+    text: ['Das ist unser Hamster aus Aufgabe v1. Weiter ▶ zeichnet ihn als <b>Klassendiagramm</b>.',
+           'Ein <b>Klassendiagramm</b> zeigt den <b>Bauplan</b> – ohne den Code in den Methoden.',
+           'Wir schreiben im Diagramm nur, <b>was</b> es gibt – nicht, <b>wie</b> es funktioniert.'] },
+
+  { title: 'Ein Klassendiagramm lesen', steps: 4,
+    html: () => `<div class="row gap">
+        <div class="col">${HAMSTER}</div>
+        <div class="col" style="align-items:flex-start; max-width:430px">
+          ${rev(0, '<div><span class="badge">1 · oben: der Name der Klasse</span></div>')}
+          ${rev(1, '<div><span class="badge x">2 · Mitte: die Felder (Zustand) – Name : Typ</span></div>')}
+          ${rev(2, '<div><span class="badge" style="border-color:var(--ok)">3 · unten: Konstruktor und Methoden (Verhalten)</span></div>')}
+          ${rev(3, '<div><span class="badge" style="border-color:var(--muted);color:var(--muted);background:none">+ heißt public</span></div>')}
+        </div>
+      </div>`,
+    text: ['Drei Teile von oben nach unten …', '… zuerst der <b>Name</b> …', '… dann die <b>Felder</b>: zuerst der Name, nach dem Doppelpunkt der Typ …',
+           '… und unten das <b>Verhalten</b>. Das <b>+</b> vorne heißt <code>public</code>.'] },
+
+  { title: 'Die hat-Beziehung im Klassendiagramm', steps: 3,
+    html: () => `<div class="row">
+        ${HAMSTER}
+        ${rev(1, pfeil('_mouth', '1'))}
+        ${rev(0, SEEDLING)}
+      </div>
+      ${rev(2, '<div class="badge x">Ein Feld, dessen Typ eine <b>andere Klasse</b> ist, zeichnen wir als <b>Pfeil</b>.</div>')}`,
+    text: ['Der Hamster hat ein Feld <code>_mouth</code> vom Typ <code>Seedling</code> – und <code>Seedling</code> ist <b>auch eine unserer Klassen</b>.',
+           'Statt es nur in die Box zu schreiben, zeichnen wir einen <b>Pfeil</b>: Der Hamster <b>hat</b> einen Seedling. Am Pfeil steht der Name des Feldes, am Ende die Anzahl: <b>1</b> Seedling.',
+           'Die Pfeilrichtung sagt, <b>wer wen kennt</b>: Der Hamster kennt seinen Seedling – der Seedling weiß nichts vom Hamster.'] },
+
+  { title: 'Objekte haben keinen Namen', steps: 3,
+    html: () => `<div class="row gap">
+        ${rev(0, `<div class="code"><span class="t">Hamster</span> hans = <span class="k">new</span> <span class="t">Hamster</span>((1, 5), s1);</div>`)}
+      </div>
+      <div class="row gap">
+        ${rev(1, `<div class="col"><span class="tag">Variable</span><div class="badge" style="border-color:var(--accent);color:var(--accent);background:none">hans  ●──▶</div></div>`)}
+        ${rev(1, `<div class="col"><span class="tag">Objekt im Arbeitsspeicher</span>${hamObj('?', '(1, 5)', 's1')}</div>`)}
+      </div>
+      ${rev(2, '<div class="badge x">hans ist der Name der <b>Variable</b> – nicht des Objekts!</div>')}`,
+    text: ['Wie heißt dieser Hamster?',
+           '<code>hans</code> ist nur eine <b>Variable</b>, die auf das Objekt <b>zeigt</b>. Das Objekt selbst hat keinen Namen.',
+           'Steckt das Objekt in einem Array, gibt es nicht einmal eine Variable dafür. Woran erkennen wir es dann?'] },
+
+  { title: 'Die Hash-ID: eine Nummer für jedes Objekt', steps: 3,
+    html: () => `<div class="row gap" style="align-items:flex-start">
+        ${rev(0, `<div class="col"><span class="tag">Program.cs</span><div class="code"><span class="t">Seedling</span> s2 = <span class="k">new</span> <span class="t">Seedling</span>();
+<span class="t">Console</span>.WriteLine(s2.GetHashCode());</div></div>`)}
+        ${rev(1, `<div class="col"><span class="tag">Konsole</span><div class="console">33826822</div></div>`)}
+      </div>
+      ${rev(2, `<div class="row gap">${seedObj('33826822', '(1, 2)')}<div class="badge">gleiche Zahl = dasselbe Objekt</div></div>`)}`,
+    text: ['<code>GetHashCode()</code> ist eine Methode, die <b>jedes</b> Objekt automatisch hat – wir müssen sie nicht selbst schreiben. Mit dem Punkt rufen wir sie beim Objekt auf, auf das <code>s2</code> zeigt.',
+           'Zurück kommt eine <b>Zahl</b>. Sie ist bei jedem Programmstart anders – aber während das Programm läuft, gehört sie fest zu <b>diesem einen</b> Objekt.',
+           'Die Hash-ID verwenden wir als <b>Namen für Objekte</b>: im Objektdiagramm und in unseren Ausgaben.'] },
+
+  { title: 'Die hat-Beziehung im Objektdiagramm', steps: 3,
+    html: () => `<div class="row">
+        ${rev(0, hamObj('12479570', '(1, 5)', '#37200188'))}
+        ${rev(1, pfeil('_mouth', '', 'obj'))}
+        ${rev(1, seedObj('37200188', '(1, 5)'))}
+      </div>
+      ${rev(2, '<div class="badge x">Klassendiagramm: der Bauplan · Objektdiagramm: konkrete Objekte mit konkreten Werten</div>')}`,
+    text: ['Ein <b>Objektdiagramm</b> zeigt <b>konkrete Objekte</b>: oben die Hash-ID und die Klasse (unterstrichen), darunter die <b>Werte</b> der Felder. Methoden stehen nicht drin – die sind im Bauplan.',
+           'Das Feld <code>_mouth</code> zeigt auf <b>ein bestimmtes</b> Seedling-Objekt: das mit der Hash-ID <b>#37200188</b>. Auch hier zeichnen wir einen Pfeil.',
+           'Ein Klassendiagramm gibt es <b>einmal</b> pro Programm. Objektdiagramme kann man zu <b>jedem Zeitpunkt</b> zeichnen.'] },
+
+  { title: 'Das Objektdiagramm ändert sich – das Klassendiagramm nicht', steps: 3,
+    html: (k) => `<div class="col">
+        <span class="tag">Klassendiagramm (bleibt gleich)</span>
+        <div class="row">${HAMSTER}${pfeil('_mouth', '1')}${SEEDLING}</div>
+        <span class="tag" style="margin-top:10px">Objektdiagramm ${k >= 1 ? 'nach 3 × Simulate()' : 'am Anfang'}</span>
+        <div class="row">
+          ${hamObj('12479570', k >= 1 ? '(1, 2)' : '(1, 5)', k >= 1 ? '#33826822' : '#37200188', k >= 1)}
+          ${pfeil('_mouth', '', 'obj')}
+          <div class="col">
+            <div style="opacity:${k >= 1 ? .35 : 1}">${seedObj('37200188', '(1, 5)')}</div>
+            <div style="opacity:${k >= 1 ? 1 : .35}">${seedObj('33826822', '(1, 2)')}</div>
+          </div>
+        </div>
+      </div>
+      ${rev(2, '<div class="badge">#33826822 – das ist die Hash-ID von s2 aus dem Hauptprogramm. Der Hamster hat <b>dasselbe</b> Objekt im Mund, keine Kopie.</div>')}`,
+    text: ['Am Anfang zeigt <code>_mouth</code> auf den Seedling, auf dem der Hamster startet.',
+           'Der Hamster geht dreimal nach Norden und steht auf (1, 2). Dort liegt ein Seedling → <code>_mouth</code> zeigt jetzt auf <b>ein anderes Objekt</b>. Im Klassendiagramm ändert sich <b>nichts</b>.',
+           'An der Hash-ID erkennen wir, <b>welches</b> Objekt gemeint ist.'] }
+];
+
+// ===================== Steuerung =====================
+let s = 0, k = 0;
+const $ = id => document.getElementById(id);
+$('nav').innerHTML = SLIDES.map((sl, i) => `<button data-i="${i}">${i + 1}</button>`).join('');
+$('nav').onclick = e => { if (e.target.dataset.i) { s = +e.target.dataset.i; k = 0; render(); } };
+function render() {
+  const sl = SLIDES[s];
+  $('title').textContent = sl.title;
+  $('stage').innerHTML = sl.html(k);
+  document.querySelectorAll('#stage [data-step]').forEach(e => e.classList.add('hide'));
+  void $('stage').offsetWidth;
+  document.querySelectorAll('#stage [data-step]').forEach(e => e.classList.toggle('hide', +e.dataset.step > k));
+  $('text').innerHTML = sl.text[Math.min(k, sl.text.length - 1)];
+  $('counter').textContent = `${s + 1} / ${SLIDES.length} · ${k + 1}/${sl.steps}`;
+  [...$('nav').children].forEach((b, i) => b.classList.toggle('active', i === s));
+}
+function next() { if (k < SLIDES[s].steps - 1) k++; else if (s < SLIDES.length - 1) { s++; k = 0; } render(); }
+function prev() { if (k > 0) k--; else if (s > 0) { s--; k = SLIDES[s].steps - 1; } render(); }
+$('next').onclick = next; $('prev').onclick = prev;
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); next(); }
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+});
+render();
+</script>
+</body>
+</html>

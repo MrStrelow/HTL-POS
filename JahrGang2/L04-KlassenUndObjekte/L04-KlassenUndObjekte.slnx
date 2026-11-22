@@ -1,6 +1,8 @@
 <Solution>
-  <Project Path="Aufgabe01-Hamsterwiese/Aufgabe01-Hamsterwiese.csproj" />
+  <Project Path="Aufgabe01-Hamster-v1/Aufgabe01-Hamster-v1.csproj" />
   <Project Path="Aufgabe02-Drohnenlieferung/Aufgabe02-Drohnenlieferung.csproj" />
+  <Project Path="Aufgabe05-Hamster-v2/Aufgabe05-Hamster-v2.csproj" />
+  <Project Path="Aufgabe06-Hamster-v3/Aufgabe06-Hamster-v3.csproj" />
   <Project Path="Skripten/Skripten.csproj" />
   <Project Path="ZettelUebungen/ZettelUebungen.csproj" />
 </Solution>

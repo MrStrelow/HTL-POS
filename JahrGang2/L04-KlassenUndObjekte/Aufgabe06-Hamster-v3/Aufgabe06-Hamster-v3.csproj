@@ -3,9 +3,9 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
-    <RootNamespace>Aufgabe01_Hamsterwiese</RootNamespace>
+    <RootNamespace>Aufgabe06_Hamster_v3</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>disable</Nullable>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <!-- Der Ordner Loesung wird nicht mitkompiliert. -->

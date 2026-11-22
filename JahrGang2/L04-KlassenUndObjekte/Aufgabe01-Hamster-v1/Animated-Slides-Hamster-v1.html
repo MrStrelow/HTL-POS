@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hamsterwiese – Schritt für Schritt</title>
+<title>Hamster v1 – Schritt für Schritt</title>
 <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -115,14 +115,17 @@
   .obj-h { padding: 6px 10px; border-bottom: 1px solid #334155; font-family: 'Fira Code', monospace; font-weight: 600; color: var(--accent); text-decoration: underline; }
   .cell.ghost { background: transparent; border: 1px dashed #334155; color: var(--bad); font-weight: 700; }
   .cell { font-size: 20px !important; }
+  .cell { width: 30px; height: 30px; font-size: 16px !important; }
+  .cell .mund { position: absolute; right: -4px; bottom: -4px; font-size: 11px; }
+  .cell .nm { position: absolute; top: -2px; left: 50%; transform: translateX(-50%); font-size: 9px; font-family: Inter, sans-serif; background: rgba(2,6,23,.85); padding: 0 3px; border-radius: 3px; color: #fff; }
   .caption code, .steps code { font-family: 'Fira Code', monospace; background: #1e293b; padding: 0 4px; border-radius: 4px; }
 </style>
 </head>
 <body>
 <header>
   <div>
-    <h1>🐹 Die Hamsterwiese</h1>
-    <small>Die Musterlösung mit Klassen und Objekten Schritt für Schritt an den echten Daten</small>
+    <h1>🐹 Hamster v1</h1>
+    <small>Seedling, Hamster und Plane: deklarieren und verbinden</small>
   </div>
   <nav id="nav"></nav>
 </header>
@@ -171,7 +174,7 @@ class Trace {
 }
 const slideOf = (title, text, ...traces) => ({ title, text, frames: traces.flatMap(t => t.frames) });
 
-// ===================== Objekt-Karten und Wiese =====================
+// ===================== Objekt-Karten =====================
 function obj(name, props, chg = [], cls = "") {
   const rows = Object.entries(props).map(([k, v]) => `<tr class="${chg.includes(k) ? "chg" : ""}"><td>${esc(k)}</td><td>${val(v)}</td></tr>`).join("");
   return `<div class="obj ${cls}"><div class="obj-h">${esc(name)}</div><table class="vars">${rows}</table></div>`;
@@ -179,167 +182,120 @@ function obj(name, props, chg = [], cls = "") {
 const objs = (...o) => `<div class="cols">${o.join("")}</div>`;
 const T = (x, y) => R(`(${x}, ${y})`);
 const ERDE = "🟫", SEED = "🌱";
-const BEET = [[2, 0], [4, 1], [1, 2], [5, 3]];
-const neuesBeet = () => BEET.map(p => ({ p: [...p], d: SEED, g: false }));
-const beschr = s => `${s.d} auf (${s.p[0]}, ${s.p[1]})${s.g ? " (gefressen)" : ""}`;
-const seedObj = (name, s, chg = [], cls = "") => obj(name + " : Seedling", { position: T(s.p[0], s.p[1]), darstellung: s.d, gefressen: s.g }, chg, cls);
-// Wiese zeichnen: probe = [x, y, "ok"|"bad"], ham = {p, d}
-function wiese(b, w, h, ham = null, probe = null, fill = 3) {
-  let html = `<div class="grid" style="grid-template-columns: repeat(${w + (probe && probe[0] >= w ? 1 : 0)}, auto)">`;
-  const extraTop = probe && probe[1] < 0;
-  if (extraTop) for (let x = 0; x < w; x++) html += `<div class="cell ghost ${x === probe[0] ? "probe-bad" : ""}">${x === probe[0] ? "?" : ""}</div>`;
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      let t = fill >= 1 ? ERDE : "";
-      if (fill >= 2) for (const s of b) if (!s.g && s.p[0] === x && s.p[1] === y) t = s.d;
-      if (fill >= 3 && ham && ham.p[0] === x && ham.p[1] === y) t = ham.d;
-      const pr = probe && probe[0] === x && probe[1] === y ? " probe-" + probe[2] : "";
-      html += `<div class="cell${pr}" title="(${x}, ${y})">${t}</div>`;
-    }
-    if (probe && probe[0] >= w) html += `<div class="cell ghost ${probe[1] === y ? "probe-bad" : ""}">${probe[1] === y ? "?" : ""}</div>`;
+const konsole = lines => `<div class="log">${lines.map((l, i) => `<span class="p ${i === lines.length - 1 ? "new" : ""}">${esc(l)}</span>`).join("\n") || " "}</div>`;
+
+// ===================== Daten wie in Program.cs (Hash-IDs: Beispielwerte wie in der Angabe) =====================
+const SEEDS = {
+  s1: { id: 28672654, p: [1, 5] }, s2: { id: 33826822, p: [1, 2] }, s3: { id: 13840400, p: [4, 2] }, s4: { id: 21083178, p: [4, 7] },
+  s5: { id: 7043582, p: [4, 0] }, s6: { id: 57326237, p: [7, 8] }, s7: { id: 55915408, p: [7, 3] }, s8: { id: 33476626, p: [9, 9] }
+};
+const neueHamster = () => [{ id: 28016690, p: [1, 5], m: "s1" }, { id: 37200188, p: [4, 2], m: "s3" }, { id: 45707473, p: [7, 8], m: "s6" }];
+const seedKarte = (v, chg = [], cls = "ok") => obj(`${v} : Seedling  #${SEEDS[v].id}`, { _representation: SEED, _position: T(SEEDS[v].p[0], SEEDS[v].p[1]) }, chg, cls);
+const hamKarte = (h, chg = [], cls = "ok") => obj(`Hamster  #${h.id}`, { _representation: "🐹", _position: T(h.p[0], h.p[1]), _mouth: R(`→ #${SEEDS[h.m].id} (${h.m})`), _planeSize: 10 }, chg, cls);
+const planeKarte = (chg = []) => obj("plane : Plane", { _hamsters: R("→ Hamster[3]"), _seedlings: R("→ Seedling[8]") }, chg, "ok");
+const printZeile = h => `🐹 ${h.id} auf (${h.p[0]}, ${h.p[1]}) hat im Mund: 🌱 ${SEEDS[h.m].id}`;
+// kleines 10 x 10 Spielfeld (nur zur Anschauung – das Programm zeichnet es nicht)
+function feld(hams, hl = null) {
+  const imMund = hams.map(h => h.m);
+  let html = `<div class="grid" style="grid-template-columns: repeat(10, auto)">`;
+  for (let y = 0; y < 10; y++) for (let x = 0; x < 10; x++) {
+    let t = ERDE;
+    // ein Seedling im Mund liegt nicht mehr auf dem Feld
+    for (const k in SEEDS) if (!imMund.includes(k) && SEEDS[k].p[0] === x && SEEDS[k].p[1] === y) t = SEED;
+    for (const h of hams) if (h.p[0] === x && h.p[1] === y) t = `🐹<span class="mund">🌱</span>`;
+    const pr = hl && hl[0] === x && hl[1] === y ? " probe-ok" : "";
+    html += `<div class="cell${pr}" title="(${x}, ${y})">${t}</div>`;
   }
   return html + "</div>";
 }
-const konsole = lines => `<div class="log">${lines.map((l, i) => `<span class="p ${i === lines.length - 1 ? "new" : ""}">${esc(l)}</span>`).join("\n") || " "}</div>`;
 
-// ===================== Schritt 1: Seedling =====================
+// ===================== Teil 1: Deklarieren =====================
 function s1() {
-  const t = new Trace("public Seedling((int x, int y) start)", [
-    "<b>new</b>: Platz für ein neues Seedling-Objekt, alle Felder haben den Standardwert",
-    "Konstruktor: position = start; darstellung = \"🌱\"; gefressen = false",
-    "die Variable bekommt eine <b>Referenz</b> auf das Objekt",
-    "Beschreiben(): gefressen? → Text bauen",
-    "Hauptprogramm: s2.gefressen = true"]);
-  const LEER = { p: [0, 0], d: null, g: false };
-  const A = { p: [2, 1], d: SEED, g: false }, B = { p: [4, 3], d: SEED, g: false };
-  const out = [];
-  t.call("Seedling s1 = new Seedling((2, 1));");
-  t.f(0, { s1: null, s2: null }, objs(seedObj("?", LEER, [], "new")), "<b>new</b> legt ein neues Objekt an: position = (0, 0), darstellung = null, gefressen = false.");
-  t.f(1, { start: T(2, 1) }, objs(seedObj("?", A, ["position", "darstellung"])), "Der Konstruktor legt den <b>Startzustand</b> fest.", { 0: "ok" });
-  t.f(2, { s1: R("→ Seedling (2, 1)"), s2: null }, objs(seedObj("s1", A, [], "ok")), "<b>s1</b> zeigt jetzt auf das Objekt.", { 0: "ok", 1: "ok" });
-  t.call("Seedling s2 = new Seedling((4, 3));");
-  t.f(2, { s1: R("→ Seedling (2, 1)"), s2: R("→ Seedling (4, 3)") }, objs(seedObj("s1", A), seedObj("s2", B, ["position", "darstellung"], "ok")), "Ein zweites <b>new</b> → ein zweites, <b>eigenes</b> Objekt mit eigenen Feldern.", { 0: "ok", 1: "ok" });
-  out.push(beschr(A), beschr(B)); t.call("Console.WriteLine(s1.Beschreiben()); Console.WriteLine(s2.Beschreiben());");
-  t.f(3, { gefressen: false }, objs(seedObj("s1", A), seedObj("s2", B)) + box("Konsole", konsole(out)), "Gleiche Methode, anderes Objekt → anderer Text. Beschreiben() verwendet die <b>eigenen</b> Felder.", { 3: "ok" });
-  B.g = true; t.call("s2.gefressen = true;");
-  t.f(4, { s1: R("→ Seedling (2, 1)"), s2: R("→ Seedling (4, 3)") }, objs(seedObj("s1", A), seedObj("s2", B, ["gefressen"])) + box("Konsole", konsole(out)), "Mit dem <b>Punkt</b> ändern wir ein Feld von <b>s2</b>. s1 hat sein <b>eigenes</b> Feld und bleibt false.", { 4: "ok" });
-  out.push(beschr(A), beschr(B)); t.call("Console.WriteLine(s1.Beschreiben()); Console.WriteLine(s2.Beschreiben());");
-  t.f(3, { "s2.gefressen": true }, objs(seedObj("s1", A), seedObj("s2", B)) + box("Konsole", konsole(out)), "Bei s2 hängt Beschreiben() jetzt \" (gefressen)\" an.", { 3: "ok", 4: "ok" });
-  return slideOf("Schritt 1 – Seedling", "Konstruktor und die erste Methode.", t);
-}
-
-// ===================== Schritt 2: Wiese =====================
-function s2() {
-  const b = [{ p: [2, 1], d: SEED, g: false }];
-  const wObj = (chg = []) => obj("wiese : Wiese", { breite: 6, hoehe: 4, seedling: R("→ Seedling (2, 1)") }, chg, "ok");
-  const t = new Trace("class Wiese", [
-    "Konstruktor: this.breite = breite; this.hoehe = hoehe; this.seedling = seedling",
-    "IstInnerhalb(p): 0 &lt;= x &lt; breite und 0 &lt;= y &lt; hoehe",
-    "Zeichnen: für jedes (x, y): feld = Erde → Seedling? → Hamster? → Console.Write(feld)"]);
-  t.call("Wiese wiese = new Wiese(6, 4, s1);");
-  t.f(0, { breite: 6, hoehe: 4, seedling: R("→ s1") }, objs(wObj(["breite", "hoehe", "seedling"]), seedObj("s1", b[0])), "Die Wiese <b>hat</b> einen Seedling: Ihr Feld <b>seedling</b> zeigt auf <b>dasselbe</b> Objekt wie s1 – es wird nichts kopiert.", { 0: "ok" });
-  t.call("wiese.IstInnerhalb((5, 3))");
-  t.f(1, { p: T(5, 3), return: true }, wiese(b, 6, 4, null, [5, 3, "ok"], 1), "x = 5 &lt; 6 und y = 3 &lt; 4 → <b>true</b>.", { 1: "ok" });
-  t.call("wiese.IstInnerhalb((6, 3))");
-  t.f(1, { p: T(6, 3), return: false }, wiese(b, 6, 4, null, [6, 3, "bad"], 1), "x = 6 ist <b>nicht</b> kleiner als breite = 6 → false. Die Spalten gehen von 0 bis 5!", { 1: "bad" });
-  t.call("wiese.IstInnerhalb((0, -1))");
-  t.f(1, { p: T(0, -1), return: false }, wiese(b, 6, 4, null, [0, -1, "bad"], 1), "y = -1 liegt oberhalb der Wiese → false.", { 1: "bad" });
-  t.call("wiese.Zeichnen(null)");
-  const zeilen = ["🟫🟫🟫🟫🟫🟫", "🟫🟫🌱🟫🟫🟫", "🟫🟫🟫🟫🟫🟫", "🟫🟫🟫🟫🟫🟫"];
-  const teil = n => { const o = []; for (let y = 0; y < 4; y++) { const z = [...zeilen[y]].slice(0, Math.max(0, Math.min(6, n - y * 6))).join(""); if (z) o.push(z); } return o; };
-  [[0, 0], [1, 0], [2, 1]].forEach(([x, y]) => {
-    const hit = x === 2 && y === 1;
-    t.f(2, { y, x, hamster: null, feld: hit ? SEED : ERDE }, wiese(b, 6, 4, null, [x, y, hit ? "ok" : "bad"], 0) + box("Konsole", konsole(teil(y * 6 + x + 1))),
-      hit ? "Feld (2, 1): Der Seedling ist nicht gefressen und steht hier → feld = \"🌱\"." : `Feld (${x}, ${y}): kein Seedling, hamster ist <b>null</b> → feld bleibt Erde → Console.Write(feld).`, {});
-  });
-  t.f(2, { hamster: null }, box("Konsole", konsole(zeilen)), "Alle Zeilen ausgegeben. <b>null</b> heißt: Es gibt keinen Hamster zum Zeichnen.", { 2: "ok" });
-  return slideOf("Schritt 2 – Wiese", "Die Wiese hat einen Seedling und weiß, wo ihr Rand ist.", t);
-}
-
-// ===================== Hamster-Hilfen =====================
-const hamObj = (name, h, chg = []) => obj(name + " : Hamster", { position: T(h.p[0], h.p[1]), darstellung: h.d, anzahlSchritte: h.s, wiese: R("→ wiese : Wiese") }, chg, "ok");
-const DIR = { N: [0, -1], S: [0, 1], O: [1, 0], W: [-1, 0] };
-const inside = (p, w, h) => p[0] >= 0 && p[0] < w && p[1] >= 0 && p[1] < h;
-const WEG = ["N", "O", "O", "S", "O", "W"];
-
-// ===================== Schritt 3: Hamster bewegen =====================
-function s3() {
-  const b = [{ p: [2, 1], d: SEED, g: false }], h = { p: [0, 0], d: "🐹", s: 0 }, out = [];
-  const t = new Trace("public void Bewegen(string richtung)", [
-    "ziel = position; je nach richtung ziel.x oder ziel.y ändern",
-    "Guard: <b>wiese.IstInnerhalb(ziel)</b>? Nein → Meldung, return",
-    "position = ziel; anzahlSchritte++; Meldung"]);
-  t.call('Hamster paul = new Hamster((0, 0), wiese, "🐹");');
-  out.push("🐹 auf (0, 0), 0 Schritte");
-  t.f(-1, { paul: R("→ Hamster"), "paul.wiese": R("→ wiese") }, objs(hamObj("paul", h, ["position", "darstellung", "wiese"]), obj("wiese : Wiese", { breite: 6, hoehe: 4, seedling: R("→ s1") })) + wiese(b, 6, 4, h) + box("Konsole", konsole(out)),
-    "Der Konstruktor bekommt die Wiese → <b>hat-Beziehung</b>: paul kennt jetzt die Wiese.");
-  for (const r of WEG) {
-    t.call(`paul.Bewegen("${r}");`);
-    const z = [h.p[0] + DIR[r][0], h.p[1] + DIR[r][1]];
-    if (!inside(z, 6, 4)) {
-      out.push("🐹 stößt an den Rand");
-      t.f(1, { richtung: r, ziel: T(z[0], z[1]), "wiese.IstInnerhalb(ziel)": false }, hamObj("paul", h) + wiese(b, 6, 4, h, [z[0], z[1], "bad"]) + box("Konsole", konsole(out)),
-        "Der Hamster <b>fragt seine Wiese</b> über die hat-Beziehung. Antwort false → Guard greift, position bleibt.", { 0: "ok", 1: "bad" });
-      continue;
-    }
-    h.p = z; h.s++;
-    out.push(`🐹 geht nach ${r} -> (${z[0]}, ${z[1]})`);
-    t.f(2, { richtung: r, ziel: T(z[0], z[1]), "wiese.IstInnerhalb(ziel)": true }, hamObj("paul", h, ["position", "anzahlSchritte"]) + wiese(b, 6, 4, h) + box("Konsole", konsole(out)),
-      `Die Wiese sagt true → position und anzahlSchritte ändern sich.`, { 0: "ok", 1: "ok", 2: "ok" });
-  }
-  return slideOf("Schritt 3 – Hamster: sich bewegen", "Der Hamster fragt seine Wiese, ob er dort hin darf.", t);
-}
-
-// ===================== Schritt 4: Hamster frisst =====================
-function s4() {
-  const S = { p: [2, 1], d: SEED, g: false }, b = [S], h = { p: [0, 0], d: "🐹", s: 0 }, out = ["🐹 auf (0, 0), 0 Schritte", "🐹 stößt an den Rand"];
-  const t = new Trace("public void Fressen()", [
-    "am Ende von Bewegen: Fressen() aufrufen",
-    "seedling = <b>wiese.seedling</b> (über die hat-Beziehung)",
-    "Guard: schon gefressen oder nicht auf meiner position → return",
-    "seedling.gefressen = true; Meldung"]);
-  for (const r of WEG.slice(1)) {
-    const z = [h.p[0] + DIR[r][0], h.p[1] + DIR[r][1]];
-    h.p = z; h.s++; out.push(`🐹 geht nach ${r} -> (${z[0]}, ${z[1]})`);
-    t.call(`paul.Bewegen("${r}");  →  Fressen();`);
-    const view = (chg = []) => objs(hamObj("paul", h), seedObj("s1  =  wiese.seedling", S, chg)) + wiese(b, 6, 4, h) + box("Konsole", konsole(out));
-    if (S.g) { t.f(2, { position: T(z[0], z[1]), "seedling.gefressen": true }, view(), "Der Seedling ist <b>schon gefressen</b> → Guard → return.", { 0: "ok", 1: "ok", 2: "bad" }); continue; }
-    if (z[0] !== 2 || z[1] !== 1) { t.f(2, { position: T(z[0], z[1]), "seedling.position": T(2, 1) }, view(), `(${z[0]}, ${z[1]}) ist nicht (2, 1) → Guard → return.`, { 0: "ok", 1: "ok", 2: "bad" }); continue; }
-    t.f(1, { position: T(2, 1), seedling: R("→ s1") }, view(), "Über <b>wiese.seedling</b> bekommt der Hamster eine Referenz auf <b>dasselbe</b> Objekt wie s1.", { 0: "ok", 1: "ok" });
-    S.g = true; out.push("🐹 frisst 🌱");
-    t.f(3, { "seedling.gefressen": true }, view(["gefressen"]), "Der Hamster ändert ein Feld eines <b>anderen</b> Objekts. Darum ist auch <b>s1</b> im Hauptprogramm gefressen!", { 0: "ok", 1: "ok", 2: "ok", 3: "ok" });
-  }
-  out.push("🐹 auf (2, 1), 5 Schritte", beschr(S));
-  t.call("Console.WriteLine(paul.Beschreiben()); Console.WriteLine(s1.Beschreiben());");
-  t.f(-1, { "s1.gefressen": true }, objs(hamObj("paul", h), seedObj("s1", S)) + wiese(b, 6, 4, h) + box("Konsole", konsole(out)), "Der Hamster hat s1 nie gesehen – aber über die Wiese dasselbe Objekt geändert.");
-  return slideOf("Schritt 4 – Hamster: fressen", "Über die hat-Beziehungen Hamster → Wiese → Seedling.", t);
-}
-
-// ===================== Schritt 5: Simulation =====================
-function s5() {
-  let seed = 11; const rnd = n => { seed = (seed * 1103515245 + 12345) % 2147483648; return Math.floor(seed / 2147483648 * n); };
-  const W = 10, H = 6, S = { p: [6, 3], d: SEED, g: false }, b = [S];
-  const h = { p: [0, 0], d: "🐭", s: 0 }, rs = ["N", "O", "S", "W"];
-  const t = new Trace("Hauptprogramm: Simulation", [
-    "futter (zufällig), grosseWiese (10 × 6), willi",
-    "while (!futter.gefressen &amp;&amp; runde &lt; 500)",
-    "grosseWiese.Zeichnen(willi)",
-    "willi.Bewegen(zufällige Richtung)",
-    "fertig"]);
+  const t = new Trace("Teil 1: Dateien, Felder, Methodenköpfe, Hauptprogramm", [
+    "Datei <b>Seedling.cs</b>: Felder _representation = \"🌱\", _position",
+    "Datei <b>Hamster.cs</b>: Felder _representation, _position, _mouth (Seedling), _planeSize = 10",
+    "Hamster: Kopf von Konstruktor und Move() – Rumpf leer",
+    "Datei <b>Plane.cs</b>: Felder _hamsters, _seedlings, Kopf von Konstruktor, Simulate(), Print()",
+    "Program.cs: Objekte erzeugen, Hash-ID von s2, while (true) → kompiliert ✔"]);
+  const decl = (name, felder, methoden = []) => `<div class="obj ok"><div class="obj-h">${name}.cs</div><table class="vars"><tr><td style="color:var(--accent)">class ${name}</td></tr>${felder.map(f => `<tr><td>${esc(f)}</td></tr>`).join("")}${methoden.map(m => `<tr><td style="color:var(--ok)">${esc(m)} { }</td></tr>`).join("")}</table></div>`;
+  const S = decl("Seedling", ['public string _representation = "🌱";', "public (int x, int y) _position;"]);
+  const Hf = ["public string _representation;", "public (int x, int y) _position;", "public Seedling _mouth;", "public int _planeSize = 10;"];
+  const Hm = ["public Hamster((int x, int y) position, Seedling mouth)", "public void Move()"];
+  const P = decl("Plane", ["public Hamster[] _hamsters;", "public Seedling[] _seedlings;"], ["public Plane(Hamster[] hamsters, Seedling[] seedlings)", "public void Simulate()", "public void Print()"]);
   t.call("");
-  t.f(0, { futter: R("→ Seedling (6, 3)"), willi: R("→ Hamster (0, 0)") }, wiese(b, W, H, h), "Drei Objekte: willi kennt grosseWiese, grosseWiese kennt futter.", { 0: "ok" });
-  let runde = 0;
-  while (!S.g && runde < 500) {
-    runde++;
-    const r = rs[rnd(4)], z = [h.p[0] + DIR[r][0], h.p[1] + DIR[r][1]];
-    let cap = `Runde ${runde}: Richtung ${r}`;
-    if (inside(z, W, H)) { h.p = z; h.s++; if (z[0] === S.p[0] && z[1] === S.p[1]) { S.g = true; cap += " → frisst 🌱"; } } else cap += " → Rand";
-    if (runde % 5 === 0 || S.g) t.f(3, { runde, richtung: r, "futter.gefressen": S.g }, wiese(b, W, H, h), cap, { 0: "ok", 1: "ok", 2: "ok", 3: "ok" });
-  }
-  t.f(4, { runde, "futter.gefressen": S.g }, wiese(b, W, H, h) + box("Konsole", konsole([beschr(S), `🐭 auf (${h.p[0]}, ${h.p[1]}), ${h.s} Schritte`])), "futter.gefressen ist true – willi hat es über grosseWiese geändert → die Schleife endet.", { 0: "ok", 1: "ok", 2: "ok", 3: "ok", 4: "ok" });
-  return slideOf("Schritt 5 – Die Simulation", "Die Maus läuft zufällig, bis sie den Seedling gefressen hat.", t);
+  t.f(0, { Dateien: "Seedling.cs" }, objs(S), "Die Datei heißt wie die Klasse. Der Seedling hat nur <b>Felder</b> – keinen Konstruktor.", { 0: "ok" });
+  t.f(1, { Dateien: "Seedling.cs, Hamster.cs" }, objs(S, decl("Hamster", Hf)), "<b>_mouth</b> hat den Typ <b>Seedling</b> → hat-Beziehung. <b>_planeSize</b> ist fix 10.", { 0: "ok", 1: "ok" });
+  t.f(2, { Dateien: "Seedling.cs, Hamster.cs" }, objs(S, decl("Hamster", Hf, Hm)), "Nur die <b>Köpfe</b>: Name, Parameter, Rückgabetyp. Die Rümpfe bleiben leer.", { 0: "ok", 1: "ok", 2: "ok" });
+  t.f(3, { Dateien: "Seedling.cs, Hamster.cs, Plane.cs" }, objs(S, decl("Hamster", Hf, Hm), P), "Die Plane hat zwei <b>Arrays von Objekten</b>.", { 0: "ok", 1: "ok", 2: "ok", 3: "ok" });
+  t.f(4, { Kompilieren: true }, objs(S, decl("Hamster", Hf, Hm), P), "Mit dem Hauptprogramm ist alles <b>deklariert</b> und <b>verwendet</b> → es kompiliert. Es tut aber noch fast nichts.", { 0: "ok", 1: "ok", 2: "ok", 3: "ok", 4: "ok" });
+  return slideOf("Schritt 1 – Teil 1: Deklarieren", "Drei Dateien, Felder, Methodenköpfe und das Hauptprogramm.", t);
 }
-const slides = [s1(), s2(), s3(), s4(), s5()];
+
+// ===================== Teil 2: Objekte verbinden =====================
+function s2() {
+  const hams = neueHamster();
+  const t = new Trace("Program.cs: Objekte erzeugen und verbinden", [
+    "8 × new Seedling(); Position mit dem Punkt setzen",
+    "Seedling[] seedlings = { s1, …, s8 };",
+    "Hamster-Konstruktor: _representation = \"🐹\"; _position = position; _mouth = mouth;",
+    "Plane-Konstruktor: _hamsters = hamsters; _seedlings = seedlings;",
+    "Hash-IDs ausgeben: s2, hamsters, plane._hamsters"]);
+  t.call("Seedling s1 = new Seedling();  s1._position = (1, 5);");
+  t.f(0, { s1: R("→ #" + SEEDS.s1.id) }, objs(seedKarte("s1", ["_position"])) + feld([]), "Kein Konstruktor: <b>new</b> legt das Objekt an, _representation ist schon \"🌱\". Die Position setzen wir mit dem <b>Punkt</b>.", { 0: "ok" });
+  t.call("… s2 bis s8 genauso;  Seedling[] seedlings = { s1, s2, s3, s4, s5, s6, s7, s8 };");
+  t.f(1, { seedlings: R("→ Seedling[8]") }, feld([]), "Acht eigene Objekte – jedes mit einer anderen Hash-ID. Das Array hält nur die <b>Referenzen</b>.", { 0: "ok", 1: "ok" });
+  const fertig = [];
+  hams.forEach((h, i) => {
+    t.call(`new Hamster((${h.p[0]}, ${h.p[1]}), ${h.m})`);
+    fertig.push(h);
+    t.f(2, { position: T(h.p[0], h.p[1]), mouth: R("→ #" + SEEDS[h.m].id), _mouth: R("→ #" + SEEDS[h.m].id) },
+      objs(hamKarte(h, ["_representation", "_position", "_mouth"]), seedKarte(h.m)) + feld(fertig, h.p),
+      `Kein <b>this</b> nötig: links das Feld mit <b>_</b>, rechts der Parameter. Der Hamster startet auf ${h.m} und hat ihn im Mund.`, { 0: "ok", 1: "ok", 2: "ok" });
+  });
+  t.call("Plane plane = new Plane(hamsters, seedlings);");
+  t.f(3, { _hamsters: R("→ dasselbe Array"), _seedlings: R("→ dasselbe Array") }, objs(planeKarte(["_hamsters", "_seedlings"])) + feld(hams), "Die Plane bekommt beide Arrays. Kopiert wird nur die <b>Referenz</b> – es gibt weiterhin nur je <b>ein</b> Array.", { 0: "ok", 1: "ok", 2: "ok", 3: "ok" });
+  t.call('s2.GetHashCode();  hamsters.GetHashCode();  plane._hamsters.GetHashCode();');
+  t.f(4, { "s2": SEEDS.s2.id, "hamsters": 12479570, "plane._hamsters": 12479570 }, objs(seedKarte("s2", [], "new"), planeKarte()) + box("Konsole", konsole([`s2 hat die Hash-ID ${SEEDS.s2.id}`, "hamsters hat die Hash-ID 12479570", "plane._hamsters hat die Hash-ID 12479570"])), "Gleiche Zahl bei <b>hamsters</b> und <b>plane._hamsters</b> → es gibt nur <b>ein</b> Array. Die Zahl von s2 taucht später wieder auf!", { 0: "ok", 1: "ok", 2: "ok", 3: "ok", 4: "ok" });
+  return slideOf("Schritt 2 – Hauptprogramm und Konstruktoren", "Program.cs erzeugt die Objekte, die Konstruktoren verbinden sie.", t);
+}
+
+// ===================== Teil 2: Simulate und Print =====================
+function s3() {
+  const hams = neueHamster();
+  const t = new Trace("public void Simulate()", [
+    "foreach hamster in _hamsters: hamster.Move();",
+    "Move(): _mouth._position = _position;  y == 0? → y = _planeSize;  dann y--",
+    "foreach seedling in _seedlings: gleiche Position? → hamster._mouth = seedling;  Ausgabe \"nimmt … in den Mund\"",
+    "Print(): foreach hamster: Position und hamster._mouth ausgeben"]);
+  const out = [`s2 hat die Hash-ID ${SEEDS.s2.id}`, "hamsters hat die Hash-ID 12479570", "plane._hamsters hat die Hash-ID 12479570", ""];
+  t.call("Startzustand");
+  t.f(-1, {}, feld(hams) + box("Konsole", konsole(out)), "Jeder Hamster steht auf seinem Start-Seedling und hat ihn im Mund (kleines 🌱) – darum liegt dort kein Seedling mehr auf dem Feld.");
+  for (let runde = 1; runde <= 4; runde++) {
+    hams.forEach((h, i) => {
+      t.call(`Runde ${runde}, Hamster ${i + 1}: hamster.Move();`);
+      const oben = h.p[1] === 0, alt = [...h.p];
+      SEEDS[h.m].p = [...alt];   // der Seedling im Mund kommt mit
+      h.p = [h.p[0], oben ? 9 : h.p[1] - 1];
+      t.f(1, { "_position": T(h.p[0], h.p[1]) }, objs(hamKarte(h, ["_position"], "new")) + feld(hams, h.p) + box("Konsole", konsole(out.slice(-8))),
+        oben ? `Der Hamster war ganz oben (y = 0) → y wird zuerst auf <b>_planeSize = 10</b> gesetzt, dann <b>y--</b> → er steht unten auf (${h.p[0]}, 9).`
+             : `Ein Schritt nach Norden: (${alt[0]}, ${alt[1]}) → (${h.p[0]}, ${h.p[1]}). Der Seedling im Mund kommt mit.`, { 0: "ok" });
+      const neu = Object.keys(SEEDS).find(k => SEEDS[k].p[0] === h.p[0] && SEEDS[k].p[1] === h.p[1]);
+      if (neu) {
+        const vorher = h.m; h.m = neu;
+        out.push(`🐹 ${h.id} nimmt 🌱 ${SEEDS[neu].id} in den Mund`);
+        t.f(2, { "seedling._position": T(h.p[0], h.p[1]), _mouth: R(`→ #${SEEDS[neu].id} (${neu})`) }, objs(hamKarte(h, ["_mouth"], "new"), seedKarte(neu, [], "new")) + feld(hams, h.p) + box("Konsole", konsole(out.slice(-8))),
+          (neu === "s2" ? "Der Hamster steht auf <b>s2</b> → <b>_mouth</b> zeigt jetzt auf <b>dasselbe</b> Objekt wie s2 – gleiche Hash-ID wie ganz oben! " : `Auf (${h.p[0]}, ${h.p[1]}) liegt <b>${neu}</b> → er kommt in den Mund und verschwindet vom Feld. `) +
+          `Den alten Seedling <b>${vorher}</b> lässt er auf (${alt[0]}, ${alt[1]}) liegen – dort, wo er gerade war.`, { 0: "ok", 1: "ok", 2: "ok" });
+      }
+    });
+    hams.forEach(h => out.push(printZeile(h)));
+    out.push("");
+    t.call(`Runde ${runde}: Print();`);
+    t.f(3, {}, feld(hams) + box("Konsole", konsole(out.slice(-8))), `Ende von Runde ${runde}: Print() listet alle Hamster auf. Über <b>hamster._mouth</b> kommt Print() zum Seedling – das ist die hat-Beziehung.`, { 0: "ok", 1: "ok", 2: "ok", 3: "ok" });
+  }
+  return slideOf("Schritt 3 – Teil 2: Move, Simulate und Print", "Alle Hamster gehen nach Norden – einer nach dem anderen.", t);
+}
+const slides = [s1(), s2(), s3()];
 
 
 // ===================== Steuerung =====================

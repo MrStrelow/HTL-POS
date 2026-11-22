@@ -21,7 +21,7 @@ Die Firma *SkyParcel* liefert Pakete per Drohne. Die Aufträge in ``auftraege.tx
 
 Diesmal bauen wir das Programm aus **Objekten**. Jedes ``Objekt`` erledigt den Teil, für den es zuständig ist:
 
-| ``Klasse`` | hat (``Zustand``) | kann (``Verhalten``) |
+| ``Klasse`` | ``Felder`` (``Zustand``) | ``Methoden`` (``Verhalten``) |
 |---|---|---|
 | ``Auftrag`` | Nummer, Start, Ziel, Gewicht, Kunde | seine Strecke und seinen Preis berechnen, seine Berichtzeile bauen |
 | ``Stadtplan`` | die Zeilen der Karte | sagen, ob ein Punkt innerhalb liegt, eine Route einzeichnen |
