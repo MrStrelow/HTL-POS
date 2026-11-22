@@ -14,6 +14,6 @@
     <Project Path="L03DistanzZeichnen/L03DistanzZeichnen.csproj" />
   </Folder>
   <Folder Name="/L04/">
-    <Project Path="L04Hamster/L04Hamster.csproj" />
+    <Project Path="L04HamsterObjekteUndKlassen/L04HamsterObjekteUndKlassen.csproj" Id="e400c531-60d2-4762-a3c5-2e08076b0dd3" />
   </Folder>
 </Solution>
