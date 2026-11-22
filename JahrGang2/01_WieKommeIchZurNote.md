@@ -36,6 +36,7 @@ Mitarbeit = Hausübungen (HÜ) + Mitarbeit unter der Stunde + Stundenwiederholun
 ### Hausübungen (HÜ)
 * **Aufgaben** werden in der Unterrichtszeit begonnen und, falls nicht abgeschlossen, als **Hausübung** fertiggestellt.
 * Hausübungen sind **abzugeben** (Termin und Abgabe in Moodle).
+* **Ablauf:** Wir machen immer zuerst eine Hausübung. Du bekommst dazu ein Feedback mit Anmerkungen. **Eine Woche später** verbesserst du die Hausübung anhand dieser Anmerkungen und gibst sie erneut ab.
 * Sie werden anhand der **Kompetenzen** bewertet, die die jeweilige Aufgabe abbildet.
 * **Hausübungen zählen wenig. Sie dienen als Übung und für Feedback der Lehrperson. Wird eine Hausübung aber gar nicht bearbeitet, ist das eine negative Leistung.**
 * Eine **Musterlösung** gibt es *manchmal* schon im Vorhinein, *immer* im Nachhinein.
