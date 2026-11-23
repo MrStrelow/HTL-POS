@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Listen und Dictionaries</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020617; --panel: #0f172a; --panel2: #1e293b; --line: #334155;
+    --text: #f8fafc; --muted: #94a3b8; --accent: #38bdf8; --x: #f59e0b; --y: #a855f7;
+    --ok: #10b981; --bad: #ef4444; --kw: #c084fc; --str: #fbbf24; --num: #34d399; --com: #64748b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; overflow: hidden; }
+  .mono { font-family: 'Fira Code', monospace; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 19px; color: var(--accent); }
+  header p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+  #tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  #tabs button { background: var(--panel2); color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  #tabs button.active { background: #0284c7; color: #fff; border-color: var(--accent); }
+  main { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; overflow: hidden; min-height: 0; }
+  #titlebar { display: flex; align-items: baseline; gap: 12px; }
+  #title { font-size: 22px; font-weight: 700; margin: 0; }
+  #counter { color: var(--muted); font-size: 13px; }
+  #content { flex: 1; min-height: 0; display: flex; gap: 12px; }
+  .pane { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+  .panehead { background: #020617; border-bottom: 1px solid var(--line); padding: 6px 14px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  #left { width: 40%; }
+  #right { width: 60%; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  #codebox { flex: 1; overflow: auto; padding: 10px 0; font-size: 14px; line-height: 1.65; }
+  #stage { flex: 1.9; min-height: 0; background: radial-gradient(circle at center, #0b1430 0%, #020617 75%); display: flex; position: relative; overflow: auto; padding: 16px; }
+  #stage > * { margin: auto; }
+  #text { flex: 1; min-height: 0; overflow: auto; padding: 10px 16px; font-size: 15px; line-height: 1.55; }
+  #text p { margin: 6px 0; }
+  #text code { font-family: 'Fira Code', monospace; background: var(--panel2); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+  .cl { padding: 0 14px; border-left: 4px solid transparent; white-space: pre; }
+  .cl.hl { background: rgba(56,189,248,.18); border-left-color: var(--accent); }
+  .tk-kw { color: var(--kw); } .tk-str { color: var(--str); } .tk-num { color: var(--num); } .tk-com { color: var(--com); font-style: italic; } .tk-ty { color: #38bdf8; } .tk-tp { color: var(--x); font-weight: 600; }
+  nav { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; }
+  nav button { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 18px; font-size: 15px; cursor: pointer; }
+  nav button:hover { border-color: var(--accent); }
+  nav button:disabled { opacity: .35; cursor: default; }
+  nav button#autoBtn:not(:disabled) { border-color: var(--ok); color: var(--ok); }
+  nav button.on { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,.15); }
+  nav span { color: var(--muted); font-size: 12px; }
+  .split-v { flex: none; width: 8px; margin: 0 -6px; cursor: col-resize; border-radius: 4px; position: relative; z-index: 2; }
+  .split-h { flex: none; height: 8px; margin: -6px 0; cursor: row-resize; border-radius: 4px; position: relative; z-index: 2; }
+  .split-v:hover, .split-h:hover, .split-v.drag, .split-h.drag { background: var(--accent); }
+  body.dragging { user-select: none; }
+
+  /* ---- Bausteine ---- */
+  .col { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .row { display: flex; align-items: center; justify-content: center; gap: 18px; flex-wrap: wrap; }
+  .row.top { align-items: flex-start; }
+  .lbl { color: var(--muted); font-size: 13px; }
+  .scene { position: relative; }
+  .ov { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 5; }
+  .vb { display: flex; flex-direction: column; align-items: center; gap: 2px; background: var(--panel); border: 2px solid var(--y); border-radius: 8px; padding: 6px 12px; min-width: 84px; }
+  .vb .vn { color: var(--y); font-size: 13px; } .vb .vv { font-size: 20px; border-radius: 4px; padding: 0 4px; }
+  .vb.ref { border-style: dashed; }
+  .flash { animation: flash 1s ease; } @keyframes flash { 0% { background: rgba(245,158,11,.8); } 100% { background: transparent; } }
+  .obj { background: var(--panel2); border: 2px solid var(--ok); border-radius: 10px; min-width: 200px; overflow: hidden; }
+  .objhead { background: rgba(16,185,129,.18); padding: 6px 12px; font-weight: 600; text-align: center; }
+  .frow { display: flex; gap: 8px; padding: 3px 12px; font-size: 14px; }
+  .frow .fn { color: var(--x); min-width: 70px; } .frow .eq { color: var(--muted); }
+  .fv { border-radius: 4px; padding: 0 4px; }
+  .msec { border-top: 1px solid var(--line); padding: 3px 0; }
+  .mrow { padding: 2px 10px; font-size: 13px; color: var(--ok); border-radius: 4px; }
+  .mrow.mblink { animation: mblink .9s ease; } @keyframes mblink { 0%, 60% { background: rgba(16,185,129,.55); color: #fff; } 100% { background: transparent; } }
+  .tpc { font-family: 'Fira Code', monospace; background: rgba(245,158,11,.12); border: 2px solid var(--x); color: var(--x); border-radius: 8px; padding: 4px 12px; font-size: 16px; font-weight: 600; }
+  .tpc.b { border-color: var(--y); color: var(--y); background: rgba(168,85,247,.12); }
+  .badge { padding: 6px 14px; border-radius: 999px; font-weight: 700; font-size: 14px; }
+  .badge.rt { background: rgba(239,68,68,.15); color: #fca5a5; border: 1px solid var(--bad); }
+  .badge.ct { background: rgba(16,185,129,.15); color: #6ee7b7; border: 1px solid var(--ok); }
+  .errbox { border: 2px solid var(--bad); background: rgba(239,68,68,.12); color: #fca5a5; border-radius: 8px; padding: 8px 12px; font-family: 'Fira Code', monospace; font-size: 14px; max-width: 520px; }
+  .okbox { border: 2px solid var(--ok); background: rgba(16,185,129,.12); color: #a7f3d0; border-radius: 8px; padding: 8px 12px; font-family: 'Fira Code', monospace; font-size: 14px; max-width: 520px; }
+  .card { background: var(--panel2); border: 2px solid var(--accent); border-radius: 10px; padding: 8px 14px; font-family: 'Fira Code', monospace; font-size: 14px; }
+  .card.gen { border-color: var(--x); }
+  .card.ghost { border-style: dashed; opacity: .55; }
+  .arr { display: flex; gap: 4px; }
+  .cell { min-width: 54px; height: 50px; padding: 0 6px; border: 2px solid var(--line); border-radius: 8px; background: var(--panel); display: flex; align-items: center; justify-content: center; font-size: 22px; font-family: 'Fira Code', monospace; transition: all .4s; }
+  .cell.hot { border-color: var(--ok); background: rgba(16,185,129,.25); }
+  .cell.dim { opacity: .35; }
+  .cell.bad { border-color: var(--bad); background: rgba(239,68,68,.25); }
+  .cell.a { border-color: var(--x); } .cell.b { border-color: var(--y); }
+  .idx { font-family: 'Fira Code', monospace; font-size: 11px; color: var(--muted); text-align: center; }
+  .console { background: #000; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; min-height: 54px; min-width: 200px; font-size: 14px; color: #d1fae5; font-family: 'Fira Code', monospace; }
+  .frame { border: 2px dashed var(--accent); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .frame .fh { font-family: 'Fira Code', monospace; font-size: 13px; color: var(--accent); }
+  .chip { font-family: 'Fira Code', monospace; font-size: 15px; padding: 4px 10px; border-radius: 6px; background: var(--panel2); border: 1px solid var(--line); transition: all .5s; }
+  .chip.no { opacity: .35; text-decoration: line-through; border-color: var(--bad); color: #fca5a5; }
+  .chip.yes { border-color: var(--ok); color: #6ee7b7; }
+  .hier { display: grid; grid-template-columns: auto 80px auto; align-items: center; gap: 10px 6px; }
+  .hier .ar { text-align: center; font-size: 26px; font-weight: 700; }
+  .ar.ok { color: var(--ok); } .ar.bad { color: var(--bad); } .ar.k { color: var(--accent); }
+  table.t { border-collapse: collapse; font-size: 14px; max-width: 100%; }
+  table.t th, table.t td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
+  table.t th { color: var(--muted); font-weight: 600; font-size: 12px; background: #020617; }
+  table.t td code { font-family: 'Fira Code', monospace; font-size: 13px; color: var(--accent); }
+  .pop { animation: pop .45s cubic-bezier(.2,.8,.3,1.3) both; }
+  @keyframes pop { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
+  .shake { animation: shake .5s ease; } @keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+  .hidden { visibility: hidden; }
+  .tree { font-family: 'Fira Code', monospace; font-size: 13px; line-height: 1.75; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; }
+  .tree .tl { white-space: pre; border-radius: 4px; padding: 0 6px; transition: all .4s; }
+  .tree .tl.i { color: var(--accent); } .tree .tl.c { color: #6ee7b7; } .tree .tl.h { color: var(--muted); font-size: 11px; letter-spacing: .08em; }
+  .tree .tl.hot { background: rgba(245,158,11,.3); color: #fff; }
+  /* ---- L03: Listen und Dictionaries ---- */
+  .grid { display: grid; gap: 4px; }
+  .cell.small { min-width: 42px; width: 42px; height: 42px; font-size: 20px; }
+  .cell.null { min-width: 54px; font-size: 13px; color: var(--com); }
+  .cell.colhot { border-color: var(--x); background: rgba(245,158,11,.2); }
+  .bucket { border: 2px dashed var(--line); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 6px; align-items: center; transition: border-color .4s; }
+  .bucket .bh { font-weight: 700; font-size: 14px; color: var(--accent); }
+  .pill { font-family: 'Fira Code', monospace; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; font-size: 15px; }
+  .pill b { color: var(--x); }
+  .story { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-size: 16px; line-height: 1.5; max-width: 640px; min-height: 52px; }
+  .tree { font-size: 14px; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🗂️ Liste oder Dictionary?</h1>
+    <p>Weiter: Pfeiltasten ← → oder Leertaste · Hierarchie der Collections, CRUD, Laufzeit, Dictionary, Keys, Hamster</p>
+  </div>
+  <div id="tabs"></div>
+</header>
+<main>
+  <div id="titlebar"><h2 id="title"></h2><span id="counter"></span></div>
+  <div id="content">
+    <section id="left" class="pane"><div class="panehead">📄 Code</div><div id="codebox" class="mono"></div></section>
+    <div class="split-v" id="sv" title="ziehen: Breite von Code / Animation"></div>
+    <div id="right">
+      <section class="pane" style="flex:1.9"><div class="panehead">🎬 Animation</div><div id="stage"></div></section>
+      <div class="split-h" id="sh" title="ziehen: Höhe von Animation / Erklärung"></div>
+      <section class="pane" style="flex:1"><div class="panehead">💡 Erklärung</div><div id="text"></div></section>
+    </div>
+  </div>
+  <nav>
+    <button onclick="go(-1)">◀ zurück</button>
+    <button onclick="replay()">↻ nochmal</button>
+    <button onclick="go(1)">weiter ▶</button>
+    <button id="autoBtn" onclick="runAuto()" disabled>⏩ automatisch</button>
+    <button id="presBtn" onclick="togglePresenter()" title="Taste P">🎤 Presenter</button>
+    <button class="vbtn" id="vb0" onclick="setView(0)" title="Taste 1">📄🎬 Code + Animation</button>
+    <button class="vbtn" id="vb1" onclick="setView(1)" title="Taste 2">🎬 nur Animation</button>
+    <button class="vbtn" id="vb2" onclick="setView(2)" title="Taste 3">📄 nur Code</button>
+    <span>R = nochmal · P = Presenter · 1/2/3 = Ansicht</span>
+  </nav>
+</main>
+
+<script>
+// ===================== kleine Helfer =====================
+const $ = (id) => document.getElementById(id);
+const SVGNS = 'http://www.w3.org/2000/svg';
+let timers = [];
+function clearTimers() { timers.forEach(t => { clearTimeout(t); clearInterval(t); }); timers = []; }
+function el(tag, cls, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; }
+const C = s => s.replace(/^\n/, '').replace(/\n$/, '').split('\n');
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+function highlight(line) {
+  const re = /(\/\/.*$)|("(?:[^"\\]|\\.)*"|'.')|(\b(?:new|foreach|for|in|out|ref|while|if|else|return|int|string|double|bool|char|void|object|class|interface|abstract|override|public|private|where|struct|var|null|true|false)\b)|(\b(?:T|TA|TB|TName|TPunkte)\b)|(\b(?:Console|Form|Kreis|Quadrat|Stapel|ObjektStapel|Rangliste|Tier|Hund|Katze|List|IEnumerable|IEnumerator|IComparer|IComparable|NachAlter|IQuelle|IAblage|IFalsch|HundeZucht|TierHeim|Hamster|IHatName|Roboter|IList|ICollection|Array|Dictionary|IDictionary|IReadOnlyDictionary|IReadOnlyCollection|KeyValuePair|LinkedList|Queue|Stack|HashSet|ISet|SortedSet|SortedDictionary|Seedling|Wiese|Feld|Pos|Math)\b)|(\b\d+(?:\.\d+)?\b)/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(line)) !== null) {
+    out += esc(line.slice(last, m.index));
+    const cls = m[1] ? 'tk-com' : m[2] ? 'tk-str' : m[3] ? 'tk-kw' : m[4] ? 'tk-tp' : m[5] ? 'tk-ty' : 'tk-num';
+    out += `<span class="${cls}">${esc(m[0])}</span>`;
+    last = re.lastIndex;
+  }
+  return out + esc(line.slice(last));
+}
+function renderCode(lines, hl) {
+  const box = $('codebox'); box.innerHTML = '';
+  (lines || []).forEach((l, i) => {
+    const d = el('div', 'cl' + ((hl || []).includes(i) ? ' hl' : ''), highlight(l) || ' ');
+    d.id = 'code-' + i; box.appendChild(d);
+  });
+}
+function setHl(hl) {
+  document.querySelectorAll('.cl').forEach((d, i) => d.classList.toggle('hl', hl.includes(i)));
+  const f = $('code-' + hl[0]); if (f) f.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function vbox(id, name, val, cls) {
+  const v = el('div', 'vb mono ' + (cls || '')); v.id = id;
+  v.innerHTML = `<span class="vn">${name}</span><span class="vv" id="${id}-v">${val}</span>`;
+  return v;
+}
+function setV(id, val) { const e = $(id + '-v') || $(id); if (!e) return; e.innerHTML = val; e.classList.remove('flash'); void e.offsetWidth; e.classList.add('flash'); }
+function objCard(id, head, fields, methods) {
+  const c = el('div', 'obj'); c.id = id;
+  c.appendChild(el('div', 'objhead mono', head));
+  fields.forEach(([f, v]) => c.appendChild(el('div', 'frow mono', `<span class="fn">${f}</span><span class="eq">=</span><span class="fv" id="${id}-${f}">${v}</span>`)));
+  if (methods) {
+    const sec = el('div', 'msec');
+    methods.forEach(m => { const r = el('div', 'mrow mono', '+ ' + m); r.id = id + '-m-' + m.split('(')[0]; sec.appendChild(r); });
+    c.appendChild(sec);
+  }
+  return c;
+}
+function setF(id, f, v) { setV(id + '-' + f, v); }
+function blinkM(id, m) { const e = $(id + '-m-' + m); if (!e) return; e.classList.remove('mblink'); void e.offsetWidth; e.classList.add('mblink'); }
+function cells(id, vals, labels) {
+  const w = el('div', 'col'); w.style.gap = '2px';
+  const a = el('div', 'arr');
+  vals.forEach((v, i) => { const c = el('div', 'cell', v); c.id = id + '-' + i; a.appendChild(c); });
+  w.appendChild(a);
+  if (labels !== false) { const ix = el('div', 'arr'); vals.forEach((_, i) => { const d = el('div', 'idx', '[' + i + ']'); d.style.minWidth = '54px'; ix.appendChild(d); }); w.appendChild(ix); }
+  return w;
+}
+function setCell(id, v, cls) { const c = $(id); if (!c) return; c.innerHTML = v; c.className = 'cell pop' + (cls ? ' ' + cls : ''); }
+function konsole(id) { const k = el('div', 'console'); k.id = id; return k; }
+function print(id, t) { const k = $(id); if (k) k.innerHTML += esc(t) + '<br>'; }
+function show_(id) { const e = $(id); if (e) { e.classList.remove('hidden'); e.classList.add('pop'); } }
+function shake(id) { const e = $(id); if (!e) return; e.classList.remove('shake'); void e.offsetWidth; e.classList.add('shake'); }
+function lab(t) { return el('div', 'lbl', t); }
+function wrap(cls, kids) { const d = el('div', cls); kids.forEach(k => d.appendChild(k)); return d; }
+function hid(e) { e.classList.add('hidden'); return e; }
+function hide_(id) { const e = $(id); if (e) e.classList.add('hidden'); }
+function grid(n, kids, gap) { const g = wrap('', kids); g.style.cssText = `display:grid;grid-template-columns:repeat(${n},auto);gap:${gap || '22px 60px'};align-items:center;justify-items:center`; return g; }
+function arrBox(id, label, v) { const w = wrap('col', [lab(label), cells(id, [v], false)]); w.style.gap = '2px'; w.id = id + 'box'; return w; }
+function say(t) { const c = $('info'); if (!c) return; c.classList.remove('hidden'); c.innerHTML = t; c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); }
+function infoBox() { const i = hid(el('div', 'okbox', '')); i.id = 'info'; i.style.fontFamily = 'Inter, sans-serif'; i.style.maxWidth = '640px'; return i; }
+function relink(sc, from, to, opts) { unlink(sc, from); link(sc, from, to, opts); }
+
+// Szene für Tausche ohne ref: Hauptprogramm, Methode, Arrays im Speicher
+function swapScene(st, head, withInt, isRef) {
+  const pa = isRef ? 'ref a' : 'a  (Kopie)', pb = isRef ? 'ref b' : 'b  (Kopie)';
+  const sc = scene();
+  const tp = el('div', 'tpc', 'T = ?'); tp.id = 'tp';
+  const main = el('div', 'frame'); main.appendChild(el('div', 'fh', 'Hauptprogramm'));
+  main.appendChild(withInt
+    ? grid(2, [vbox('x', 'int x', '?'), vbox('s1', 'string[] s1', '?', 'ref'), vbox('y', 'int y', '?'), vbox('s2', 'string[] s2', '?', 'ref')], '14px 30px')
+    : grid(1, [vbox('s1', 'string[] s1', '?', 'ref'), vbox('s2', 'string[] s2', '?', 'ref')], '14px 30px'));
+  const fr = el('div', 'frame'); fr.appendChild(el('div', 'fh', head));
+  fr.appendChild(grid(2, [vbox('a', pa, '–', 'ref'), vbox('tmp', 'T temp', '–'), vbox('b', pb, '–', 'ref'), el('div')], '14px 30px'));
+  const arrs = wrap('col', [hid(arrBox('A', 'Array', '🐶')), hid(arrBox('B', 'Array', '🐱'))]); arrs.style.gap = '20px';
+  const row = wrap('row', [main, arrs, fr]); row.style.gap = '70px'; row.style.flexWrap = 'nowrap';
+  if (isRef) { row.style.margin = '40px 0'; }
+  sc.appendChild(wrap('col', [tp, row, infoBox(), konsole('k')])); st.appendChild(sc);
+  return sc;
+}
+function setT(t) { const e = $('tp'); if (!e) return; e.textContent = 'T = ' + t; e.classList.remove('pop'); void e.offsetWidth; e.classList.add('pop'); }
+
+// Schritte innerhalb einer Folie
+function seq(acts, delay) {
+  let i = 0;
+  return {
+    next() { if (i >= acts.length) return false; acts[i++](); return true; },
+    auto() { const t = () => { if (this.next()) timers.push(setTimeout(t, delay || 1300)); }; t(); }
+  };
+}
+
+// ---------- Szene mit SVG-Pfeilen ----------
+function scene() {
+  const s = el('div', 'scene');
+  const svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('class', 'ov');
+  svg.innerHTML = '<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>';
+  s.appendChild(svg); s._svg = svg; s._links = [];
+  return s;
+}
+function link(sc, fromId, toId, opts = {}) { sc._links.push({ fromId, toId, opts }); redraw(sc); setTimeout(() => redraw(sc), 450); }
+function unlink(sc, fromId) { sc._links = sc._links.filter(l => l.fromId !== fromId); redraw(sc); }
+function anchor(r, side, base) {
+  const cx = r.left - base.left + r.width / 2, cy = r.top - base.top + r.height / 2;
+  if (side === 'bottom') return [cx, r.bottom - base.top];
+  if (side === 'top') return [cx, r.top - base.top];
+  if (side === 'left') return [r.left - base.left, cy];
+  if (side === 'right') return [r.right - base.left, cy];
+  return [cx, cy];
+}
+function redraw(sc) {
+  if (!sc || !sc._svg) return;
+  const base = sc.getBoundingClientRect();
+  sc._svg.querySelectorAll('.ln').forEach(e => e.remove());
+  sc._links.forEach(({ fromId, toId, opts }) => {
+    const a = $(fromId), b = $(toId); if (!a || !b) return;
+    const [x1, y1] = anchor(a.getBoundingClientRect(), opts.from || 'right', base);
+    let [x2, y2] = anchor(b.getBoundingClientRect(), opts.to || 'left', base);
+    const cx = (x1 + x2) / 2, cy = opts.down ? Math.max(y1, y2) + opts.curve : Math.min(y1, y2) - (opts.curve || 0);
+    { const [px, py] = opts.curve ? [cx, cy] : [x1, y1]; const d = Math.hypot(x2 - px, y2 - py) || 1; x2 -= (x2 - px) / d * 16; y2 -= (y2 - py) / d * 16; }
+    const g = document.createElementNS(SVGNS, 'g'); g.setAttribute('class', 'ln'); g.style.color = opts.color || 'var(--accent)';
+    let l;
+    if (opts.curve) { l = document.createElementNS(SVGNS, 'path'); l.setAttribute('d', `M${x1},${y1} Q${cx},${cy} ${x2},${y2}`); l.setAttribute('fill', 'none'); }
+    else { l = document.createElementNS(SVGNS, 'line'); l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2); }
+    l.setAttribute('stroke', 'currentColor'); l.setAttribute('stroke-width', opts.width || '2.5'); l.setAttribute('marker-end', 'url(#ah)');
+    if (opts.dash) l.setAttribute('stroke-dasharray', '6 5');
+    g.appendChild(l);
+    if (opts.label) { const t = document.createElementNS(SVGNS, 'text'); t.setAttribute('x', x1 + (x2 - x1) * 0.3); t.setAttribute('y', y1 + (y2 - y1) * 0.3 + (y2 < y1 ? -10 : 20)); t.setAttribute('text-anchor', 'middle'); t.setAttribute('stroke', 'var(--bg, #0b1020)'); t.setAttribute('stroke-width', '5'); t.setAttribute('paint-order', 'stroke'); t.setAttribute('font-weight', '600'); t.setAttribute('fill', 'currentColor'); t.setAttribute('font-size', '13'); t.setAttribute('font-family', 'Fira Code, monospace'); t.textContent = opts.label; g.appendChild(t); }
+    sc._svg.appendChild(g);
+  });
+}
+
+// ===================== Helfer für diese Folien =====================
+const at = (code, s) => code.findIndex(l => l.includes(s));
+const H = (code, ...subs) => setHl(subs.map(s => at(code, s)));
+function tree(nodes) {
+  const t = el('div', 'tree');
+  nodes.forEach(([k, txt, d, id]) => { const l = el('div', 'tl ' + k, esc((d ? '   '.repeat(d - 1) + '└─ ' : '') + txt)); l.id = id; t.appendChild(l); });
+  return t;
+}
+const hot = ids => document.querySelectorAll('.tree .tl').forEach(l => l.classList.toggle('hot', ids.includes(l.id)));
+const legend = () => el('div', 'lbl', '<span style="color:var(--accent)">■ Interface</span> &nbsp; <span style="color:#6ee7b7">■ Klasse</span>');
+function counter(id, label) { const c = el('div', 'pill', `${label}: <b id="${id}">0</b>`); return c; }
+function setCount(id, n) { const e = $(id); if (e) { e.textContent = n; e.classList.remove('flash'); void e.offsetWidth; e.classList.add('flash'); } }
+function arrRow(id, vals, cap) {
+  const w = el('div', 'col'); w.style.gap = '2px';
+  const a = el('div', 'arr');
+  for (let i = 0; i < cap; i++) { const c = el('div', 'cell' + (i < vals.length ? '' : ' dim'), i < vals.length ? vals[i] : ''); c.id = id + '-' + i; a.appendChild(c); }
+  const ix = el('div', 'arr'); for (let i = 0; i < cap; i++) { const d = el('div', 'idx', '[' + i + ']'); d.style.minWidth = '54px'; ix.appendChild(d); }
+  w.appendChild(a); w.appendChild(ix); return w;
+}
+function setArr(id, vals, cap, cls = {}) {
+  for (let i = 0; i < cap; i++) { const c = $(id + '-' + i); if (!c) continue; c.textContent = i < vals.length ? vals[i] : ''; c.className = 'cell' + (i < vals.length ? '' : ' dim') + (cls[i] ? ' ' + cls[i] : ''); }
+}
+// Linked List: Knoten mit Pfeilen
+function llView(id, vals, marks = {}) {
+  const r = el('div', 'row'); r.style.gap = '4px'; r.id = id;
+  r.appendChild(el('div', 'pill', 'head'));
+  vals.forEach((v, i) => {
+    r.appendChild(el('div', 'ar k', '→'));
+    const n = el('div', 'cell' + (marks[i] ? ' ' + marks[i] : ''), v); n.style.borderRadius = '14px'; r.appendChild(n);
+  });
+  r.appendChild(el('div', 'ar k', '→')); r.appendChild(el('div', 'cell null', 'null'));
+  return r;
+}
+function setLL(id, vals, marks = {}) { const o = $(id); if (o) o.replaceWith(llView(id, vals, marks)); }
+// Hash-Buckets
+function bucketsView(id, n, entries, marks = {}) {
+  const g = el('div', 'row'); g.id = id; g.style.alignItems = 'flex-start'; g.style.gap = '8px';
+  for (let b = 0; b < n; b++) {
+    const col = el('div', 'col'); col.style.gap = '4px';
+    col.appendChild(el('div', 'idx', 'Bucket ' + b));
+    const box = el('div', 'bucket' + (marks['b' + b] ? ' ' : '')); box.style.minWidth = '120px'; box.style.minHeight = '70px'; box.style.borderColor = marks['b' + b] === 'hot' ? 'var(--ok)' : marks['b' + b] === 'bad' ? 'var(--bad)' : 'var(--line)';
+    entries.filter(e => e.b === b).forEach(e => box.appendChild(el('div', 'chip' + (marks[e.k] ? ' ' + marks[e.k] : ''), esc(e.k + ' → ' + e.v))));
+    col.appendChild(box); g.appendChild(col);
+  }
+  return g;
+}
+function setBuckets(id, n, entries, marks) { const o = $(id); if (o) o.replaceWith(bucketsView(id, n, entries, marks)); }
+// Wiese für den Hamster
+function wieseView(id, w, h, seeds, ham, marks = {}) {
+  const g = el('div', 'grid'); g.id = id; g.style.gridTemplateColumns = `repeat(${w}, auto)`;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let t = '🟫'; if (seeds.some(s => s[0] === x && s[1] === y)) t = '🌱'; if (ham && ham[0] === x && ham[1] === y) t = '🐹';
+    const c = el('div', 'cell small' + (marks[x + ',' + y] ? ' ' + marks[x + ',' + y] : ''), t); c.title = `(${x}, ${y})`; g.appendChild(c);
+  }
+  return g;
+}
+function setWiese(id, w, h, seeds, ham, marks) { const o = $(id); if (o) o.replaceWith(wieseView(id, w, h, seeds, ham, marks)); }
+const chipRow = (id, items) => { const r = el('div', 'row'); r.id = id; r.style.flexWrap = 'wrap'; r.style.justifyContent = 'center'; items.forEach((t, i) => { const c = el('div', 'chip', esc(t)); c.id = id + '-' + i; r.appendChild(c); }); return r; };
+const markChip = (id, i, cls) => { const c = $(id + '-' + i); if (c) { c.classList.remove('yes', 'no'); if (cls) c.classList.add(cls); } };
+
+// ===================== Code der Folien =====================
+const cPrinzip = C(`
+// Liste: Zugriff über die POSITION (Index)
+List<string> namen = new List<string> { "Ana", "Ben", "Cem", "Dora" };
+string dritter = namen[2];                 // "Cem"  – direkt
+int pos = namen.IndexOf("Ben");            // suchen: 0, 1 ✅ → 1
+
+// Dictionary: Zugriff über einen SCHLÜSSEL (Key)
+Dictionary<string, string> telefon = new Dictionary<string, string>
+{
+    ["Ana"] = "0664 111", ["Ben"] = "0664 222",
+    ["Cem"] = "0664 333", ["Dora"] = "0664 444"
+};
+string nummer = telefon["Ben"];            // "0664 222" – direkt`);
+
+const cHier = C(`
+IEnumerable<int>  a = new List<int>();     // nur durchlaufen (foreach)
+ICollection<int>  b = new List<int>();     // + Add, Remove, Count, Contains
+IList<int>        c = new List<int>();     // + Index: c[0], Insert, RemoveAt
+ISet<int>         d = new HashSet<int>();  // + jedes Element nur einmal
+IDictionary<string, int> e = new Dictionary<string, int>(); // + Key → Value
+
+LinkedList<int>   f = new LinkedList<int>(); // ICollection, aber KEIN IList
+Queue<int>        q = new Queue<int>();      // nur vorne raus, hinten rein
+Stack<int>        s = new Stack<int>();      // nur oben rein und raus`);
+
+const cCrud = C(`
+List<string> l = new List<string> { "🍎", "🍌", "🍒" };
+
+// C – Create
+l.Add("🥝");                    // hinten anhängen
+l.Insert(0, "🍇");              // vorne einfügen
+
+// R – Read
+string erstes = l[0];           // über den Index
+bool hatBanane = l.Contains("🍌"); // suchen
+
+// U – Update
+l[2] = "🍐";                    // Index 2 überschreiben
+
+// D – Delete
+l.RemoveAt(0);                  // über den Index
+l.Remove("🍒");                 // über den Wert (suchen!)`);
+
+const cHinter = C(`
+// gleiche Schnittstelle – anderes Innenleben
+List<int>       arrayListe  = new List<int> { 1, 2, 3, 4, 5 };
+LinkedList<int> linkedListe = new LinkedList<int>(new[] { 1, 2, 3, 4, 5 });
+
+arrayListe.Insert(0, 0);        // alle Elemente rücken nach rechts
+linkedListe.AddFirst(0);        // nur zwei Referenzen umhängen
+
+int x = arrayListe[3];          // direkt: Adresse = Start + 3
+int y = linkedListe.ElementAt(3); // 3 Mal next folgen`);
+
+const cWann = C(`
+List<string>  einkauf  = new List<string>();   // Reihenfolge, Position, Duplikate
+Queue<string> kantine  = new Queue<string>();  // wer zuerst kommt … (FIFO)
+Stack<string> undo     = new Stack<string>();  // das Letzte zuerst (LIFO)
+HashSet<(int, int)> besucht = new HashSet<(int, int)>(); // schon da gewesen?
+Dictionary<string, string> telefon = new();    // nachschlagen per Schlüssel
+
+kantine.Enqueue("Ana");  string naechste = kantine.Dequeue();
+undo.Push("tippe a");    string letzte   = undo.Pop();
+besucht.Add((2, 1));     bool schonDa    = besucht.Contains((2, 1));`);
+
+const cDictHier = C(`
+IEnumerable<KeyValuePair<string, int>> a = new Dictionary<string, int>();
+ICollection<KeyValuePair<string, int>> b = new Dictionary<string, int>();
+IDictionary<string, int>               c = new Dictionary<string, int>();
+IReadOnlyDictionary<string, int>       d = new Dictionary<string, int>();
+
+// Ein Dictionary IST eine Sammlung von Paaren:
+foreach (KeyValuePair<string, int> paar in c)
+{
+    Console.WriteLine(paar.Key + " = " + paar.Value);
+}`);
+
+const cDictCrud = C(`
+Dictionary<string, int> punkte = new Dictionary<string, int>();
+
+// C – Create
+punkte.Add("Ana", 12);          // Key schon da? → Exception
+punkte["Ben"] = 30;             // neu ODER überschreiben
+
+// R – Read
+int p = punkte["Ana"];          // Key fehlt? → KeyNotFoundException
+if (punkte.TryGetValue("Cem", out int q)) { }   // sicher lesen
+bool da = punkte.ContainsKey("Ben");
+
+// U – Update
+punkte["Ana"] = 15;
+punkte["Ana"] += 5;
+
+// D – Delete
+punkte.Remove("Ben");
+
+foreach ((string name, int wert) in punkte) { }  // alle Paare
+Console.WriteLine(punkte.Count + " " + punkte.Keys.Count);`);
+
+const cHash = C(`
+// So findet das Dictionary einen Key – ohne zu suchen:
+int hash   = "Ben".GetHashCode();   // irgendeine große Zahl
+int bucket = Math.Abs(hash) % 5;    // Fach 0..4
+
+// 1) ins richtige Fach springen        → O(1)
+// 2) dort mit Equals den Key prüfen   → meistens 1 Vergleich`);
+
+const cKeyWert = C(`
+Dictionary<(int x, int y), string> karte = new();
+karte[(2, 1)] = "🌱";
+
+(int x, int y) feld = (2, 1);           // ein NEUES Tupel
+Console.WriteLine(karte.ContainsKey(feld));   // True
+
+// Tupel, int, string, enum, struct, record:
+// gleich = gleiche WERTE  → als Key ideal`);
+
+const cKeyRef = C(`
+class Feld
+{
+    public int X, Y;
+    public Feld(int x, int y) { X = x; Y = y; }
+}
+
+Dictionary<Feld, string> karte = new();
+Feld a = new Feld(2, 1);
+karte[a] = "🌱";
+
+Feld b = new Feld(2, 1);                 // gleiche Werte, ANDERES Objekt
+Console.WriteLine(karte.ContainsKey(a)); // True  – dieselbe Identität
+Console.WriteLine(karte.ContainsKey(b)); // False – andere Identität!
+
+record Pos(int X, int Y);                // record: Equals vergleicht Werte
+// karte2[new Pos(2, 1)] findet auch new Pos(2, 1) ✅`);
+
+const cKeyMut = C(`
+class Feld { public int X, Y; ... }      // veränderbar!
+
+Dictionary<Feld, string> karte = new();
+Feld a = new Feld(2, 1);
+karte[a] = "🌱";                          // landet im Fach von (2, 1)
+
+a.X = 5;                                  // Key nachträglich ändern 😱
+Console.WriteLine(karte.ContainsKey(a)); // False – sucht im Fach von (5, 1)`);
+
+const cHamList = C(`
+class Wiese
+{
+    private List<Seedling> _seedlings = new();
+
+    public Seedling? SeedlingAuf((int x, int y) position)
+    {
+        foreach (Seedling s in _seedlings)       // ALLE anschauen
+        {
+            if (s.Position == position)
+            {
+                return s;
+            }
+        }
+        return null;
+    }
+
+    public void Fressen(Hamster h)
+    {
+        Seedling? s = SeedlingAuf(h.Position);
+        if (s != null) { _seedlings.Remove(s); } // nochmal suchen!
+    }
+}`);
+
+const cHamDict = C(`
+class Wiese
+{
+    private Dictionary<(int x, int y), Seedling> _seedlings = new();
+
+    public void Pflanzen(Seedling s)
+    {
+        _seedlings.TryAdd(s.Position, s);       // Feld schon belegt? → false
+    }
+
+    public void Fressen(Hamster h)
+    {
+        if (_seedlings.TryGetValue(h.Position, out Seedling? s))
+        {
+            _seedlings.Remove(h.Position);       // direkt, ohne Suchen
+        }
+    }
+}`);
+
+const cWegList = C(`
+class Hamster
+{
+    public (int x, int y) Position { get; private set; }
+    private List<(int x, int y)> _weg = new();
+
+    public void Bewegen((int x, int y) ziel)
+    {
+        _weg.Add(Position);             // Reihenfolge bleibt erhalten
+        Position = ziel;
+    }
+
+    public (int x, int y) Zurueck()     // Schritt rückgängig
+    {
+        Position = _weg[^1];            // der letzte Eintrag
+        _weg.RemoveAt(_weg.Count - 1);
+        return Position;
+    }
+
+    public int Schritte => _weg.Count;
+}`);
+
+const cWegDict = C(`
+// ❌ Antibeispiel: der Weg als Dictionary – Key = Feld, Value = Schrittnummer
+private Dictionary<(int x, int y), int> _weg = new();
+
+public void Bewegen((int x, int y) ziel)
+{
+    _weg.Add(Position, _weg.Count);   // 💥 2. Besuch desselben Feldes
+    Position = ziel;
+}
+
+// und Zurueck()? Welcher Key ist der letzte?
+// → alle Values durchsuchen: O(n) – und die Reihenfolge ist nicht garantiert`);
+
+// ===================== Folien =====================
+const chapters = ['Grundidee', 'CRUD bei Listen', 'Wann was?', 'Dictionary', 'Was darf ein Key sein?', 'Hamster: Dictionary', 'Hamster: Liste', 'Zusammenfassung'];
+
+const NAMEN = ['Ana', 'Ben', 'Cem', 'Dora'];
+const NUM = { Ana: '0664 111', Ben: '0664 222', Cem: '0664 333', Dora: '0664 444' };
+
+const steps = [
+// ---------- 0: Grundidee ----------
+{ ch: 0, title: 'Liste oder Dictionary? Position oder Schlüssel', code: cPrinzip, hl: [],
+  text: `<p>Eine <b>Liste</b> ist wie eine nummerierte Warteschlange: Jedes Element hat eine <b>Position</b> (Index). Wissen wir die Position, sind wir sofort dort. Wissen wir nur den <b>Wert</b>, müssen wir <b>suchen</b> – Element für Element.</p>
+<p>Ein <b>Dictionary</b> ist wie ein Telefonbuch: Wir schlagen über einen <b>Schlüssel</b> (Key) nach und bekommen den <b>Wert</b> (Value). Keine Position, kein Suchen.</p>
+<p><b>Merke:</b> Frage dich immer: <i>Womit</i> will ich später zugreifen – mit einer Nummer oder mit etwas, das ich schon kenne (Name, Feld, Kennzeichen …)?</p>`,
+  render(st) {
+    const left = wrap('col', [lab('List&lt;string&gt; namen'), arrRow('L', NAMEN, 4), counter('cl', 'Vergleiche')]);
+    const right = wrap('col', [lab('Dictionary&lt;string, string&gt; telefon'), wrap('col', NAMEN.map(n => Object.assign(el('div', 'chip', `${n} → ${NUM[n]}`), { id: 'd-' + n }))), counter('cd', 'Vergleiche')]);
+    const row = wrap('row top', [left, right]); row.style.gap = '60px';
+    st.appendChild(wrap('col', [row, infoBox()]));
+    const hit = (n, cls) => { const c = $('d-' + n); c.style.borderColor = cls ? 'var(--ok)' : ''; c.style.background = cls ? 'rgba(16,185,129,.25)' : ''; };
+    return seq([
+      () => { H(cPrinzip, 'namen[2]'); setArr('L', NAMEN, 4, { 2: 'hot' }); say('namen[2]: Die Position ist bekannt → <b>direkt</b> hin. Keine Suche.'); },
+      () => { H(cPrinzip, 'IndexOf'); setArr('L', NAMEN, 4, { 0: 'bad' }); setCount('cl', 1); say('IndexOf("Ben"): Wo ist Ben? Wir wissen es nicht → beim ersten anfangen …'); },
+      () => { setArr('L', NAMEN, 4, { 0: 'dim', 1: 'hot' }); setCount('cl', 2); say('… zweiter Vergleich: gefunden. Bei 1 000 000 Namen wären es im schlimmsten Fall 1 000 000 Vergleiche: <b>O(n)</b>.'); },
+      () => { H(cPrinzip, 'telefon["Ben"]'); setArr('L', NAMEN, 4); hit('Ben', true); setCount('cd', 1); say('telefon["Ben"]: Das Dictionary <b>rechnet</b> aus dem Key aus, wo der Eintrag liegt → 1 Sprung: <b>O(1)</b>. Egal wie groß.'); },
+    ]);
+  } },
+{ ch: 0, title: 'Die Hierarchie der Collections', code: cHier, hl: [],
+  text: `<p>Alle Collections teilen sich ein paar <b>Interfaces</b>. Jedes Interface ist ein <b>Versprechen</b>: Was kann ich mit dieser Sammlung tun?</p>
+<p>Je weiter unten im Baum, desto <b>mehr</b> kann die Sammlung. Darum gilt: Verwende als Typ von Parametern das <b>kleinste</b> Interface, das du brauchst – z. B. <code>IEnumerable&lt;T&gt;</code>, wenn du nur durchläufst. Dann darf der Aufrufer <b>jede</b> passende Collection übergeben.</p>
+<p><code>LinkedList&lt;T&gt;</code> ist <b>keine</b> <code>IList&lt;T&gt;</code>: Sie hat keinen schnellen Index-Zugriff.</p>`,
+  render(st) {
+    const t = tree([
+      ['i', 'IEnumerable<T>          foreach', 0, 'a'], ['i', 'IReadOnlyCollection<T> Count', 1, 'ro'], ['c', 'Queue<T>, Stack<T>', 2, 'qs'],
+      ['i', 'ICollection<T>          Add, Remove, Contains, Count', 1, 'b'], ['c', 'LinkedList<T>', 2, 'll'],
+      ['i', 'IList<T>                this[int], Insert, RemoveAt, IndexOf', 2, 'c'], ['c', 'List<T>, T[]', 3, 'li'],
+      ['i', 'ISet<T>                 jedes Element nur einmal', 2, 'd'], ['c', 'HashSet<T>, SortedSet<T>', 3, 'hs'],
+      ['i', 'IDictionary<TKey, TValue>  this[TKey], ContainsKey, TryGetValue', 2, 'e'], ['c', 'Dictionary<TKey, TValue>, SortedDictionary<…>', 3, 'di'],
+    ]);
+    st.appendChild(wrap('col', [lab('System.Collections.Generic'), t, legend(), infoBox()]));
+    return seq([
+      () => { H(cHier, 'IEnumerable<int>'); hot(['a']); say('<b>IEnumerable&lt;T&gt;</b>: Ich kann alle Elemente der Reihe nach bekommen – das ist alles. Darauf baut <code>foreach</code>.'); },
+      () => { H(cHier, 'ICollection<int>'); hot(['a', 'b']); say('<b>ICollection&lt;T&gt;</b>: + hinzufügen, entfernen, enthalten?, Anzahl.'); },
+      () => { H(cHier, 'IList<int>'); hot(['a', 'b', 'c', 'li']); say('<b>IList&lt;T&gt;</b>: + Zugriff über die <b>Position</b>. List&lt;T&gt; und Arrays.'); },
+      () => { H(cHier, 'ISet<int>'); hot(['a', 'b', 'd', 'hs']); say('<b>ISet&lt;T&gt;</b>: Keine Position, keine Duplikate. Frage: „Ist x drin?“ – sehr schnell.'); },
+      () => { H(cHier, 'IDictionary<string'); hot(['a', 'b', 'e', 'di']); say('<b>IDictionary&lt;TKey, TValue&gt;</b>: Zugriff über einen <b>Schlüssel</b>. Mehr dazu im Tab „Dictionary“.'); },
+      () => { H(cHier, 'LinkedList<int>', 'Queue<int>', 'Stack<int>'); hot(['ll', 'qs']); say('LinkedList, Queue und Stack können bewusst <b>weniger</b>: kein Index. Dafür sind sie für ihren Zweck optimal.'); },
+    ]);
+  } },
+
+// ---------- 1: CRUD Listen ----------
+{ ch: 1, title: 'CRUD mit List<T>', code: cCrud, hl: [],
+  text: `<p><b>CRUD</b> sind die vier Grundoperationen jeder Datenstruktur: <b>C</b>reate (einfügen), <b>R</b>ead (lesen), <b>U</b>pdate (ändern), <b>D</b>elete (löschen).</p>
+<p>Bei einer Liste gibt es fast jede Operation in zwei Varianten: über den <b>Index</b> (schnell, wenn man ihn kennt) oder über den <b>Wert</b> (dann muss gesucht werden). Achte auf den Zähler <b>verschoben</b>: Einfügen und Löschen <b>vorne</b> kostet etwas.</p>`,
+  render(st) {
+    const CAP = 6;
+    st.appendChild(wrap('col', [lab('List&lt;string&gt; l'), arrRow('L', ['🍎', '🍌', '🍒'], CAP), wrap('row', [counter('cv', 'verschoben'), counter('cs', 'Vergleiche')]), infoBox(), konsole('k')]));
+    let v = 0, s = 0;
+    return seq([
+      () => { H(cCrud, 'l.Add'); setArr('L', ['🍎', '🍌', '🍒', '🥝'], CAP, { 3: 'hot' }); say('<b>C</b> Add: hinten ist Platz → einfach hinschreiben. Nichts wird verschoben.'); },
+      () => { H(cCrud, 'l.Insert'); v += 4; setCount('cv', v); setArr('L', ['🍇', '🍎', '🍌', '🍒', '🥝'], CAP, { 0: 'hot', 1: 'colhot', 2: 'colhot', 3: 'colhot', 4: 'colhot' }); say('<b>C</b> Insert(0, …): Alle 4 Elemente rücken eine Stelle nach rechts, damit vorne Platz wird.'); },
+      () => { H(cCrud, 'l[0]'); setArr('L', ['🍇', '🍎', '🍌', '🍒', '🥝'], CAP, { 0: 'hot' }); print('k', 'erstes = 🍇'); say('<b>R</b> über den Index: direkt.'); },
+      () => { H(cCrud, 'Contains'); s += 3; setCount('cs', s); setArr('L', ['🍇', '🍎', '🍌', '🍒', '🥝'], CAP, { 0: 'dim', 1: 'dim', 2: 'hot' }); print('k', 'hatBanane = True'); say('<b>R</b> über den Wert: 🍇? nein, 🍎? nein, 🍌? ja – 3 Vergleiche.'); },
+      () => { H(cCrud, 'l[2] ='); setArr('L', ['🍇', '🍎', '🍐', '🍒', '🥝'], CAP, { 2: 'hot' }); say('<b>U</b> über den Index: direkt überschreiben.'); },
+      () => { H(cCrud, 'RemoveAt'); v += 4; setCount('cv', v); setArr('L', ['🍎', '🍐', '🍒', '🥝'], CAP, { 0: 'colhot', 1: 'colhot', 2: 'colhot', 3: 'colhot' }); say('<b>D</b> RemoveAt(0): Die Lücke vorne wird geschlossen – 4 Elemente rücken nach links.'); },
+      () => { H(cCrud, 'l.Remove('); s += 3; v += 1; setCount('cs', s); setCount('cv', v); setArr('L', ['🍎', '🍐', '🥝'], CAP, { 2: 'colhot' }); say('<b>D</b> Remove("🍒"): erst <b>suchen</b> (3 Vergleiche), dann löschen und nachrücken.'); },
+    ]);
+  } },
+{ ch: 1, title: 'Hinter den Kulissen: Array-Liste vs. Linked List', code: cHinter, hl: [],
+  text: `<p><code>List&lt;T&gt;</code> speichert die Elemente <b>nebeneinander</b> in einem Array (Array-Liste). Darum ist der Index-Zugriff blitzschnell: Die Adresse ist <i>Start + Index</i>. Dafür müssen beim Einfügen vorne alle Elemente rücken.</p>
+<p><code>LinkedList&lt;T&gt;</code> besteht aus <b>Knoten</b>, die sich über Referenzen kennen (wie unser Zug aus L01/L02). Einfügen vorne heißt: zwei Referenzen umhängen. Dafür gibt es keinen direkten Index – wir müssen <code>next</code> folgen.</p>
+<p>Für die Anwendung heißt das: <b>Fast immer</b> ist <code>List&lt;T&gt;</code> die richtige Wahl. Die Linked List lohnt sich nur bei sehr vielen Einfügungen am Anfang oder in der Mitte.</p>`,
+  render(st) {
+    const a = wrap('col', [lab('List&lt;int&gt; – Array im Speicher'), arrRow('A', ['1', '2', '3', '4', '5'], 7), counter('ca', 'Schritte')]);
+    const l = wrap('col', [lab('LinkedList&lt;int&gt; – Knoten mit Referenzen'), llView('LL', ['1', '2', '3', '4', '5']), counter('cb', 'Schritte')]);
+    st.appendChild(wrap('col', [a, l, infoBox()]));
+    return seq([
+      () => { H(cHinter, 'arrayListe.Insert'); setArr('A', ['0', '1', '2', '3', '4', '5'], 7, { 0: 'hot', 1: 'colhot', 2: 'colhot', 3: 'colhot', 4: 'colhot', 5: 'colhot' }); setCount('ca', 6); say('Array-Liste: 5 Elemente verschieben + 1 schreiben = 6 Schritte. Bei n Elementen: <b>O(n)</b>.'); },
+      () => { H(cHinter, 'AddFirst'); setLL('LL', ['0', '1', '2', '3', '4', '5'], { 0: 'hot' }); setCount('cb', 2); say('Linked List: neuen Knoten anlegen, head und next umhängen = 2 Schritte. Egal wie lang: <b>O(1)</b>.'); },
+      () => { H(cHinter, 'arrayListe[3]'); setArr('A', ['0', '1', '2', '3', '4', '5'], 7, { 3: 'hot' }); setCount('ca', 1); say('Array-Liste [3]: Start + 3 → direkt. <b>O(1)</b>.'); },
+      () => { H(cHinter, 'ElementAt'); setLL('LL', ['0', '1', '2', '3', '4', '5'], { 0: 'dim', 1: 'dim', 2: 'dim', 3: 'hot' }); setCount('cb', 4); say('Linked List: head → next → next → next. Bei n Elementen: <b>O(n)</b>.'); },
+    ]);
+  } },
+{ ch: 1, title: 'CRUD in der Laufzeitanalyse', code: C(`
+// n = Anzahl der Elemente
+// O(1): Aufwand bleibt gleich, egal wie groß n ist
+// O(n): Aufwand wächst mit n mit (doppelt so viele → doppelt so lang)`), hl: [],
+  text: `<p>Die Tabelle fasst zusammen, was wir gesehen haben. <b>*</b> heißt: meistens O(1). Ist das Array voll, legt <code>List&lt;T&gt;</code> ein doppelt so großes an und kopiert einmal alles um.</p>
+<p>Spannend ist die letzte Spalte: Beim <b>Suchen nach einem Wert</b> sind <b>beide</b> Listen langsam. Genau dafür gibt es das Dictionary.</p>`,
+  render(st) {
+    st.appendChild(el('table', 't pop', `<tr><th>Operation</th><th>List&lt;T&gt; (Array)</th><th>LinkedList&lt;T&gt;</th><th>Dictionary&lt;K, V&gt;</th></tr>
+<tr><td><b>C</b> hinten anhängen</td><td>O(1)*</td><td>O(1)</td><td rowspan="2">O(1)* <code>Add(key, v)</code></td></tr>
+<tr><td><b>C</b> vorne / Mitte einfügen</td><td style="color:#fca5a5">O(n)</td><td>O(1)**</td></tr>
+<tr><td><b>R</b> über Index / Key</td><td>O(1)</td><td style="color:#fca5a5">O(n)</td><td>O(1)</td></tr>
+<tr><td><b>R</b> Wert suchen (Contains)</td><td style="color:#fca5a5">O(n)</td><td style="color:#fca5a5">O(n)</td><td>Key: O(1) · Value: <span style="color:#fca5a5">O(n)</span></td></tr>
+<tr><td><b>U</b> über Index / Key</td><td>O(1)</td><td style="color:#fca5a5">O(n)</td><td>O(1)</td></tr>
+<tr><td><b>D</b> über Index / Key</td><td style="color:#fca5a5">O(n)</td><td>O(1)**</td><td>O(1)</td></tr>
+<tr><td><b>D</b> über Wert (Remove(x))</td><td style="color:#fca5a5">O(n)</td><td style="color:#fca5a5">O(n)</td><td>—</td></tr>`));
+    st.appendChild(el('div', 'lbl', '** wenn man den Knoten schon hat'));
+  } },
+
+// ---------- 2: Wann was? ----------
+{ ch: 2, title: 'Liste, Queue, Stack, Set oder Dictionary?', code: cWann, hl: [],
+  text: `<p>Die Wahl der Datenstruktur ist eine <b>Design-Entscheidung</b>. Stell dir drei Fragen:</p>
+<p>1. <b>Wie greife ich zu?</b> Über die Position → Liste. Über einen Schlüssel → Dictionary. Nur „Ist es drin?“ → HashSet.<br>
+2. <b>Ist die Reihenfolge wichtig?</b> Zuerst rein, zuerst raus → Queue. Zuletzt rein, zuerst raus → Stack.<br>
+3. <b>Darf etwas doppelt vorkommen?</b> Ja → Liste. Nein → Set / Dictionary (Keys sind eindeutig).</p>`,
+  render(st) {
+    const typen = ['List<T>', 'Queue<T>', 'Stack<T>', 'HashSet<T>', 'Dictionary<K, V>'];
+    st.appendChild(wrap('col', [Object.assign(el('div', 'story', ''), { id: 'fall' }), chipRow('ty', typen), infoBox()]));
+    const fall = (t, i, why, line) => { H(cWann, line); $('fall').innerHTML = t; typen.forEach((_, k) => markChip('ty', k, k === i ? 'yes' : 'no')); say(why); };
+    return seq([
+      () => fall('🛒 <b>Einkaufsliste</b>: Reihenfolge wie aufgeschrieben, Milch darf zweimal draufstehen, „das 3. abhaken“.', 0, 'Position und Duplikate → <b>List&lt;T&gt;</b>.', 'einkauf'),
+      () => fall('🍝 <b>Kantine</b>: Wer zuerst kommt, wird zuerst bedient.', 1, 'First In – First Out → <b>Queue&lt;T&gt;</b> (Enqueue / Dequeue).', 'kantine'),
+      () => fall('↩️ <b>Strg+Z</b>: Die letzte Änderung wird als erste rückgängig gemacht.', 2, 'Last In – First Out → <b>Stack&lt;T&gt;</b> (Push / Pop).', 'undo'),
+      () => fall('🐹 <b>Besuchte Felder</b>: War der Hamster hier schon? Wie oft ist egal.', 3, 'Nur „enthalten?“, keine Duplikate → <b>HashSet&lt;T&gt;</b>.', 'besucht'),
+      () => fall('📞 <b>Telefonbuch</b>: Zum Namen die Nummer finden.', 4, 'Nachschlagen über einen Schlüssel → <b>Dictionary&lt;K, V&gt;</b>.', 'telefon'),
+    ]);
+  } },
+
+// ---------- 3: Dictionary ----------
+{ ch: 3, title: 'Die Hierarchie der Dictionaries', code: cDictHier, hl: [],
+  text: `<p>Ein Dictionary ist eine Sammlung von <b>Paaren</b>: <code>KeyValuePair&lt;TKey, TValue&gt;</code>. Darum ist es auch eine <code>ICollection</code> und ein <code>IEnumerable</code> – von <b>Paaren</b>.</p>
+<p><code>IReadOnlyDictionary</code> ist praktisch für Properties: Von außen darf man lesen, aber nichts ändern (Datenkapselung!).</p>`,
+  render(st) {
+    const t = tree([
+      ['i', 'IEnumerable<KeyValuePair<TKey, TValue>>', 0, 'a'], ['i', 'ICollection<KeyValuePair<TKey, TValue>>', 1, 'b'],
+      ['i', 'IDictionary<TKey, TValue>        this[key], Add, Remove, ContainsKey, TryGetValue, Keys, Values', 2, 'c'],
+      ['i', 'IReadOnlyDictionary<TKey, TValue> nur lesen', 1, 'd'],
+      ['c', 'Dictionary<TKey, TValue>      ungeordnet, Hash: O(1)', 3, 'e'], ['c', 'SortedDictionary<TKey, TValue> nach Key sortiert: O(log n)', 3, 'f'],
+    ]);
+    st.appendChild(wrap('col', [t, legend(), infoBox()]));
+    return seq([
+      () => { H(cDictHier, 'IEnumerable<KeyValuePair'); hot(['a']); say('Durchlaufen liefert <b>Paare</b> – nicht nur Keys oder nur Values.'); },
+      () => { H(cDictHier, 'IDictionary<string'); hot(['a', 'b', 'c', 'e', 'f']); say('IDictionary: die Dictionary-Operationen. <b>Dictionary</b> ist schnell, <b>SortedDictionary</b> hält die Keys sortiert.'); },
+      () => { H(cDictHier, 'IReadOnlyDictionary'); hot(['d', 'e']); say('IReadOnlyDictionary: Gib nach außen nur Lesezugriff frei.'); },
+      () => { H(cDictHier, 'paar.Key'); hot(['a']); say('<code>paar.Key</code> und <code>paar.Value</code> – oder kürzer mit Dekonstruktion: <code>foreach ((string k, int v) in dict)</code>.'); },
+    ]);
+  } },
+{ ch: 3, title: 'CRUD mit Dictionary<TKey, TValue>', code: cDictCrud, hl: [],
+  text: `<p>Die wichtigsten Aufrufe im Überblick. Achte auf die zwei Fallen:</p>
+<p>• <code>Add</code> wirft eine <b>ArgumentException</b>, wenn der Key schon existiert. <code>dict[key] = v</code> überschreibt stattdessen still.<br>
+• <code>dict[key]</code> beim <b>Lesen</b> wirft eine <b>KeyNotFoundException</b>, wenn der Key fehlt. Sicher ist <code>TryGetValue</code> – das Muster kennst du von <code>int.TryParse</code>.</p>`,
+  render(st) {
+    const N = 4; let E = [];
+    const put = (k, v, b) => { E = E.filter(e => e.k !== k); E.push({ k, v, b }); };
+    st.appendChild(wrap('col', [lab('Dictionary&lt;string, int&gt; punkte'), bucketsView('B', N, E), infoBox(), konsole('k')]));
+    return seq([
+      () => { H(cDictCrud, 'Add("Ana"'); put('Ana', 12, 1); setBuckets('B', N, E, { Ana: 'yes', b1: 'hot' }); say('<b>C</b> Add: Der Key „Ana“ wird in sein Fach gelegt.'); },
+      () => { H(cDictCrud, 'punkte["Ben"] = 30'); put('Ben', 30, 3); setBuckets('B', N, E, { Ben: 'yes', b3: 'hot' }); say('<b>C</b> mit dem Indexer: neu anlegen (oder überschreiben, wenn es Ben schon gäbe).'); },
+      () => { H(cDictCrud, 'int p ='); setBuckets('B', N, E, { Ana: 'yes', b1: 'hot' }); print('k', 'p = 12'); say('<b>R</b> direkt ins Fach von „Ana“.'); },
+      () => { H(cDictCrud, 'TryGetValue'); setBuckets('B', N, E, { b2: 'bad' }); print('k', 'TryGetValue("Cem") = False'); say('<b>R</b> „Cem“ gibt es nicht. <code>punkte["Cem"]</code> würde abstürzen – TryGetValue liefert einfach <b>false</b>.'); },
+      () => { H(cDictCrud, 'ContainsKey'); setBuckets('B', N, E, { Ben: 'yes', b3: 'hot' }); print('k', 'da = True'); },
+      () => { H(cDictCrud, 'punkte["Ana"] = 15', 'punkte["Ana"] += 5'); put('Ana', 20, 1); setBuckets('B', N, E, { Ana: 'yes', b1: 'hot' }); say('<b>U</b> über den Key: 12 → 15 → 20.'); },
+      () => { H(cDictCrud, 'Remove'); E = E.filter(e => e.k !== 'Ben'); setBuckets('B', N, E, { b3: 'bad' }); say('<b>D</b> Remove("Ben"): direkt im Fach löschen. Nichts muss nachrücken!'); },
+      () => { H(cDictCrud, 'foreach', 'Count'); setBuckets('B', N, E, { Ana: 'yes' }); print('k', '1 1'); say('foreach liefert alle Paare. <b>Achtung:</b> Die Reihenfolge ist bei Dictionary <b>nicht</b> garantiert.'); },
+    ]);
+  } },
+{ ch: 3, title: 'Hinter den Kulissen: Hashing', code: cHash, hl: [],
+  text: `<p>Warum findet ein Dictionary einen Key, ohne zu suchen? Jeder Key liefert mit <code>GetHashCode()</code> eine Zahl. Aus dieser Zahl wird die <b>Fachnummer</b> (Bucket) berechnet. Zum Nachschauen springt das Dictionary direkt in dieses Fach.</p>
+<p>Landen zwei Keys im selben Fach (<b>Kollision</b>), liegen sie dort nebeneinander. Dann wird mit <code>Equals</code> verglichen – aber nur in diesem einen Fach. Darum braucht ein Key <b>beides</b>: <code>GetHashCode</code> und <code>Equals</code>, und die müssen zusammenpassen.</p>`,
+  render(st) {
+    const N = 5;
+    const E = [{ k: 'Ana', v: 12, b: 1 }, { k: 'Ben', v: 30, b: 3 }, { k: 'Dora', v: 7, b: 3 }, { k: 'Cem', v: 21, b: 0 }];
+    const formel = el('div', 'okbox', 'hash("Ben") = 1 836 455 018  →  % 5  =  3'); formel.id = 'f'; hid(formel);
+    st.appendChild(wrap('col', [formel, bucketsView('B', N, E), counter('cv', 'Vergleiche'), infoBox()]));
+    return seq([
+      () => { H(cHash, 'GetHashCode'); show_('f'); say('Aus „Ben“ wird eine Zahl …'); },
+      () => { H(cHash, '% 5'); setBuckets('B', N, E, { b3: 'hot' }); say('… und daraus Fach 3. Die anderen Fächer werden <b>nie</b> angeschaut.'); },
+      () => { H(cHash, 'Equals'); setBuckets('B', N, E, { b3: 'hot', Ben: 'yes', Dora: 'no' }); setCount('cv', 1); say('Im Fach 3 liegen „Ben“ und „Dora“ (Kollision). Equals vergleicht nur diese – 1 bis 2 Vergleiche statt n.'); },
+    ]);
+  } },
+
+{ ch: 3, title: 'Rechenbeispiel: einen Value über den Hash finden', code: C(`
+Dictionary<int, string> orte = new Dictionary<int, string>();
+orte[6020] = "Innsbruck";
+orte[1010] = "Wien";
+orte[8010] = "Graz";
+orte[5020] = "Salzburg";
+orte[6850] = "Dornbirn";
+
+// Was macht das Dictionary bei orte[8010]?
+int hash   = 8010.GetHashCode();     // bei int: die Zahl selbst → 8010
+int bucket = hash % 7;               // 7 Fächer → 8010 % 7 = 2
+// Fach 2: 1010? Equals → nein.  8010? Equals → ja → "Graz"
+
+bool da = orte.ContainsKey(6900);    // 6900 % 7 = 5 → Fach 5 leer → false`), hl: [],
+  text: `<p>Bei einem <code>int</code> ist der Hash einfach die Zahl selbst. So können wir mit Postleitzahlen <b>nachrechnen</b>, was das Dictionary tut. Wir nehmen 7 Fächer (.NET wählt intern auch eine Primzahl als Anzahl).</p>
+<p><b>Einfügen:</b> Fach = Key % 7. 1010 und 8010 landen beide in Fach 2 – eine <b>Kollision</b>.<br>
+<b>Suchen:</b> Für <code>orte[8010]</code> rechnet das Dictionary 8010 % 7 = 2, springt in Fach 2 und vergleicht <b>nur dort</b> mit <code>Equals</code>: 2 Vergleiche statt 5. Ein fehlender Key (6900) landet in einem leeren Fach → sofort <code>false</code>.</p>
+<p><b>Dictionary oder HashMap?</b> Kein Unterschied im Prinzip: <i>HashMap</i> ist der Name in Java, in C# heißt die Hash-Tabelle <code>Dictionary&lt;TKey, TValue&gt;</code>. Allgemein ist ein <i>Dictionary</i> (Map) nur die Idee „Key → Value“. Wie das gebaut ist, ist offen: <code>Dictionary</code> mit Hash (O(1)), <code>SortedDictionary</code> mit einem Baum (O(log n), sortiert). Die alte, nicht generische <code>Hashtable</code> verwenden wir nicht mehr.</p>
+<p>⚠️ Ein <code>string</code>-Hash ist in .NET bei <b>jedem Programmstart anders</b> (Schutz vor Angriffen). Darum rechnen wir hier mit <code>int</code>.</p>`,
+  render(st) {
+    const N = 7; let E = [];
+    const ORTE = [[6020, 'Innsbruck'], [1010, 'Wien'], [8010, 'Graz'], [5020, 'Salzburg'], [6850, 'Dornbirn']];
+    const rech = el('div', 'okbox', ''); rech.id = 'rech'; rech.style.fontSize = '18px'; hid(rech);
+    st.appendChild(wrap('col', [rech, bucketsView('B', N, E), counter('cv', 'Vergleiche'), infoBox()]));
+    const zeig = t => { const r = $('rech'); r.classList.remove('hidden'); r.textContent = t; r.classList.remove('pop'); void r.offsetWidth; r.classList.add('pop'); };
+    const acts = [];
+    ORTE.forEach(([k, v]) => acts.push(() => {
+      const b = k % N;
+      setHl([1 + ORTE.findIndex(o => o[0] === k)]);
+      zeig(`${k} % 7 = ${b}`);
+      const koll = E.some(e => e.b === b);
+      E.push({ k, v, b }); setBuckets('B', N, E, { ['b' + b]: 'hot', [k]: 'yes' });
+      say(koll ? `${k} landet auch in Fach ${b} → <b>Kollision</b>. Beide liegen nebeneinander im selben Fach.` : `Einfügen: ${k} → Fach ${b}.`);
+    }));
+    acts.push(() => { setHl([8, 9]); zeig('hash(8010) = 8010   →   8010 % 7 = 2'); setBuckets('B', N, E, { b2: 'hot' }); setCount('cv', 0); say('Suche <code>orte[8010]</code>: rechnen statt suchen → direkt in Fach 2. Die anderen 6 Fächer bleiben unberührt.'); });
+    acts.push(() => { setHl([10]); setBuckets('B', N, E, { b2: 'hot', 1010: 'no' }); setCount('cv', 1); say('Vergleich 1 in Fach 2: <code>1010.Equals(8010)</code> → false.'); });
+    acts.push(() => { setHl([10]); setBuckets('B', N, E, { b2: 'hot', 1010: 'no', 8010: 'yes' }); setCount('cv', 2); zeig('orte[8010] = "Graz"'); say('Vergleich 2: <code>8010.Equals(8010)</code> → true → Value <b>"Graz"</b>. 2 Vergleiche – auch bei einer Million Einträgen bleiben es wenige.'); });
+    acts.push(() => { setHl([12]); zeig('6900 % 7 = 5'); setBuckets('B', N, E, { b5: 'bad' }); setCount('cv', 0); say('Fehlender Key 6900 → Fach 5 ist leer → <b>false</b>, ohne einen einzigen Vergleich.'); });
+    return seq(acts);
+  } },
+
+// ---------- 4: Keys ----------
+{ ch: 4, title: 'Gute Keys: gleiche Werte = gleicher Key', code: cKeyWert, hl: [],
+  text: `<p>Ein Key wird mit <code>Equals</code> und <code>GetHashCode</code> verglichen. Bei <b>Werttypen</b> (<code>int</code>, Tupel, <code>struct</code>, <code>enum</code>) und bei <code>string</code> und <code>record</code> vergleichen die beiden die <b>Werte</b>.</p>
+<p>Darum findet ein <b>neues</b> Tupel <code>(2, 1)</code> den Eintrag, der mit einem <b>anderen</b> Tupel <code>(2, 1)</code> angelegt wurde. Genau das wollen wir: Ein Feld der Wiese ist durch seine Koordinaten bestimmt – nicht durch ein bestimmtes Objekt.</p>`,
+  render(st) {
+    st.appendChild(wrap('col', [wrap('row', [vbox('k1', 'Key im Dictionary', '(2, 1)'), el('div', 'ar k', '='), vbox('k2', '(int x, int y) feld', '(2, 1)')]), Object.assign(hid(el('div', 'okbox', 'Equals: 2 == 2 und 1 == 1  →  gleich  →  ContainsKey = True')), { id: 'ok' }), infoBox()]));
+    return seq([
+      () => { H(cKeyWert, 'karte[(2, 1)]'); say('Der Key ist ein Tupel – ein Werttyp.'); },
+      () => { H(cKeyWert, 'feld = (2, 1)'); say('Ein ganz neues Tupel mit denselben Zahlen.'); },
+      () => { H(cKeyWert, 'ContainsKey(feld)'); show_('ok'); say('Verglichen werden die <b>Werte</b> → gefunden.'); },
+    ]);
+  } },
+{ ch: 4, title: 'Klassen als Key: Identität statt Wert', code: cKeyRef, hl: [],
+  text: `<p>Eine normale <code>class</code> erbt <code>Equals</code> und <code>GetHashCode</code> von <code>object</code>. Die vergleichen die <b>Identität</b>: <i>Ist das dasselbe Objekt im Heap?</i> – nicht die Werte.</p>
+<p><code>a</code> und <code>b</code> haben die gleichen Werte, sind aber <b>zwei</b> Objekte. Mit <code>b</code> findet das Dictionary nichts. Lösung: einen Werttyp (Tupel, <code>struct</code>) oder ein <code>record</code> verwenden – oder <code>Equals</code> und <code>GetHashCode</code> selbst überschreiben.</p>`,
+  render(st) {
+    const sc = scene();
+    const vars = wrap('col', [vbox('va', 'Feld a', '→', 'ref'), vbox('vb', 'Feld b', '→', 'ref')]); vars.style.gap = '40px';
+    const o1 = objCard('o1', '<u>#1 : Feld</u>', [['X', '2'], ['Y', '1']]); const o2 = hid(objCard('o2', '<u>#2 : Feld</u>', [['X', '2'], ['Y', '1']]));
+    const objs = wrap('col', [o1, o2]); objs.style.gap = '30px';
+    const dict = el('div', 'bucket'); dict.id = 'dict'; dict.style.borderColor = 'var(--accent)'; dict.appendChild(el('div', 'bh', 'karte')); const e = el('div', 'chip', 'Key → 🌱'); e.id = 'dk'; dict.appendChild(e);
+    const row = wrap('row', [vars, objs, dict]); row.style.gap = '70px'; row.style.flexWrap = 'nowrap';
+    sc.appendChild(wrap('col', [row, infoBox(), konsole('k')])); st.appendChild(sc);
+    hid($('vb') || vars.lastChild);
+    return seq([
+      () => { H(cKeyRef, 'Feld a ='); link(sc, 'va', 'o1'); },
+      () => { H(cKeyRef, 'karte[a]'); link(sc, 'dk', 'o1', { color: 'var(--x)', from: 'left', to: 'right' }); say('Der Key im Dictionary ist eine <b>Referenz</b> auf Objekt #1.'); },
+      () => { H(cKeyRef, 'Feld b ='); show_('vb'); show_('o2'); link(sc, 'vb', 'o2'); say('b: gleiche Werte, aber ein <b>anderes</b> Objekt (#2).'); },
+      () => { H(cKeyRef, 'ContainsKey(a)'); print('k', 'True'); say('a zeigt auf #1 – dieselbe Identität wie der Key → gefunden.'); },
+      () => { H(cKeyRef, 'ContainsKey(b)'); print('k', 'False'); shake('o2'); say('b zeigt auf #2. object.Equals fragt: <b>dasselbe Objekt?</b> Nein → nicht gefunden!'); },
+      () => { H(cKeyRef, 'record Pos'); say('Ein <code>record</code> (oder Tupel / struct) vergleicht die <b>Werte</b> → beide würden gefunden.'); },
+    ]);
+  } },
+{ ch: 4, title: 'Verbotene Keys: nachträglich veränderbar', code: cKeyMut, hl: [],
+  text: `<p>Das Fach eines Eintrags wird <b>beim Einfügen</b> aus dem Hash berechnet. Ändern wir den Key danach, passt der Hash nicht mehr zum Fach: Das Dictionary sucht im falschen Fach und findet den Eintrag nie wieder.</p>
+<p><b>Regel:</b> Keys müssen <b>unveränderlich</b> sein, solange sie im Dictionary liegen.</p>
+<table class="t"><tr><th>Key-Typ</th><th>vergleicht</th><th>als Key?</th></tr>
+<tr><td><code>int</code>, <code>string</code>, <code>enum</code></td><td>Wert</td><td>✅</td></tr>
+<tr><td>Tupel <code>(int, int)</code>, <code>record</code>, <code>readonly struct</code></td><td>Wert</td><td>✅ ideal für Koordinaten</td></tr>
+<tr><td><code>class</code> ohne Equals</td><td>Identität</td><td>⚠️ nur wenn genau <i>dieses</i> Objekt gemeint ist</td></tr>
+<tr><td>veränderbare Klasse mit Equals</td><td>Wert</td><td>❌ Hash ändert sich</td></tr></table>`,
+  render(st) {
+    const N = 4; let E = [{ k: '(2, 1)', v: '🌱', b: 2 }];
+    st.appendChild(wrap('col', [bucketsView('B', N, E), infoBox(), konsole('k')]));
+    return seq([
+      () => { H(cKeyMut, 'karte[a]'); setBuckets('B', N, E, { b2: 'hot', '(2, 1)': 'yes' }); say('Beim Einfügen: Hash von (2, 1) → Fach 2.'); },
+      () => { H(cKeyMut, 'a.X = 5'); E = [{ k: '(5, 1) ?!', v: '🌱', b: 2 }]; setBuckets('B', N, E, { '(5, 1) ?!': 'no' }); say('Der Key ändert sich – der Eintrag bleibt aber in Fach 2 liegen.'); },
+      () => { H(cKeyMut, 'ContainsKey(a)'); setBuckets('B', N, E, { b0: 'bad' }); print('k', 'False'); say('Hash von (5, 1) → Fach 0. Dort ist nichts. Der Eintrag ist <b>verloren</b>.'); },
+    ]);
+  } },
+
+// ---------- 5: Hamster Dictionary ----------
+{ ch: 5, title: '❌ Antibeispiel: Seedlings in einer Liste', code: cHamList, hl: [],
+  text: `<p>So war die Hamster-Wiese im 3. Jahrgang (Wiederholung) zuerst gebaut: Die Wiese hat eine <b>Liste</b> von Seedlings. Will ein Hamster fressen, fragt sie: „Steht auf <i>meinem</i> Feld ein Seedling?“</p>
+<p>Die Liste kennt aber keine Felder, nur Positionen 0, 1, 2 … Also muss sie <b>jeden</b> Seedling anschauen. Und für <code>Remove</code> gleich <b>nochmal</b>. Bei vielen Hamstern und Seedlings passiert das in <b>jeder</b> Runde für <b>jeden</b> Hamster.</p>`,
+  render(st) {
+    const S = [[1, 0], [4, 1], [2, 3], [0, 2], [5, 3], [3, 2]], HAM = [3, 2];
+    st.appendChild(wrap('col', [wieseView('W', 6, 4, S, HAM), lab('List&lt;Seedling&gt; _seedlings'), arrRow('L', S.map(s => `(${s[0]},${s[1]})`), 6), counter('cv', 'Vergleiche'), infoBox()]));
+    document.querySelectorAll('.cell[id^="L-"]').forEach(c => { c.style.width = 'auto'; c.style.minWidth = '62px'; c.style.fontSize = '14px'; });
+    const acts = [() => { H(cHamList, 'SeedlingAuf((int'); say('Der Hamster 🐹 steht auf (3, 2). Gibt es dort einen Seedling?'); }];
+    S.forEach((s, i) => acts.push(() => {
+      H(cHamList, 's.Position == position'); const hit = s[0] === HAM[0] && s[1] === HAM[1];
+      const cls = {}; for (let k = 0; k < i; k++) cls[k] = 'dim'; cls[i] = hit ? 'hot' : 'bad';
+      setArr('L', S.map(t => `(${t[0]},${t[1]})`), 6, cls); document.querySelectorAll('.cell[id^="L-"]').forEach(c => { c.style.width = 'auto'; c.style.minWidth = '62px'; c.style.fontSize = '14px'; });
+      setWiese('W', 6, 4, S, HAM, { [s[0] + ',' + s[1]]: hit ? 'hot' : 'bad' }); setCount('cv', i + 1);
+      say(hit ? `Vergleich ${i + 1}: gefunden – erst beim <b>letzten</b> Seedling.` : `Vergleich ${i + 1}: (${s[0]}, ${s[1]}) ≠ (3, 2) → weiter.`);
+    }));
+    acts.push(() => { H(cHamList, '_seedlings.Remove'); setCount('cv', 12); say('<code>Remove(s)</code> sucht <b>noch einmal</b> von vorne: 12 Vergleiche für einen Bissen. Mit 100 Seedlings und 30 Hamstern: bis zu <b>6 000</b> Vergleiche pro Runde.'); });
+    return seq(acts, 900);
+  } },
+{ ch: 5, title: '✅ Dictionary: das Feld ist der Schlüssel', code: cHamDict, hl: [],
+  text: `<p>Die eigentliche Frage lautet: „Was liegt auf <b>diesem Feld</b>?“ Das Feld ist bekannt – also ist es der perfekte <b>Key</b>. Als Key nehmen wir das Tupel <code>(int x, int y)</code>: ein Werttyp, unveränderlich, vergleicht die Werte.</p>
+<p>Ein Bonus: Keys sind eindeutig. <code>TryAdd</code> verhindert automatisch, dass zwei Seedlings auf demselben Feld wachsen.</p>
+<p>Fressen ist jetzt <b>ein</b> Sprung – egal wie groß die Wiese ist.</p>`,
+  render(st) {
+    const S = [[1, 0], [4, 1], [2, 3], [0, 2], [5, 3], [3, 2]], HAM = [3, 2];
+    const B = S.map((s, i) => ({ k: `(${s[0]}, ${s[1]})`, v: '🌱', b: (s[0] * 3 + s[1]) % 4 }));
+    st.appendChild(wrap('col', [wieseView('W', 6, 4, S, HAM), lab('Dictionary&lt;(int x, int y), Seedling&gt; _seedlings'), bucketsView('B', 4, B), counter('cv', 'Vergleiche'), infoBox()]));
+    let S2 = S;
+    return seq([
+      () => { H(cHamDict, 'TryAdd'); say('Beim Pflanzen: Key = Position des Seedlings. Ist das Feld belegt, liefert TryAdd false.'); },
+      () => { H(cHamDict, 'TryGetValue'); setBuckets('B', 4, B, { b3: 'hot', '(3, 2)': 'yes' }); setWiese('W', 6, 4, S, HAM, { '3,2': 'hot' }); setCount('cv', 1); say('TryGetValue((3, 2)): Hash → Fach 3 → gefunden. <b>1</b> Vergleich.'); },
+      () => { H(cHamDict, '_seedlings.Remove'); S2 = S.filter(s => !(s[0] === 3 && s[1] === 2)); setBuckets('B', 4, B.filter(e => e.k !== '(3, 2)'), { b3: 'bad' }); setWiese('W', 6, 4, S2, HAM, {}); setCount('cv', 2); say('Remove über den Key: wieder direkt. Mit 100 Seedlings und 30 Hamstern: ca. <b>60</b> statt 6 000 Vergleiche pro Runde.'); },
+    ]);
+  } },
+
+// ---------- 6: Hamster Liste ----------
+{ ch: 6, title: '✅ Liste: den Weg des Hamsters merken', code: cWegList, hl: [],
+  text: `<p>Jetzt soll der Hamster sich seinen <b>Weg</b> merken, um Schritte rückgängig zu machen. Hier ist die Liste perfekt:</p>
+<p>• Die <b>Reihenfolge</b> ist das Wichtigste.<br>• Dasselbe Feld darf <b>mehrmals</b> vorkommen (er läuft hin und zurück).<br>• Gebraucht wird immer nur das <b>Ende</b>: <code>Add</code> und <code>_weg[^1]</code> sind O(1).</p>
+<p>(Weil nur hinten hinzugefügt und hinten entfernt wird, wäre auch ein <code>Stack</code> eine gute Wahl.)</p>`,
+  render(st) {
+    const P = [[0, 0], [1, 0], [2, 0], [1, 0], [1, 1]];
+    st.appendChild(wrap('col', [wieseView('W', 4, 3, [], P[0]), lab('List&lt;(int x, int y)&gt; _weg'), arrRow('L', [], 6), infoBox()]));
+    const fmt = p => `(${p[0]},${p[1]})`;
+    const show = (n, extra = {}) => { setArr('L', P.slice(0, n).map(fmt), 6, extra); document.querySelectorAll('.cell[id^="L-"]').forEach(c => { c.style.width = 'auto'; c.style.minWidth = '62px'; c.style.fontSize = '14px'; }); };
+    const acts = [];
+    for (let i = 1; i < P.length; i++) acts.push(() => { H(cWegList, '_weg.Add'); show(i, { [i - 1]: 'hot' }); setWiese('W', 4, 3, [], P[i], { [P[i - 1][0] + ',' + P[i - 1][1]]: 'colhot' }); say(i === 3 ? '(1, 0) kommt ein <b>zweites</b> Mal vor – bei einer Liste kein Problem.' : `Position ${fmt(P[i - 1])} hinten anhängen, dann weitergehen.`); });
+    acts.push(() => { H(cWegList, '_weg[^1]', 'RemoveAt'); show(3, {}); setWiese('W', 4, 3, [], P[3], { '1,0': 'hot' }); say('Zurueck(): letzter Eintrag (1, 0) → Position, dann am Ende entfernen. O(1), nichts rückt nach.'); });
+    return seq(acts);
+  } },
+{ ch: 6, title: '❌ Antibeispiel: der Weg als Dictionary', code: cWegDict, hl: [],
+  text: `<p>Nimmt man das Feld als Key und die Schrittnummer als Value, scheitert das sofort: Läuft der Hamster ein <b>zweites</b> Mal über dasselbe Feld, wirft <code>Add</code> eine Exception – mit <code>dict[key] = …</code> würde der alte Eintrag still überschrieben. Der Weg wäre kaputt.</p>
+<p>Und „der letzte Schritt“? Ein Dictionary hat kein „letztes“. Wir müssten alle Values nach der größten Zahl durchsuchen – O(n). Nimmt man umgekehrt die Schrittnummer als Key (<code>Dictionary&lt;int, …&gt;</code>), baut man nur eine Liste mit Index nach – nur umständlicher.</p>
+<p><b>Faustregel:</b> Wenn die Keys einfach 0, 1, 2, … sind, willst du eine <b>Liste</b>.</p>`,
+  render(st) {
+    const N = 4; let E = [];
+    st.appendChild(wrap('col', [lab('Dictionary&lt;(int x, int y), int&gt; _weg'), bucketsView('B', N, E), Object.assign(hid(el('div', 'errbox', '💥 ArgumentException: An item with the same key has already been added. Key: (1, 0)')), { id: 'err' }), infoBox()]));
+    return seq([
+      () => { H(cWegDict, '_weg.Add'); E = [{ k: '(0, 0)', v: 0, b: 0 }]; setBuckets('B', N, E, { '(0, 0)': 'yes' }); say('Schritt 0 auf (0, 0).'); },
+      () => { E.push({ k: '(1, 0)', v: 1, b: 3 }); setBuckets('B', N, E, { '(1, 0)': 'yes' }); say('Schritt 1 auf (1, 0).'); },
+      () => { E.push({ k: '(2, 0)', v: 2, b: 2 }); setBuckets('B', N, E, { '(2, 0)': 'yes' }); say('Schritt 2 auf (2, 0).'); },
+      () => { setBuckets('B', N, E, { b3: 'bad', '(1, 0)': 'no' }); show_('err'); say('Zurück auf (1, 0) – dieser Key existiert schon. 💥'); },
+      () => { H(cWegDict, 'Zurueck'); $('err').classList.add('hidden'); setBuckets('B', N, E, {}); say('Welcher Eintrag ist der letzte? Das Dictionary kennt keine Reihenfolge.'); },
+    ]);
+  } },
+
+// ---------- 7: Zusammenfassung ----------
+{ ch: 7, title: 'Zusammenfassung: Wann nehme ich was?', code: C(`
+List<T>             // Position, Reihenfolge, Duplikate
+Queue<T> / Stack<T> // nur vorne raus (FIFO) / nur oben (LIFO)
+HashSet<T>          // nur "enthalten?", keine Duplikate
+Dictionary<K, V>    // nachschlagen über einen Schlüssel`), hl: [],
+  text: `<p><b>Merksätze:</b></p>
+<p>1. Ich kenne die <b>Position</b> → Liste. Ich kenne den <b>Schlüssel</b> → Dictionary.<br>
+2. Ich <b>suche</b> in einer Liste oft nach einem Wert → wahrscheinlich will ich ein Dictionary oder ein HashSet.<br>
+3. Die Keys sind nur 0, 1, 2, … → ich will eine Liste.<br>
+4. Ein Key vergleicht mit <code>Equals</code>/<code>GetHashCode</code>: Werttypen, <code>string</code>, <code>record</code> vergleichen <b>Werte</b>, normale Klassen die <b>Identität</b>. Keys nie nachträglich ändern.</p>`,
+  render(st) {
+    st.appendChild(el('table', 't pop', `<tr><th></th><th>List&lt;T&gt;</th><th>Dictionary&lt;K, V&gt;</th></tr>
+<tr><td>Zugriff über</td><td>Position (Index)</td><td>Schlüssel (Key)</td></tr>
+<tr><td>Reihenfolge</td><td>✅ garantiert</td><td>❌ nicht garantiert</td></tr>
+<tr><td>Duplikate</td><td>✅ erlaubt</td><td>Keys eindeutig, Values beliebig</td></tr>
+<tr><td>Lesen über Index / Key</td><td>O(1)</td><td>O(1)</td></tr>
+<tr><td>Suchen nach Wert / Key</td><td>O(n)</td><td>O(1)</td></tr>
+<tr><td>Einfügen / Löschen vorne</td><td>O(n)</td><td>O(1)</td></tr>
+<tr><td>🐹 Beispiel</td><td>der Weg des Hamsters</td><td>Seedling auf Feld (x, y)</td></tr>`));
+  } },
+];
+
+// ===================== Navigation =====================
+let cur = 0, ctrl = null;
+function buildTabs() {
+  chapters.forEach((c, i) => {
+    const b = el('button', '', (i + 1) + '. ' + c);
+    b.onclick = () => show(steps.findIndex(s => s.ch === i));
+    $('tabs').appendChild(b);
+  });
+}
+function show(i) {
+  clearTimers();
+  cur = Math.max(0, Math.min(steps.length - 1, i));
+  const s = steps[cur];
+  document.querySelectorAll('#tabs button').forEach((b, k) => b.classList.toggle('active', k === s.ch));
+  $('title').textContent = s.title;
+  $('counter').textContent = `Schritt ${cur + 1} / ${steps.length}`;
+  $('text').innerHTML = s.text;
+  renderCode(s.code, s.hl);
+  const st = $('stage'); st.innerHTML = ''; st.style.flexDirection = ''; st.style.gap = '';
+  ctrl = s.render(st) || null;
+  $('autoBtn').disabled = !(ctrl && ctrl.auto);
+}
+function go(d) { if (d > 0 && ctrl && ctrl.next && ctrl.next()) return; show(cur + d); }
+function runAuto() { if (ctrl && ctrl.auto) { $('autoBtn').disabled = true; ctrl.auto(); } }
+function replay() { show(cur); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+  if (e.key === 'r' || e.key === 'R') replay();
+  if (e.key === 'p' || e.key === 'P') togglePresenter();
+  if (e.key === '1' || e.key === '2' || e.key === '3') setView(Number(e.key) - 1);
+});
+// ===================== Trennlinien mit der Maus verschieben =====================
+function dragger(handle, onMove) {
+  handle.addEventListener('pointerdown', e => {
+    e.preventDefault(); handle.setPointerCapture(e.pointerId); handle.classList.add('drag'); document.body.classList.add('dragging');
+    const mv = ev => onMove(ev);
+    const up = () => { handle.removeEventListener('pointermove', mv); handle.removeEventListener('pointerup', up); handle.classList.remove('drag'); document.body.classList.remove('dragging'); redrawAll(); };
+    handle.addEventListener('pointermove', mv); handle.addEventListener('pointerup', up);
+  });
+}
+dragger($('sv'), e => {
+  const r = $('content').getBoundingClientRect();
+  const pct = Math.max(15, Math.min(75, (e.clientX - r.left) / r.width * 100));
+  $('left').style.width = pct + '%'; $('right').style.width = 'auto'; $('right').style.flex = '1';
+  redrawAll();
+});
+dragger($('sh'), e => {
+  const r = $('right').getBoundingClientRect();
+  const y = Math.max(80, Math.min(r.height - 60, e.clientY - r.top));
+  $('stage').parentElement.style.flex = String(y); $('text').parentElement.style.flex = String(r.height - y);
+  redrawAll();
+});
+function redrawAll() { document.querySelectorAll('.scene').forEach(redraw); }
+// ===================== Presenter-Modus und Ansicht =====================
+let presenter = false, view = 0;   // 0 = Code + Animation, 1 = nur Animation, 2 = nur Code
+function applyLayout() {
+  const L = $('left'), R = $('right'), sp = $('stage').parentElement, tp = $('text').parentElement;
+  if (presenter) { L.style.width = '30%'; R.style.width = '70%'; R.style.flex = 'none'; sp.style.flex = '1'; }
+  else { L.style.width = '40%'; R.style.width = '60%'; R.style.flex = ''; sp.style.flex = '1.9'; tp.style.flex = '1'; }
+  tp.style.display = presenter ? 'none' : ''; $('sh').style.display = presenter ? 'none' : '';
+  L.style.display = view === 1 ? 'none' : ''; $('sv').style.display = view === 0 ? '' : 'none'; R.style.display = view === 2 ? 'none' : '';
+  if (view === 1) { R.style.width = '100%'; R.style.flex = '1'; }
+  if (view === 2) { L.style.width = '100%'; }
+  $('presBtn').classList.toggle('on', presenter); [0, 1, 2].forEach(k => $('vb' + k).classList.toggle('on', view === k));
+  setTimeout(redrawAll, 50);
+}
+function togglePresenter() { presenter = !presenter; applyLayout(); }
+function setView(v) { view = v; applyLayout(); }
+window.addEventListener('resize', redrawAll);
+
+buildTabs();
+show(0);
+applyLayout();
+</script>
+</body>
+</html>
