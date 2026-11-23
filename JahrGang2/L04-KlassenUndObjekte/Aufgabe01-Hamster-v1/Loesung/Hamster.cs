@@ -1,4 +1,4 @@
-// Ein Hamster HAT einen Seedling im Mund (hat-Beziehung).
+// Ein Hamster trägt immer einen Seedling herum (hat-Beziehung).
 class Hamster
 {
     // Felder: der Zustand
@@ -18,7 +18,7 @@ class Hamster
     // Methoden: das Verhalten
     public void Move()
     {
-        // der Seedling im Mund kommt mit (bleibt dort liegen, falls er gleich getauscht wird)
+        // der Seedling, den er herumträgt, kommt mit (bleibt dort liegen, falls er gleich getauscht wird)
         _mouth._position = _position;
 
         // ganz oben angekommen? -> unten wieder hinein

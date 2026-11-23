@@ -4,216 +4,841 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Klassendiagramm und Objektdiagramm</title>
-<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #020617; --panel: #0f172a; --panel2: #1e293b; --line: #334155; --text: #f1f5f9; --muted: #94a3b8;
-    --accent: #38bdf8; --ok: #34d399; --x: #f59e0b; --obj: #a78bfa; --bad: #fb7185;
+    --bg: #020617; --panel: #0f172a; --panel2: #1e293b; --line: #334155;
+    --text: #f8fafc; --muted: #94a3b8; --accent: #38bdf8; --x: #f59e0b; --y: #a855f7;
+    --ok: #10b981; --bad: #ef4444; --kw: #c084fc; --str: #fbbf24; --num: #34d399; --com: #64748b;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
-  .mono, code { font-family: 'Fira Code', monospace; }
-  code { background: var(--panel2); padding: 0 5px; border-radius: 4px; font-size: .92em; }
-  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 10px 18px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; overflow: hidden; }
+  .mono { font-family: 'Fira Code', monospace; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
   header h1 { margin: 0; font-size: 19px; color: var(--accent); }
-  nav { display: flex; flex-wrap: wrap; gap: 6px; }
-  nav button { background: var(--panel2); color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
-  nav button.active { color: var(--accent); border-color: var(--accent); }
-  main { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 18px 16px; gap: 14px; }
-  h2 { margin: 0; font-size: 24px; text-align: center; }
-  .stage { width: 100%; max-width: 1200px; min-height: 420px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; overflow-x: auto; }
-  .text { max-width: 1000px; font-size: 18px; line-height: 1.5; text-align: center; min-height: 60px; }
-  .controls { display: flex; gap: 8px; align-items: center; }
-  .controls button { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 16px; font: inherit; cursor: pointer; }
-  .controls .counter { color: var(--muted); font-size: 14px; min-width: 80px; text-align: center; }
-  .row { display: flex; gap: 0; align-items: center; justify-content: center; flex-wrap: wrap; }
-  .gap { gap: 26px; }
-  .hide { opacity: 0; transform: translateY(8px); pointer-events: none; }
-  .rev { transition: opacity .5s, transform .5s; }
+  header p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+  #tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  #tabs button { background: var(--panel2); color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  #tabs button.active { background: #0284c7; color: #fff; border-color: var(--accent); }
+  main { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; overflow: hidden; min-height: 0; }
+  #titlebar { display: flex; align-items: baseline; gap: 12px; }
+  #title { font-size: 22px; font-weight: 700; margin: 0; }
+  #counter { color: var(--muted); font-size: 13px; }
+  #content { flex: 1; min-height: 0; display: flex; gap: 12px; }
+  .pane { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+  .panehead { background: #020617; border-bottom: 1px solid var(--line); padding: 6px 14px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  #left { width: 40%; }
+  #right { width: 60%; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  #codebox, #codebox2 { flex: 1; overflow: auto; padding: 10px 0; font-size: 15px; line-height: 1.7; }
+  .panehead.file { text-transform: none; letter-spacing: .02em; font-size: 13px; color: var(--accent); }
+  #headKl { border-top: 2px solid var(--line); }
+  #stage { flex: 1.9; min-height: 0; background: radial-gradient(circle at center, #0b1430 0%, #020617 75%); display: flex; align-items: center; justify-content: center; position: relative; overflow: auto; padding: 16px; }
+  #text { flex: 1; min-height: 0; overflow: auto; padding: 10px 16px; font-size: 15px; line-height: 1.55; }
+  #text p { margin: 6px 0; }
+  #text code { font-family: 'Fira Code', monospace; background: var(--panel2); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+  .cl { padding: 0 14px; border-left: 4px solid transparent; white-space: pre; }
+  .cl.hl { background: rgba(56,189,248,.18); border-left-color: var(--accent); }
+  .cl.blink { animation: blink .5s ease 2; border-left-color: var(--x); }
+  @keyframes blink { 0%, 100% { background: rgba(56,189,248,.18); } 50% { background: rgba(245,158,11,.6); } }
+  .tk-kw { color: var(--kw); } .tk-str { color: var(--str); } .tk-num { color: var(--num); } .tk-com { color: var(--com); font-style: italic; } .tk-ty { color: #38bdf8; }
+  nav { display: flex; gap: 8px; align-items: center; justify-content: center; }
+  nav button { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 18px; font-size: 15px; cursor: pointer; }
+  nav button:hover { border-color: var(--accent); }
+  nav button:disabled { opacity: .35; cursor: default; }
+  nav button#autoBtn:not(:disabled) { border-color: var(--ok); color: var(--ok); }
+  .brow { display: flex; align-items: center; gap: 10px; }
+  .brow .lbl { min-width: 150px; text-align: right; font-size: 13px; color: var(--muted); }
+  .bgrp { display: inline-flex; flex-direction: column; align-items: center; margin: 0 4px; gap: 2px; }
+  .bgrp .bb { display: flex; gap: 1px; }
+  .bit { font-family: 'Fira Code', monospace; font-size: 14px; width: 16px; text-align: center; border: 1px solid var(--line); border-radius: 3px; background: var(--panel); }
+  .bit.p { color: #a855f7; border-color: #a855f7; } .bit.o { color: #f59e0b; border-color: #f59e0b; } .bit.g { color: #475569; border-style: dashed; } .bit.k { color: #38bdf8; border-color: #38bdf8; } .bit.r { color: #ef4444; border-color: #ef4444; background: rgba(239,68,68,.15); }
+  .bgrp .hx { font-family: 'Fira Code', monospace; font-size: 14px; font-weight: 700; color: var(--text); }
+  .hexcheat { display: grid; grid-template-columns: repeat(8, auto); gap: 2px 10px; font-family: 'Fira Code', monospace; font-size: 12px; color: var(--muted); }
+  .hexcheat b { color: var(--accent); }
+  .ptr { outline: 3px solid var(--accent); outline-offset: 2px; }
+  nav span { color: var(--muted); font-size: 12px; }
 
-  /* UML-Box */
-  .uml { border: 2px solid var(--accent); border-radius: 8px; background: #0b1222; min-width: 250px; font-family: 'Fira Code', monospace; font-size: 14px; }
-  .uml .h { padding: 7px 12px; text-align: center; font-weight: 700; color: var(--accent); border-bottom: 2px solid var(--accent); }
-  .uml .sec { padding: 6px 12px; border-bottom: 1px solid var(--line); min-height: 26px; }
-  .uml .sec:last-child { border-bottom: 0; }
-  .uml .m { color: var(--ok); }
-  .uml.obj { border-color: var(--obj); }
-  .uml.obj .h { color: var(--obj); border-color: var(--obj); text-decoration: underline; }
-  .uml .hl { background: rgba(245,158,11,.2); border-radius: 4px; color: var(--x); }
-  .tag { display: block; font-family: 'Inter', sans-serif; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px; }
-  .ann { color: var(--x); font-size: 13px; font-family: 'Inter', sans-serif; }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .row { display: flex; align-items: center; gap: 14px; }
+  .label { color: var(--muted); font-size: 14px; }
+  .arr { display: flex; gap: 4px; }
+  .cell { width: 54px; height: 54px; border: 2px solid var(--line); border-radius: 8px; background: var(--panel); display: flex; align-items: center; justify-content: center; font-size: 26px; position: relative; transition: all .45s cubic-bezier(.2,.8,.3,1.2); }
+  .cell.small { width: 44px; height: 44px; font-size: 22px; }
+  .cell.txt { width: auto; min-width: 92px; padding: 0 8px; font-size: 13px; font-family: 'Fira Code', monospace; }
+  .cell.null { color: var(--com); font-size: 12px; font-family: 'Fira Code', monospace; }
+  .cell.hot { border-color: var(--ok); background: rgba(16,185,129,.25); transform: scale(1.08); }
+  .cell.rowhot { border-color: var(--y); background: rgba(168,85,247,.18); }
+  .cell.colhot { border-color: var(--x); background: rgba(245,158,11,.18); }
+  .cell.both { border-color: var(--ok); background: rgba(16,185,129,.35); }
+  .cell.dim { opacity: .3; }
+  .idx { font-family: 'Fira Code', monospace; font-size: 12px; color: var(--muted); text-align: center; }
+  .idx.x { color: var(--x); } .idx.y { color: var(--y); }
+  .grid { display: grid; gap: 4px; }
+  .pop { animation: pop .45s cubic-bezier(.2,.8,.3,1.3) both; }
+  @keyframes pop { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
+  .fade { animation: fade .6s ease both; }
+  @keyframes fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .stack { display: flex; flex-direction: column; gap: 26px; transition: gap .8s ease; }
+  .stack.merged { gap: 4px; }
+  .stack .tag { font-family: 'Fira Code', monospace; font-size: 13px; color: var(--muted); width: 70px; text-align: right; transition: opacity .5s; }
+  .stack.merged .tag { opacity: 0; }
+  .frame { border: 2px dashed transparent; border-radius: 12px; padding: 8px; transition: border-color .8s; }
+  .frame.on { border-color: var(--accent); }
+  .pill { font-family: 'Fira Code', monospace; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 15px; }
+  .pill.x { border-color: var(--x); color: var(--x); } .pill.y { border-color: var(--y); color: var(--y); } .pill.ok { border-color: var(--ok); color: var(--ok); } .pill.bad { border-color: var(--bad); color: var(--bad); }
+  .file { background: #0b1220; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-family: 'Fira Code', monospace; font-size: 22px; line-height: 1.35; }
+  .file .ln { display: flex; gap: 12px; align-items: center; border-radius: 6px; padding: 0 6px; transition: background .3s; }
+  .file .ln b { font-size: 12px; color: var(--muted); width: 18px; }
+  .file .ln.hl { background: rgba(245,158,11,.18); }
+  .ch { display: inline-block; border-radius: 4px; transition: background .2s; }
+  .ch.hl { background: rgba(16,185,129,.45); outline: 2px solid var(--ok); }
+  .table th { font-size: 12px; color: var(--x); font-family: 'Fira Code', monospace; font-weight: 600; padding: 2px 4px; }
+  .table td.ri { font-size: 12px; color: var(--y); font-family: 'Fira Code', monospace; padding-right: 6px; }
+  table.uni { border-collapse: collapse; font-family: 'Fira Code', monospace; font-size: 14px; }
+  table.uni th, table.uni td { border: 1px solid var(--line); padding: 6px 10px; text-align: center; }
+  table.uni th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  table.uni td.big { font-size: 26px; }
+  .unit { font-family: 'Fira Code', monospace; font-size: 13px; padding: 6px 8px; border-radius: 6px; border: 2px solid var(--line); background: var(--panel); transition: all .3s; }
+  .unit.hi { border-color: var(--y); color: #e9d5ff; } .unit.lo { border-color: var(--x); color: #fde68a; } .unit.bmp { border-color: var(--ok); color: #a7f3d0; }
+  .unit.sel { background: rgba(239,68,68,.35); border-color: var(--bad); transform: translateY(-6px); }
+  .bits { font-family: 'Fira Code', monospace; font-size: 17px; letter-spacing: 1px; }
+  .chip { font-family: 'Fira Code', monospace; font-size: 15px; padding: 4px 8px; border-radius: 6px; background: var(--panel2); border: 1px solid var(--line); transition: opacity .4s; }
+  .warn { color: var(--x); }
 
-  /* Pfeil zwischen zwei Boxen */
-  .arrow { display: flex; flex-direction: column; align-items: center; padding: 0 6px; font-family: 'Fira Code', monospace; color: var(--x); min-width: 170px; }
-  .arrow .lbl { font-size: 14px; font-weight: 600; }
-  .arrow .line { font-size: 22px; letter-spacing: -2px; white-space: nowrap; }
-  .arrow .mult { align-self: flex-end; font-size: 13px; color: var(--muted); }
-  .arrow.obj { color: var(--obj); }
+  /* ---- L04: Klassen & Objekte ---- */
+  .obj { background: var(--panel2); border: 2px solid var(--ok); border-radius: 10px; min-width: 210px; overflow: hidden; transition: box-shadow .4s; }
+  .obj.glow { box-shadow: 0 0 0 3px rgba(16,185,129,.35), 0 0 24px rgba(16,185,129,.35); }
+  .objhead { background: rgba(16,185,129,.18); padding: 6px 12px; font-weight: 600; text-align: center; }
+  .frow { display: flex; gap: 8px; padding: 4px 12px; font-size: 15px; }
+  .frow .fn { color: var(--x); min-width: 72px; } .frow .eq { color: var(--muted); }
+  .fv { border-radius: 4px; padding: 0 4px; transition: background .3s; }
+  .fv.flash { animation: flash 1s ease; } @keyframes flash { 0% { background: rgba(245,158,11,.8); } 100% { background: transparent; } }
+  .fv.read { outline: 2px solid var(--accent); background: rgba(56,189,248,.25); }
+  .fv.bad { outline: 2px solid var(--bad); background: rgba(239,68,68,.25); }
+  .cls { background: var(--panel2); border: 2px solid var(--accent); border-radius: 10px; min-width: 280px; overflow: hidden; }
+  .clshead { background: rgba(56,189,248,.2); padding: 8px 12px; font-weight: 700; text-align: center; font-size: 17px; }
+  .clssec { border-top: 1px solid var(--line); padding: 6px 12px; font-size: 14px; line-height: 1.6; transition: background .4s; }
+  .clssec.on { background: rgba(245,158,11,.22); }
+  .var { display: flex; flex-direction: column; align-items: center; gap: 4px; background: var(--panel); border: 2px dashed var(--y); border-radius: 8px; padding: 8px 12px; }
+  .var .vn { color: var(--y); font-size: 14px; } .var .vref { font-size: 20px; color: var(--accent); }
+  .arrow { display: flex; flex-direction: column; align-items: center; color: var(--accent); font-size: 13px; transition: opacity .5s; }
+  .arrow b { font-weight: 400; letter-spacing: -2px; font-size: 16px; }
+  .arrow.hat { color: var(--x); }
+  .arrow.pulse b { animation: pulse .6s ease 3; } @keyframes pulse { 50% { color: #fff; text-shadow: 0 0 8px var(--x); } }
+  .bucket { border: 2px dashed; border-radius: 10px; min-width: 190px; min-height: 120px; padding: 8px; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  .bucket .bh { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .selfarrow { color: var(--x); font-size: 14px; }
+  .console { background: #000; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; min-height: 60px; min-width: 210px; font-size: 13px; color: #d1fae5; }
 
-  .console { background: #000; border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; font-family: 'Fira Code', monospace; font-size: 14px; color: #d1fae5; min-width: 420px; white-space: pre; }
-  .code { background: #0b1222; border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; font-family: 'Fira Code', monospace; font-size: 14px; white-space: pre; }
-  .code .k { color: #c084fc; } .code .t { color: var(--accent); } .code .c { color: #64748b; } .code .s { color: #fde68a; }
-  .badge { padding: 8px 14px; border-radius: 10px; font-weight: 700; border: 2px solid var(--ok); color: var(--ok); background: rgba(52,211,153,.1); }
-  .badge.x { border-color: var(--x); color: var(--x); background: rgba(245,158,11,.1); }
-  .col { display: flex; flex-direction: column; gap: 14px; align-items: center; }
+  /* ---- L04 v2 ---- */
+  .scene { position: relative; }
+  .ov { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 5; }
+  .obj.sm { min-width: 190px; } .obj.sm .frow { font-size: 13px; padding: 2px 10px; } .obj.sm .objhead { padding: 4px 10px; font-size: 14px; }
+  .msec { border-top: 1px solid var(--line); padding: 3px 0; }
+  .mrow { padding: 2px 10px; font-size: 13px; color: var(--ok); border-radius: 4px; }
+  .mrow.mblink { animation: mblink .9s ease; } @keyframes mblink { 0%, 60% { background: rgba(16,185,129,.55); color: #fff; } 100% { background: transparent; } }
+  .extra { border: 1px dashed var(--bad); color: #fca5a5; transition: opacity .7s, transform .7s; }
+  .extra.gone { opacity: 0; transform: translateX(30px); text-decoration: line-through; }
+  .hm { display: inline-block; transition: font-size .4s; }
+  .hm.big { font-size: 44px; } .hm.spin { animation: spin 1.2s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }
+  .cell { overflow: visible; }
+  .clshead.on { background: rgba(245,158,11,.35); }
+  .hlf { background: rgba(245,158,11,.25); color: var(--x); border-radius: 4px; }
+  .obj.seed { border-color: #a78bfa; } .obj.seed .objhead { background: rgba(167,139,250,.18); }
+  .hmw { position: relative; display: inline-block; }
+  .grid.gross .cell { width: 72px; height: 72px; font-size: 38px; }
+  .grid.gross .hmw .nm { font-size: 13px; }
+  .grid.gross .hmw .mood { font-size: 22px; right: -14px; top: -9px; }
+  .hmw .nm { position: absolute; bottom: 92%; left: 50%; transform: translateX(-50%); font-size: 9px; font-weight: 700; line-height: 1; padding: 1px 4px; border-radius: 4px; background: rgba(2,6,23,.85); color: #fff; white-space: nowrap; z-index: 3; pointer-events: none; }
+  .hmw .mood { position: absolute; right: -9px; top: -6px; font-size: 13px; }
+  .pill.konstr { border-color: var(--accent); color: var(--accent); text-align: center; }
+  .pill.hat { border-color: var(--x); color: var(--x); text-align: center; box-shadow: 0 0 12px rgba(245,158,11,.5); }
+  .pill small { color: var(--muted); font-size: 11px; }
+  .sticker { background: #fde68a; color: #1f2937; border-radius: 4px; padding: 12px 14px; max-width: 260px; font-size: 15px; line-height: 1.4; box-shadow: 4px 6px 14px rgba(0,0,0,.45); transform: rotate(-2deg); }
+  .sticker b { font-size: 17px; }
+  .split-v { flex: none; width: 8px; margin: 0 -6px; cursor: col-resize; border-radius: 4px; background: transparent; position: relative; z-index: 2; }
+  .split-h { flex: none; height: 8px; margin: -6px 0; cursor: row-resize; border-radius: 4px; background: transparent; position: relative; z-index: 2; }
+  .split-v:hover, .split-h:hover, .split-v.drag, .split-h.drag { background: var(--accent); }
+  body.dragging { user-select: none; }
+  nav button.on { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,.15); }
+  .ztab { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; }
+  .zcol { border: 2px dashed; border-radius: 10px; min-height: 190px; padding: 8px; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  .zh { font-weight: 700; font-size: 17px; text-align: center; } .zh small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; }
+  .story { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-size: 15px; line-height: 1.5; max-width: 900px; }
 </style>
 </head>
 <body>
 <header>
-  <h1>📐 Klassendiagramm und Objektdiagramm – die hat-Beziehung</h1>
-  <nav id="nav"></nav>
+  <div>
+    <h1>📐 Klassendiagramm und Objektdiagramm</h1>
+    <p>Weiter: Pfeiltasten ← → oder Leertaste · Klassendiagramm, Objektdiagramm, hat-Beziehung, Hash-ID</p>
+  </div>
+  <div id="tabs"></div>
 </header>
 <main>
-  <h2 id="title"></h2>
-  <div class="stage" id="stage"></div>
-  <div class="text" id="text"></div>
-  <div class="controls">
-    <button id="prev">◀ zurück</button>
-    <span class="counter" id="counter"></span>
-    <button id="next">weiter ▶</button>
+  <div id="titlebar"><h2 id="title"></h2><span id="counter"></span></div>
+  <div id="content">
+    <section id="left" class="pane"><div class="panehead file" id="headMain">📄 Program.cs</div><div id="codebox" class="mono"></div><div class="panehead file" id="headKl">📄 Hamster.cs</div><div id="codebox2" class="mono"></div></section>
+    <div class="split-v" id="sv" title="ziehen: Breite von Code / Animation"></div>
+    <div id="right">
+      <section class="pane" style="flex:1.9"><div class="panehead">🎬 Animation</div><div id="stage"></div></section>
+      <div class="split-h" id="sh" title="ziehen: Höhe von Animation / Erklärung"></div>
+      <section class="pane" style="flex:1"><div class="panehead">💡 Erklärung</div><div id="text"></div></section>
+    </div>
   </div>
+  <nav>
+    <button onclick="go(-1)">◀ zurück</button>
+    <button onclick="replay()">↻ nochmal</button>
+    <button onclick="go(1)">weiter ▶</button>
+    <button id="autoBtn" onclick="runAuto()" disabled>⏩ automatisch</button>
+    <button id="presBtn" onclick="togglePresenter()" title="Taste P">🎤 Presenter</button>
+    <button class="vbtn" id="vb0" onclick="setView(0)" title="Taste 1">📄🎬 Code + Animation</button>
+    <button class="vbtn" id="vb1" onclick="setView(1)" title="Taste 2">🎬 nur Animation</button>
+    <button class="vbtn" id="vb2" onclick="setView(2)" title="Taste 3">📄 nur Code</button>
+    <span>R = nochmal · P = Presenter · 1/2/3 = Ansicht</span>
+  </nav>
 </main>
 
 <script>
-// ===================== Bausteine =====================
-const uml = (name, felder, methoden, cls = '', id = '') =>
-  `<div class="uml ${cls}" ${id ? `id="${id}"` : ''}><div class="h">${name}</div>` +
-  `<div class="sec">${felder.join('<br>')}</div>` + (methoden ? `<div class="sec m">${methoden.join('<br>') || '&nbsp;'}</div>` : '') + `</div>`;
-const pfeil = (lbl, mult, cls = '', id = '') => `<div class="arrow ${cls}" ${id ? `id="${id}"` : ''}><span class="lbl">${lbl}</span><span class="line">──────────▶</span><span class="mult">${mult}</span></div>`;
-// Element, das mit "weiter" eingeblendet wird (step = ab welchem Klick sichtbar)
-const rev = (step, html, extra = '') => `<div class="rev" data-step="${step}" ${extra}>${html}</div>`;
+// ===================== kleine Helfer =====================
+const $ = (id) => document.getElementById(id);
+let timers = [];
+function later(ms, fn) { timers.push(setTimeout(fn, ms)); }
+function every(ms, fn) { timers.push(setInterval(fn, ms)); }
+function clearTimers() { timers.forEach(t => { clearTimeout(t); clearInterval(t); }); timers = []; }
+function el(tag, cls, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; }
+const hex = (n, w) => n.toString(16).toUpperCase().padStart(w || 4, '0');
 
-const HAMSTER = uml('Hamster',
-  ['+ _representation : string', '+ _position : (int x, int y)', '<span id="mouthKD">+ _mouth : Seedling</span>', '+ _planeSize : int = 10'],
-  ['+ Hamster(position, mouth)', '+ Move()']);
-const SEEDLING = uml('Seedling', ['+ _representation : string = "🌱"', '+ _position : (int x, int y)'], []);
-const hamObj = (id, pos, mund, hl = false) => uml(`#${id} : Hamster`,
-  ['_representation = "🐹"', `_position = ${pos}`, `<span class="${hl ? 'hl' : ''}">_mouth = ● ${mund}</span>`, '_planeSize = 10'], null, 'obj');
-const seedObj = (id, pos) => uml(`#${id} : Seedling`, ['_representation = "🌱"', `_position = ${pos}`], null, 'obj');
+function highlight(line) {
+  const re = /(\/\/.*$)|("(?:[^"\\]|\\.)*")|(\b(?:new|for|while|if|else|return|int|string|double|bool|void|char|class|public|private|this|null)\b)|(\b(?:File|Console|Random|Hamster)\b)|(\b\d+\b)/g;
+  let out = '', last = 0, m;
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  while ((m = re.exec(line)) !== null) {
+    out += esc(line.slice(last, m.index));
+    const cls = m[1] ? 'tk-com' : m[2] ? 'tk-str' : m[3] ? 'tk-kw' : m[4] ? 'tk-ty' : 'tk-num';
+    out += `<span class="${cls}">${esc(m[0])}</span>`;
+    last = re.lastIndex;
+  }
+  return out + esc(line.slice(last));
+}
+// Links stehen zwei Dateien untereinander: Program.cs (Hauptprogramm) und Hamster.cs (die Klasse).
+// Die Zeilennummern (id code-i) laufen durch, damit die Hervorhebungen (hl) gleich bleiben.
+function renderCode(lines, hl) {
+  const main = $('codebox'), kl = $('codebox2'); main.innerHTML = ''; kl.innerHTML = '';
+  let inKlasse = false;
+  (lines || []).forEach((l, i) => {
+    const d = el('div', 'cl' + ((hl || []).includes(i) ? ' hl' : ''), highlight(l) || ' ');
+    d.id = 'code-' + i;
+    if (l.includes('Hamster.cs (eigene Datei)')) { d.style.display = 'none'; main.appendChild(d); return; }
+    const kopf = l.startsWith('class ');
+    if (kopf) inKlasse = !l.includes('}');   // "class Hamster { ... }" ist einzeilig
+    const ziel = (inKlasse || kopf) ? kl : main;
+    if (!l.trim() && !ziel.textContent.trim()) d.style.display = 'none';   // keine Leerzeile am Anfang einer Datei
+    ziel.appendChild(d);
+    if (inKlasse && l === '}') inKlasse = false;
+  });
+  const leer = box => !box.textContent.trim();
+  const zeigeMain = !leer(main) || leer(kl);
+  $('headMain').style.display = main.style.display = zeigeMain ? '' : 'none';
+  $('headKl').style.display = kl.style.display = leer(kl) ? 'none' : '';
+}
+function setHl(hl) { document.querySelectorAll('.cl').forEach((d, i) => { d.classList.toggle('hl', hl.includes(i)); if (!hl.includes(i)) d.classList.remove('blink'); }); const f = document.getElementById('code-' + Math.min(...hl)); if (f && hl.length) f.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+// Schleifenkopf blinkt, wenn die Schleife (weiter)laeuft
+function blink(i) { const d = $('code-' + i); if (!d) return; d.classList.add('hl'); d.classList.remove('blink'); void d.offsetWidth; d.classList.add('blink'); }
 
-// ===================== Folien =====================
-const SLIDES = [
-  { title: 'Vom Code zum Klassendiagramm', steps: 3,
-    html: () => `<div class="row gap" style="align-items:flex-start">
-        ${rev(0, `<div class="col"><span class="tag">Hamster.cs</span><div class="code"><span class="k">class</span> <span class="t">Hamster</span>
-{
-    <span class="k">public string</span> _representation;
-    <span class="k">public</span> (<span class="k">int</span> x, <span class="k">int</span> y) _position;
-    <span class="k">public</span> <span class="t">Seedling</span> _mouth;
-    <span class="k">public int</span> _planeSize = 10;
+function arr1D(values, opts = {}) {
+  const wrap = el('div', 'col'); wrap.style.gap = '6px';
+  const a = el('div', 'arr'), idx = el('div', 'arr');
+  const w = opts.txt ? 92 : opts.small ? 44 : 54;
+  values.forEach((v, i) => {
+    const c = el('div', 'cell' + (opts.small ? ' small' : '') + (opts.txt ? ' txt' : '') + (v === null ? ' null' : ''), v === null ? 'null' : v);
+    if (opts.pop) { c.classList.add('pop'); c.style.animationDelay = (i * 0.12) + 's'; }
+    c.id = (opts.id || 'a') + '-' + i; a.appendChild(c);
+    const ix = el('div', 'idx ' + (opts.idxCls || 'x'), '[' + i + ']'); ix.style.width = w + 'px'; ix.style.minWidth = w + 'px'; idx.appendChild(ix);
+  });
+  wrap.appendChild(a); if (!opts.noIdx) wrap.appendChild(idx);
+  return wrap;
+}
+function grid2D(data, opts = {}) {
+  const rows = data.length, cols = data[0].length;
+  const g = el('div', 'grid');
+  g.style.gridTemplateColumns = `40px repeat(${cols}, auto)`;
+  g.appendChild(el('div'));
+  for (let x = 0; x < cols; x++) g.appendChild(el('div', 'idx x', String(x)));
+  for (let y = 0; y < rows; y++) {
+    const ri = el('div', 'idx y', String(y)); ri.style.alignSelf = 'center'; g.appendChild(ri);
+    for (let x = 0; x < cols; x++) {
+      const v = data[y][x];
+      const c = el('div', 'cell' + (opts.small ? ' small' : '') + (opts.txt ? ' txt' : '') + (v === null ? ' null' : ''), v === null ? 'null' : v);
+      c.id = (opts.id || 'g') + '-' + y + '-' + x;
+      if (opts.pop) { c.classList.add('pop'); c.style.animationDelay = ((y * cols + x) * 0.04) + 's'; }
+      g.appendChild(c);
+    }
+  }
+  return g;
+}
+function cell(id, y, x) { return $(id + '-' + y + '-' + x); }
+function setCell(c, v) { if (!c) return; c.classList.remove('null'); c.innerHTML = v; c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); }
+function clearHot() { document.querySelectorAll('#stage .cell.hot').forEach(e => e.classList.remove('hot')); }
 
-    <span class="k">public</span> Hamster((<span class="k">int</span> x, <span class="k">int</span> y) position, <span class="t">Seedling</span> mouth) { … }
-    <span class="k">public void</span> Move() { … }
-}</div></div>`)}
-        ${rev(1, `<div class="col"><span class="tag">Klassendiagramm</span>${HAMSTER}</div>`)}
-      </div>`,
-    text: ['Das ist unser Hamster aus Aufgabe v1. Weiter ▶ zeichnet ihn als <b>Klassendiagramm</b>.',
-           'Ein <b>Klassendiagramm</b> zeigt den <b>Bauplan</b> – ohne den Code in den Methoden.',
-           'Wir schreiben im Diagramm nur, <b>was</b> es gibt – nicht, <b>wie</b> es funktioniert.'] },
+// ===================== Daten =====================
+const DIRS = ['N', 'O', 'S', 'W'];
+const ARROW = { N: '⬆️', O: '➡️', S: '⬇️', W: '⬅️' };
+const DELTA = { N: [0, -1], O: [1, 0], S: [0, 1], W: [-1, 0] };
+const MUSTER = ['N', 'N', 'S', 'S', 'O', 'W'];          // rauf rauf runter runter rechts links
+const KREIS = ['O', 'O', 'S', 'S', 'W', 'W', 'N', 'N']; // im Kreis
+const SVGNS = 'http://www.w3.org/2000/svg';
 
-  { title: 'Ein Klassendiagramm lesen', steps: 4,
-    html: () => `<div class="row gap">
-        <div class="col">${HAMSTER}</div>
-        <div class="col" style="align-items:flex-start; max-width:430px">
-          ${rev(0, '<div><span class="badge">1 · oben: der Name der Klasse</span></div>')}
-          ${rev(1, '<div><span class="badge x">2 · Mitte: die Felder (Zustand) – Name : Typ</span></div>')}
-          ${rev(2, '<div><span class="badge" style="border-color:var(--ok)">3 · unten: Konstruktor und Methoden (Verhalten)</span></div>')}
-          ${rev(3, '<div><span class="badge" style="border-color:var(--muted);color:var(--muted);background:none">+ heißt public</span></div>')}
-        </div>
-      </div>`,
-    text: ['Drei Teile von oben nach unten …', '… zuerst der <b>Name</b> …', '… dann die <b>Felder</b>: zuerst der Name, nach dem Doppelpunkt der Typ …',
-           '… und unten das <b>Verhalten</b>. Das <b>+</b> vorne heißt <code>public</code>.'] },
+// ---------- Hamster auf der Wiese ----------
+function wiese(n, id) {
+  const g = el('div', 'grid'); g.id = id;
+  g.style.gridTemplateColumns = `repeat(${n}, auto)`;
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const c = el('div', 'cell small', '🟩'); c.id = id + '-' + y + '-' + x; g.appendChild(c); }
+  return g;
+}
+// Alle Hamster sehen gleich aus (🐹) – unterscheiden kann man sie nur am Namen darüber.
+const HNAMEN = { p: 'paul', w: 'willi' };
+// hs: [{ name, label, pos:[x,y], cls, mood }], seeds: ['x,y', ...]
+function drawAll(id, n, hs, seeds = []) {
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const c = $(id + '-' + y + '-' + x); if (c) c.innerHTML = seeds.includes(x + ',' + y) ? '🌱' : '🟩'; }
+  hs.forEach(h => {
+    const c = $(id + '-' + h.pos[1] + '-' + h.pos[0]); if (!c) return;
+    const mood = h.mood ? `<span class="mood">${h.mood}</span>` : '';
+    c.innerHTML = `<span class="hmw"><span class="nm">${h.label || HNAMEN[h.name] || h.name}</span><span class="hm ${h.cls || ''}" id="${id}-h-${h.name}">🐹</span>${mood}</span>`;
+  });
+}
+function move(pos, d, n) { const nx = pos[0] + DELTA[d][0], ny = pos[1] + DELTA[d][1]; return [Math.max(0, Math.min(n - 1, nx)), Math.max(0, Math.min(n - 1, ny))]; }
 
-  { title: 'Die hat-Beziehung im Klassendiagramm', steps: 3,
-    html: () => `<div class="row">
-        ${HAMSTER}
-        ${rev(1, pfeil('_mouth', '1'))}
-        ${rev(0, SEEDLING)}
-      </div>
-      ${rev(2, '<div class="badge x">Ein Feld, dessen Typ eine <b>andere Klasse</b> ist, zeichnen wir als <b>Pfeil</b>.</div>')}`,
-    text: ['Der Hamster hat ein Feld <code>_mouth</code> vom Typ <code>Seedling</code> – und <code>Seedling</code> ist <b>auch eine unserer Klassen</b>.',
-           'Statt es nur in die Box zu schreiben, zeichnen wir einen <b>Pfeil</b>: Der Hamster <b>hat</b> einen Seedling. Am Pfeil steht der Name des Feldes, am Ende die Anzahl: <b>1</b> Seedling.',
-           'Die Pfeilrichtung sagt, <b>wer wen kennt</b>: Der Hamster kennt seinen Seedling – der Seedling weiß nichts vom Hamster.'] },
+// ---------- Objekt-Karte (Felder + Methoden) ----------
+function objCard(id, name, fields, opts = {}) {
+  const c = el('div', 'obj' + (opts.pop ? ' pop' : '') + (opts.small ? ' sm' : '') + (opts.cls ? ' ' + opts.cls : ''));
+  c.id = id;
+  c.appendChild(el('div', 'objhead mono', name.includes(':') ? name : `<u>${name}</u> : Hamster`));
+  fields.forEach(([f, v]) => {
+    const r = el('div', 'frow mono');
+    r.innerHTML = `<span class="fn">${f}</span><span class="eq">=</span><span class="fv" id="${id}-${f}">${v}</span>`;
+    c.appendChild(r);
+  });
+  if (opts.methods) {
+    const sec = el('div', 'msec'); sec.id = id + '-ms';
+    opts.methods.forEach(m => { const r = el('div', 'mrow mono', '+ ' + m); r.id = id + '-m-' + m.split('(')[0]; sec.appendChild(r); });
+    c.appendChild(sec);
+  }
+  return c;
+}
+function setField(id, f, v) { const e = $(id + '-' + f); if (!e) return; e.innerHTML = v; e.classList.remove('flash'); void e.offsetWidth; e.classList.add('flash'); }
+function blinkM(id, m) { const e = $(id + '-m-' + m); if (!e) return; e.classList.remove('mblink'); void e.offsetWidth; e.classList.add('mblink'); }
+function addExtra(id, html, method) {
+  const c = $(id); if (!c) return;
+  const r = el('div', (method ? 'mrow' : 'frow') + ' mono extra pop', html);
+  if (method) { r.id = id + '-m-' + method; $(id + '-ms').appendChild(r); } else c.insertBefore(r, $(id + '-ms'));
+}
 
-  { title: 'Objekte haben keinen Namen', steps: 3,
-    html: () => `<div class="row gap">
-        ${rev(0, `<div class="code"><span class="t">Hamster</span> hans = <span class="k">new</span> <span class="t">Hamster</span>((1, 5), s1);</div>`)}
-      </div>
-      <div class="row gap">
-        ${rev(1, `<div class="col"><span class="tag">Variable</span><div class="badge" style="border-color:var(--accent);color:var(--accent);background:none">hans  ●──▶</div></div>`)}
-        ${rev(1, `<div class="col"><span class="tag">Objekt im Arbeitsspeicher</span>${hamObj('?', '(1, 5)', 's1')}</div>`)}
-      </div>
-      ${rev(2, '<div class="badge x">hans ist der Name der <b>Variable</b> – nicht des Objekts!</div>')}`,
-    text: ['Wie heißt dieser Hamster?',
-           '<code>hans</code> ist nur eine <b>Variable</b>, die auf das Objekt <b>zeigt</b>. Das Objekt selbst hat keinen Namen.',
-           'Steckt das Objekt in einem Array, gibt es nicht einmal eine Variable dafür. Woran erkennen wir es dann?'] },
+// ---------- Klassen-Box ----------
+const FELDER = ['position : (int x, int y)', 'darstellung : string', 'richtung : string', 'anzahlSchritte : int', 'freund : Hamster'];
+const METHODEN = ['Bewegen(richtung : string)', 'Nachmachen()'];
+function classBox(opts = {}) {
+  const b = el('div', 'cls' + (opts.pop ? ' pop' : '')); b.id = opts.id || 'cls';
+  b.appendChild(el('div', 'clshead mono', 'Hamster'));
+  const f = el('div', 'clssec mono'); f.id = b.id + '-f'; f.innerHTML = FELDER.map(x => '+ ' + x).join('<br>');
+  const k = el('div', 'clssec mono'); k.id = b.id + '-k'; k.innerHTML = '+ Hamster(start, darstellung, freund)';
+  const m = el('div', 'clssec mono'); m.id = b.id + '-m'; m.innerHTML = METHODEN.map(x => '+ ' + x).join('<br>');
+  b.appendChild(f); b.appendChild(k); b.appendChild(m);
+  return b;
+}
+function varBox(name, id) {
+  const v = el('div', 'var mono'); v.id = id;
+  v.innerHTML = `<span class="vn">Hamster ${name}</span><span class="vref" id="${id}-ref">?</span>`;
+  return v;
+}
+function arrowEl(label, id, cls) { const a = el('div', 'arrow mono ' + (cls || ''), `<span>${label}</span><b>──────▶</b>`); if (id) a.id = id; return a; }
+function konsole(id) { const k = el('div', 'console mono'); k.id = id; return k; }
+function print(id, txt) { const k = $(id); if (!k) return; k.innerHTML += txt + '<br>'; const lines = k.innerHTML.split('<br>'); if (lines.length > 9) k.innerHTML = lines.slice(-9).join('<br>'); }
 
-  { title: 'Die Hash-ID: eine Nummer für jedes Objekt', steps: 3,
-    html: () => `<div class="row gap" style="align-items:flex-start">
-        ${rev(0, `<div class="col"><span class="tag">Program.cs</span><div class="code"><span class="t">Seedling</span> s2 = <span class="k">new</span> <span class="t">Seedling</span>();
-<span class="t">Console</span>.WriteLine(s2.GetHashCode());</div></div>`)}
-        ${rev(1, `<div class="col"><span class="tag">Konsole</span><div class="console">33826822</div></div>`)}
-      </div>
-      ${rev(2, `<div class="row gap">${seedObj('33826822', '(1, 2)')}<div class="badge">gleiche Zahl = dasselbe Objekt</div></div>`)}`,
-    text: ['<code>GetHashCode()</code> ist eine Methode, die <b>jedes</b> Objekt automatisch hat – wir müssen sie nicht selbst schreiben. Mit dem Punkt rufen wir sie beim Objekt auf, auf das <code>s2</code> zeigt.',
-           'Zurück kommt eine <b>Zahl</b>. Sie ist bei jedem Programmstart anders – aber während das Programm läuft, gehört sie fest zu <b>diesem einen</b> Objekt.',
-           'Die Hash-ID verwenden wir als <b>Namen für Objekte</b>: im Objektdiagramm und in unseren Ausgaben.'] },
+// Schritte innerhalb einer Folie, OHNE laufende Animationen zu stoppen
+function seq(acts, delay) {
+  let i = 0;
+  return {
+    next() { if (i >= acts.length) return false; acts[i++](); return true; },
+    auto() { const t = () => { if (this.next()) timers.push(setTimeout(t, delay)); }; t(); }
+  };
+}
 
-  { title: 'Die hat-Beziehung im Objektdiagramm', steps: 3,
-    html: () => `<div class="row">
-        ${rev(0, hamObj('12479570', '(1, 5)', '#37200188'))}
-        ${rev(1, pfeil('_mouth', '', 'obj'))}
-        ${rev(1, seedObj('37200188', '(1, 5)'))}
-      </div>
-      ${rev(2, '<div class="badge x">Klassendiagramm: der Bauplan · Objektdiagramm: konkrete Objekte mit konkreten Werten</div>')}`,
-    text: ['Ein <b>Objektdiagramm</b> zeigt <b>konkrete Objekte</b>: oben die Hash-ID und die Klasse (unterstrichen), darunter die <b>Werte</b> der Felder. Methoden stehen nicht drin – die sind im Bauplan.',
-           'Das Feld <code>_mouth</code> zeigt auf <b>ein bestimmtes</b> Seedling-Objekt: das mit der Hash-ID <b>#37200188</b>. Auch hier zeichnen wir einen Pfeil.',
-           'Ein Klassendiagramm gibt es <b>einmal</b> pro Programm. Objektdiagramme kann man zu <b>jedem Zeitpunkt</b> zeichnen.'] },
+// ---------- Szene mit SVG-Pfeilen ----------
+function scene() {
+  const s = el('div', 'scene');
+  const svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('class', 'ov');
+  svg.innerHTML = '<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>';
+  s.appendChild(svg); s._svg = svg; s._links = [];
+  return s;
+}
+// verbindet zwei Elemente (ids) mit einem Pfeil; wird bei redraw() neu berechnet
+function link(sc, fromId, toId, opts = {}) { sc._links.push({ fromId, toId, opts }); redraw(sc); }
+function anchor(r, side, base) {
+  const cx = r.left - base.left + r.width / 2, cy = r.top - base.top + r.height / 2;
+  if (side === 'bottom') return [cx, r.bottom - base.top];
+  if (side === 'top') return [cx, r.top - base.top];
+  if (side === 'left') return [r.left - base.left, cy];
+  if (side === 'right') return [r.right - base.left, cy];
+  return [cx, cy];
+}
+function redraw(sc) {
+  if (!sc || !sc._svg) return;
+  const base = sc.getBoundingClientRect();
+  sc._svg.querySelectorAll('.ln').forEach(e => e.remove());
+  sc._links.forEach(({ fromId, toId, opts }) => {
+    const a = $(fromId), b = $(toId); if (!a || !b) return;
+    const [x1, y1] = anchor(a.getBoundingClientRect(), opts.from || 'bottom', base);
+    const [x2, y2] = anchor(b.getBoundingClientRect(), opts.to || 'center', base);
+    const g = document.createElementNS(SVGNS, 'g'); g.setAttribute('class', 'ln'); g.style.color = opts.color || 'var(--accent)';
+    let l, lx = (x1 + x2) / 2 + 6, ly = (y1 + y2) / 2 - 6;
+    if (opts.curve) {   // Bogen nach unten, damit keine Schrift überdeckt wird
+      const cy = Math.max(y1, y2) + opts.curve;
+      l = document.createElementNS(SVGNS, 'path');
+      l.setAttribute('d', `M ${x1} ${y1} Q ${(x1 + x2) / 2} ${cy} ${x2} ${y2}`); l.setAttribute('fill', 'none');
+      lx = (x1 + x2) / 2; ly = Math.max(y1, y2) + opts.curve / 2 + 16;
+    } else {
+      l = document.createElementNS(SVGNS, 'line');
+      l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+    }
+    l.setAttribute('stroke', 'currentColor'); l.setAttribute('stroke-width', '2.5'); l.setAttribute('marker-end', 'url(#ah)');
+    if (opts.dash) l.setAttribute('stroke-dasharray', '6 5');
+    g.appendChild(l);
+    if (opts.label) { const t = document.createElementNS(SVGNS, 'text'); t.setAttribute('x', lx); t.setAttribute('y', ly); if (opts.curve) t.setAttribute('text-anchor', 'middle'); t.setAttribute('stroke', '#020617'); t.setAttribute('stroke-width', '4'); t.setAttribute('paint-order', 'stroke'); t.setAttribute('font-weight', '700'); t.setAttribute('fill', 'currentColor'); t.setAttribute('font-size', '13'); t.setAttribute('font-family', 'Fira Code, monospace'); t.textContent = opts.label; g.appendChild(t); }
+    sc._svg.appendChild(g);
+  });
+}
+function unlink(sc, fromId) { sc._links = sc._links.filter(l => l.fromId !== fromId); redraw(sc); }
 
-  { title: 'Das Objektdiagramm ändert sich – das Klassendiagramm nicht', steps: 3,
-    html: (k) => `<div class="col">
-        <span class="tag">Klassendiagramm (bleibt gleich)</span>
-        <div class="row">${HAMSTER}${pfeil('_mouth', '1')}${SEEDLING}</div>
-        <span class="tag" style="margin-top:10px">Objektdiagramm ${k >= 1 ? 'nach 3 × Simulate()' : 'am Anfang'}</span>
-        <div class="row">
-          ${hamObj('12479570', k >= 1 ? '(1, 2)' : '(1, 5)', k >= 1 ? '#33826822' : '#37200188', k >= 1)}
-          ${pfeil('_mouth', '', 'obj')}
-          <div class="col">
-            <div style="opacity:${k >= 1 ? .35 : 1}">${seedObj('37200188', '(1, 5)')}</div>
-            <div style="opacity:${k >= 1 ? 1 : .35}">${seedObj('33826822', '(1, 2)')}</div>
-          </div>
-        </div>
-      </div>
-      ${rev(2, '<div class="badge">#33826822 – das ist die Hash-ID von s2 aus dem Hauptprogramm. Der Hamster hat <b>dasselbe</b> Objekt im Mund, keine Kopie.</div>')}`,
-    text: ['Am Anfang zeigt <code>_mouth</code> auf den Seedling, auf dem der Hamster startet.',
-           'Der Hamster geht dreimal nach Norden und steht auf (1, 2). Dort liegt ein Seedling → <code>_mouth</code> zeigt jetzt auf <b>ein anderes Objekt</b>. Im Klassendiagramm ändert sich <b>nichts</b>.',
-           'An der Hash-ID erkennen wir, <b>welches</b> Objekt gemeint ist.'] }
+// ---------- UML-Klassenbox (allgemein) ----------
+function umlBox(id, name, felder, konstr, methoden, opts = {}) {
+  const b = el('div', 'cls' + (opts.pop ? ' pop' : '')); b.id = id;
+  b.appendChild(el('div', 'clshead mono', name)); $$id(b, 'h');
+  const f = el('div', 'clssec mono'); f.id = id + '-f'; f.innerHTML = felder.map(x => `<span id="${id}-f-${x.split(' ')[0]}">+ ${x}</span>`).join('<br>');
+  b.appendChild(f);
+  if (konstr !== null) { const k = el('div', 'clssec mono'); k.id = id + '-k'; k.innerHTML = konstr.length ? konstr.map(x => '+ ' + x).join('<br>') : '&nbsp;'; b.appendChild(k); }
+  if (methoden !== null) { const m = el('div', 'clssec mono'); m.id = id + '-m'; m.innerHTML = methoden.length ? methoden.map(x => '+ ' + x).join('<br>') : '&nbsp;'; b.appendChild(m); }
+  return b;
+}
+function $$id(b, s) { b.firstChild.id = b.id + '-' + s; }
+function on(id, an = true) { const e = $(id); if (e) e.classList.toggle('on', an); }
+const hamsterBox = (id = 'kH', pop = false) => umlBox(id, 'Hamster', ['_representation : string', '_position : (int x, int y)', '_mouth : Seedling', '_planeSize : int = 10'], ['Hamster(position, mouth)'], ['Move()'], { pop });
+const seedlingBox = (id = 'kS', pop = false) => umlBox(id, 'Seedling', ['_representation : string = "🌱"', '_position : (int x, int y)'], null, null, { pop });
+// Objekt-Karten: oben Hash-ID und Klasse (unterstrichen), darunter die Werte
+const hamObj = (id, hash, pos, mund, opts = {}) => objCard(id, `<u>#${hash}</u> : Hamster`, [['_representation', '"🐹"'], ['_position', pos], ['_mouth', `● #${mund}`], ['_planeSize', '10']], opts);
+const seedObj = (id, hash, pos, opts = {}) => objCard(id, `<u>#${hash}</u> : Seedling`, [['_representation', '"🌱"'], ['_position', pos]], Object.assign({ cls: 'seed' }, opts));
+
+// ===================== Code =====================
+const codeHamster = [
+  'class Hamster',
+  '{',
+  '    // Felder: der Zustand',
+  '    public string _representation;',
+  '    public (int x, int y) _position;',
+  '    public Seedling _mouth;           // hat-Beziehung',
+  '    public int _planeSize = 10;',
+  '',
+  '    // Konstruktor: der Startzustand',
+  '    public Hamster((int x, int y) position, Seedling mouth)',
+  '    {',
+  '        ...',
+  '    }',
+  '',
+  '    // Methoden: das Verhalten',
+  '    public void Move()',
+  '    {',
+  '        ...',
+  '    }',
+  '}'
+];
+const codeSeedling = [
+  '',
+  'class Seedling',
+  '{',
+  '    // Felder: der Zustand',
+  '    public string _representation = "🌱";',
+  '    public (int x, int y) _position;',
+  '}'
+];
+const codeBeide = codeHamster.concat(codeSeedling);
+const codeBidi = codeHamster.concat([
+  '',
+  'class Seedling',
+  '{',
+  '    // Felder: der Zustand',
+  '    public string _representation = "🌱";',
+  '    public (int x, int y) _position;',
+  '    public Hamster _carrier;          // hat-Beziehung zurück (nur ein Beispiel!)',
+  '}'
+]);
+const HL_CARRIER = [26];
+const codePlane = [
+  'class Plane',
+  '{',
+  '    // Felder: der Zustand',
+  '    public Hamster[] _hamsters;       // hat-Beziehung 0:n',
+  '    public Seedling[] _seedlings;     // hat-Beziehung 0:n',
+  '',
+  '    // Konstruktor: der Startzustand',
+  '    public Plane(Hamster[] hamsters, Seedling[] seedlings)',
+  '    {',
+  '        ...',
+  '    }',
+  '',
+  '    // Methoden: das Verhalten',
+  '    public void Simulate() { ... }',
+  '    public void Print() { ... }',
+  '}'
+];
+const codeRek = [
+  'class Hamster',
+  '{',
+  '    // Felder: der Zustand',
+  '    public (int x, int y) _position;',
+  '    public string _richtung;',
+  '    public Hamster _freund;           // hat-Beziehung zu sich selbst',
+  '',
+  '    // Konstruktor: der Startzustand',
+  '    public Hamster((int x, int y) position, Hamster freund) { ... }',
+  '',
+  '    // Methoden: das Verhalten',
+  '    public void Bewegen(string richtung) { ... }',
+  '    public void Nachmachen() { ... }',
+  '}'
+];
+function zweiBoxen(st) {
+  const sc = scene(); const r = el('div', 'row'); r.style.gap = '170px'; r.style.alignItems = 'flex-start'; r.style.paddingBottom = '60px';
+  r.appendChild(hamsterBox('kH', true)); r.appendChild(seedlingBox('kS', true)); sc.appendChild(r); st.appendChild(sc);
+  return sc;
+}
+function unterschrift(st, html, farbe) { st.style.flexDirection = 'column'; const l = el('div', 'label fade', html); l.style.marginTop = '24px'; l.style.color = farbe; l.style.fontSize = '17px'; l.style.animationDelay = '.6s'; st.appendChild(l); }
+// Pfeil, der rechts aus der Box hinaus und wieder in sie hinein zeigt
+function selbstPfeil(sc, id) {
+  const base = sc.getBoundingClientRect(), r = $(id).getBoundingClientRect();
+  const x = r.right - base.left, y1 = r.top - base.top + 30, y2 = r.bottom - base.top - 30;
+  const g = document.createElementNS(SVGNS, 'g'); g.setAttribute('class', 'ln'); g.style.color = 'var(--x)';
+  const pth = document.createElementNS(SVGNS, 'path');
+  pth.setAttribute('d', `M ${x} ${y1} C ${x + 120} ${y1}, ${x + 120} ${y2}, ${x} ${y2}`); pth.setAttribute('fill', 'none');
+  pth.setAttribute('stroke', 'currentColor'); pth.setAttribute('stroke-width', '2.5'); pth.setAttribute('marker-end', 'url(#ah)');
+  const t = document.createElementNS(SVGNS, 'text'); t.setAttribute('x', x + 95); t.setAttribute('y', (y1 + y2) / 2 + 5); t.setAttribute('fill', 'currentColor'); t.setAttribute('font-size', '13'); t.setAttribute('font-weight', '700'); t.setAttribute('font-family', 'Fira Code, monospace'); t.textContent = '_freund   0:1';
+  t.setAttribute('stroke', '#020617'); t.setAttribute('stroke-width', '4'); t.setAttribute('paint-order', 'stroke');
+  g.appendChild(pth); g.appendChild(t); sc._svg.appendChild(g);
+}
+const planeBox = (id = 'kP', pop = false) => umlBox(id, 'Plane', ['_hamsters : Hamster[]', '_seedlings : Seedling[]'], ['Plane(hamsters, seedlings)'], ['Simulate()', 'Print()'], { pop });
+const HL_NAME = [0], HL_F = [2, 3, 4, 5, 6], HL_K = [8, 9], HL_M = [14, 15], HL_MOUTH = [5];
+const codeHans = [
+  'Seedling s1 = new Seedling();',
+  's1._position = (1, 5);',
+  '',
+  'Hamster hans = new Hamster((1, 5), s1);'
+];
+const codeHash = [
+  'Seedling s2 = new Seedling();',
+  's2._position = (1, 2);',
+  '',
+  'Console.WriteLine(s2.GetHashCode());'
+];
+const codeSim = [
+  'Hamster[] hamsters = { new Hamster((1, 5), s1), ... };',
+  'Plane plane = new Plane(hamsters, seedlings);',
+  '',
+  'plane.Simulate();   // Runde 1',
+  'plane.Simulate();   // Runde 2',
+  'plane.Simulate();   // Runde 3'
 ];
 
-// ===================== Steuerung =====================
-let s = 0, k = 0;
-const $ = id => document.getElementById(id);
-$('nav').innerHTML = SLIDES.map((sl, i) => `<button data-i="${i}">${i + 1}</button>`).join('');
-$('nav').onclick = e => { if (e.target.dataset.i) { s = +e.target.dataset.i; k = 0; render(); } };
-function render() {
-  const sl = SLIDES[s];
-  $('title').textContent = sl.title;
-  $('stage').innerHTML = sl.html(k);
-  document.querySelectorAll('#stage [data-step]').forEach(e => e.classList.add('hide'));
-  void $('stage').offsetWidth;
-  document.querySelectorAll('#stage [data-step]').forEach(e => e.classList.toggle('hide', +e.dataset.step > k));
-  $('text').innerHTML = sl.text[Math.min(k, sl.text.length - 1)];
-  $('counter').textContent = `${s + 1} / ${SLIDES.length} · ${k + 1}/${sl.steps}`;
-  [...$('nav').children].forEach((b, i) => b.classList.toggle('active', i === s));
+// ===================== Folien =====================
+const NEU = {
+  ziele: { title: 'Heute lernst du …', code: [], hl: [],
+    text: '<p>Bis jetzt haben wir Code geschrieben. Jetzt <b>zeichnen</b> wir ihn – damit man schnell sieht, <b>welche</b> Klassen es gibt und <b>wer wen kennt</b>.</p><p>Heute geht es nur um <b>eine</b> Beziehung: die <b>hat-Beziehung</b>.</p>',
+    render(st) {
+      const c = el('div', 'col');
+      ['📐 Ein <b>Klassendiagramm</b> lesen und zeichnen', '🔗 Die <b>hat-Beziehung</b> als Pfeil', '🧩 Ein <b>Objektdiagramm</b>: konkrete Objekte mit konkreten Werten', '#️⃣ Die <b>Hash-ID</b>: woran wir ein Objekt erkennen']
+        .forEach((t, i) => { const p = el('div', 'pill pop', t); p.style.animationDelay = (i * .25) + 's'; p.style.fontSize = '18px'; c.appendChild(p); });
+      st.appendChild(c);
+    } },
+
+  vomCode: { title: 'Vom Code zum Klassendiagramm', code: codeHamster, hl: HL_NAME, datei: 'Hamster.cs',
+    text: '<p>Ein <b>Klassendiagramm</b> zeigt den <b>Bauplan</b> – ohne den Code in den Methoden. Weiter ▶ baut die Box Teil für Teil:</p><ol><li>oben der <b>Name</b> der Klasse</li><li>die <b>Felder</b> (Zustand): <code>Name : Typ</code></li><li>der <b>Konstruktor</b></li><li>die <b>Methoden</b> (Verhalten)</li></ol><p>Das <b>+</b> vorne heißt <code>public</code>.</p>',
+    render(st) {
+      const b = hamsterBox('kH', true); st.appendChild(b);
+      ['kH-f', 'kH-k', 'kH-m'].forEach(i => $(i).style.opacity = '.15');
+      on('kH-h');
+      return seq([
+        () => { on('kH-h', false); $('kH-f').style.opacity = 1; on('kH-f'); setHl(HL_F); },
+        () => { on('kH-f', false); $('kH-k').style.opacity = 1; on('kH-k'); setHl(HL_K); },
+        () => { on('kH-k', false); $('kH-m').style.opacity = 1; on('kH-m'); setHl(HL_M); },
+        () => { on('kH-m', false); setHl([]); }
+      ], 1400);
+    } },
+
+  hatKD: { title: 'Die hat-Beziehung im Klassendiagramm', code: codeBeide, hl: HL_MOUTH, datei: 'Hamster.cs · Seedling.cs',
+    text: '<p>Der Hamster hat ein Feld <code>_mouth</code> vom Typ <code>Seedling</code> – und <code>Seedling</code> ist <b>auch eine unserer Klassen</b>.</p><p>Weiter ▶: Wir zeichnen dafür einen <b>Pfeil</b>. Am Pfeil steht der Name des Feldes, am Ende die Anzahl: <b>1:1</b> – genau ein Seedling.</p><p>Die Pfeilrichtung sagt, <b>wer wen kennt</b>: Der Hamster kennt seinen Seedling – der Seedling weiß nichts vom Hamster.</p>',
+    render(st) {
+      const sc = scene(); const r = el('div', 'row'); r.style.gap = '170px'; r.style.alignItems = 'flex-start';
+      r.appendChild(hamsterBox('kH', true)); r.appendChild(seedlingBox('kS', true)); sc.appendChild(r); st.appendChild(sc);
+      const mouth = $('kH-f-_mouth'); mouth.classList.add('hlf');
+      return seq([
+        () => link(sc, 'kH', 'kS', { from: 'right', to: 'left', color: 'var(--x)', label: '_mouth   1:1' }),
+        () => { const l = el('div', 'label fade', 'Ein Feld, dessen Typ eine <b>andere Klasse</b> ist → <b>Pfeil</b> = hat-Beziehung'); l.style.marginTop = '22px'; l.style.color = 'var(--x)'; st.appendChild(l); }
+      ], 1400);
+    } },
+
+  // ---------- Arten der hat-Beziehung: je eine Folie ----------
+  uni: { title: 'hat-Beziehung: unidirektional', code: codeBeide, hl: HL_MOUTH, datei: 'Hamster.cs · Seedling.cs',
+    text: '<p><b>unidirektional</b> heißt: in <b>eine</b> Richtung.</p><p>Nur der Hamster hat ein Feld vom Typ <code>Seedling</code>. Der Hamster kennt den Seedling – der Seedling kennt den Hamster <b>nicht</b>.</p><p>Im Diagramm: <b>ein</b> Pfeil mit <b>einer</b> Spitze, vom Kennenden zum Gekannten.</p>',
+    render(st) {
+      const sc = zweiBoxen(st);
+      later(300, () => link(sc, 'kH-f', 'kS-f', { from: 'right', to: 'left', color: 'var(--x)', label: '_mouth' }));
+      unterschrift(st, '<b>unidirektional</b>: Hamster → Seedling', 'var(--x)');
+    } },
+
+  bidi: { title: 'hat-Beziehung: bidirektional', code: codeBidi, hl: HL_MOUTH.concat(HL_CARRIER), datei: 'Hamster.cs · Seedling.cs',
+    text: '<p><b>bidirektional</b> heißt: in <b>beide</b> Richtungen.</p><p>Bekäme der Seedling zusätzlich ein Feld <code>_carrier : Hamster</code> (wer trägt mich gerade?), würden sich beide <b>gegenseitig</b> kennen.</p><p>Im Diagramm: Pfeile in <b>beide</b> Richtungen.</p><p>In unserer Aufgabe brauchen wir das <b>nicht</b> – <code>_carrier</code> ist nur ein Beispiel.</p>',
+    render(st) {
+      const sc = zweiBoxen(st);
+      $('kS-f').innerHTML += '<br><span class="extra pop" id="kS-f-_carrier">+ _carrier : Hamster</span>';
+      later(300, () => {
+        link(sc, 'kH-f', 'kS-f', { from: 'right', to: 'left', color: 'var(--x)', label: '_mouth' });
+        link(sc, 'kS', 'kH', { from: 'bottom', to: 'bottom', color: 'var(--ok)', curve: 60, label: '_carrier' });
+      });
+      unterschrift(st, '<b>bidirektional</b>: Hamster → Seedling <b>und</b> Seedling → Hamster', 'var(--ok)');
+    } },
+
+  eins: { title: 'Anzahl: 1:1', code: codeBeide, hl: HL_MOUTH, datei: 'Hamster.cs · Seedling.cs',
+    text: '<p>Am Ende des Pfeils steht, <b>wie viele</b> Objekte gemeint sind.</p><p>Wir schreiben die Anzahl als <b>Minimum:Maximum</b>.</p><p><b>1:1</b> heißt: mindestens eines und höchstens eines – also genau <b>ein</b> Objekt. Im Code ist das ein <b>einzelnes Feld</b>: <code>Seedling _mouth</code>.</p><p>Ein Hamster trägt immer <b>genau einen</b> Seedling herum.</p>',
+    render(st) {
+      const sc = zweiBoxen(st);
+      later(300, () => link(sc, 'kH-f', 'kS-f', { from: 'right', to: 'left', color: 'var(--x)', label: '_mouth   1:1' }));
+      unterschrift(st, '<b>1:1</b> = genau ein Objekt → ein Feld <code>Seedling _mouth</code>', 'var(--x)');
+    } },
+
+  einsN: { title: 'Anzahl: 0:n (viele)', code: codePlane, hl: [3, 4], datei: 'Plane.cs',
+    text: '<p><b>0:n</b> heißt: mindestens <b>0</b>, höchstens <b>n</b> – also <b>beliebig viele</b> Objekte. Eine Plane hat <b>n</b> Hamster.</p><p>Im Code ist das ein <b>Array</b>: <code>Hamster[] _hamsters</code>.</p><p>Die Plane hat zwei solche Beziehungen: zu vielen Hamstern und zu vielen Seedlings.</p>',
+    render(st) {
+      const sc = scene(); const c = el('div', 'col'); c.style.gap = '70px';
+      const top = el('div', 'row'); top.appendChild(planeBox('kP', true)); c.appendChild(top);
+      const r = el('div', 'row'); r.style.gap = '170px'; r.style.alignItems = 'flex-start';
+      r.appendChild(hamsterBox('kH', true)); r.appendChild(seedlingBox('kS', true)); c.appendChild(r);
+      sc.appendChild(c); st.appendChild(sc);
+      later(400, () => { link(sc, 'kP', 'kH', { from: 'bottom', to: 'top', color: 'var(--accent)', label: '_hamsters   0:n' }); link(sc, 'kP', 'kS', { from: 'bottom', to: 'top', color: 'var(--accent)', label: '_seedlings   0:n' }); });
+      unterschrift(st, '<b>0:n</b> = beliebig viele Objekte → ein Array <code>Hamster[] _hamsters</code>', 'var(--accent)');
+    } },
+
+  multi: { title: 'Multiplizitäten: alle Schreibweisen', code: [], hl: [],
+    text: '<p>Die Zahl am Pfeilende heißt <b>Multiplizität</b>. Sie sagt, <b>wie viele</b> Objekte am anderen Ende gemeint sind.</p><p>Wir schreiben sie als <b>Minimum:Maximum</b>. Links vom <code>:</code> steht das <b>Minimum</b>, rechts das <b>Maximum</b>. <code>n</code> heißt „beliebig viele“.</p><p>Weiter ▶ zeigt die Schreibweisen nacheinander.</p>',
+    render(st) {
+      const zeilen = [
+        ['1:1', 'genau ein Objekt', 'Seedling _mouth'],
+        ['0:1', 'keines oder eines (höchstens eines)', 'Kunde _ausgeliehenVon'],
+        ['0:n', 'beliebig viele, auch keines', 'Hamster[] _hamsters'],
+        ['1:n', 'mindestens eines, nach oben offen', 'Fahrrad[] _fahrraeder'],
+        ['2:2', 'genau zwei Objekte', 'Kunde[] _notfall  (Länge 2)']
+      ];
+      const t = el('table', 'tbl'); t.style.fontSize = '17px'; t.style.borderCollapse = 'collapse';
+      t.innerHTML = '<tr><th>am Pfeilende</th><th>bedeutet</th><th>im Code z. B.</th></tr>' +
+        zeilen.map(([m, b, c], i) => `<tr id="mz-${i}" style="opacity:.12; transition:opacity .5s"><td class="mono" style="color:var(--x); font-size:22px; text-align:center">───▶ ${m}</td><td>${b}</td><td class="mono">${c}</td></tr>`).join('');
+      t.querySelectorAll('th, td').forEach(c => { c.style.border = '1px solid var(--line)'; c.style.padding = '8px 14px'; });
+      st.appendChild(t);
+      return seq(zeilen.map((_, i) => () => { $('mz-' + i).style.opacity = '1'; }), 1200);
+    } },
+
+  rekursiv: { title: 'hat-Beziehung: rekursiv', code: codeRek, hl: [5], datei: 'Hamster.cs',
+    text: '<p><b>rekursiv</b> heißt: Eine Klasse hat eine Beziehung zu <b>sich selbst</b>.</p><p>Kennst du schon aus dem LiveCoding: <code>Hamster freund</code> – ein Hamster kennt einen <b>anderen</b> Hamster.</p><p>Im Diagramm: ein Pfeil, der von der Klasse <b>zurück zu ihr selbst</b> zeigt. Gemeint sind trotzdem zwei <b>verschiedene</b> Objekte derselben Klasse.</p>',
+    render(st) {
+      const sc = scene(); const r = el('div', 'row'); r.style.padding = '0 140px 0 0';
+      r.appendChild(umlBox('kR', 'Hamster', ['_position : (int x, int y)', '_richtung : string', '_freund : Hamster'], ['Hamster(position, freund)'], ['Bewegen(richtung)', 'Nachmachen()'], { pop: true }));
+      sc.appendChild(r); st.appendChild(sc);
+      later(400, () => selbstPfeil(sc, 'kR'));
+      unterschrift(st, '<b>rekursiv</b>: Hamster → Hamster (ein Hamster kennt einen anderen Hamster)', 'var(--x)');
+    } },
+
+  keinName: { title: 'Objekte haben keinen Namen', code: codeHans, hl: [3], datei: 'Program.cs',
+    text: '<p>Wie heißt dieser Hamster?</p><p>Weiter ▶: <code>hans</code> ist nur eine <b>Variable</b>, die auf das Objekt <b>zeigt</b>. Das Objekt selbst hat <b>keinen</b> Namen.</p><p>Steckt ein Objekt in einem Array, gibt es nicht einmal eine Variable dafür. Woran erkennen wir es dann?</p>',
+    render(st) {
+      const sc = scene(); const r = el('div', 'row'); r.style.gap = '120px';
+      const v = varBox('hans', 'vh'); v.querySelector('.vn').textContent = 'Hamster hans';
+      r.appendChild(v);
+      r.appendChild(objCard('oh', '<u>???</u> : Hamster', [['_representation', '"🐹"'], ['_position', '(1, 5)'], ['_mouth', '● s1'], ['_planeSize', '10']], { pop: true }));
+      sc.appendChild(r); st.appendChild(sc);
+      return seq([
+        () => { $('vh-ref').textContent = '●'; link(sc, 'vh', 'oh', { from: 'right', to: 'left', label: 'zeigt auf' }); },
+        () => { const l = el('div', 'label fade', '<b>hans</b> ist der Name der <b>Variable</b> – nicht des Objekts!'); l.style.marginTop = '20px'; l.style.color = 'var(--x)'; l.style.fontSize = '17px'; st.appendChild(l); }
+      ], 1400);
+    } },
+
+  hash: { title: 'Die Hash-ID: eine Nummer für jedes Objekt', code: codeHash, hl: [3], datei: 'Program.cs',
+    text: '<p><code>GetHashCode()</code> ist eine Methode, die <b>jedes</b> Objekt automatisch hat – wir müssen sie nicht selbst schreiben. Mit dem Punkt rufen wir sie bei dem Objekt auf, auf das <code>s2</code> zeigt.</p><p>Zurück kommt eine <b>Zahl</b>. Sie ist bei jedem Programmstart anders – aber solange das Programm läuft, gehört sie fest zu <b>diesem einen</b> Objekt.</p><p><b>Gleiche Zahl = dasselbe Objekt.</b> Wir verwenden sie als <b>Namen für Objekte</b>.</p>',
+    render(st) {
+      const r = el('div', 'row'); r.style.gap = '40px';
+      r.appendChild(seedObj('os2', '?', '(1, 2)', { pop: true }));
+      const k = konsole('out'); k.style.minWidth = '260px'; r.appendChild(k); st.appendChild(r);
+      return seq([
+        () => { print('out', '33826822'); },
+        () => { $('os2').querySelector('.objhead').innerHTML = '<u>#33826822</u> : Seedling'; $('os2').classList.add('glow'); }
+      ], 1400);
+    } },
+
+  hatOD: { title: 'Die hat-Beziehung im Objektdiagramm', code: codeHans, hl: [3], datei: 'Program.cs',
+    text: '<p>Ein <b>Objektdiagramm</b> zeigt <b>konkrete Objekte</b>: oben die Hash-ID und die Klasse (unterstrichen), darunter die <b>Werte</b> der Felder. Methoden stehen <b>nicht</b> drin – die sind im Bauplan.</p><p>Weiter ▶: Das Feld <code>_mouth</code> zeigt auf <b>ein bestimmtes</b> Seedling-Objekt. Auch hier zeichnen wir einen <b>Pfeil</b>.</p>',
+    render(st) {
+      const sc = scene(); const r = el('div', 'row'); r.style.gap = '150px'; r.style.alignItems = 'flex-start';
+      r.appendChild(hamObj('oH', '28016690', '(1, 5)', '28672654', { pop: true }));
+      r.appendChild(seedObj('oS1', '28672654', '(1, 5)', { pop: true }));
+      sc.appendChild(r); st.appendChild(sc);
+      return seq([
+        () => { $('oH-_mouth').classList.add('read'); link(sc, 'oH', 'oS1', { from: 'right', to: 'left', color: 'var(--x)', label: '_mouth' }); },
+        () => { const l = el('div', 'label fade', 'Klassendiagramm: der <b>Bauplan</b> · Objektdiagramm: <b>konkrete Objekte</b> mit konkreten Werten'); l.style.marginTop = '22px'; st.appendChild(l); }
+      ], 1400);
+    } },
+
+  vergleich: { title: 'Das Objektdiagramm ändert sich – das Klassendiagramm nicht', code: codeSim, hl: [1], datei: 'Program.cs',
+    text: '<p>Oben das <b>Klassendiagramm</b>, unten ein <b>Objektdiagramm</b>. Weiter ▶ ruft <code>Simulate()</code> auf: Der Hamster geht nach Norden und trägt seinen Seedling mit.</p><p>In Runde 3 steht er auf <b>s2</b> und tauscht: <code>_mouth</code> zeigt jetzt auf ein <b>anderes</b> Objekt – mit der Hash-ID von s2. Der alte Seedling bleibt direkt hinter ihm liegen.</p><p>Im Klassendiagramm ändert sich dabei <b>nichts</b>.</p>',
+    render(st) {
+      const sc = scene(); sc.style.width = '100%';
+      const c = el('div', 'col'); c.style.gap = '26px';
+      c.appendChild(el('div', 'label', 'Klassendiagramm (bleibt gleich)'));
+      const r1 = el('div', 'row'); r1.style.gap = '80px'; r1.style.alignItems = 'flex-start';
+      r1.appendChild(hamsterBox('kH')); r1.appendChild(seedlingBox('kS')); c.appendChild(r1);
+      const lab = el('div', 'label', 'Objektdiagramm am Anfang'); lab.id = 'odLabel'; c.appendChild(lab);
+      const r2 = el('div', 'row'); r2.style.gap = '80px'; r2.style.alignItems = 'flex-start';
+      r2.appendChild(hamObj('oH', '28016690', '(1, 5)', '28672654', { small: true }));
+      const sCol = el('div', 'col'); sCol.style.gap = '10px';
+      sCol.appendChild(seedObj('oS1', '28672654', '(1, 5)', { small: true }));
+      sCol.appendChild(seedObj('oS2', '33826822', '(1, 2)', { small: true }));
+      r2.appendChild(sCol); c.appendChild(r2); sc.appendChild(c); st.appendChild(sc);
+      $('oS2').style.opacity = '.4';
+      later(200, () => { link(sc, 'kH', 'kS', { from: 'right', to: 'left', color: 'var(--x)', label: '_mouth   1:1' }); link(sc, 'oH', 'oS1', { from: 'right', to: 'left', color: 'var(--x)', label: '_mouth' }); });
+      const runde = (n, pos, seedPos) => () => { setHl([2 + n]); setField('oH', '_position', pos); setField('oS1', '_position', seedPos); $('odLabel').textContent = `Objektdiagramm nach Runde ${n}`; redraw(sc); };
+      return seq([
+        runde(1, '(1, 4)', '(1, 4)'),
+        runde(2, '(1, 3)', '(1, 3)'),
+        () => {
+          setHl([5]); setField('oH', '_position', '(1, 2)'); setField('oH', '_mouth', '● #33826822');
+          $('oS2').style.opacity = '1'; $('oS1').style.opacity = '.4'; $('oS2').classList.add('glow');
+          $('odLabel').textContent = 'Objektdiagramm nach Runde 3';
+          unlink(sc, 'oH'); link(sc, 'oH', 'oS2', { from: 'right', to: 'left', color: 'var(--x)', label: '_mouth' });
+        },
+        () => { const l = el('div', 'label fade', '#33826822 ist die Hash-ID von <b>s2</b> aus dem Hauptprogramm → der Hamster trägt <b>dasselbe</b> Objekt herum, keine Kopie.'); l.style.color = 'var(--ok)'; l.style.fontSize = '16px'; st.appendChild(l); }
+      ], 1600);
+    } },
+
+  merken: { title: 'Wir merken uns', code: [], hl: [],
+    text: '<p>Diese Punkte kommen in die Mitschrift.</p>',
+    render(st) {
+      const c = el('div', 'col'); c.style.alignItems = 'flex-start'; c.style.maxWidth = '900px';
+      ['Ein <b>Klassendiagramm</b> zeigt den Bauplan: Name, Felder (Zustand), Konstruktor und Methoden (Verhalten). <b>+</b> heißt <code>public</code>.',
+       'Ist der Typ eines Feldes eine <b>andere Klasse</b>, zeichnen wir einen <b>Pfeil</b> – die <b>hat-Beziehung</b>. Am Pfeil stehen der Feldname und die Anzahl.',
+       '<b>unidirektional</b>: nur eine Klasse kennt die andere (ein Pfeil). <b>bidirektional</b>: beide kennen sich (Pfeile in beide Richtungen). <b>rekursiv</b>: eine Klasse kennt sich selbst (Pfeil zurück zur eigenen Klasse).',
+       'Die <b>Multiplizität</b> am Pfeilende sagt, wie viele – als <b>Minimum:Maximum</b>: <b>1:1</b> = genau eines, <b>0:1</b> = höchstens eines, <b>0:n</b> = beliebig viele (z. B. ein Array), <b>1:n</b> = mindestens eines, <b>2:2</b> = genau zwei.',
+       'Ein <b>Objektdiagramm</b> zeigt eine Momentaufnahme: konkrete Objekte mit konkreten Werten, ohne Methoden.',
+       'Objekte haben keinen Namen – die <b>Variable</b> hat einen. Wir erkennen ein Objekt an seiner <b>Hash-ID</b> (<code>GetHashCode()</code>): gleiche Zahl = dasselbe Objekt.']
+        .forEach((t, i) => { const p = el('div', 'story pop', `${i + 1}. ${t}`); p.style.animationDelay = (i * .3) + 's'; c.appendChild(p); });
+      st.appendChild(c);
+    } }
+};
+
+const PLAN = [
+  ["Intro", [NEU.ziele]],
+  ["Klassendiagramm", [NEU.vomCode, NEU.hatKD]],
+  ["Arten der hat-Beziehung", [NEU.uni, NEU.bidi, NEU.eins, NEU.einsN, NEU.multi, NEU.rekursiv]],
+  ["Objektdiagramm", [NEU.keinName, NEU.hash, NEU.hatOD]],
+  ["Vergleich", [NEU.vergleich, NEU.merken]]
+];
+const chapters = PLAN.map(p => p[0]);
+const steps = [];
+PLAN.forEach(([, list], ch) => list.forEach(s => { if (!s) throw new Error('Folie fehlt'); steps.push(Object.assign({}, s, { ch })); }));
+
+// ===================== Navigation =====================
+let cur = 0, ctrl = null;
+function stepper(n, step, delay) {
+  let i = 0;
+  return {
+    next() { if (i >= n) return false; clearTimers(); step(i); i++; return true; },
+    auto() { const tick = () => { if (this.next()) timers.push(setTimeout(tick, delay)); }; tick(); }
+  };
 }
-function next() { if (k < SLIDES[s].steps - 1) k++; else if (s < SLIDES.length - 1) { s++; k = 0; } render(); }
-function prev() { if (k > 0) k--; else if (s > 0) { s--; k = SLIDES[s].steps - 1; } render(); }
-$('next').onclick = next; $('prev').onclick = prev;
+function buildTabs() {
+  chapters.forEach((c, i) => {
+    const b = el('button', '', (i + 1) + '. ' + c);
+    b.onclick = () => show(steps.findIndex(s => s.ch === i));
+    $('tabs').appendChild(b);
+  });
+}
+function show(i) {
+  clearTimers();
+  cur = Math.max(0, Math.min(steps.length - 1, i));
+  const s = steps[cur];
+  document.querySelectorAll('#tabs button').forEach((b, k) => b.classList.toggle('active', k === s.ch));
+  $('title').textContent = s.title;
+  $('counter').textContent = `Schritt ${cur + 1} / ${steps.length}`;
+  $('text').innerHTML = s.text;
+  if (!userSplit && !presenter) { $('stage').parentElement.style.flex = '1.9'; $('text').parentElement.style.flex = s.small ? '0.35' : '1'; }
+  $('headKl').textContent = '📄 ' + (s.datei || 'Hamster.cs');
+  $('headMain').textContent = '📄 ' + (s.datei || 'Program.cs');
+  renderCode(s.code, s.hl);
+  const st = $('stage'); st.innerHTML = ''; st.style.flexDirection = '';
+  ctrl = s.render(st) || null;
+  const noCode = !(s.code || []).length;
+  if (typeof applyLayout === 'function' && noCode !== lastNoCode) { lastNoCode = noCode; applyLayout(); }
+  $("autoBtn").disabled = !(ctrl && ctrl.auto);
+}
+function go(d) { if (d > 0 && ctrl && ctrl.next && ctrl.next()) return; show(cur + d); }
+function runAuto() { if (ctrl && ctrl.auto) { $("autoBtn").disabled = true; ctrl.auto(); } }
+function replay() { show(cur); }
 document.addEventListener('keydown', e => {
-  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); next(); }
-  if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+  if (e.key === 'r' || e.key === 'R') replay();
 });
-render();
+// ===================== Trennlinien mit der Maus verschieben =====================
+let userSplit = false;
+function dragger(handle, onMove) {
+  handle.addEventListener('pointerdown', e => {
+    e.preventDefault(); handle.setPointerCapture(e.pointerId); handle.classList.add('drag'); document.body.classList.add('dragging');
+    const mv = ev => onMove(ev);
+    const up = () => { handle.removeEventListener('pointermove', mv); handle.removeEventListener('pointerup', up); handle.classList.remove('drag'); document.body.classList.remove('dragging'); };
+    handle.addEventListener('pointermove', mv); handle.addEventListener('pointerup', up);
+  });
+}
+dragger($('sv'), e => {
+  const r = $('content').getBoundingClientRect();
+  const pct = Math.max(15, Math.min(75, (e.clientX - r.left) / r.width * 100));
+  $('left').style.width = pct + '%'; $('right').style.width = 'auto'; $('right').style.flex = '1';
+});
+dragger($('sh'), e => {
+  const r = $('right').getBoundingClientRect();
+  const y = Math.max(80, Math.min(r.height - 60, e.clientY - r.top));
+  $('stage').parentElement.style.flex = String(y); $('text').parentElement.style.flex = String(r.height - y);
+  userSplit = true;
+});
+// ===================== Presenter-Modus und Ansicht =====================
+let presenter = false, view = 0, lastNoCode = null;   // 0 = Code + Animation, 1 = nur Animation, 2 = nur Code
+function applyLayout() {
+  const L = $('left'), R = $('right'), sp = $('stage').parentElement, tp = $('text').parentElement;
+  if (presenter) { L.style.width = '30%'; R.style.width = '70%'; R.style.flex = 'none'; sp.style.flex = '1'; }
+  else { L.style.width = '40%'; R.style.width = '60%'; R.style.flex = ''; sp.style.flex = '1.9'; tp.style.flex = steps[cur].small ? '0.35' : '1'; userSplit = false; }
+  tp.style.display = presenter ? 'none' : ''; $('sh').style.display = presenter ? 'none' : '';
+  // Folien ohne Code: Code-Bereich automatisch ausblenden
+  const v = (view === 0 && !(steps[cur].code || []).length) ? 1 : view;
+  L.style.display = v === 1 ? 'none' : ''; $('sv').style.display = v === 0 ? '' : 'none'; R.style.display = v === 2 ? 'none' : '';
+  if (v === 1) { R.style.width = '100%'; R.style.flex = '1'; }
+  if (v === 2) { L.style.width = '100%'; }
+  $('presBtn').classList.toggle('on', presenter); [0, 1, 2].forEach(k => $('vb' + k).classList.toggle('on', view === k));
+  setTimeout(() => document.querySelectorAll('.scene').forEach(redraw), 50);
+}
+function togglePresenter() { presenter = !presenter; applyLayout(); }
+function setView(v) { view = v; applyLayout(); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'p' || e.key === 'P') togglePresenter();
+  if (e.key === '1' || e.key === '2' || e.key === '3') setView(Number(e.key) - 1);
+});
+window.addEventListener('resize', () => document.querySelectorAll('.scene').forEach(redraw));
+
+buildTabs();
+show(0);
+applyLayout();
 </script>
 </body>
 </html>

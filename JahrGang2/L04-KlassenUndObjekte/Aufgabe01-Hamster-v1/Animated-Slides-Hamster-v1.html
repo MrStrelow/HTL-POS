@@ -193,14 +193,14 @@ const neueHamster = () => [{ id: 28016690, p: [1, 5], m: "s1" }, { id: 37200188,
 const seedKarte = (v, chg = [], cls = "ok") => obj(`${v} : Seedling  #${SEEDS[v].id}`, { _representation: SEED, _position: T(SEEDS[v].p[0], SEEDS[v].p[1]) }, chg, cls);
 const hamKarte = (h, chg = [], cls = "ok") => obj(`Hamster  #${h.id}`, { _representation: "🐹", _position: T(h.p[0], h.p[1]), _mouth: R(`→ #${SEEDS[h.m].id} (${h.m})`), _planeSize: 10 }, chg, cls);
 const planeKarte = (chg = []) => obj("plane : Plane", { _hamsters: R("→ Hamster[3]"), _seedlings: R("→ Seedling[8]") }, chg, "ok");
-const printZeile = h => `🐹 ${h.id} auf (${h.p[0]}, ${h.p[1]}) hat im Mund: 🌱 ${SEEDS[h.m].id}`;
+const printZeile = h => `🐹 ${h.id} auf (${h.p[0]}, ${h.p[1]}) trägt 🌱 ${SEEDS[h.m].id} herum`;
 // kleines 10 x 10 Spielfeld (nur zur Anschauung – das Programm zeichnet es nicht)
 function feld(hams, hl = null) {
   const imMund = hams.map(h => h.m);
   let html = `<div class="grid" style="grid-template-columns: repeat(10, auto)">`;
   for (let y = 0; y < 10; y++) for (let x = 0; x < 10; x++) {
     let t = ERDE;
-    // ein Seedling im Mund liegt nicht mehr auf dem Feld
+    // ein Seedling, den ein Hamster herumträgt, liegt nicht auf dem Feld
     for (const k in SEEDS) if (!imMund.includes(k) && SEEDS[k].p[0] === x && SEEDS[k].p[1] === y) t = SEED;
     for (const h of hams) if (h.p[0] === x && h.p[1] === y) t = `🐹<span class="mund">🌱</span>`;
     const pr = hl && hl[0] === x && hl[1] === y ? " probe-ok" : "";
@@ -250,7 +250,7 @@ function s2() {
     fertig.push(h);
     t.f(2, { position: T(h.p[0], h.p[1]), mouth: R("→ #" + SEEDS[h.m].id), _mouth: R("→ #" + SEEDS[h.m].id) },
       objs(hamKarte(h, ["_representation", "_position", "_mouth"]), seedKarte(h.m)) + feld(fertig, h.p),
-      `Kein <b>this</b> nötig: links das Feld mit <b>_</b>, rechts der Parameter. Der Hamster startet auf ${h.m} und hat ihn im Mund.`, { 0: "ok", 1: "ok", 2: "ok" });
+      `Kein <b>this</b> nötig: links das Feld mit <b>_</b>, rechts der Parameter. Der Hamster startet auf ${h.m} und trägt ihn herum.`, { 0: "ok", 1: "ok", 2: "ok" });
   });
   t.call("Plane plane = new Plane(hamsters, seedlings);");
   t.f(3, { _hamsters: R("→ dasselbe Array"), _seedlings: R("→ dasselbe Array") }, objs(planeKarte(["_hamsters", "_seedlings"])) + feld(hams), "Die Plane bekommt beide Arrays. Kopiert wird nur die <b>Referenz</b> – es gibt weiterhin nur je <b>ein</b> Array.", { 0: "ok", 1: "ok", 2: "ok", 3: "ok" });
@@ -265,26 +265,26 @@ function s3() {
   const t = new Trace("public void Simulate()", [
     "foreach hamster in _hamsters: hamster.Move();",
     "Move(): _mouth._position = _position;  y == 0? → y = _planeSize;  dann y--",
-    "foreach seedling in _seedlings: gleiche Position? → hamster._mouth = seedling;  Ausgabe \"nimmt … in den Mund\"",
+    "foreach seedling in _seedlings: gleiche Position? → hamster._mouth = seedling;  Ausgabe \"trägt jetzt … herum\"",
     "Print(): foreach hamster: Position und hamster._mouth ausgeben"]);
   const out = [`s2 hat die Hash-ID ${SEEDS.s2.id}`, "hamsters hat die Hash-ID 12479570", "plane._hamsters hat die Hash-ID 12479570", ""];
   t.call("Startzustand");
-  t.f(-1, {}, feld(hams) + box("Konsole", konsole(out)), "Jeder Hamster steht auf seinem Start-Seedling und hat ihn im Mund (kleines 🌱) – darum liegt dort kein Seedling mehr auf dem Feld.");
+  t.f(-1, {}, feld(hams) + box("Konsole", konsole(out)), "Jeder Hamster steht auf seinem Start-Seedling und trägt ihn herum (kleines 🌱) – darum liegt dort kein Seedling auf dem Feld.");
   for (let runde = 1; runde <= 4; runde++) {
     hams.forEach((h, i) => {
       t.call(`Runde ${runde}, Hamster ${i + 1}: hamster.Move();`);
       const oben = h.p[1] === 0, alt = [...h.p];
-      SEEDS[h.m].p = [...alt];   // der Seedling im Mund kommt mit
+      SEEDS[h.m].p = [...alt];   // der Seedling, den er herumträgt, kommt mit
       h.p = [h.p[0], oben ? 9 : h.p[1] - 1];
       t.f(1, { "_position": T(h.p[0], h.p[1]) }, objs(hamKarte(h, ["_position"], "new")) + feld(hams, h.p) + box("Konsole", konsole(out.slice(-8))),
         oben ? `Der Hamster war ganz oben (y = 0) → y wird zuerst auf <b>_planeSize = 10</b> gesetzt, dann <b>y--</b> → er steht unten auf (${h.p[0]}, 9).`
-             : `Ein Schritt nach Norden: (${alt[0]}, ${alt[1]}) → (${h.p[0]}, ${h.p[1]}). Der Seedling im Mund kommt mit.`, { 0: "ok" });
+             : `Ein Schritt nach Norden: (${alt[0]}, ${alt[1]}) → (${h.p[0]}, ${h.p[1]}). Der Seedling, den er herumträgt, kommt mit.`, { 0: "ok" });
       const neu = Object.keys(SEEDS).find(k => SEEDS[k].p[0] === h.p[0] && SEEDS[k].p[1] === h.p[1]);
       if (neu) {
         const vorher = h.m; h.m = neu;
-        out.push(`🐹 ${h.id} nimmt 🌱 ${SEEDS[neu].id} in den Mund`);
+        out.push(`🐹 ${h.id} trägt jetzt 🌱 ${SEEDS[neu].id} herum`);
         t.f(2, { "seedling._position": T(h.p[0], h.p[1]), _mouth: R(`→ #${SEEDS[neu].id} (${neu})`) }, objs(hamKarte(h, ["_mouth"], "new"), seedKarte(neu, [], "new")) + feld(hams, h.p) + box("Konsole", konsole(out.slice(-8))),
-          (neu === "s2" ? "Der Hamster steht auf <b>s2</b> → <b>_mouth</b> zeigt jetzt auf <b>dasselbe</b> Objekt wie s2 – gleiche Hash-ID wie ganz oben! " : `Auf (${h.p[0]}, ${h.p[1]}) liegt <b>${neu}</b> → er kommt in den Mund und verschwindet vom Feld. `) +
+          (neu === "s2" ? "Der Hamster steht auf <b>s2</b> → <b>_mouth</b> zeigt jetzt auf <b>dasselbe</b> Objekt wie s2 – gleiche Hash-ID wie ganz oben! " : `Auf (${h.p[0]}, ${h.p[1]}) liegt <b>${neu}</b> → ab jetzt trägt er ihn herum, er verschwindet vom Feld. `) +
           `Den alten Seedling <b>${vorher}</b> lässt er auf (${alt[0]}, ${alt[1]}) liegen – dort, wo er gerade war.`, { 0: "ok", 1: "ok", 2: "ok" });
       }
     });

@@ -22,7 +22,7 @@ s8._position = (9, 9);
 
 Seedling[] seedlings = { s1, s2, s3, s4, s5, s6, s7, s8 };
 
-// Jeder Hamster startet auf einem Seedling und hat ihn schon im Mund
+// Jeder Hamster startet auf einem Seedling und trägt ihn schon herum
 Hamster[] hamsters =
 {
     new Hamster((1, 5), s1),
