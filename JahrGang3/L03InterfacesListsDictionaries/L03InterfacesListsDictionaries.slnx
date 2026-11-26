@@ -2,4 +2,6 @@
   <Project Path="Skripten/Skripten.csproj" />
   <Project Path="SMUe/SMUe.csproj" />
   <Project Path="ZettelUebungen/ZettelUebungen.csproj" />
+  <Project Path="Aufgabe01-Schulnetzwerk/Loesung/SchulnetzwerkLoesung.csproj" />
+  <Project Path="Aufgabe01-Schulnetzwerk/Vorlage/SchulnetzwerkVorlage.csproj" />
 </Solution>

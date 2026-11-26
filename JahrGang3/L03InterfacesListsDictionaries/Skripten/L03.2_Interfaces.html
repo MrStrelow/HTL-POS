@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interfaces</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020617; --panel: #0f172a; --panel2: #1e293b; --line: #334155;
+    --text: #f8fafc; --muted: #94a3b8; --accent: #38bdf8; --x: #f59e0b; --y: #a855f7;
+    --ok: #10b981; --bad: #ef4444; --kw: #c084fc; --str: #fbbf24; --num: #34d399; --com: #64748b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; overflow: hidden; }
+  .mono { font-family: 'Fira Code', monospace; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 19px; color: var(--accent); }
+  header p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+  #tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  #tabs button { background: var(--panel2); color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  #tabs button.active { background: #0284c7; color: #fff; border-color: var(--accent); }
+  main { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; overflow: hidden; min-height: 0; }
+  #titlebar { display: flex; align-items: baseline; gap: 12px; }
+  #title { font-size: 22px; font-weight: 700; margin: 0; }
+  #counter { color: var(--muted); font-size: 13px; }
+  #content { flex: 1; min-height: 0; display: flex; gap: 12px; }
+  .pane { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+  .panehead { background: #020617; border-bottom: 1px solid var(--line); padding: 6px 14px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  #left { width: 40%; }
+  #right { width: 60%; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  #codebox { flex: 1; overflow: auto; padding: 10px 0; font-size: 14px; line-height: 1.65; }
+  #stage { flex: 1.9; min-height: 0; background: radial-gradient(circle at center, #0b1430 0%, #020617 75%); display: flex; position: relative; overflow: auto; padding: 16px; }
+  #stage > * { margin: auto; }
+  #text { flex: 1; min-height: 0; overflow: auto; padding: 10px 16px; font-size: 15px; line-height: 1.55; }
+  #text p { margin: 6px 0; }
+  #text code { font-family: 'Fira Code', monospace; background: var(--panel2); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+  .cl { padding: 0 14px; border-left: 4px solid transparent; white-space: pre; }
+  .cl.hl { background: rgba(56,189,248,.18); border-left-color: var(--accent); }
+  .tk-kw { color: var(--kw); } .tk-str { color: var(--str); } .tk-num { color: var(--num); } .tk-com { color: var(--com); font-style: italic; } .tk-ty { color: #38bdf8; } .tk-tp { color: var(--x); font-weight: 600; }
+  nav { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; }
+  nav button { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 18px; font-size: 15px; cursor: pointer; }
+  nav button:hover { border-color: var(--accent); }
+  nav button:disabled { opacity: .35; cursor: default; }
+  nav button#autoBtn:not(:disabled) { border-color: var(--ok); color: var(--ok); }
+  nav button.on { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,.15); }
+  nav span { color: var(--muted); font-size: 12px; }
+  .split-v { flex: none; width: 8px; margin: 0 -6px; cursor: col-resize; border-radius: 4px; position: relative; z-index: 2; }
+  .split-h { flex: none; height: 8px; margin: -6px 0; cursor: row-resize; border-radius: 4px; position: relative; z-index: 2; }
+  .split-v:hover, .split-h:hover, .split-v.drag, .split-h.drag { background: var(--accent); }
+  body.dragging { user-select: none; }
+
+  /* ---- Bausteine ---- */
+  .col { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .row { display: flex; align-items: center; justify-content: center; gap: 18px; flex-wrap: wrap; }
+  .row.top { align-items: flex-start; }
+  .lbl { color: var(--muted); font-size: 13px; }
+  .scene { position: relative; }
+  .ov { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 5; }
+  .vb { display: flex; flex-direction: column; align-items: center; gap: 2px; background: var(--panel); border: 2px solid var(--y); border-radius: 8px; padding: 6px 12px; min-width: 84px; }
+  .vb .vn { color: var(--y); font-size: 13px; } .vb .vv { font-size: 20px; border-radius: 4px; padding: 0 4px; }
+  .vb.ref { border-style: dashed; }
+  .flash { animation: flash 1s ease; } @keyframes flash { 0% { background: rgba(245,158,11,.8); } 100% { background: transparent; } }
+  .obj { background: var(--panel2); border: 2px solid var(--ok); border-radius: 10px; min-width: 200px; overflow: hidden; }
+  .objhead { background: rgba(16,185,129,.18); padding: 6px 12px; font-weight: 600; text-align: center; }
+  .frow { display: flex; gap: 8px; padding: 3px 12px; font-size: 14px; }
+  .frow .fn { color: var(--x); min-width: 70px; } .frow .eq { color: var(--muted); }
+  .fv { border-radius: 4px; padding: 0 4px; }
+  .msec { border-top: 1px solid var(--line); padding: 3px 0; }
+  .mrow { padding: 2px 10px; font-size: 13px; color: var(--ok); border-radius: 4px; }
+  .mrow.mblink { animation: mblink .9s ease; } @keyframes mblink { 0%, 60% { background: rgba(16,185,129,.55); color: #fff; } 100% { background: transparent; } }
+  .tpc { font-family: 'Fira Code', monospace; background: rgba(245,158,11,.12); border: 2px solid var(--x); color: var(--x); border-radius: 8px; padding: 4px 12px; font-size: 16px; font-weight: 600; }
+  .tpc.b { border-color: var(--y); color: var(--y); background: rgba(168,85,247,.12); }
+  .badge { padding: 6px 14px; border-radius: 999px; font-weight: 700; font-size: 14px; }
+  .badge.rt { background: rgba(239,68,68,.15); color: #fca5a5; border: 1px solid var(--bad); }
+  .badge.ct { background: rgba(16,185,129,.15); color: #6ee7b7; border: 1px solid var(--ok); }
+  .errbox { border: 2px solid var(--bad); background: rgba(239,68,68,.12); color: #fca5a5; border-radius: 8px; padding: 8px 12px; font-family: 'Fira Code', monospace; font-size: 14px; max-width: 520px; }
+  .okbox { border: 2px solid var(--ok); background: rgba(16,185,129,.12); color: #a7f3d0; border-radius: 8px; padding: 8px 12px; font-family: 'Fira Code', monospace; font-size: 14px; max-width: 520px; }
+  .card { background: var(--panel2); border: 2px solid var(--accent); border-radius: 10px; padding: 8px 14px; font-family: 'Fira Code', monospace; font-size: 14px; }
+  .card.gen { border-color: var(--x); }
+  .card.ghost { border-style: dashed; opacity: .55; }
+  .arr { display: flex; gap: 4px; }
+  .cell { min-width: 54px; height: 50px; padding: 0 6px; border: 2px solid var(--line); border-radius: 8px; background: var(--panel); display: flex; align-items: center; justify-content: center; font-size: 22px; font-family: 'Fira Code', monospace; transition: all .4s; }
+  .cell.hot { border-color: var(--ok); background: rgba(16,185,129,.25); }
+  .cell.dim { opacity: .35; }
+  .cell.bad { border-color: var(--bad); background: rgba(239,68,68,.25); }
+  .cell.a { border-color: var(--x); } .cell.b { border-color: var(--y); }
+  .idx { font-family: 'Fira Code', monospace; font-size: 11px; color: var(--muted); text-align: center; }
+  .console { background: #000; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; min-height: 54px; min-width: 200px; font-size: 14px; color: #d1fae5; font-family: 'Fira Code', monospace; }
+  .frame { border: 2px dashed var(--accent); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .frame .fh { font-family: 'Fira Code', monospace; font-size: 13px; color: var(--accent); }
+  .chip { font-family: 'Fira Code', monospace; font-size: 15px; padding: 4px 10px; border-radius: 6px; background: var(--panel2); border: 1px solid var(--line); transition: all .5s; }
+  .chip.no { opacity: .35; text-decoration: line-through; border-color: var(--bad); color: #fca5a5; }
+  .chip.yes { border-color: var(--ok); color: #6ee7b7; }
+  .hier { display: grid; grid-template-columns: auto 80px auto; align-items: center; gap: 10px 6px; }
+  .hier .ar { text-align: center; font-size: 26px; font-weight: 700; }
+  .ar.ok { color: var(--ok); } .ar.bad { color: var(--bad); } .ar.k { color: var(--accent); }
+  table.t { border-collapse: collapse; font-size: 14px; max-width: 100%; }
+  table.t th, table.t td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
+  table.t th { color: var(--muted); font-weight: 600; font-size: 12px; background: #020617; }
+  table.t td code { font-family: 'Fira Code', monospace; font-size: 13px; color: var(--accent); }
+  .pop { animation: pop .45s cubic-bezier(.2,.8,.3,1.3) both; }
+  @keyframes pop { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
+  .shake { animation: shake .5s ease; } @keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+  .hidden { visibility: hidden; }
+  .tree { font-family: 'Fira Code', monospace; font-size: 13px; line-height: 1.75; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; }
+  .tree .tl { white-space: pre; border-radius: 4px; padding: 0 6px; transition: all .4s; }
+  .tree .tl.i { color: var(--accent); } .tree .tl.c { color: #6ee7b7; } .tree .tl.h { color: var(--muted); font-size: 11px; letter-spacing: .08em; }
+  .tree .tl.hot { background: rgba(245,158,11,.3); color: #fff; }
+  /* ---- L03: Listen und Dictionaries ---- */
+  .grid { display: grid; gap: 4px; }
+  .cell.small { min-width: 42px; width: 42px; height: 42px; font-size: 20px; }
+  .cell.null { min-width: 54px; font-size: 13px; color: var(--com); }
+  .cell.colhot { border-color: var(--x); background: rgba(245,158,11,.2); }
+  .bucket { border: 2px dashed var(--line); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 6px; align-items: center; transition: border-color .4s; }
+  .bucket .bh { font-weight: 700; font-size: 14px; color: var(--accent); }
+  .pill { font-family: 'Fira Code', monospace; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; font-size: 15px; }
+  .pill b { color: var(--x); }
+  .story { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-size: 16px; line-height: 1.5; max-width: 640px; min-height: 52px; }
+  .tree { font-size: 14px; }
+  .cls { background: var(--panel2); border: 2px solid var(--accent); border-radius: 10px; min-width: 220px; overflow: hidden; }
+  .clshead { background: rgba(56,189,248,.2); padding: 8px 12px; font-weight: 700; text-align: center; font-size: 16px; font-family: 'Fira Code', monospace; }
+  .clssec { border-top: 1px solid var(--line); padding: 6px 12px; font-size: 14px; line-height: 1.6; font-family: 'Fira Code', monospace; }
+  .pill.hat { border-color: var(--x); color: var(--x); text-align: center; }
+  .pill.konstr { border-color: var(--accent); color: var(--accent); text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🔌 Interfaces: Verträge statt Klassen</h1>
+    <p>Weiter: Pfeiltasten ← → oder Leertaste · Arten, IComparable, IComparer, IDisposable, gegen ein Interface programmieren, Dependency Injection, Inversion of Control</p>
+  </div>
+  <div id="tabs"></div>
+</header>
+<main>
+  <div id="titlebar"><h2 id="title"></h2><span id="counter"></span></div>
+  <div id="content">
+    <section id="left" class="pane"><div class="panehead">📄 Code</div><div id="codebox" class="mono"></div></section>
+    <div class="split-v" id="sv" title="ziehen: Breite von Code / Animation"></div>
+    <div id="right">
+      <section class="pane" style="flex:1.9"><div class="panehead">🎬 Animation</div><div id="stage"></div></section>
+      <div class="split-h" id="sh" title="ziehen: Höhe von Animation / Erklärung"></div>
+      <section class="pane" style="flex:1"><div class="panehead">💡 Erklärung</div><div id="text"></div></section>
+    </div>
+  </div>
+  <nav>
+    <button onclick="go(-1)">◀ zurück</button>
+    <button onclick="replay()">↻ nochmal</button>
+    <button onclick="go(1)">weiter ▶</button>
+    <button id="autoBtn" onclick="runAuto()" disabled>⏩ automatisch</button>
+    <button id="presBtn" onclick="togglePresenter()" title="Taste P">🎤 Presenter</button>
+    <button class="vbtn" id="vb0" onclick="setView(0)" title="Taste 1">📄🎬 Code + Animation</button>
+    <button class="vbtn" id="vb1" onclick="setView(1)" title="Taste 2">🎬 nur Animation</button>
+    <button class="vbtn" id="vb2" onclick="setView(2)" title="Taste 3">📄 nur Code</button>
+    <span>R = nochmal · P = Presenter · 1/2/3 = Ansicht</span>
+  </nav>
+</main>
+
+<script>
+// ===================== kleine Helfer =====================
+const $ = (id) => document.getElementById(id);
+const SVGNS = 'http://www.w3.org/2000/svg';
+let timers = [];
+function clearTimers() { timers.forEach(t => { clearTimeout(t); clearInterval(t); }); timers = []; }
+function el(tag, cls, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; }
+const C = s => s.replace(/^\n/, '').replace(/\n$/, '').split('\n');
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+function highlight(line) {
+  const re = /(\/\/.*$)|("(?:[^"\\]|\\.)*"|'.')|(\b(?:new|foreach|for|in|out|ref|while|if|else|return|int|string|double|bool|char|void|object|class|interface|abstract|override|public|private|where|struct|var|null|true|false)\b)|(\b(?:T|TA|TB|TName|TPunkte)\b)|(\b(?:Console|Form|Kreis|Quadrat|Stapel|ObjektStapel|Rangliste|Tier|Hund|Katze|List|IEnumerable|IEnumerator|IComparer|IComparable|NachAlter|IQuelle|IAblage|IFalsch|HundeZucht|TierHeim|Hamster|IHatName|Roboter|IList|ICollection|Array|Dictionary|IDictionary|IReadOnlyDictionary|IReadOnlyCollection|KeyValuePair|LinkedList|Queue|Stack|HashSet|ISet|SortedSet|SortedDictionary|Seedling|Wiese|Feld|Pos|Math|FeldK|FeldE|FeldR|FeldM|MacAdresse|Geraet|HashCode|ISensor|Thermometer|Rauchmelder|FakeSensor|Alarmanlage|Logdatei|StreamWriter|IDisposable|IComparer|IComparable|NachName|Fahrzeug|EAuto|IAufladbar|IVernetzt|ServiceCollection|InvalidOperationException)\b)|(\b\d+(?:\.\d+)?\b)/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(line)) !== null) {
+    out += esc(line.slice(last, m.index));
+    const cls = m[1] ? 'tk-com' : m[2] ? 'tk-str' : m[3] ? 'tk-kw' : m[4] ? 'tk-tp' : m[5] ? 'tk-ty' : 'tk-num';
+    out += `<span class="${cls}">${esc(m[0])}</span>`;
+    last = re.lastIndex;
+  }
+  return out + esc(line.slice(last));
+}
+function renderCode(lines, hl) {
+  const box = $('codebox'); box.innerHTML = '';
+  (lines || []).forEach((l, i) => {
+    const d = el('div', 'cl' + ((hl || []).includes(i) ? ' hl' : ''), highlight(l) || ' ');
+    d.id = 'code-' + i; box.appendChild(d);
+  });
+}
+function setHl(hl) {
+  document.querySelectorAll('.cl').forEach((d, i) => d.classList.toggle('hl', hl.includes(i)));
+  const f = $('code-' + hl[0]); if (f) f.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function vbox(id, name, val, cls) {
+  const v = el('div', 'vb mono ' + (cls || '')); v.id = id;
+  v.innerHTML = `<span class="vn">${name}</span><span class="vv" id="${id}-v">${val}</span>`;
+  return v;
+}
+function setV(id, val) { const e = $(id + '-v') || $(id); if (!e) return; e.innerHTML = val; e.classList.remove('flash'); void e.offsetWidth; e.classList.add('flash'); }
+function objCard(id, head, fields, methods) {
+  const c = el('div', 'obj'); c.id = id;
+  c.appendChild(el('div', 'objhead mono', head));
+  fields.forEach(([f, v]) => c.appendChild(el('div', 'frow mono', `<span class="fn">${f}</span><span class="eq">=</span><span class="fv" id="${id}-${f}">${v}</span>`)));
+  if (methods) {
+    const sec = el('div', 'msec');
+    methods.forEach(m => { const r = el('div', 'mrow mono', '+ ' + m); r.id = id + '-m-' + m.split('(')[0]; sec.appendChild(r); });
+    c.appendChild(sec);
+  }
+  return c;
+}
+function setF(id, f, v) { setV(id + '-' + f, v); }
+function blinkM(id, m) { const e = $(id + '-m-' + m); if (!e) return; e.classList.remove('mblink'); void e.offsetWidth; e.classList.add('mblink'); }
+function cells(id, vals, labels) {
+  const w = el('div', 'col'); w.style.gap = '2px';
+  const a = el('div', 'arr');
+  vals.forEach((v, i) => { const c = el('div', 'cell', v); c.id = id + '-' + i; a.appendChild(c); });
+  w.appendChild(a);
+  if (labels !== false) { const ix = el('div', 'arr'); vals.forEach((_, i) => { const d = el('div', 'idx', '[' + i + ']'); d.style.minWidth = '54px'; ix.appendChild(d); }); w.appendChild(ix); }
+  return w;
+}
+function setCell(id, v, cls) { const c = $(id); if (!c) return; c.innerHTML = v; c.className = 'cell pop' + (cls ? ' ' + cls : ''); }
+function konsole(id) { const k = el('div', 'console'); k.id = id; return k; }
+function print(id, t) { const k = $(id); if (k) k.innerHTML += esc(t) + '<br>'; }
+function show_(id) { const e = $(id); if (e) { e.classList.remove('hidden'); e.classList.add('pop'); } }
+function shake(id) { const e = $(id); if (!e) return; e.classList.remove('shake'); void e.offsetWidth; e.classList.add('shake'); }
+function lab(t) { return el('div', 'lbl', t); }
+function wrap(cls, kids) { const d = el('div', cls); kids.forEach(k => d.appendChild(k)); return d; }
+function hid(e) { e.classList.add('hidden'); return e; }
+function hide_(id) { const e = $(id); if (e) e.classList.add('hidden'); }
+function grid(n, kids, gap) { const g = wrap('', kids); g.style.cssText = `display:grid;grid-template-columns:repeat(${n},auto);gap:${gap || '22px 60px'};align-items:center;justify-items:center`; return g; }
+function arrBox(id, label, v) { const w = wrap('col', [lab(label), cells(id, [v], false)]); w.style.gap = '2px'; w.id = id + 'box'; return w; }
+function say(t) { const c = $('info'); if (!c) return; c.classList.remove('hidden'); c.innerHTML = t; c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); }
+function infoBox() { const i = hid(el('div', 'okbox', '')); i.id = 'info'; i.style.fontFamily = 'Inter, sans-serif'; i.style.maxWidth = '640px'; return i; }
+function relink(sc, from, to, opts) { unlink(sc, from); link(sc, from, to, opts); }
+
+// Szene für Tausche ohne ref: Hauptprogramm, Methode, Arrays im Speicher
+function swapScene(st, head, withInt, isRef) {
+  const pa = isRef ? 'ref a' : 'a  (Kopie)', pb = isRef ? 'ref b' : 'b  (Kopie)';
+  const sc = scene();
+  const tp = el('div', 'tpc', 'T = ?'); tp.id = 'tp';
+  const main = el('div', 'frame'); main.appendChild(el('div', 'fh', 'Hauptprogramm'));
+  main.appendChild(withInt
+    ? grid(2, [vbox('x', 'int x', '?'), vbox('s1', 'string[] s1', '?', 'ref'), vbox('y', 'int y', '?'), vbox('s2', 'string[] s2', '?', 'ref')], '14px 30px')
+    : grid(1, [vbox('s1', 'string[] s1', '?', 'ref'), vbox('s2', 'string[] s2', '?', 'ref')], '14px 30px'));
+  const fr = el('div', 'frame'); fr.appendChild(el('div', 'fh', head));
+  fr.appendChild(grid(2, [vbox('a', pa, '–', 'ref'), vbox('tmp', 'T temp', '–'), vbox('b', pb, '–', 'ref'), el('div')], '14px 30px'));
+  const arrs = wrap('col', [hid(arrBox('A', 'Array', '🐶')), hid(arrBox('B', 'Array', '🐱'))]); arrs.style.gap = '20px';
+  const row = wrap('row', [main, arrs, fr]); row.style.gap = '70px'; row.style.flexWrap = 'nowrap';
+  if (isRef) { row.style.margin = '40px 0'; }
+  sc.appendChild(wrap('col', [tp, row, infoBox(), konsole('k')])); st.appendChild(sc);
+  return sc;
+}
+function setT(t) { const e = $('tp'); if (!e) return; e.textContent = 'T = ' + t; e.classList.remove('pop'); void e.offsetWidth; e.classList.add('pop'); }
+
+// Schritte innerhalb einer Folie
+function seq(acts, delay) {
+  let i = 0;
+  return {
+    next() { if (i >= acts.length) return false; acts[i++](); return true; },
+    auto() { const t = () => { if (this.next()) timers.push(setTimeout(t, delay || 1300)); }; t(); }
+  };
+}
+
+// ---------- Szene mit SVG-Pfeilen ----------
+function scene() {
+  const s = el('div', 'scene');
+  const svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('class', 'ov');
+  svg.innerHTML = '<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>';
+  s.appendChild(svg); s._svg = svg; s._links = [];
+  return s;
+}
+function link(sc, fromId, toId, opts = {}) { sc._links.push({ fromId, toId, opts }); redraw(sc); setTimeout(() => redraw(sc), 450); }
+function unlink(sc, fromId) { sc._links = sc._links.filter(l => l.fromId !== fromId); redraw(sc); }
+function anchor(r, side, base) {
+  const cx = r.left - base.left + r.width / 2, cy = r.top - base.top + r.height / 2;
+  if (side === 'bottom') return [cx, r.bottom - base.top];
+  if (side === 'top') return [cx, r.top - base.top];
+  if (side === 'left') return [r.left - base.left, cy];
+  if (side === 'right') return [r.right - base.left, cy];
+  return [cx, cy];
+}
+function redraw(sc) {
+  if (!sc || !sc._svg) return;
+  const base = sc.getBoundingClientRect();
+  sc._svg.querySelectorAll('.ln').forEach(e => e.remove());
+  sc._links.forEach(({ fromId, toId, opts }) => {
+    const a = $(fromId), b = $(toId); if (!a || !b) return;
+    const [x1, y1] = anchor(a.getBoundingClientRect(), opts.from || 'right', base);
+    let [x2, y2] = anchor(b.getBoundingClientRect(), opts.to || 'left', base);
+    const cx = (x1 + x2) / 2, cy = opts.down ? Math.max(y1, y2) + opts.curve : Math.min(y1, y2) - (opts.curve || 0);
+    { const [px, py] = opts.curve ? [cx, cy] : [x1, y1]; const d = Math.hypot(x2 - px, y2 - py) || 1; x2 -= (x2 - px) / d * 16; y2 -= (y2 - py) / d * 16; }
+    const g = document.createElementNS(SVGNS, 'g'); g.setAttribute('class', 'ln'); g.style.color = opts.color || 'var(--accent)';
+    let l;
+    if (opts.curve) { l = document.createElementNS(SVGNS, 'path'); l.setAttribute('d', `M${x1},${y1} Q${cx},${cy} ${x2},${y2}`); l.setAttribute('fill', 'none'); }
+    else { l = document.createElementNS(SVGNS, 'line'); l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2); }
+    l.setAttribute('stroke', 'currentColor'); l.setAttribute('stroke-width', opts.width || '2.5'); l.setAttribute('marker-end', 'url(#ah)');
+    if (opts.dash) l.setAttribute('stroke-dasharray', '6 5');
+    g.appendChild(l);
+    if (opts.label) { const t = document.createElementNS(SVGNS, 'text'); t.setAttribute('x', x1 + (x2 - x1) * 0.3); t.setAttribute('y', y1 + (y2 - y1) * 0.3 + (y2 < y1 ? -10 : 20)); t.setAttribute('text-anchor', 'middle'); t.setAttribute('stroke', 'var(--bg, #0b1020)'); t.setAttribute('stroke-width', '5'); t.setAttribute('paint-order', 'stroke'); t.setAttribute('font-weight', '600'); t.setAttribute('fill', 'currentColor'); t.setAttribute('font-size', '13'); t.setAttribute('font-family', 'Fira Code, monospace'); t.textContent = opts.label; g.appendChild(t); }
+    sc._svg.appendChild(g);
+  });
+}
+
+// ===================== Helfer für diese Folien =====================
+const at = (code, s) => code.findIndex(l => l.includes(s));
+const H = (code, ...subs) => setHl(subs.map(s => at(code, s)));
+function tree(nodes) {
+  const t = el('div', 'tree');
+  nodes.forEach(([k, txt, d, id]) => { const l = el('div', 'tl ' + k, esc((d ? '   '.repeat(d - 1) + '└─ ' : '') + txt)); l.id = id; t.appendChild(l); });
+  return t;
+}
+const hot = ids => document.querySelectorAll('.tree .tl').forEach(l => l.classList.toggle('hot', ids.includes(l.id)));
+const legend = () => el('div', 'lbl', '<span style="color:var(--accent)">■ Interface</span> &nbsp; <span style="color:#6ee7b7">■ Klasse</span>');
+function counter(id, label) { const c = el('div', 'pill', `${label}: <b id="${id}">0</b>`); return c; }
+function setCount(id, n) { const e = $(id); if (e) { e.textContent = n; e.classList.remove('flash'); void e.offsetWidth; e.classList.add('flash'); } }
+function arrRow(id, vals, cap) {
+  const w = el('div', 'col'); w.style.gap = '2px';
+  const a = el('div', 'arr');
+  for (let i = 0; i < cap; i++) { const c = el('div', 'cell' + (i < vals.length ? '' : ' dim'), i < vals.length ? vals[i] : ''); c.id = id + '-' + i; a.appendChild(c); }
+  const ix = el('div', 'arr'); for (let i = 0; i < cap; i++) { const d = el('div', 'idx', '[' + i + ']'); d.style.minWidth = '54px'; ix.appendChild(d); }
+  w.appendChild(a); w.appendChild(ix); return w;
+}
+function setArr(id, vals, cap, cls = {}) {
+  for (let i = 0; i < cap; i++) { const c = $(id + '-' + i); if (!c) continue; c.textContent = i < vals.length ? vals[i] : ''; c.className = 'cell' + (i < vals.length ? '' : ' dim') + (cls[i] ? ' ' + cls[i] : ''); }
+}
+// Linked List: Knoten mit Pfeilen
+function llView(id, vals, marks = {}) {
+  const r = el('div', 'row'); r.style.gap = '4px'; r.id = id;
+  r.appendChild(el('div', 'pill', 'head'));
+  vals.forEach((v, i) => {
+    r.appendChild(el('div', 'ar k', '→'));
+    const n = el('div', 'cell' + (marks[i] ? ' ' + marks[i] : ''), v); n.style.borderRadius = '14px'; r.appendChild(n);
+  });
+  r.appendChild(el('div', 'ar k', '→')); r.appendChild(el('div', 'cell null', 'null'));
+  return r;
+}
+function setLL(id, vals, marks = {}) { const o = $(id); if (o) o.replaceWith(llView(id, vals, marks)); }
+// Hash-Buckets
+function bucketsView(id, n, entries, marks = {}) {
+  const g = el('div', 'row'); g.id = id; g.style.alignItems = 'flex-start'; g.style.gap = '8px';
+  for (let b = 0; b < n; b++) {
+    const col = el('div', 'col'); col.style.gap = '4px';
+    col.appendChild(el('div', 'idx', 'Bucket ' + b));
+    const box = el('div', 'bucket' + (marks['b' + b] ? ' ' : '')); box.style.minWidth = '120px'; box.style.minHeight = '70px'; box.style.borderColor = marks['b' + b] === 'hot' ? 'var(--ok)' : marks['b' + b] === 'bad' ? 'var(--bad)' : 'var(--line)';
+    entries.filter(e => e.b === b).forEach(e => box.appendChild(el('div', 'chip' + (marks[e.k] ? ' ' + marks[e.k] : ''), esc(e.k + ' → ' + e.v))));
+    col.appendChild(box); g.appendChild(col);
+  }
+  return g;
+}
+function setBuckets(id, n, entries, marks) { const o = $(id); if (o) o.replaceWith(bucketsView(id, n, entries, marks)); }
+// Wiese für den Hamster
+function wieseView(id, w, h, seeds, ham, marks = {}) {
+  const g = el('div', 'grid'); g.id = id; g.style.gridTemplateColumns = `repeat(${w}, auto)`;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let t = '🟫'; if (seeds.some(s => s[0] === x && s[1] === y)) t = '🌱'; if (ham && ham[0] === x && ham[1] === y) t = '🐹';
+    const c = el('div', 'cell small' + (marks[x + ',' + y] ? ' ' + marks[x + ',' + y] : ''), t); c.title = `(${x}, ${y})`; g.appendChild(c);
+  }
+  return g;
+}
+function setWiese(id, w, h, seeds, ham, marks) { const o = $(id); if (o) o.replaceWith(wieseView(id, w, h, seeds, ham, marks)); }
+const chipRow = (id, items) => { const r = el('div', 'row'); r.id = id; r.style.flexWrap = 'wrap'; r.style.justifyContent = 'center'; items.forEach((t, i) => { const c = el('div', 'chip', esc(t)); c.id = id + '-' + i; r.appendChild(c); }); return r; };
+const markChip = (id, i, cls) => { const c = $(id + '-' + i); if (c) { c.classList.remove('yes', 'no'); if (cls) c.classList.add(cls); } };
+
+// ===================== Code der Folien =====================
+const cWas = C(`
+// Ein Interface ist ein VERTRAG: "Wer mich umsetzt, KANN das."
+public interface ISensor
+{
+    string Name { get; }
+    double Messen();                 // nur der Kopf – kein Inhalt
+}
+
+// Eine Klasse unterschreibt den Vertrag mit ":"
+public class Thermometer : ISensor
+{
+    public string Name => "Thermometer";
+    public double Messen() { return 21.5; }   // MUSS umgesetzt werden
+}
+
+ISensor s = new Thermometer();       // Variable vom Typ des Interfaces
+Console.WriteLine(s.Messen());       // 21,5
+// ISensor x = new ISensor();        // ❌ ein Interface kann man nicht erzeugen`);
+
+const cVsAbstract = C(`
+// abstrakte Klasse: IST-EIN, gemeinsamer Code, nur EINE Basisklasse
+abstract class Fahrzeug { public int Raeder; public abstract void Fahren(); }
+
+// Interface: KANN, kein Zustand, BELIEBIG viele
+interface IAufladbar { void Laden(); }
+interface IVernetzt  { string Ip { get; } }
+
+class EAuto : Fahrzeug, IAufladbar, IVernetzt
+{
+    public override void Fahren() { }
+    public void Laden() { }
+    public string Ip => "10.0.0.7";
+}`);
+
+const cArten = C(`
+// 1) Fähigkeit: "Ich kann ..."            -> die Klasse selbst
+class Geraet : IComparable<Geraet>, IDisposable { ... }
+
+// 2) Strategie: "So macht man ..."        -> eigene kleine Klasse
+class NachName : IComparer<Geraet> { ... }
+
+// 3) Sicht: "Du darfst nur ..."           -> Rückgabetyp
+public IReadOnlyList<Geraet> Warteschlange => _warteschlange;
+
+// 4) Dienst/Abhängigkeit: "Ich brauche jemanden, der ..."
+class Alarmanlage { public Alarmanlage(ISensor sensor) { ... } }`);
+
+const cSort = C(`
+public class Geraet : IComparable<Geraet>
+{
+    public string Name { get; }
+    public int PingMs { get; set; }
+
+    public int CompareTo(Geraet? other)
+    {
+        if (other == null) { return 1; }
+        return PingMs.CompareTo(other.PingMs);   // < 0 · 0 · > 0
+    }
+}
+
+List<Geraet> geraete = ...;
+geraete.Sort();          // Sort ruft für je zwei Geräte a.CompareTo(b) auf`);
+
+const cComparer = C(`
+public class NachName : IComparer<Geraet>
+{
+    public int Compare(Geraet? a, Geraet? b)
+    {
+        return string.Compare(a?.Name, b?.Name);
+    }
+}
+
+geraete.Sort();                    // IComparable: die EINE natürliche Ordnung
+geraete.Sort(new NachName());      // IComparer: eine von VIELEN Strategien
+
+// das gleiche als Lambda – ohne eigene Klasse
+geraete.Sort((a, b) => a.Name.CompareTo(b.Name));`);
+
+const cDispose = C(`
+public class Logdatei : IDisposable
+{
+    private StreamWriter _writer;
+    public Logdatei(string pfad)
+    {
+        _writer = new StreamWriter(pfad);
+        Console.WriteLine("🔓 Datei geöffnet");
+    }
+    public void Schreiben(string text) { _writer.WriteLine(text); }
+    public void Dispose()
+    {
+        _writer.Dispose();                     // Datei freigeben
+        Console.WriteLine("🔒 Datei geschlossen");
+    }
+}
+
+using (Logdatei log = new Logdatei("log.txt"))
+{
+    log.Schreiben("Start");
+    throw new InvalidOperationException("Absturz!");
+}   // Dispose() wird HIER aufgerufen – auch bei einer Exception`);
+
+const cUsing = C(`
+// using ist nur eine Kurzschreibweise für:
+Logdatei log = new Logdatei("log.txt");
+try
+{
+    log.Schreiben("Start");
+}
+finally
+{
+    log.Dispose();               // finally läuft IMMER
+}
+
+// noch kürzer: gilt bis zum Ende des Blocks / der Methode
+using Logdatei log2 = new Logdatei("log2.txt");`);
+
+const cGegen = C(`
+// ❌ gegen eine KLASSE programmiert
+public class Alarmanlage
+{
+    private Thermometer _sensor = new Thermometer();   // fest verdrahtet
+    public bool Pruefen() { return _sensor.Messen() > 30; }
+}
+
+// ✅ gegen ein INTERFACE programmiert
+public class Alarmanlage
+{
+    private ISensor _sensor;
+    public Alarmanlage(ISensor sensor) { _sensor = sensor; }
+    public bool Pruefen() { return _sensor.Messen() > 30; }
+}`);
+
+const cDI = C(`
+public class Rauchmelder : ISensor
+{
+    public string Name => "Rauchmelder";
+    public double Messen() { return 55; }
+}
+
+public class FakeSensor : ISensor           // zum Testen
+{
+    public double Wert { get; set; }
+    public string Name => "Fake";
+    public double Messen() { return Wert; }
+}
+
+// Dependency Injection: die Abhängigkeit wird von AUSSEN hineingegeben
+Alarmanlage a1 = new Alarmanlage(new Thermometer());
+Alarmanlage a2 = new Alarmanlage(new Rauchmelder());
+Alarmanlage test = new Alarmanlage(new FakeSensor { Wert = 99 });
+Console.WriteLine(a1.Pruefen() + " " + a2.Pruefen() + " " + test.Pruefen());`);
+
+const cIoC = C(`
+// ❌ ohne IoC: die Alarmanlage entscheidet selbst, WAS sie verwendet
+//    -> new Thermometer() steckt IN der Klasse
+
+// ✅ IoC: die Kontrolle wird umgedreht – Program entscheidet
+// "Composition Root": hier wird ALLES zusammengesteckt
+ISensor sensor = new Thermometer();
+Alarmanlage anlage = new Alarmanlage(sensor);
+
+// IoC kennt ihr schon: "Don't call us, we call you"
+geraete.Sort();      // WIR rufen Sort auf ...
+                     // ... aber SORT ruft UNSER CompareTo auf
+
+// in großen Programmen erledigt das ein DI-Container
+var services = new ServiceCollection();
+services.AddSingleton<ISensor, Thermometer>();
+services.AddSingleton<Alarmanlage>();`);
+
+// ===================== Folien =====================
+const chapters = ['Was ist ein Interface?', 'Arten', 'Sortieren', 'IDisposable', 'Gegen ein Interface', 'Dependency Injection', 'Inversion of Control', 'Zusammenfassung'];
+
+const steps = [
+// ---------- 0 ----------
+{ ch: 0, title: 'Ein Interface ist ein Vertrag', code: cWas, hl: [],
+  text: `<p>Ein <b>Interface</b> beschreibt, was eine Klasse <b>kann</b> – aber nicht, <b>wie</b>. Es enthält nur die <b>Köpfe</b> von Methoden und Properties. Eine Klasse, die das Interface umsetzt, <b>muss</b> alle diese Mitglieder schreiben, sonst gibt es einen Compilerfehler.</p>
+<p>Man kann von einem Interface <b>kein Objekt</b> erzeugen. Aber man kann es als <b>Typ einer Variable</b> verwenden: <code>ISensor s</code> darf auf <b>jedes</b> Objekt zeigen, das den Vertrag erfüllt. Über <code>s</code> sieht man nur, was im Vertrag steht.</p>
+<p>Konvention: Interfaces beginnen mit <b>I</b> und beschreiben oft eine Fähigkeit: <code>IComparable</code> = „vergleichbar“, <code>IDisposable</code> = „wegräumbar“.</p>`,
+  render(st) {
+    const sc = scene();
+    const v = el('div', 'cls'); v.id = 'ifc'; v.style.borderStyle = 'dashed';
+    v.innerHTML = '<div class="clshead">«interface»<br>ISensor</div><div class="clssec">Name : string<br>Messen() : double</div>';
+    const k = hid(objCard('th', '<u>:Thermometer</u>', [['Name', '"Thermometer"']], ['Messen()']));
+    const var_ = hid(vbox('vs', 'ISensor s', '→', 'ref'));
+    const row = wrap('row', [var_, k, v]); row.style.gap = '70px'; row.style.flexWrap = 'nowrap';
+    sc.appendChild(wrap('col', [row, Object.assign(hid(el('div', 'errbox', '❌ CS0144: Es kann keine Instanz des abstrakten Typs oder der Schnittstelle "ISensor" erstellt werden.')), { id: 'err' }), konsole('k'), infoBox()])); st.appendChild(sc);
+    const code = steps[cur].code;
+    return seq([
+      () => { H(code, 'interface ISensor', 'double Messen()'); say('Der Vertrag: Jeder Sensor hat einen Namen und kann messen. <b>Wie</b> gemessen wird, steht hier nicht.'); },
+      () => { H(code, 'class Thermometer : ISensor'); show_('th'); link(sc, 'th', 'ifc', { color: 'var(--x)', dash: true, label: 'setzt um' }); say('Thermometer <b>unterschreibt</b> den Vertrag und schreibt die Inhalte.'); },
+      () => { H(code, 'ISensor s ='); show_('vs'); link(sc, 'vs', 'th'); say('Die Variable hat den Typ des <b>Interfaces</b>, zeigt aber auf ein echtes Thermometer-Objekt.'); },
+      () => { H(code, 's.Messen()'); blinkM('th', 'Messen'); print('k', '21,5'); say('Über s ruft man Messen() auf – ausgeführt wird die Methode des Thermometers.'); },
+      () => { H(code, 'new ISensor()'); show_('err'); say('Ein Vertrag allein misst nichts – darum kein <code>new ISensor()</code>.'); },
+    ]);
+  } },
+{ ch: 0, title: 'Interface oder abstrakte Klasse?', code: cVsAbstract, hl: [],
+  text: `<p>Beides sind „unfertige“ Typen, von denen man kein Objekt erzeugen kann. Der Unterschied liegt in der <b>Beziehung</b>:</p>
+<table class="t"><tr><th></th><th>abstrakte Klasse</th><th>Interface</th></tr>
+<tr><td>Beziehung</td><td><b>ist-ein</b> (ein E-Auto <i>ist ein</i> Fahrzeug)</td><td><b>kann</b> (ein E-Auto <i>kann</i> geladen werden)</td></tr>
+<tr><td>wie viele?</td><td>genau <b>eine</b> Basisklasse</td><td><b>beliebig viele</b></td></tr>
+<tr><td>Felder / Zustand</td><td>✅</td><td>❌</td></tr>
+<tr><td>gemeinsamer Code</td><td>✅</td><td>❌ (fast nie)</td></tr>
+<tr><td>Schlüsselwort</td><td><code>abstract</code> + <code>override</code></td><td>einfach umsetzen</td></tr></table>
+<p><b>Faustregel:</b> Haben die Klassen gemeinsamen <b>Zustand und Code</b> → abstrakte Klasse. Geht es nur um eine <b>Fähigkeit</b>, die auch ganz verschiedene Klassen haben können (ein Handy, ein E-Auto und eine Powerbank sind alle <code>IAufladbar</code>) → Interface.</p>`,
+  render(st) {
+    const ifs = wrap('row', [el('div', 'pill hat', '«interface»<br>IAufladbar'), el('div', 'pill hat', '«interface»<br>IVernetzt')]);
+    st.appendChild(wrap('col', [wrap('row', [el('div', 'pill konstr', '«abstract»<br>Fahrzeug'), ifs]), el('div', 'ar k', '▲ ist-ein &nbsp; ▲ kann &nbsp; ▲ kann'), el('div', 'pill', 'EAuto'), el('div', 'lbl', 'eine Basisklasse · beliebig viele Interfaces')]));
+  } },
+
+// ---------- 1: Arten ----------
+{ ch: 1, title: 'Welche Arten von Interfaces gibt es?', code: cArten, hl: [],
+  text: `<p>Interfaces werden für vier verschiedene <b>Zwecke</b> verwendet. Die Syntax ist immer gleich – die <b>Rolle</b> ist verschieden:</p>
+<p><b>1. Fähigkeit</b> („Ich kann …“): Die Klasse selbst setzt es um. <code>IComparable</code>, <code>IDisposable</code>, <code>IEquatable</code>, <code>IEnumerable</code>.<br>
+<b>2. Strategie</b> („So macht man …“): Eine kleine, eigene Klasse beschreibt eine austauschbare Regel. <code>IComparer</code>, <code>IEqualityComparer</code>.<br>
+<b>3. Sicht</b> („Du darfst nur …“): Als Rückgabetyp, um weniger herzuzeigen. <code>IReadOnlyList</code>, <code>IEnumerable</code>, <code>IReadOnlyDictionary</code>.<br>
+<b>4. Dienst / Abhängigkeit</b> („Ich brauche jemanden, der …“): Eigene Interfaces wie <code>ISensor</code>, <code>ILogger</code>, <code>IRepository</code> – die Grundlage für <b>Dependency Injection</b>.</p>`,
+  render(st) {
+    const zeilen = [
+      ['🦸 Fähigkeit', 'IComparable · IDisposable · IEquatable · IEnumerable', 'class Geraet : IComparable'],
+      ['🧭 Strategie', 'IComparer · IEqualityComparer', 'Sort(new NachName())'],
+      ['🪟 Sicht', 'IReadOnlyList · IEnumerable · IReadOnlyDictionary', 'public IReadOnlyList<…> Liste'],
+      ['🔌 Dienst', 'ISensor · ILogger · IRepository (eigene)', 'new Alarmanlage(ISensor)'],
+    ];
+    const t = el('table', 't'); t.innerHTML = '<tr><th>Art</th><th>Beispiele</th><th>so sieht man es</th></tr>' + zeilen.map((z, i) => `<tr id="art${i}" style="opacity:.25;transition:opacity .4s"><td><b>${z[0]}</b></td><td><code>${esc(z[1])}</code></td><td><code>${esc(z[2])}</code></td></tr>`).join('');
+    st.appendChild(wrap('col', [t, infoBox()]));
+    const code = steps[cur].code;
+    const zeig = (i, hl, t) => { H(code, hl); $('art' + i).style.opacity = 1; say(t); };
+    return seq([
+      () => zeig(0, 'IComparable<Geraet>, IDisposable', 'Die Klasse sagt über sich selbst: <b>ich kann</b> mich vergleichen, ich kann aufgeräumt werden.'),
+      () => zeig(1, 'IComparer<Geraet>', 'Eine eigene Klasse, nur um eine <b>Regel</b> zu transportieren. Austauschbar wie ein Werkzeug.'),
+      () => zeig(2, 'IReadOnlyList', 'Intern eine List, nach außen nur eine <b>schreibgeschützte Sicht</b> – Datenkapselung mit Interfaces.'),
+      () => zeig(3, 'ISensor sensor', 'Die Alarmanlage braucht <b>irgendeinen</b> Sensor. Welchen, entscheidet jemand anderer → Dependency Injection.'),
+    ]);
+  } },
+
+// ---------- 2: Sortieren ----------
+{ ch: 2, title: 'IComparable<T>: sich selbst vergleichen', code: cSort, hl: [],
+  text: `<p><code>List.Sort()</code> ist ein fertiger Algorithmus. Er weiß aber nicht, ob ein Router vor einem Drucker kommt. Darum fragt er <b>immer zwei Elemente</b>: <code>a.CompareTo(b)</code>.</p>
+<p>Das Ergebnis ist eine Zahl: <b>&lt; 0</b> a kommt vorher · <b>0</b> gleich · <b>&gt; 0</b> a kommt nachher. <code>int</code>, <code>string</code>, <code>double</code> setzen <code>IComparable</code> schon um – darum können wir einfach <code>PingMs.CompareTo(…)</code> weitergeben.</p>
+<p>Ohne das Interface wirft <code>Sort()</code> eine <b>InvalidOperationException</b>: „At least one object must implement IComparable.“</p>`,
+  render(st) {
+    let A = [['Router', 110], ['Drucker', 120], ['Laptop', 95], ['Beamer', 80]];
+    const fmt = a => a.map(g => `${g[0]} ${g[1]}`);
+    st.appendChild(wrap('col', [lab('geraete'), arrRow('L', fmt(A), 4), Object.assign(el('div', 'okbox', ''), { id: 'cmp' }), counter('cv', 'CompareTo-Aufrufe'), infoBox()]));
+    const wide = () => document.querySelectorAll('.cell[id^="L-"]').forEach(c => { c.style.width = 'auto'; c.style.minWidth = '110px'; c.style.fontSize = '15px'; });
+    wide(); hide_('cmp');
+    // Insertion Sort, Schritt für Schritt
+    const acts = [() => { H(steps[cur].code, 'geraete.Sort()'); say('Sort() startet. Er kennt die Geräte nicht – er kann nur <b>fragen</b>.'); }];
+    let n = 0;
+    for (let i = 1; i < A.length; i++) {
+      for (let j = i; j > 0; j--) {
+        const a = A[j], b = A[j - 1], r = Math.sign(a[1] - b[1]);
+        const snap = A.map(x => x.slice()); const jj = j; n++; const nn = n;
+        acts.push(() => { H(steps[cur].code, 'PingMs.CompareTo'); setArr('L', fmt(snap), 4, { [jj]: 'colhot', [jj - 1]: 'colhot' }); wide(); const c = $('cmp'); c.classList.remove('hidden'); c.textContent = `${a[0]}.CompareTo(${b[0]})  →  ${a[1]}.CompareTo(${b[1]}) = ${r}`; setCount('cv', nn); say(r < 0 ? `${r} &lt; 0 → ${a[0]} kommt <b>vor</b> ${b[0]} → tauschen.` : `${r} ≥ 0 → Reihenfolge passt.`); });
+        if (r < 0) { A[j] = b; A[j - 1] = a; const s2 = A.map(x => x.slice()); acts.push(() => { setArr('L', fmt(s2), 4, { [jj - 1]: 'hot' }); wide(); }); } else break;
+      }
+    }
+    acts.push(() => { setArr('L', fmt(A), 4, { 0: 'hot', 1: 'hot', 2: 'hot', 3: 'hot' }); wide(); hide_('cmp'); say(`Sortiert – mit ${n} Fragen an <b>unser</b> CompareTo.`); });
+    return seq(acts, 1100);
+  } },
+{ ch: 2, title: 'IComparer<T>: die austauschbare Regel', code: cComparer, hl: [],
+  text: `<p>Ein Gerät kann nur <b>ein</b> <code>CompareTo</code> haben – die „natürliche“ Ordnung. Für jede weitere Sortierung schreiben wir eine kleine Klasse, die <code>IComparer&lt;Geraet&gt;</code> umsetzt. Sie vergleicht zwei <b>fremde</b> Objekte <code>a</code> und <code>b</code>.</p>
+<table class="t"><tr><th></th><th>IComparable&lt;T&gt;</th><th>IComparer&lt;T&gt;</th></tr>
+<tr><td>Art</td><td>Fähigkeit</td><td>Strategie</td></tr>
+<tr><td>steht</td><td>in der Klasse selbst</td><td>in einer eigenen Klasse</td></tr>
+<tr><td>Methode</td><td><code>CompareTo(other)</code></td><td><code>Compare(a, b)</code></td></tr>
+<tr><td>Anzahl</td><td>genau eine</td><td>beliebig viele</td></tr>
+<tr><td>Aufruf</td><td><code>Sort()</code></td><td><code>Sort(new NachName())</code></td></tr></table>
+<p>Später schreibt man kurze Regeln oft als <b>Lambda</b> – das ist nur eine Kurzform für dieselbe Idee.</p>`,
+  render(st) {
+    const A = [['Router', 110], ['Drucker', 120], ['Laptop', 95], ['Beamer', 80]];
+    const fmt = a => a.map(g => `${g[0]} ${g[1]}`);
+    st.appendChild(wrap('col', [arrRow('L', fmt(A), 4), Object.assign(el('div', 'pill', 'Sort()'), { id: 'wie' }), infoBox()]));
+    const wide = () => document.querySelectorAll('.cell[id^="L-"]').forEach(c => { c.style.width = 'auto'; c.style.minWidth = '110px'; c.style.fontSize = '15px'; });
+    wide();
+    const code = steps[cur].code;
+    return seq([
+      () => { H(code, 'geraete.Sort();'); setArr('L', fmt([...A].sort((a, b) => a[1] - b[1])), 4, { 0: 'hot', 1: 'hot', 2: 'hot', 3: 'hot' }); wide(); $('wie').textContent = 'Sort()  →  CompareTo  →  nach Ping'; say('Ohne Argument: die natürliche Ordnung aus IComparable.'); },
+      () => { H(code, 'new NachName()'); setArr('L', fmt([...A].sort((a, b) => a[0].localeCompare(b[0]))), 4, { 0: 'hot', 1: 'hot', 2: 'hot', 3: 'hot' }); wide(); $('wie').textContent = 'Sort(new NachName())  →  Compare(a, b)  →  nach Name'; say('Gleiche Liste, gleicher Algorithmus – nur die <b>Regel</b> ist ausgetauscht.'); },
+      () => { H(code, 'Sort((a, b)'); $('wie').textContent = 'Sort((a, b) => …)  →  dieselbe Regel, ohne Klasse'; say('Das Lambda ist ein IComparer in Kurzform.'); },
+    ]);
+  } },
+
+// ---------- 3: IDisposable ----------
+{ ch: 3, title: 'IDisposable: Ressourcen sicher freigeben', code: cDispose, hl: [],
+  text: `<p>Manche Objekte halten etwas fest, das <b>nicht</b> der Garbage Collector verwaltet: eine offene <b>Datei</b>, eine <b>Netzwerk-</b> oder <b>Datenbankverbindung</b>. Solange sie offen ist, kann z. B. kein anderes Programm die Datei verwenden.</p>
+<p>Wer so etwas festhält, setzt <code>IDisposable</code> um und gibt es in <code>Dispose()</code> wieder frei. Mit <code>using</code> ruft C# <code>Dispose()</code> <b>automatisch</b> am Ende des Blocks auf – <b>auch dann, wenn eine Exception fliegt</b>.</p>
+<p>Fertige Klassen mit <code>IDisposable</code>, die ihr schon kennt: <code>StreamWriter</code>, <code>StreamReader</code>, <code>FileStream</code>, <code>HttpClient</code>.</p>`,
+  render(st) {
+    const datei = el('div', 'cell', '📄'); datei.id = 'dat'; datei.style.width = '120px'; datei.style.fontSize = '18px';
+    st.appendChild(wrap('col', [wrap('row', [lab('log.txt'), datei]), konsole('k'), Object.assign(hid(el('div', 'errbox', '💥 InvalidOperationException: Absturz!')), { id: 'err' }), infoBox()]));
+    const d = (t, c) => { const e = $('dat'); e.textContent = t; e.className = 'cell pop ' + (c || ''); e.style.width = '120px'; e.style.fontSize = '18px'; };
+    const code = steps[cur].code;
+    return seq([
+      () => { H(code, 'using (Logdatei'); d('🔓 offen', 'colhot'); print('k', '🔓 Datei geöffnet'); say('Der Konstruktor öffnet die Datei. Ab jetzt ist sie <b>gesperrt</b>.'); },
+      () => { H(code, 'log.Schreiben("Start")'); d('🔓 Start', 'colhot'); say('Normal arbeiten.'); },
+      () => { H(code, 'throw new'); show_('err'); shake('err'); say('Eine Exception! Ohne using bliebe die Datei jetzt offen …'); },
+      () => { H(code, '}   // Dispose()', 'public void Dispose()'); d('🔒 zu', 'hot'); print('k', '🔒 Datei geschlossen'); say('… aber <code>using</code> ruft <b>trotzdem</b> Dispose() auf, bevor die Exception weiterfliegt.'); },
+    ]);
+  } },
+{ ch: 3, title: 'Was macht using eigentlich?', code: cUsing, hl: [],
+  text: `<p><code>using</code> ist keine Magie, sondern eine <b>Kurzschreibweise</b> für <code>try</code> / <code>finally</code>. Der <code>finally</code>-Block läuft <b>immer</b> – nach normalem Ende, nach <code>return</code> und nach einer Exception.</p>
+<p>Darum funktioniert <code>using</code> nur mit Typen, die <code>IDisposable</code> umsetzen: Der Compiler muss sich darauf verlassen können, dass es eine Methode <code>Dispose()</code> gibt. Genau das garantiert der <b>Vertrag</b>.</p>
+<p>Die moderne Form <code>using Logdatei log2 = …;</code> (ohne Klammern) gibt am Ende der umschließenden Methode frei.</p>`,
+  render(st) {
+    st.appendChild(wrap('col', [wrap('row', [el('div', 'pill', 'using (x) { … }'), el('div', 'ar k', '='), el('div', 'pill', 'try { … } finally { x.Dispose(); }')]), el('div', 'lbl', 'using setzt IDisposable voraus – sonst Compilerfehler CS1674')]));
+  } },
+
+// ---------- 4: Gegen ein Interface programmieren ----------
+{ ch: 4, title: 'Gegen ein Interface programmieren', code: cGegen, hl: [],
+  text: `<p>Die erste Alarmanlage ist <b>fest verdrahtet</b>: Sie kennt die <b>Klasse</b> <code>Thermometer</code> und erzeugt sie selbst. Will man einen Rauchmelder, muss man die Alarmanlage umschreiben. Testen geht nur mit einem echten Thermometer.</p>
+<p>Die zweite Alarmanlage kennt nur den <b>Vertrag</b> <code>ISensor</code>. Sie verlässt sich darauf, dass es <code>Messen()</code> gibt – <b>welcher</b> Sensor dahintersteckt, ist ihr egal.</p>
+<p><b>Merksatz:</b> Programmiere gegen das <b>Was</b> (Interface), nicht gegen das <b>Wie</b> (Klasse). Das kennt ihr schon: <code>IEnumerable&lt;T&gt;</code> als Parametertyp nimmt Listen, Arrays, Sets …</p>`,
+  render(st) {
+    const sc = scene();
+    const al = el('div', 'pill'); al.id = 'al'; al.textContent = 'Alarmanlage';
+    const th = el('div', 'pill'); th.id = 'th'; th.textContent = 'Thermometer';
+    const rm = hid(el('div', 'pill')); rm.id = 'rm'; rm.textContent = 'Rauchmelder';
+    const is = hid(el('div', 'pill hat')); is.id = 'is'; is.innerHTML = '«interface»<br>ISensor';
+    const right = wrap('col', [is, wrap('row', [th, rm])]); right.style.gap = '60px';
+    const row = wrap('row', [al, right]); row.style.gap = '120px'; row.style.flexWrap = 'nowrap';
+    sc.appendChild(wrap('col', [row, infoBox()])); st.appendChild(sc);
+    const code = steps[cur].code;
+    return seq([
+      () => { H(code, 'new Thermometer();   // fest'); link(sc, 'al', 'th', { color: 'var(--bad)', label: 'kennt + erzeugt' }); say('Die Alarmanlage hängt direkt an <b>einer</b> konkreten Klasse.'); },
+      () => { show_('rm'); shake('al'); say('Neuer Sensor? → Alarmanlage ändern, neu kompilieren, neu testen. 😩'); },
+      () => { H(code, 'private ISensor _sensor', 'Alarmanlage(ISensor sensor)'); unlink(sc, 'al'); show_('is'); link(sc, 'al', 'is', { label: 'kennt nur den Vertrag' }); link(sc, 'th', 'is', { color: 'var(--x)', dash: true, from: 'top', to: 'bottom' }); link(sc, 'rm', 'is', { color: 'var(--x)', dash: true, from: 'top', to: 'bottom' }); say('Jetzt zeigen <b>alle</b> Pfeile zum Interface. Die Alarmanlage kennt keinen einzigen konkreten Sensor mehr.'); },
+    ]);
+  } },
+
+// ---------- 5: Dependency Injection ----------
+{ ch: 5, title: 'Dependency Injection: Abhängigkeiten hineingeben', code: cDI, hl: [],
+  text: `<p>Die Alarmanlage <b>braucht</b> einen Sensor – das ist ihre <b>Abhängigkeit</b> (Dependency). Statt sie selbst mit <code>new</code> zu erzeugen, bekommt sie sie von <b>außen</b> über den Konstruktor <b>hineingegeben</b> (injiziert).</p>
+<p>Vorteile:<br>
+• <b>austauschbar</b>: dieselbe Alarmanlage mit Thermometer, Rauchmelder, …<br>
+• <b>testbar</b>: Ein <code>FakeSensor</code> liefert genau den Wert, den wir testen wollen – ohne echte Hardware, ohne auf 30 °C zu warten.<br>
+• <b>klar</b>: Am Konstruktor sieht man sofort, was eine Klasse braucht.</p>
+<p>Das ist <b>Konstruktor-Injection</b>, die häufigste Form.</p>`,
+  render(st) {
+    const sc = scene();
+    const mk = (id, txt) => { const p = el('div', 'pill'); p.id = id; p.innerHTML = txt; return p; };
+    const anl = wrap('col', [mk('a1', 'a1 : Alarmanlage'), mk('a2', 'a2 : Alarmanlage'), mk('a3', 'test : Alarmanlage')]); anl.style.gap = '30px';
+    const sens = wrap('col', [hid(mk('s1', ':Thermometer 21,5')), hid(mk('s2', ':Rauchmelder 55')), hid(mk('s3', ':FakeSensor 99'))]); sens.style.gap = '30px';
+    const row = wrap('row', [anl, sens]); row.style.gap = '120px'; row.style.flexWrap = 'nowrap';
+    sc.appendChild(wrap('col', [row, konsole('k'), infoBox()])); st.appendChild(sc);
+    const code = steps[cur].code;
+    return seq([
+      () => { H(code, 'a1 = new Alarmanlage'); show_('s1'); link(sc, 'a1', 's1', { label: 'ISensor' }); say('Program erzeugt den Sensor und <b>gibt ihn hinein</b>.'); },
+      () => { H(code, 'a2 = new Alarmanlage'); show_('s2'); link(sc, 'a2', 's2', { label: 'ISensor' }); say('Gleiche Klasse Alarmanlage – anderer Sensor. Keine Zeile in Alarmanlage geändert.'); },
+      () => { H(code, 'test = new Alarmanlage', 'class FakeSensor'); show_('s3'); link(sc, 'a3', 's3', { label: 'ISensor', color: 'var(--ok)' }); say('Zum Testen ein <b>Fake</b>: Wir bestimmen den Messwert selbst.'); },
+      () => { H(code, 'a1.Pruefen()'); print('k', 'False True True'); say('21,5 &gt; 30? nein · 55 &gt; 30? ja · 99 &gt; 30? ja.'); },
+    ]);
+  } },
+
+// ---------- 6: Inversion of Control ----------
+{ ch: 6, title: 'Inversion of Control: die Kontrolle umdrehen', code: cIoC, hl: [],
+  text: `<p><b>Inversion of Control</b> (IoC, „Umkehr der Kontrolle“) ist das Prinzip hinter Dependency Injection: Nicht die Klasse entscheidet, <b>womit</b> sie arbeitet, sondern jemand <b>außerhalb</b>. Die Kontrolle wird umgedreht.</p>
+<p>Alles wird an <b>einer</b> Stelle zusammengesteckt, der <b>Composition Root</b> – bei uns <code>Program.cs</code>. Die Klassen selbst kennen nur Interfaces.</p>
+<p>IoC habt ihr beim Sortieren schon erlebt: <b>„Don't call us, we call you“</b>. Wir rufen <code>Sort()</code> auf, aber <b>Sort</b> ruft <b>unser</b> <code>CompareTo</code> auf. Wir liefern nur das Stück, das fehlt.</p>
+<p>In großen Programmen (ASP.NET, MAUI) übernimmt ein <b>DI-Container</b> das Zusammenstecken: Man meldet an, welches Interface von welcher Klasse erfüllt wird, und der Container erzeugt alles selbst.</p>`,
+  render(st) {
+    const vorher = wrap('col', [lab('ohne IoC'), el('div', 'pill', 'Alarmanlage'), el('div', 'ar bad', '↓ new'), el('div', 'pill', 'Thermometer')]);
+    const nachher = wrap('col', [lab('mit IoC'), el('div', 'pill hat', 'Program.cs (Composition Root)'), el('div', 'ar ok', '↓ new &nbsp;&nbsp;&nbsp; ↓ new + hineingeben'), wrap('row', [el('div', 'pill', 'Thermometer'), el('div', 'ar k', '→'), el('div', 'pill', 'Alarmanlage(ISensor)')])]);
+    const sort = wrap('col', [lab('IoC beim Sortieren'), el('div', 'pill', 'Program'), el('div', 'ar k', '↓ Sort()'), el('div', 'pill', 'List&lt;T&gt;.Sort'), el('div', 'ar ok', '↓ ruft zurück: CompareTo'), el('div', 'pill hat', 'Geraet.CompareTo')]);
+    const row = wrap('row top', [vorher, nachher, sort]); row.style.gap = '50px';
+    st.appendChild(row);
+  } },
+
+// ---------- 7: Zusammenfassung ----------
+{ ch: 7, title: 'Zusammenfassung', code: C(`
+interface ISensor { double Messen(); }               // Vertrag
+class Geraet : IComparable<Geraet>, IDisposable { }  // Fähigkeiten
+class NachName : IComparer<Geraet> { }               // Strategie
+IReadOnlyList<Geraet> Warteschlange { get; }         // Sicht
+new Alarmanlage(new Thermometer());                  // Dependency Injection`), hl: [],
+  text: `<p><b>Merksätze:</b></p>
+<p>1. Ein Interface ist ein <b>Vertrag</b>: was eine Klasse <b>kann</b>, nicht wie. Eine Klasse kann <b>viele</b> Interfaces umsetzen.<br>
+2. <b>IComparable</b> = sich selbst vergleichen (eine Ordnung), <b>IComparer</b> = austauschbare Vergleichsregel (viele).<br>
+3. <b>IDisposable</b> + <code>using</code> = Ressourcen freigeben, auch bei Exceptions.<br>
+4. Programmiere <b>gegen ein Interface</b>, nicht gegen eine Klasse.<br>
+5. <b>Dependency Injection</b>: Abhängigkeiten über den Konstruktor hineingeben.<br>
+6. <b>Inversion of Control</b>: Nicht die Klasse entscheidet, womit sie arbeitet – das Programm (oder ein Framework) entscheidet und ruft zurück.</p>`,
+  render(st) {
+    st.appendChild(el('table', 't pop', `<tr><th>Art</th><th>Interface</th><th>Methode(n)</th><th>wer ruft auf?</th></tr>
+<tr><td>Fähigkeit</td><td><code>IComparable&lt;T&gt;</code></td><td><code>CompareTo(other)</code></td><td><code>Sort</code>, <code>Max</code>, <code>Min</code></td></tr>
+<tr><td>Strategie</td><td><code>IComparer&lt;T&gt;</code></td><td><code>Compare(a, b)</code></td><td><code>Sort(comparer)</code></td></tr>
+<tr><td>Fähigkeit</td><td><code>IDisposable</code></td><td><code>Dispose()</code></td><td><code>using</code></td></tr>
+<tr><td>Sicht</td><td><code>IReadOnlyList&lt;T&gt;</code></td><td>Indexer, <code>Count</code></td><td>wer die Liste von außen liest</td></tr>
+<tr><td>Dienst</td><td><code>ISensor</code> (eigenes)</td><td><code>Messen()</code></td><td>die Klasse, der er injiziert wurde</td></tr>`));
+  } },
+];
+
+// ===================== Navigation =====================
+let cur = 0, ctrl = null;
+function buildTabs() {
+  chapters.forEach((c, i) => {
+    const b = el('button', '', (i + 1) + '. ' + c);
+    b.onclick = () => show(steps.findIndex(s => s.ch === i));
+    $('tabs').appendChild(b);
+  });
+}
+function show(i) {
+  clearTimers();
+  cur = Math.max(0, Math.min(steps.length - 1, i));
+  const s = steps[cur];
+  document.querySelectorAll('#tabs button').forEach((b, k) => b.classList.toggle('active', k === s.ch));
+  $('title').textContent = s.title;
+  $('counter').textContent = `Schritt ${cur + 1} / ${steps.length}`;
+  $('text').innerHTML = s.text;
+  renderCode(s.code, s.hl);
+  const st = $('stage'); st.innerHTML = ''; st.style.flexDirection = ''; st.style.gap = '';
+  ctrl = s.render(st) || null;
+  $('autoBtn').disabled = !(ctrl && ctrl.auto);
+}
+function go(d) { if (d > 0 && ctrl && ctrl.next && ctrl.next()) return; show(cur + d); }
+function runAuto() { if (ctrl && ctrl.auto) { $('autoBtn').disabled = true; ctrl.auto(); } }
+function replay() { show(cur); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+  if (e.key === 'r' || e.key === 'R') replay();
+  if (e.key === 'p' || e.key === 'P') togglePresenter();
+  if (e.key === '1' || e.key === '2' || e.key === '3') setView(Number(e.key) - 1);
+});
+// ===================== Trennlinien mit der Maus verschieben =====================
+function dragger(handle, onMove) {
+  handle.addEventListener('pointerdown', e => {
+    e.preventDefault(); handle.setPointerCapture(e.pointerId); handle.classList.add('drag'); document.body.classList.add('dragging');
+    const mv = ev => onMove(ev);
+    const up = () => { handle.removeEventListener('pointermove', mv); handle.removeEventListener('pointerup', up); handle.classList.remove('drag'); document.body.classList.remove('dragging'); redrawAll(); };
+    handle.addEventListener('pointermove', mv); handle.addEventListener('pointerup', up);
+  });
+}
+dragger($('sv'), e => {
+  const r = $('content').getBoundingClientRect();
+  const pct = Math.max(15, Math.min(75, (e.clientX - r.left) / r.width * 100));
+  $('left').style.width = pct + '%'; $('right').style.width = 'auto'; $('right').style.flex = '1';
+  redrawAll();
+});
+dragger($('sh'), e => {
+  const r = $('right').getBoundingClientRect();
+  const y = Math.max(80, Math.min(r.height - 60, e.clientY - r.top));
+  $('stage').parentElement.style.flex = String(y); $('text').parentElement.style.flex = String(r.height - y);
+  redrawAll();
+});
+function redrawAll() { document.querySelectorAll('.scene').forEach(redraw); }
+// ===================== Presenter-Modus und Ansicht =====================
+let presenter = false, view = 0;   // 0 = Code + Animation, 1 = nur Animation, 2 = nur Code
+function applyLayout() {
+  const L = $('left'), R = $('right'), sp = $('stage').parentElement, tp = $('text').parentElement;
+  if (presenter) { L.style.width = '30%'; R.style.width = '70%'; R.style.flex = 'none'; sp.style.flex = '1'; }
+  else { L.style.width = '40%'; R.style.width = '60%'; R.style.flex = ''; sp.style.flex = '1.9'; tp.style.flex = '1'; }
+  tp.style.display = presenter ? 'none' : ''; $('sh').style.display = presenter ? 'none' : '';
+  L.style.display = view === 1 ? 'none' : ''; $('sv').style.display = view === 0 ? '' : 'none'; R.style.display = view === 2 ? 'none' : '';
+  if (view === 1) { R.style.width = '100%'; R.style.flex = '1'; }
+  if (view === 2) { L.style.width = '100%'; }
+  $('presBtn').classList.toggle('on', presenter); [0, 1, 2].forEach(k => $('vb' + k).classList.toggle('on', view === k));
+  setTimeout(redrawAll, 50);
+}
+function togglePresenter() { presenter = !presenter; applyLayout(); }
+function setView(v) { view = v; applyLayout(); }
+window.addEventListener('resize', redrawAll);
+
+buildTabs();
+show(0);
+applyLayout();
+</script>
+</body>
+</html>
