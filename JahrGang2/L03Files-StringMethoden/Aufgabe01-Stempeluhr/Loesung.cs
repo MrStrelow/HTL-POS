@@ -74,11 +74,17 @@ for (int i = 0; i < anzahlPersonen; i++)
 int breite = BerechneSpaltenbreite(gueltigeNamen);
 
 string[] ausgabe = new string[anzahlPersonen + 1];
+int anzahlAusgabe = 0;
+
 // links, rechts und n weggelassen -> Default-Werte '=', '=' und 10
-ausgabe[0] = ErzeugeUeberschrift("Arbeitszeiten");
+ausgabe[anzahlAusgabe] = ErzeugeUeberschrift("Arbeitszeiten");
+anzahlAusgabe++;
+
+// for: gueltigeNamen und summen haben denselben Index
 for (int i = 0; i < anzahlPersonen; i++)
 {
-    ausgabe[i + 1] = FormatiereZeile(namen[i], summen[i], breite);
+    ausgabe[anzahlAusgabe] = FormatiereZeile(gueltigeNamen[i], summen[i], breite);
+    anzahlAusgabe++;
 }
 
 File.WriteAllLines(ausgabePfad, ausgabe);
@@ -101,10 +107,17 @@ string ErzeugeUeberschrift(string s, char links = '=', char rechts = '=', int n 
         return "";
     }
 
-    // "".PadLeft(n, c) fuellt einen leeren String mit n Zeichen c auf -> "<<<<<"
-    string linkerRand = "".PadLeft(n, links);
-    string rechterRand = "".PadLeft(n, rechts);
-    string text = s.Trim().ToUpper();
+    // n-mal das Zeichen anhaengen -> "<<<<<"
+    string linkerRand = "";
+    string rechterRand = "";
+    for (int i = 0; i < n; i++)
+    {
+        linkerRand += links;
+        rechterRand += rechts;
+    }
+
+    string text = s.Trim();
+    text = text.ToUpper();
 
     // Guard ❌: leerer Text -> keine Leerzeichen in der Mitte
     if (text.Length == 0)
@@ -122,7 +135,9 @@ string ErzeugeUeberschrift(string s, char links = '=', char rechts = '=', int n 
 int ZeitInMinuten(string text)
 {
     // Reparatur 🔧: "7.45" und "12,30" sind eindeutig gemeint -> wie "7:45" behandeln
-    text = text.Trim().Replace('.', ':').Replace(',', ':');
+    text = text.Trim();
+    text = text.Replace('.', ':');
+    text = text.Replace(',', ':');
     int pos = text.IndexOf(':');
 
     // Guard ❌: kein Doppelpunkt
@@ -140,8 +155,14 @@ int ZeitInMinuten(string text)
         return -1;
     }
 
-    // Guard ❌: keine Zahlen
-    if (!int.TryParse(stundenText, out int h) || !int.TryParse(minutenText, out int m))
+    // Guard ❌: Stunden sind keine Zahl
+    if (!int.TryParse(stundenText, out int h))
+    {
+        return -1;
+    }
+
+    // Guard ❌: Minuten sind keine Zahl
+    if (!int.TryParse(minutenText, out int m))
     {
         return -1;
     }
@@ -206,7 +227,8 @@ int SummiereZeiten(string[] teile)
             return -1;
         }
 
-        int start = ZeitInMinuten(teile[i].Split('-')[0]);
+        string[] zeiten = teile[i].Split('-');
+        int start = ZeitInMinuten(zeiten[0]);
 
         // Guard ❌: Bereich beginnt, bevor der vorige zu Ende ist (Ueberlappung)
         if (start < letztesEnde)
@@ -234,15 +256,32 @@ int SummiereZeiten(string[] teile)
 // "  mÜLLER anna " -> "Müller Anna"
 string FormatiereName(string text)
 {
-    string[] woerter = text.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+    // Mehrere Leerzeichen hintereinander ("HUBER   max") ergeben leere Woerter "".
+    // Alternativ gibt es die Option text.Split(' ', StringSplitOptions.RemoveEmptyEntries),
+    // die leere Woerter gar nicht erst ins Array aufnimmt.
+    string[] woerter = text.Trim().Split(' ');
+    string ergebnis = "";
 
-    for (int i = 0; i < woerter.Length; i++)
+    foreach (string wort in woerter)
     {
-        string w = woerter[i];
-        woerter[i] = w.Substring(0, 1).ToUpper() + w.Substring(1).ToLower();
+        // Guard ❌: leeres Wort ueberspringen (Substring(0, 1) wuerde sonst abstuerzen)
+        if (wort.Length == 0)
+        {
+            continue;
+        }
+
+        // Leerzeichen nur ZWISCHEN den Woertern
+        if (ergebnis.Length > 0)
+        {
+            ergebnis += " ";
+        }
+
+        string erster = wort.Substring(0, 1).ToUpper();
+        string rest = wort.Substring(1).ToLower();
+        ergebnis += erster + rest;
     }
 
-    return string.Join(" ", woerter);
+    return ergebnis;
 }
 
 // 495 -> "8:15"
@@ -250,13 +289,14 @@ string FormatiereDauer(int minuten)
 {
     int h = minuten / 60;
     int m = minuten % 60;
-    return h + ":" + m.ToString().PadLeft(2, '0');
+    string minuten2 = m.ToString().PadLeft(2, '0');
+    return $"{h}:{minuten2}";
 }
 
-// Laenge des laengsten Namens. Ist er laenger als MaxNamenLaenge (Tippfehler, Copy-Paste ...),
+// Laenge des laengsten Namens. Ist er laenger als maxNamenLaenge (Tippfehler, Copy-Paste ...),
 // zaehlt stattdessen der zweitlaengste – sonst waere die Tabelle fuer alle unlesbar breit.
-// MaxNamenLaenge ist ein Default-Parameter: wer nichts angibt, bekommt 255.
-int BerechneSpaltenbreite(string[] namen, int MaxNamenLaenge = 255)
+// maxNamenLaenge ist ein Default-Parameter: wer nichts angibt, bekommt 255.
+int BerechneSpaltenbreite(string[] namen, int maxNamenLaenge = 255)
 {
     int laengste = 0;
     int zweitLaengste = 0;
@@ -275,7 +315,7 @@ int BerechneSpaltenbreite(string[] namen, int MaxNamenLaenge = 255)
     }
 
     // Guard ❌: Ausreisser -> den zweitlaengsten Namen verwenden
-    if (laengste > MaxNamenLaenge)
+    if (laengste > maxNamenLaenge)
     {
         return zweitLaengste;
     }
@@ -287,11 +327,18 @@ int BerechneSpaltenbreite(string[] namen, int MaxNamenLaenge = 255)
 // Namen laenger als breite werden abgeschnitten und bekommen "..."
 string FormatiereZeile(string name, int minuten, int breite)
 {
-    // Guard ❌: zu langer Name -> abschneiden und "..." anhaengen (dann ist er genau breite + 3 lang)
+    string auslassung = "...";
+
+    // Guard ❌: zu langer Name -> abschneiden und "..." anhaengen
     if (name.Length > breite)
     {
-        name = name.Substring(0, breite) + "...";
+        name = name.Substring(0, breite) + auslassung;
     }
 
-    return name.PadRight(breite + 3) + FormatiereDauer(minuten).PadLeft(6) + " h";
+    // Platz fuer den laengsten Namen + "..." – so stehen alle Dauern untereinander
+    string namensSpalte = name.PadRight(breite + auslassung.Length);
+    // "12:30" hat 5 Zeichen + 1 Leerzeichen Abstand
+    string dauerSpalte = FormatiereDauer(minuten).PadLeft(6);
+
+    return namensSpalte + dauerSpalte + " h";
 }

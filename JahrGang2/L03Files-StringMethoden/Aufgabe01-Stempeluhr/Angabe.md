@@ -1,6 +1,6 @@
 Welche ``Konzepte`` der Programmiersprache üben wir hier?
 * Files mit ``File.ReadAllLines`` einlesen und mit ``File.WriteAllLines`` schreiben, ``File.Exists``
-* ``String-Methoden``: ``Trim``, ``Split``, ``IndexOf``, ``Substring``, ``ToUpper``, ``ToLower``, ``StartsWith``, ``PadLeft``, ``PadRight``, ``string.Join`` (siehe Tabelle am Ende der Angabe)
+* ``String-Methoden``: ``Trim``, ``Split``, ``IndexOf``, ``Substring``, ``ToUpper``, ``ToLower``, ``StartsWith``, ``PadLeft``, ``PadRight`` (siehe Tabelle am Ende der Angabe)
 * ``Guard-Clauses`` mit *early exit*: ungültige Werte melden wir mit dem Rückgabewert ``-1``
 
 Welche ``Denkweisen`` üben wir hier?
@@ -82,7 +82,7 @@ Implementiere ``string ErzeugeUeberschrift(string s, char links = '=', char rech
 Im Hauptprogramm reicht dann ``ErzeugeUeberschrift("Arbeitszeiten")``. Mit ``ErzeugeUeberschrift("Pause", '*', '*')`` werden nur ``links`` und ``rechts`` geändert, ``n`` bleibt ``10``.
 
 Rückgabe = *n-mal* ``links`` + Leerzeichen + ``s`` getrimmt in Großbuchstaben + Leerzeichen + *n-mal* ``rechts``.
-Tipp: ``"".PadLeft(n, links)`` liefert *n-mal* das Zeichen ``links``.
+Tipp: Hänge in einer ``for``-Schleife *n-mal* das Zeichen ``links`` an einen leeren String an: ``linkerRand += links;``.
 
 Guards ❌:
 1. ``n < 0`` → ``""`` zurückgeben.
@@ -198,18 +198,21 @@ Erwarteter Output (Test Schritt 4):
 
 1. ``string FormatiereName(string text)`` – jedes Wort: erster Buchstabe groß, Rest klein.
    ``"  mÜLLER anna "`` → ``"Müller Anna"``, ``"HUBER   max"`` → ``"Huber Max"``.
-   Tipp: ``Split`` mit ``RemoveEmptyEntries``, pro Wort ``Substring(0, 1).ToUpper()`` + ``Substring(1).ToLower()``, dann ``string.Join``.
+   Tipp: ``Split(' ')``. Mehrere Leerzeichen hintereinander ergeben **leere Wörter** ``""`` – überspringe sie mit einer Verzweigung (sonst stürzt ``Substring(0, 1)`` ab). Pro Wort: ``erster`` = ``Substring(0, 1).ToUpper()``, ``rest`` = ``Substring(1).ToLower()``. Baue das Ergebnis mit ``+=`` zusammen, das Leerzeichen kommt nur **zwischen** die Wörter.
 2. ``string FormatiereDauer(int minuten)`` – ``495`` → ``"8:15"``, ``240`` → ``"4:00"``.
    Tipp: ``/`` und ``%`` mit 60, die Minuten mit ``PadLeft(2, '0')`` zweistellig machen.
-3. ``int BerechneSpaltenbreite(string[] namen, int MaxNamenLaenge = 255)`` – wie breit muss die Namensspalte sein?
-   - ``MaxNamenLaenge`` ist ein **Default-Parameter**: Ruft man die Funktion nur mit ``namen`` auf, ist er automatisch ``255``. Man kann aber auch einen anderen Wert mitgeben, z.B. ``BerechneSpaltenbreite(namen, 10)``.
+3. ``int BerechneSpaltenbreite(string[] namen, int maxNamenLaenge = 255)`` – wie breit muss die Namensspalte sein?
+   - ``maxNamenLaenge`` ist ein **Default-Parameter**: Ruft man die Funktion nur mit ``namen`` auf, ist er automatisch ``255``. Man kann aber auch einen anderen Wert mitgeben, z.B. ``BerechneSpaltenbreite(namen, 10)``.
    - Gehe die Namen mit ``foreach`` durch und merke dir die Länge des **längsten** (``laengste``) und des **zweitlängsten** Namens (``zweitLaengste``).
      Tipp: Ist ein Name länger als ``laengste``, rutscht der bisherige Wert von ``laengste`` nach ``zweitLaengste``. Ist er nur länger als ``zweitLaengste``, ersetzt er nur diesen.
-   - Guard ❌: Ist der längste Name länger als ``MaxNamenLaenge``, ist er ein Ausreißer (Copy-Paste-Fehler). Sonst würde die Tabelle für alle unlesbar breit. Gib dann ``zweitLaengste`` zurück.
+   - Guard ❌: Ist der längste Name länger als ``maxNamenLaenge``, ist er ein Ausreißer (Copy-Paste-Fehler). Sonst würde die Tabelle für alle unlesbar breit. Gib dann ``zweitLaengste`` zurück.
    - ✅ Sonst gib ``laengste`` zurück.
 4. ``string FormatiereZeile(string name, int minuten, int breite)`` – eine Tabellenzeile.
-   - Guard ❌: Ist ``name`` länger als ``breite``, schneide ihn mit ``Substring(0, breite)`` ab und hänge ``"..."`` an. Dann ist er genau ``breite + 3`` Zeichen lang.
-   - ✅ Rückgabe: ``name.PadRight(breite + 3)`` + ``FormatiereDauer(minuten).PadLeft(6)`` + ``" h"``. Die ``+ 3`` sorgen für Abstand – oder für Platz für die ``...``.
+   - Lege ``string auslassung = "...";`` an.
+   - Guard ❌: Ist ``name`` länger als ``breite``, schneide ihn mit ``Substring(0, breite)`` ab und hänge ``auslassung`` an.
+   - ``namensSpalte`` = ``name.PadRight(breite + auslassung.Length)`` – Platz für den längsten Namen **und** die ``...``.
+   - ``dauerSpalte`` = ``FormatiereDauer(minuten).PadLeft(6)`` – ``"12:30"`` hat 5 Zeichen, dazu 1 Leerzeichen Abstand.
+   - ✅ Rückgabe: ``namensSpalte + dauerSpalte + " h"``.
 
    >Denk nach: Warum ist das Abschneiden hier erlaubt, obwohl wir sonst „nicht raten“? (Tipp: Geht dabei eine Information verloren, die das Programm zum **Rechnen** braucht?)
 
@@ -323,6 +326,4 @@ Bartholomäus...  4:00 h
 | ``string Substring(int start, int laenge)`` | ``laenge`` Zeichen ab ``start`` | ``"7:30".Substring(0, 1)`` → ``"7"`` |
 | ``string PadLeft(int breite, char fuell)`` | füllt **links** auf, bis ``breite`` erreicht ist | ``"5".PadLeft(2, '0')`` → ``"05"`` |
 | ``string PadRight(int breite)`` | füllt **rechts** mit Leerzeichen auf | ``"Max".PadRight(6)`` → ``"Max   "`` |
-| ``string[] Split(char trenner, StringSplitOptions optionen)`` | mit ``StringSplitOptions.RemoveEmptyEntries`` fallen leere Teile weg | ``"a  b".Split(' ', StringSplitOptions.RemoveEmptyEntries)`` → ``["a","b"]`` |
-| ``static string string.Join(string trenner, string[] werte)`` | Gegenteil von ``Split`` | ``string.Join(" ", ["a","b"])`` → ``"a b"`` |
-| ``string PadLeft(int breite, char fuell)`` auf ``""`` | ein leerer String wird mit ``breite`` Zeichen aufgefüllt | ``"".PadLeft(3, '<')`` → ``"<<<"`` |
+| ``string[] Split(char trenner, StringSplitOptions optionen)`` | *Alternative, nicht nötig:* mit ``StringSplitOptions.RemoveEmptyEntries`` fallen leere Teile weg | ``"a  b".Split(' ', StringSplitOptions.RemoveEmptyEntries)`` → ``["a","b"]`` |

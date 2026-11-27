@@ -222,8 +222,8 @@ function s1() {
 function s2() {
   const t = new Trace("string ErzeugeUeberschrift(string s, char links = '=', char rechts = '=', int n = 10)", [
     "Guard ❌: n &lt; 0 → \"\" zurückgeben",
-    "<b>linkerRand</b> = leerer Text, mit links auf n Zeichen aufgefüllt",
-    "<b>rechterRand</b> = leerer Text, mit rechts auf n Zeichen aufgefüllt",
+    "<b>linkerRand</b> = \"\"; for i von 0 bis n: linkerRand += links",
+    "<b>rechterRand</b> genauso in derselben Schleife: rechterRand += rechts",
     "<b>text</b> = s getrimmt und groß geschrieben",
     "Guard ❌: text ist leer → linkerRand + rechterRand",
     "✅ Rückgabe: linkerRand + \" \" + text + \" \" + rechterRand"]);
@@ -232,8 +232,8 @@ function s2() {
     t.call(info === "Aufruf im Hauptprogramm" ? `ErzeugeUeberschrift("${s}")  // Hauptprogramm: links, rechts, n weggelassen → Default '=', '=', 10` : `ErzeugeUeberschrift("${s}", '${l}', '${r}', ${n})  // ${info}`);
     if (n < 0) { v.Rückgabe = ""; t.f(0, v, `<div class="badge bad">❌ n = ${n}</div>`, "n ist negativ → sofort <b>\"\"</b> zurückgeben (early exit).", { 0: "bad" }); continue; }
     t.f(0, v, box("s", chars(s)), `n = ${n} ist nicht negativ → weiter.`, { 0: "ok" });
-    v.linkerRand = l.repeat(n); t.f(1, v, box("linkerRand", chars(v.linkerRand, () => "new")), `Ein leerer String wird mit '${l}' auf ${n} Zeichen aufgefüllt.`, { 0: "ok" });
-    v.rechterRand = r.repeat(n); t.f(2, v, box("rechterRand", chars(v.rechterRand, () => "new")), `Genauso rechts mit '${r}'.`, { 0: "ok" });
+    v.linkerRand = l.repeat(n); t.f(1, v, box("linkerRand", chars(v.linkerRand, () => "new")), `Die for-Schleife hängt ${n}-mal '${l}' an den leeren String an.`, { 0: "ok" });
+    v.rechterRand = r.repeat(n); t.f(2, v, box("rechterRand", chars(v.rechterRand, () => "new")), `In derselben Schleife ${n}-mal '${r}' an rechterRand.`, { 0: "ok" });
     v.text = s.trim().toUpperCase(); t.f(3, v, `${box("s", chars(s, (i, c) => c === " " && (i < s.length - s.trimStart().length || i >= s.trimEnd().length) ? "gone" : ""))}${box("text", chars(v.text, () => "new"))}`, "Leerzeichen außen weg, alles groß.", { 0: "ok" });
     if (!v.text) { v.Rückgabe = v.linkerRand + v.rechterRand; t.f(4, v, box("Rückgabe", chars(v.Rückgabe, () => "ok")), "text ist leer → nur die beiden Ränder, <b>ohne</b> Leerzeichen dazwischen.", { 0: "ok", 4: "bad" }); continue; }
     v.Rückgabe = `${v.linkerRand} ${v.text} ${v.rechterRand}`;
@@ -251,7 +251,7 @@ function s3() {
     "Guard ❌: pos &lt; 0 → -1",
     "<b>stundenText</b> = Teil vor pos; <b>minutenText</b> = Teil nach pos",
     "Guard ❌: minutenText ist nicht genau 2 Zeichen lang → -1",
-    "Guard ❌: stundenText oder minutenText ist keine Zahl → -1",
+    "Guard ❌: stundenText ist keine Zahl → -1; Guard ❌: minutenText ist keine Zahl → -1 (zwei eigene ifs)",
     "Guard ❌: h nicht 0–23 oder m nicht 0–59 → -1",
     "✅ Rückgabe h · 60 + m"]);
   for (const [txt, info] of [[" 7:30", "Zeile 5, 1. Bereich, Start"], [" 7.45", "Zeile 8 (steiner PAUL)"], [" 12,30", "Zeile 8, 2. Bereich"], ["12:x0 ", "Zeile 10 (wagner tom)"], ["24:00", "Zeile 16 (moser ida)"], ["8:5", "Testfall"], ["1230", "Testfall"]]) {
@@ -336,26 +336,31 @@ function s4() {
 // ===================== Schritt 5 =====================
 function s5() {
   const t = new Trace("string FormatiereName(string text)", [
-    "<b>woerter</b> = text getrimmt, an ' ' zerlegt, leere Teile weg",
-    "für jedes Wort i: <b>w</b> = woerter[i]",
-    "woerter[i] = erster Buchstabe von w groß + Rest von w klein",
-    "Rückgabe: woerter mit ' ' verbunden"]);
+    "<b>woerter</b> = text getrimmt und an ' ' zerlegt; <b>ergebnis</b> = \"\"",
+    "foreach <b>wort</b> in woerter:",
+    "   Guard ❌: wort ist leer (mehrere Leerzeichen) → continue",
+    "   ergebnis ist nicht leer? → ergebnis += \" \" (nur ZWISCHEN den Wörtern)",
+    "   <b>erster</b> = Substring(0, 1) groß; <b>rest</b> = Substring(1) klein; ergebnis += erster + rest",
+    "Rückgabe ergebnis"]);
   for (const nr of [5, 6]) {
     const txt = DATEI[nr - 1].split(";")[0];
-    const v = { text: txt, woerter: null, i: null, w: null, Rückgabe: null };
+    const w = txt.trim().split(" ");
+    const v = { text: txt, woerter: [...w], wort: null, erster: null, rest: null, ergebnis: "", Rückgabe: null };
     t.call(`FormatiereName("${txt}")  // Zeile ${nr}, teile[0]`);
-    t.f(-1, v, box("text", chars(txt)), `Der Namensteil von Zeile ${nr}.`);
-    const w = txt.trim().split(" ").filter(s => s); v.woerter = [...w];
-    t.f(0, v, `${box("text", chars(txt, (i, c) => c === " " ? "gone" : ""))}<div class="row">${w.map(x => chip(x)).join("")}</div>`, `Leere Teile fallen weg → <b>${w.length}</b> Wörter.`);
-    for (let i = 0; i < w.length; i++) {
-      v.i = i; v.w = w[i]; t.f(1, v, box("w", chars(w[i], k => k === 0 ? "hl" : "sel")), `i = ${i}: w = "${w[i]}".`);
-      w[i] = w[i][0].toUpperCase() + w[i].substring(1).toLowerCase(); v.woerter = [...w];
-      t.f(2, v, box(`woerter[${i}]`, chars(w[i], () => "new")), `"${v.w[0]}" → "${w[i][0]}" groß, "${v.w.substring(1)}" → "${w[i].substring(1)}" klein.`);
+    t.f(0, v, `${box("text", chars(txt.trim(), (i, c) => c === " " ? "hl" : ""))}<div class="row">${w.map(x => chip(x === "" ? '""' : x, x === "" ? "bad" : "")).join("")}</div>`,
+      w.includes("") ? `Split(' ') an jedem Leerzeichen → <b>${w.length}</b> Teile. Zwischen zwei Leerzeichen entsteht ein <b>leeres Wort ""</b>. (Alternative: die Option StringSplitOptions.RemoveEmptyEntries lässt sie gleich weg.)` : `Split(' ') → <b>${w.length}</b> Wörter.`);
+    let erg = "";
+    for (const wort of w) {
+      v.wort = wort; v.erster = null; v.rest = null;
+      if (wort === "") { t.f(2, { ...v, ergebnis: erg }, `<div class="badge bad">"" → continue</div>`, "Leeres Wort → überspringen. Ohne diese Verzweigung würde <b>Substring(0, 1)</b> abstürzen.", { 2: "bad" }); continue; }
+      if (erg.length > 0) { erg += " "; t.f(3, { ...v, ergebnis: erg }, box("ergebnis", chars(erg, (i) => i === erg.length - 1 ? "new" : "ok")), "ergebnis ist nicht leer → zuerst ein Leerzeichen dazwischen.", { 2: "ok", 3: "ok" }); }
+      v.erster = wort[0].toUpperCase(); v.rest = wort.substring(1).toLowerCase(); erg += v.erster + v.rest;
+      t.f(4, { ...v, ergebnis: erg }, box("ergebnis", chars(erg, (i) => i >= erg.length - wort.length ? "new" : "ok")), `"${wort[0]}" → "${v.erster}" groß, "${wort.substring(1)}" → "${v.rest}" klein.`, { 2: "ok" });
     }
-    v.Rückgabe = w.join(" "); t.f(3, v, box("Rückgabe", chars(v.Rückgabe, () => "ok")), `Verbunden: <b>"${v.Rückgabe}"</b>.`);
+    t.f(5, { ...v, wort: null, erster: null, rest: null, ergebnis: erg, Rückgabe: erg }, box("Rückgabe", chars(erg, () => "ok")), `Ergebnis: <b>"${erg}"</b>.`);
   }
   const d = new Trace("string FormatiereDauer(int minuten)", [
-    "<b>h</b> = minuten / 60 (ganzzahlige Division)", "<b>m</b> = minuten % 60 (Rest)", "Rückgabe: h + \":\" + m als Text, links mit '0' auf 2 Stellen"]);
+    "<b>h</b> = minuten / 60 (ganzzahlige Division)", "<b>m</b> = minuten % 60 (Rest)", "<b>minuten2</b> = m als Text, links mit '0' auf 2 Stellen; Rückgabe $\"{h}:{minuten2}\""]);
   for (const [min, info] of [[495, "Müller Anna"], [555, "Gruber Lisa"], [5, "Testfall"]]) {
     d.call(`FormatiereDauer(${min})  // ${info}`);
     const v = { minuten: min, h: null, m: null, Rückgabe: null };
@@ -364,30 +369,30 @@ function s5() {
     v.Rückgabe = formDauer(min); d.f(2, v, box("Rückgabe", chars(v.Rückgabe, (i) => v.m < 10 && i === v.Rückgabe.length - 2 ? "new" : "ok")), v.m < 10 ? `${v.m} ist einstellig → links eine <b>0</b> davor.` : "Zweistellig – nichts aufzufüllen.");
   }
   // --- BerechneSpaltenbreite ---
-  const e = new Trace("int BerechneSpaltenbreite(string[] namen, int MaxNamenLaenge = 255)", [
+  const e = new Trace("int BerechneSpaltenbreite(string[] namen, int maxNamenLaenge = 255)", [
     "<b>laengste</b> = 0; <b>zweitLaengste</b> = 0",
     "foreach name in namen:",
     "   name.Length &gt; laengste? → zweitLaengste = laengste; laengste = name.Length",
     "   sonst name.Length &gt; zweitLaengste? → zweitLaengste = name.Length",
-    "Guard ❌: laengste &gt; MaxNamenLaenge (Ausreißer) → zweitLaengste zurückgeben",
+    "Guard ❌: laengste &gt; maxNamenLaenge (Ausreißer) → zweitLaengste zurückgeben",
     "✅ laengste zurückgeben"]);
   const gueltig = gueltigeNamen();
-  e.call("BerechneSpaltenbreite(gueltigeNamen)  // MaxNamenLaenge nicht angegeben → Default 255");
+  e.call("BerechneSpaltenbreite(gueltigeNamen)  // maxNamenLaenge nicht angegeben → Default 255");
   const nv = (cur) => `<div class="file small">${gueltig.map((n, k) => `<div class="${k === cur ? "cur" : ""}">${esc(n.length > 40 ? n.slice(0, 40) + " …" : n)} <span style="color:var(--muted)">(${n.length})</span></div>`).join("")}</div>`;
   let la = 0, zw = 0;
-  e.f(0, { MaxNamenLaenge: 255, name: null, "name.Length": null, laengste: 0, zweitLaengste: 0, Rückgabe: null }, nv(-1), "Der zweite Parameter wurde weggelassen → MaxNamenLaenge hat seinen Default-Wert <b>255</b>. Wir suchen die zwei größten Längen – mit einem einzigen Durchlauf.");
+  e.f(0, { maxNamenLaenge: 255, name: null, "name.Length": null, laengste: 0, zweitLaengste: 0, Rückgabe: null }, nv(-1), "Der zweite Parameter wurde weggelassen → maxNamenLaenge hat seinen Default-Wert <b>255</b>. Wir suchen die zwei größten Längen – mit einem einzigen Durchlauf.");
   gueltig.forEach((n, k) => {
     const L = n.length;
-    if (L > la) { const alt = la; zw = la; la = L; e.f(2, { MaxNamenLaenge: 255, name: n, "name.Length": L, laengste: la, zweitLaengste: zw, Rückgabe: null }, nv(k), `${L} &gt; ${alt} → neuer Rekord. Der alte Rekord ${alt} rutscht auf Platz 2.`, { 2: "ok" }); }
-    else if (L > zw) { zw = L; e.f(3, { MaxNamenLaenge: 255, name: n, "name.Length": L, laengste: la, zweitLaengste: zw, Rückgabe: null }, nv(k), `${L} ist nicht &gt; ${la}, aber &gt; dem bisherigen Platz 2 → zweitLaengste = ${L}.`, { 2: "bad", 3: "ok" }); }
-    else e.f(1, { MaxNamenLaenge: 255, name: n, "name.Length": L, laengste: la, zweitLaengste: zw, Rückgabe: null }, nv(k), `${L} ist weder Rekord noch Platz 2 → nichts ändert sich.`, { 2: "bad", 3: "bad" });
+    if (L > la) { const alt = la; zw = la; la = L; e.f(2, { maxNamenLaenge: 255, name: n, "name.Length": L, laengste: la, zweitLaengste: zw, Rückgabe: null }, nv(k), `${L} &gt; ${alt} → neuer Rekord. Der alte Rekord ${alt} rutscht auf Platz 2.`, { 2: "ok" }); }
+    else if (L > zw) { zw = L; e.f(3, { maxNamenLaenge: 255, name: n, "name.Length": L, laengste: la, zweitLaengste: zw, Rückgabe: null }, nv(k), `${L} ist nicht &gt; ${la}, aber &gt; dem bisherigen Platz 2 → zweitLaengste = ${L}.`, { 2: "bad", 3: "ok" }); }
+    else e.f(1, { maxNamenLaenge: 255, name: n, "name.Length": L, laengste: la, zweitLaengste: zw, Rückgabe: null }, nv(k), `${L} ist weder Rekord noch Platz 2 → nichts ändert sich.`, { 2: "bad", 3: "bad" });
   });
-  e.f(4, { MaxNamenLaenge: 255, name: null, "name.Length": null, laengste: la, zweitLaengste: zw, Rückgabe: zw }, nv(-1) + `<div class="badge bad">❌ ${la} &gt; MaxNamenLaenge (255) → Ausreißer</div>`, `Der längste Name hat ${la} Zeichen. Würden wir danach padden, wäre jede Zeile über 270 Zeichen breit! → Wir nehmen den zweitlängsten: <b>${zw}</b>.`, { 4: "bad" });
+  e.f(4, { maxNamenLaenge: 255, name: null, "name.Length": null, laengste: la, zweitLaengste: zw, Rückgabe: zw }, nv(-1) + `<div class="badge bad">❌ ${la} &gt; maxNamenLaenge (255) → Ausreißer</div>`, `Der längste Name hat ${la} Zeichen. Würden wir danach padden, wäre jede Zeile über 270 Zeichen breit! → Wir nehmen den zweitlängsten: <b>${zw}</b>.`, { 4: "bad" });
 
   // --- FormatiereZeile ---
   const g = new Trace("string FormatiereZeile(string name, int minuten, int breite)", [
-    "Guard ❌: name.Length &gt; breite → name = die ersten breite Zeichen + \"...\"",
-    "✅ Rückgabe: name rechts auf breite + 3 auffüllen + Dauer links auf 6 + \" h\""]);
+    "<b>auslassung</b> = \"...\"; Guard ❌: name.Length &gt; breite → name = die ersten breite Zeichen + auslassung",
+    "✅ <b>namensSpalte</b> = name.PadRight(breite + auslassung.Length); <b>dauerSpalte</b> = Dauer.PadLeft(6); Rückgabe namensSpalte + dauerSpalte + \" h\""]);
   for (const [n, min] of [["Steiner Paul", 465], ["Huber Max", 240], [gueltig[gueltig.length - 1], 240]]) {
     const b = 12; let nm = n;
     g.call(`FormatiereZeile("${n.length > 30 ? n.slice(0, 30) + "…" : n}", ${min}, ${b})`);
@@ -395,7 +400,7 @@ function s5() {
     if (n.length > b) {
       g.f(0, v, box("name (Anfang)", chars(n.slice(0, b + 6), i => i < b ? "ok" : "gone")), `${n.length} &gt; ${b} → nur die ersten ${b} Zeichen behalten …`, { 0: "bad" });
       nm = n.slice(0, b) + "..."; v.name = nm; v["name.Length"] = nm.length;
-      g.f(0, v, box("name", chars(nm, i => i >= b ? "new" : "ok")), `… und "..." anhängen → genau ${b} + 3 = ${nm.length} Zeichen.`, { 0: "bad" });
+      g.f(0, v, box("name", chars(nm, i => i >= b ? "new" : "ok")), `… und auslassung "..." anhängen → ${b} + auslassung.Length = ${nm.length} Zeichen.`, { 0: "bad" });
     } else g.f(0, v, box("name", chars(n)), `${n.length} ≤ ${b} → nichts abschneiden.`, { 0: "ok" });
     const z = nm.padEnd(b + 3) + formDauer(min).padStart(6) + " h"; v.Rückgabe = z;
     g.f(1, v, box("Rückgabe", chars(z, i => i < nm.length ? "ok" : i < b + 3 ? "new" : "")), `Auffüllen auf ${b} + 3 = ${b + 3} Zeichen, dann die Dauer rechtsbündig. Alle Dauern stehen so genau untereinander.`, { 0: n.length > b ? "bad" : "ok" });
@@ -432,8 +437,8 @@ function s6() {
     "<b>summe</b> = SummiereZeiten(teile)",
     "Guard ❌: summe &lt; 0 → Warnung ausgeben, continue",
     "✅ noch nicht ausgeben! namen[anzahlPersonen] = name; summen[anzahlPersonen] = summe<br>danach <b>anzahlPersonen</b> um 1 erhöhen",
-    "Durchgang 2: befüllte Namen nach <b>gueltigeNamen</b> kopieren; <b>breite</b> = BerechneSpaltenbreite(gueltigeNamen) – ohne 2. Argument, also MaxNamenLaenge = 255",
-    "ausgabe[0] = Überschrift; for i: ausgabe[i + 1] = FormatiereZeile(namen[i], summen[i], breite)",
+    "Durchgang 2: befüllte Namen nach <b>gueltigeNamen</b> kopieren; <b>breite</b> = BerechneSpaltenbreite(gueltigeNamen) – ohne 2. Argument, also maxNamenLaenge = 255",
+    "ausgabe[anzahlAusgabe] = Überschrift, anzahlAusgabe++; for i: ausgabe[anzahlAusgabe] = FormatiereZeile(gueltigeNamen[i], summen[i], breite), anzahlAusgabe++",
     "ausgabe schreiben und auf der Konsole ausgeben"]);
   const namen = [], summen = [], warn = [], marks = {};
   let ausgabe = null;
@@ -458,13 +463,13 @@ function s6() {
     t.f(8, V(i, { zeile: kurz(z), name: kurz(name), summe: s }), view(i), `Gültig – aber noch <b>nicht</b> ausgeben: Wir kennen die Spaltenbreite erst, wenn wir alle Namen gesehen haben. Platz ${namen.length - 1}, anzahlPersonen = ${namen.length}.${name.length > 255 ? " (Dieser Name ist " + name.length + " Zeichen lang!)" : ""}`, { 3: "ok", 5: "ok", 7: "ok" });
   });
   const breite = breiteVon(namen);
-  t.f(9, V(null, { breite }), view(-1), `Durchgang 2: Der längste Name hat ${Math.max(...namen.map(n => n.length))} Zeichen (&gt; MaxNamenLaenge = 255, Default-Wert) → BerechneSpaltenbreite(gueltigeNamen) liefert den zweitlängsten: <b>breite = ${breite}</b> (Steiner Paul).`);
+  t.f(9, V(null, { breite }), view(-1), `Durchgang 2: Der längste Name hat ${Math.max(...namen.map(n => n.length))} Zeichen (&gt; maxNamenLaenge = 255, Default-Wert) → BerechneSpaltenbreite(gueltigeNamen) liefert den zweitlängsten: <b>breite = ${breite}</b> (Steiner Paul).`);
   ausgabe = ["========== ARBEITSZEITEN =========="];
-  t.f(10, V(null, { breite, i: null }), view(-1), "ausgabe[0] ist die Überschrift.");
+  t.f(10, V(null, { breite, i: null }), view(-1), "Die Überschrift kommt auf Platz anzahlAusgabe = 0, danach anzahlAusgabe = 1.");
   namen.forEach((n, k) => {
     let nm = n.length > breite ? n.slice(0, breite) + "..." : n;
     ausgabe.push(nm.padEnd(breite + 3) + formDauer(summen[k]).padStart(6) + " h");
-    t.f(10, V(null, { breite, i: k }), view(-1), `i = ${k}: FormatiereZeile("${esc(kurz(n))}", ${summen[k]}, ${breite}) → ausgabe[${k + 1}].${n.length > breite ? " Zu lang → abgeschnitten und \"...\" angehängt." : ""}`);
+    t.f(10, V(null, { breite, i: k }), view(-1), `i = ${k}: FormatiereZeile("${esc(kurz(n))}", ${summen[k]}, ${breite}) → ausgabe[anzahlAusgabe = ${k + 1}].${n.length > breite ? " Zu lang → abgeschnitten und \"...\" angehängt." : ""}`);
   });
   t.f(11, V(null, { breite }), view(-1), `Fertig: ${ausgabe.length} Zeilen werden in arbeitszeiten.txt geschrieben und ausgegeben. Alle Dauern stehen genau untereinander.`);
   return slideOf("Schritt 6 – Hauptprogramm", "Die ganze stempelzeiten.txt: erst Personen sammeln, dann mit der richtigen Spaltenbreite ausgeben.", t);

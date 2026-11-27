@@ -119,8 +119,8 @@ string FormatiereDauer(int minuten)
     throw new NotImplementedException();
 }
 
-// Laenge des laengsten Namens; ist er laenger als MaxNamenLaenge (Standard: 255), die des zweitlaengsten
-int BerechneSpaltenbreite(string[] namen, int MaxNamenLaenge = 255)
+// Laenge des laengsten Namens; ist er laenger als maxNamenLaenge (Standard: 255), die des zweitlaengsten
+int BerechneSpaltenbreite(string[] namen, int maxNamenLaenge = 255)
 {
     throw new NotImplementedException();
 }
