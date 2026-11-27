@@ -6,6 +6,9 @@
 <title>Listen und Dictionaries</title>
 <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+  /* Keine Ligaturen: == und != sollen als zwei Zeichen erkennbar sein, nicht zusammengestaucht */
+  * { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
+
   :root {
     --bg: #020617; --panel: #0f172a; --panel2: #1e293b; --line: #334155;
     --text: #f8fafc; --muted: #94a3b8; --accent: #38bdf8; --x: #f59e0b; --y: #a855f7;
@@ -493,13 +496,20 @@ record Pos(int X, int Y);                // record: Equals vergleicht Werte
 // karte2[new Pos(2, 1)] findet auch new Pos(2, 1) ✅`);
 
 const cKeyMut = C(`
-class Feld { public int X, Y; ... }      // veränderbar!
+class Feld
+{
+    public int X { get; set; }        // veränderbar!
+    public int Y { get; set; }
+    public Feld(int x, int y) { X = x; Y = y; }
+    public override bool Equals(object? o) => o is Feld f && f.X == X && f.Y == Y;
+    public override int GetHashCode() => HashCode.Combine(X, Y);
+}
 
-Dictionary<Feld, string> karte = new();
+Dictionary<Feld, string> karte = new Dictionary<Feld, string>();
 Feld a = new Feld(2, 1);
-karte[a] = "🌱";                          // landet im Fach von (2, 1)
+karte[a] = "🌱";                         // Fach aus dem Hash von (2, 1)
 
-a.X = 5;                                  // Key nachträglich ändern 😱
+a.X = 5;                                 // Key nachträglich ändern 😱
 Console.WriteLine(karte.ContainsKey(a)); // False – sucht im Fach von (5, 1)`);
 
 const cHamList = C(`
@@ -564,7 +574,7 @@ class Hamster
         return Position;
     }
 
-    public int Schritte => _weg.Count;
+    public int Schritte { get { return _weg.Count; } }
 }`);
 
 const cWegDict = C(`
@@ -581,7 +591,7 @@ public void Bewegen((int x, int y) ziel)
 // → alle Values durchsuchen: O(n) – und die Reihenfolge ist nicht garantiert`);
 
 // ===================== Folien =====================
-const chapters = ['Grundidee', 'CRUD bei Listen', 'Wann was?', 'Dictionary', 'Was darf ein Key sein?', 'Hamster: Dictionary', 'Hamster: Liste', 'Zusammenfassung'];
+const chapters = ['Grundidee', 'CRUD bei Listen', 'Wann was?', 'Dictionary', 'Was darf ein Key sein?', 'Key ändert sich', 'Hamster: Dictionary', 'Hamster: Liste', 'Zusammenfassung'];
 
 const NAMEN = ['Ana', 'Ben', 'Cem', 'Dora'];
 const NUM = { Ana: '0664 111', Ben: '0664 222', Cem: '0664 333', Dora: '0664 444' };
@@ -863,24 +873,6 @@ arp.TrimExcess();                                 // überflüssige Fächer frei
       () => { H(cKeyRef, 'record Pos'); say('Ein <code>record</code> (oder Tupel / struct) vergleicht die <b>Werte</b> → beide würden gefunden.'); },
     ]);
   } },
-{ ch: 4, title: 'Verbotene Keys: nachträglich veränderbar', code: cKeyMut, hl: [],
-  text: `<p>Das Fach eines Eintrags wird <b>beim Einfügen</b> aus dem Hash berechnet. Ändern wir den Key danach, passt der Hash nicht mehr zum Fach: Das Dictionary sucht im falschen Fach und findet den Eintrag nie wieder.</p>
-<p><b>Regel:</b> Keys müssen <b>unveränderlich</b> sein, solange sie im Dictionary liegen.</p>
-<table class="t"><tr><th>Key-Typ</th><th>vergleicht</th><th>als Key?</th></tr>
-<tr><td><code>int</code>, <code>string</code>, <code>enum</code></td><td>Wert</td><td>✅</td></tr>
-<tr><td>Tupel <code>(int, int)</code>, <code>record</code>, <code>readonly struct</code></td><td>Wert</td><td>✅ ideal für Koordinaten</td></tr>
-<tr><td><code>class</code> ohne Equals</td><td>Identität</td><td>⚠️ nur wenn genau <i>dieses</i> Objekt gemeint ist</td></tr>
-<tr><td>veränderbare Klasse mit Equals</td><td>Wert</td><td>❌ Hash ändert sich</td></tr></table>`,
-  render(st) {
-    const N = 4; let E = [{ k: '(2, 1)', v: '🌱', b: 2 }];
-    st.appendChild(wrap('col', [bucketsView('B', N, E), infoBox(), konsole('k')]));
-    return seq([
-      () => { H(cKeyMut, 'karte[a]'); setBuckets('B', N, E, { b2: 'hot', '(2, 1)': 'yes' }); say('Beim Einfügen: Hash von (2, 1) → Fach 2.'); },
-      () => { H(cKeyMut, 'a.X = 5'); E = [{ k: '(5, 1) ?!', v: '🌱', b: 2 }]; setBuckets('B', N, E, { '(5, 1) ?!': 'no' }); say('Der Key ändert sich – der Eintrag bleibt aber in Fach 2 liegen.'); },
-      () => { H(cKeyMut, 'ContainsKey(a)'); setBuckets('B', N, E, { b0: 'bad' }); print('k', 'False'); say('Hash von (5, 1) → Fach 0. Dort ist nichts. Der Eintrag ist <b>verloren</b>.'); },
-    ]);
-  } },
-
 { ch: 4, title: 'Warum Equals UND GetHashCode überschreiben?', code: C(`
 class Feld
 {
@@ -888,8 +880,8 @@ class Feld
     public int Y { get; }
     public Feld(int x, int y) { X = x; Y = y; }
 
-    public override bool Equals(object? o) => o is Feld f && f.X == X && f.Y == Y;
-    public override int GetHashCode() => HashCode.Combine(X, Y);
+    public override bool Equals(object? o) { return o is Feld f && f.X == X && f.Y == Y; }
+    public override int GetHashCode() { return HashCode.Combine(X, Y); }
 }
 
 Dictionary<Feld, string> karte = new();
@@ -937,19 +929,28 @@ struct PunktS { public int X, Y; ... }          // Werttyp
 PunktK a = new PunktK(2, 1);
 PunktK b = a;                     // Kopie der REFERENZ
 b.X = 5;                          // a.X ist jetzt auch 5!
-a == new PunktK(5, 1)             // False – anderes Objekt
+var dk = new Dictionary<PunktK, string>();
+dk[a] = "🌱";
+dk.ContainsKey(new PunktK(5, 1))  // False – anderes Objekt
+dk.ContainsKey(b)                 // True  – dieselbe Referenz
 
 // ---- record: Referenztyp + WERTsemantik ----
 PunktR r1 = new PunktR(2, 1);
 PunktR r2 = r1;                   // Kopie der REFERENZ (wie class!)
 r2 = r1 with { X = 5 };           // ändern = NEUES Objekt
-r1 == new PunktR(2, 1)            // True – Werte gleich
+var dr = new Dictionary<PunktR, string>();
+dr[r1] = "🌱";
+dr.ContainsKey(new PunktR(2, 1))  // True  – Werte gleich
+dr.ContainsKey(r2)                // False – (5, 1) ist ein anderer Wert
 
 // ---- struct: Werttyp + Wertsemantik ----
 PunktS s1 = new PunktS(2, 1);
 PunktS s2 = s1;                   // Kopie des WERTS
 s2.X = 5;                         // s1.X bleibt 2
-s1.Equals(new PunktS(2, 1))       // True`), hl: [],
+var ds = new Dictionary<PunktS, string>();
+ds[s1] = "🌱";                     // eine KOPIE von s1 wird Key
+ds.ContainsKey(new PunktS(2, 1))  // True  – Werte gleich
+ds.ContainsKey(s2)                // False – (5, 1)`), hl: [],
   text: `<p>Zwei Fragen muss man auseinanderhalten:</p>
 <p><b>1. Werttyp oder Referenztyp?</b> – Was passiert beim <b>Zuweisen</b> und bei der <b>Übergabe</b>?<br>
 • <b>Werttyp</b> (<code>struct</code>, <code>int</code>, Tupel): Der <b>ganze Wert</b> wird kopiert. Zwei Variablen, zwei unabhängige Werte.<br>
@@ -958,6 +959,7 @@ s1.Equals(new PunktS(2, 1))       // True`), hl: [],
 • <b>Referenzsemantik</b>: gleich = <b>dasselbe Objekt</b> (Identität).<br>
 • <b>Wertsemantik</b>: gleich = <b>gleiche Werte</b>.</p>
 <p>Ein <code>record</code> ist das Besondere: Er ist ein <b>Referenztyp</b> (Zuweisung kopiert die Referenz), hat aber <b>Wertsemantik</b> (Vergleich über die Werte). Damit sich ein geteiltes Objekt nicht heimlich ändert, ist er <b>unveränderlich</b> – „Ändern“ erzeugt mit <code>with</code> ein neues Objekt. Genauso verhält sich übrigens <code>string</code>.</p>
+<p><b>Warum das für das Dictionary zählt:</b> Beim Suchen fragt das Dictionary genau Frage 2 – <i>ist dieser Key gleich?</i> Bei <b>Referenzsemantik</b> (class) findet man den Eintrag nur mit <b>derselben Referenz</b> wieder; wer die Referenz nicht mehr hat, kommt nie wieder an den Wert, auch wenn er die gleichen Daten nachbaut. Bei <b>Wertsemantik</b> (record, struct, string) genügt ein Key mit <b>gleichen Werten</b> – genau das wollen wir: <code>orte[6020]</code>, <code>arp["AA:BB…"]</code>, <code>karte[new Feld(2, 1)]</code>. Frage 1 entscheidet, ob man den Key <b>hinterher heimlich verändern</b> kann: Eine class teilt ihr Objekt mit dem Dictionary, ein record lässt sich nicht ändern, ein struct wird beim Einfügen kopiert.</p>
 <table class="t"><tr><th></th><th>Zuweisung kopiert …</th><th>gleich heißt …</th><th>veränderbar?</th><th>als Key</th></tr>
 <tr><td><code>class</code></td><td>die Referenz</td><td>dasselbe Objekt</td><td>ja</td><td>⚠️</td></tr>
 <tr><td><code>record</code></td><td>die Referenz</td><td>gleiche Werte</td><td>nein (<code>with</code>)</td><td>✅</td></tr>
@@ -980,17 +982,23 @@ s1.Equals(new PunktS(2, 1))       // True`), hl: [],
       () => { leeren(); fall('🟦 <b>class</b> – Referenztyp, Referenzsemantik'); H(code, 'PunktK a = new'); v('a', 'PunktK a', '→', true); o('k1', '<u>#1 : PunktK</u>', 2, 1); link(sc, 'a', 'k1'); say('new legt ein Objekt im <b>Heap</b> an. a speichert nur die <b>Referenz</b>.'); },
       () => { H(code, 'PunktK b = a'); v('b', 'PunktK b', '→', true); link(sc, 'b', 'k1', { color: 'var(--x)' }); say('b = a kopiert die <b>Referenz</b>. Es gibt weiterhin nur <b>ein</b> Objekt.'); },
       () => { H(code, 'b.X = 5'); setF('k1', 'X', '5'); say('Über b ändern – a sieht es auch. <b>Seiteneffekt</b>, weil beide auf dasselbe Objekt zeigen.'); },
-      () => { H(code, 'a == new PunktK(5, 1)'); o('k2', '<u>#2 : PunktK</u>', 5, 1); zeig('a == new PunktK(5, 1)  →  False   (gleiche Werte, aber #1 ≠ #2)', false); say('<b>Referenzsemantik</b>: gleich heißt <i>dasselbe Objekt</i>.'); },
+      () => { H(code, 'dk[a]'); zeig('dk:  #1 (5, 1) → 🌱', true); say('a wird Key. Gespeichert wird die <b>Referenz</b> auf #1 – Hash und Equals von object hängen an der Identität.'); },
+      () => { H(code, 'dk.ContainsKey(new PunktK(5, 1))'); o('k2', '<u>#2 : PunktK</u>', 5, 1); zeig('dk.ContainsKey(new PunktK(5, 1))  →  False   (gleiche Werte, aber #2 ≠ #1)', false); say('<b>Referenzsemantik</b>: Ein nachgebauter Key mit gleichen Werten wird <b>nicht gefunden</b>.'); },
+      () => { H(code, 'dk.ContainsKey(b)'); zeig('dk.ContainsKey(b)  →  True   (b zeigt auf #1)', true); say('Nur wer <b>dieselbe Referenz</b> hat, findet den Eintrag. Ohne Equals + GetHashCode ist eine class als Key fast nutzlos.'); },
 
       () => { leeren(); fall('🟩 <b>record</b> – Referenztyp, aber <b>Wert</b>semantik'); H(code, 'PunktR r1 = new'); v('r1', 'PunktR r1', '→', true); o('p1', '<u>#1 : PunktR</u>', 2, 1); link(sc, 'r1', 'p1'); say('Auch ein record liegt im <b>Heap</b> – er ist ein Referenztyp.'); },
       () => { H(code, 'PunktR r2 = r1'); v('r2', 'PunktR r2', '→', true); link(sc, 'r2', 'p1', { color: 'var(--x)' }); say('Zuweisung kopiert die <b>Referenz</b> – genau wie bei class. Beide zeigen auf #1.'); },
       () => { H(code, 'r1 with'); o('p2', '<u>#2 : PunktR</u>', 5, 1); unlink(sc, 'r2'); link(sc, 'r2', 'p2', { color: 'var(--x)' }); say('<code>r2.X = 5</code> geht nicht (init). <code>with</code> baut ein <b>neues</b> Objekt – #1 bleibt unberührt. Kein Seiteneffekt möglich.'); },
-      () => { H(code, 'r1 == new PunktR(2, 1)'); o('p3', '<u>#3 : PunktR</u>', 2, 1); zeig('r1 == new PunktR(2, 1)  →  True   (#1 ≠ #3, aber gleiche Werte)', true); say('<b>Wertsemantik</b>: verschiedene Objekte, gleiche Werte → gleich. Equals, GetHashCode und == schreibt der Compiler.'); },
+      () => { H(code, 'dr[r1]'); zeig('dr:  (2, 1) → 🌱', true); say('r1 wird Key. Der Compiler hat Equals und GetHashCode aus X und Y erzeugt.'); },
+      () => { H(code, 'dr.ContainsKey(new PunktR(2, 1))'); o('p3', '<u>#3 : PunktR</u>', 2, 1); zeig('dr.ContainsKey(new PunktR(2, 1))  →  True   (#3 ≠ #1, aber gleiche Werte)', true); say('<b>Wertsemantik</b>: Ein nachgebauter Key mit gleichen Werten <b>wird gefunden</b> – gleicher Hash, Equals vergleicht X und Y.'); },
+      () => { H(code, 'dr.ContainsKey(r2)'); zeig('dr.ContainsKey(r2)  →  False   ((5, 1) ≠ (2, 1))', false); say('Der Key im Dictionary kann sich nicht ändern: with hat ein neues Objekt gebaut, #1 bleibt (2, 1). Das Dictionary bleibt korrekt.'); },
 
       () => { leeren(); fall('🟨 <b>struct</b> – Werttyp, Wertsemantik'); H(code, 'PunktS s1 = new'); const b = v('s1', 'PunktS s1', 'X=2 Y=1'); b.style.borderStyle = 'solid'; say('Ein struct steckt <b>direkt</b> in der Variable. Kein Heap, kein Pfeil.'); },
       () => { H(code, 'PunktS s2 = s1'); const b = v('s2', 'PunktS s2', 'X=2 Y=1'); b.style.borderStyle = 'solid'; say('Zuweisung kopiert den <b>ganzen Wert</b>: zwei unabhängige Punkte.'); },
       () => { H(code, 's2.X = 5'); setV('s2', 'X=5 Y=1'); say('Nur s2 ändert sich – s1 bleibt X=2. Kein Seiteneffekt.'); },
-      () => { H(code, 's1.Equals'); zeig('s1.Equals(new PunktS(2, 1))  →  True   (gleiche Werte)', true); say('Auch ein struct vergleicht die <b>Werte</b>.'); },
+      () => { H(code, 'ds[s1]'); zeig('ds:  (2, 1) → 🌱   (eigene Kopie im Dictionary)', true); say('Beim Einfügen wird der struct <b>kopiert</b>. Spätere Änderungen an s1 erreichen den Key im Dictionary nie.'); },
+      () => { H(code, 'ds.ContainsKey(new PunktS(2, 1))'); zeig('ds.ContainsKey(new PunktS(2, 1))  →  True   (gleiche Werte)', true); say('<b>Wertsemantik</b>: gleiche Werte → gefunden. (Tipp: <code>readonly struct</code> mit eigenem Equals/GetHashCode ist schneller als der Standard.)'); },
+      () => { H(code, 'ds.ContainsKey(s2)'); zeig('ds.ContainsKey(s2)  →  False   ((5, 1) ≠ (2, 1))', false); say('s2 ist ein anderer Wert. Fazit: Für das <b>Finden</b> zählt die Semantik – Wertsemantik findet über die Werte, Referenzsemantik nur über dieselbe Referenz.'); },
     ], 1500);
   } },
 { ch: 4, title: 'Objekte als Key: class oder record?', code: C(`
@@ -1004,8 +1012,8 @@ class FeldE
     public int X { get; }                       // nur get -> unveränderlich
     public int Y { get; }
     public FeldE(int x, int y) { X = x; Y = y; }
-    public override bool Equals(object? o) => o is FeldE f && f.X == X && f.Y == Y;
-    public override int GetHashCode() => HashCode.Combine(X, Y);
+    public override bool Equals(object? o) { return o is FeldE f && f.X == X && f.Y == Y; }
+    public override int GetHashCode() { return HashCode.Combine(X, Y); }
 }
 dict[new FeldE(2, 1)] = "🌱";  dict.ContainsKey(new FeldE(2, 1));   // True
 
@@ -1033,7 +1041,100 @@ Console.WriteLine(a);                            // FeldR { X = 2, Y = 1 }`), hl
       () => { H(code, 'a with', 'Console.WriteLine(a)'); show_('w'); say('a bleibt unverändert. <code>with</code> erzeugt ein <b>neues</b> Objekt – darum kann ein record-Key nicht nachträglich „verrutschen“.'); },
     ]);
   } },
-{ ch: 4, title: 'Daumenregeln: Was nehme ich als Key?', code: C(`
+
+// ---------- 5: Key ändert sich ----------
+{ ch: 5, title: 'Der Key ändert sich: das falsche Fach', code: cKeyMut, hl: [],
+  text: `<p>Das Fach eines Eintrags wird <b>einmal</b> berechnet – <b>beim Einfügen</b>, aus dem Hash des Keys. Das Dictionary merkt sich den Hash und rechnet ihn nie wieder neu aus.</p>
+<p>Ist der Key ein <b>Objekt</b> (Referenztyp), liegt im Dictionary nur eine <b>Referenz</b> darauf. Ändern wir das Objekt danach über <code>a.X = 5</code>, ändert sich auch der Key <b>im</b> Dictionary – aber der Eintrag bleibt im alten Fach liegen.</p>
+<p>Sucht man jetzt mit <code>a</code>, berechnet das Dictionary den <b>neuen</b> Hash von (5, 1) und schaut in ein <b>anderes</b> Fach. Dort ist nichts.</p>`,
+  render(st) {
+    const N = 4; let E = [{ k: '(2, 1)', v: '🌱', b: 2 }];
+    st.appendChild(wrap('col', [bucketsView('B', N, []), wrap('row', [vbox('va', 'Feld a', '→ #1 (2, 1)', 'ref')]), infoBox(), konsole('k')]));
+    const code = steps[cur].code;
+    return seq([
+      () => { H(code, 'Feld a = new Feld(2, 1)'); say('Ein Objekt #1 mit X = 2, Y = 1. <code>a</code> hält die Referenz.'); },
+      () => { H(code, 'karte[a]'); setBuckets('B', N, E, { b2: 'hot', '(2, 1)': 'yes' }); say('Einfügen: Hash von (2, 1) → <b>Fach 2</b>. Das Dictionary speichert die Referenz auf #1 und den Hash.'); },
+      () => { H(code, 'a.X = 5'); setV('va', '→ #1 (5, 1)'); E = [{ k: '#1 (5, 1) ?!', v: '🌱', b: 2 }]; setBuckets('B', N, E, { '#1 (5, 1) ?!': 'no' }); say('Über <code>a</code> ändern wir #1 – das ist <b>derselbe</b> Key wie im Dictionary. Er heißt jetzt (5, 1), liegt aber weiter in Fach 2.'); },
+      () => { H(code, 'karte.ContainsKey(a)'); setBuckets('B', N, E, { b0: 'bad' }); print('k', 'False'); say('Hash von (5, 1) → <b>Fach 0</b>. Dort liegt nichts → <b>False</b>.'); },
+    ]);
+  } },
+
+{ ch: 5, title: 'Verloren – aber noch da', code: C(`
+// nach a.X = 5:
+karte.ContainsKey(a)                // False – falsches Fach
+karte.ContainsKey(new Feld(2, 1))   // False – richtiges Fach, aber Equals: (5,1) ≠ (2,1)
+karte.ContainsKey(new Feld(5, 1))   // False – falsches Fach
+karte.Remove(a)                     // False – nicht einmal löschen geht
+karte.Count                         // 1     – der Eintrag ist noch da!
+foreach (Feld k in karte.Keys) { }  // (5, 1) – nur so sieht man ihn noch
+
+karte[a] = "🌼";                    // legt einen ZWEITEN Eintrag an
+karte.Count                         // 2
+
+// Und in einer Liste?
+List<Feld> liste = new List<Feld> { a };
+liste.Contains(a)                   // True – eine Liste hat keine Fächer`), hl: [],
+  text: `<p>Der Eintrag ist nicht gelöscht – er ist <b>unerreichbar</b>. Keine Suche findet ihn mehr:</p>
+<p>• mit dem <b>neuen</b> Wert (5, 1): falsches Fach.<br>
+• mit dem <b>alten</b> Wert (2, 1): richtiges Fach, aber <code>Equals</code> vergleicht mit dem Key, der jetzt (5, 1) ist.</p>
+<p>Er zählt aber weiter bei <code>Count</code> mit und taucht im <code>foreach</code> auf. Schreibt man noch einmal <code>karte[a] = …</code>, entsteht ein <b>zweiter</b> Eintrag mit demselben Key – das Dictionary ist kaputt.</p>
+<p>Eine <b>Liste</b> hat dieses Problem nicht: <code>Contains</code> geht alle Elemente durch und fragt nur <code>Equals</code> – kein Hash, kein Fach.</p>
+<p>(Alles gemessen in .NET mit <code>Equals</code> + <code>GetHashCode</code> über X und Y.)</p>`,
+  render(st) {
+    const N = 4; let E = [{ k: '#1 (5, 1)', v: '🌱', b: 2 }];
+    st.appendChild(wrap('col', [bucketsView('B', N, E), wrap('row', [counter('cc', 'Count')]), infoBox(), konsole('k')]));
+    setCount('cc', 1);
+    const code = steps[cur].code;
+    return seq([
+      () => { H(code, 'karte.ContainsKey(a)'); setBuckets('B', N, E, { b0: 'bad' }); print('k', 'ContainsKey(a)               → False'); say('Neuer Hash (5, 1) → Fach 0. Leer.'); },
+      () => { H(code, 'new Feld(2, 1))'); setBuckets('B', N, E, { b2: 'hot', '#1 (5, 1)': 'no' }); print('k', 'ContainsKey(new Feld(2, 1)) → False'); say('Alter Hash (2, 1) → Fach 2, das <b>richtige</b> Fach! Aber Equals vergleicht (2, 1) mit dem Key – und der ist jetzt (5, 1).'); },
+      () => { H(code, 'new Feld(5, 1))'); setBuckets('B', N, E, { b0: 'bad' }); print('k', 'ContainsKey(new Feld(5, 1)) → False'); say('Gleiche Werte wie der Key – aber wieder Fach 0.'); },
+      () => { H(code, 'karte.Remove(a)'); print('k', 'Remove(a)                    → False'); say('Auch Remove sucht zuerst das Fach. Wir können den Eintrag nicht einmal löschen.'); },
+      () => { H(code, 'karte.Count                         // 1', 'foreach'); setBuckets('B', N, E, { '#1 (5, 1)': 'yes' }); print('k', 'Count → 1 · foreach → (5, 1)'); say('Er ist noch da: Count zählt ihn, foreach findet ihn – nur das <b>Nachschlagen</b> geht nicht mehr.'); },
+      () => { H(code, 'karte[a] = "🌼"', 'karte.Count                         // 2'); E = [...E, { k: '#1 (5, 1)', v: '🌼', b: 0 }]; setBuckets('B', N, E, { b0: 'hot' }); setCount('cc', 2); print('k', 'Count → 2'); say('Fach 0 ist leer, also wird <b>neu</b> eingefügt. Jetzt steht <b>dasselbe</b> Objekt zweimal als Key drin. 😱'); },
+      () => { H(code, 'liste.Contains(a)'); print('k', 'liste.Contains(a)            → True'); say('Die Liste vergleicht nur mit Equals – sie hat keine Fächer, die veralten können.'); },
+    ], 1500);
+  } },
+
+{ ch: 5, title: 'So geht es richtig', code: C(`
+// ✅ 1) Key unveränderlich machen
+record Feld(int X, int Y);                    // init – kein a.X = 5 möglich
+Feld b = a with { X = 5 };                     // "ändern" = neues Objekt
+
+// ✅ 2) etwas Unveränderliches als Key nehmen – die ID, nicht das Objekt
+Dictionary<string, Geraet> arp;                // Key = Mac { get; }
+Dictionary<(int, int), Seedling> wiese;        // Key = Koordinate (Tupel)
+
+// ✅ 3) muss sich der Key ändern: herausnehmen, ändern, neu einfügen
+karte.Remove(a, out string? wert);             // noch mit dem ALTEN Hash
+a.X = 5;
+karte[a] = wert!;                              // im NEUEN Fach
+
+// Das Objekt im VALUE darf sich ändern – das ist kein Problem:
+arp["B2:02"].PingMs = 80;                      // PingMs ist nicht im Hash`), hl: [],
+  text: `<p><b>Regel:</b> Alles, was in <code>Equals</code> und <code>GetHashCode</code> vorkommt, darf sich nicht ändern, <b>solange</b> das Objekt Key in einem Dictionary (oder Element eines HashSet) ist.</p>
+<p>1. Am sichersten: Der Key-Typ ist <b>unveränderlich</b> – <code>record</code>, Tupel, <code>string</code>, <code>int</code> oder eine Klasse mit nur <code>{ get; }</code> in den verglichenen Properties.<br>
+2. Nicht das ganze Objekt als Key, sondern seine <b>ID</b>: <code>Mac</code>, Chipnummer, Koordinate.<br>
+3. Muss sich der Key wirklich ändern: <b>herausnehmen</b> (solange der alte Hash noch stimmt), ändern, <b>neu einfügen</b>.</p>
+<p>Der <b>Value</b> darf sich ändern, so viel er will – das Dictionary rechnet nur mit dem Key. Darum ist in Aufgabe 1 <code>Geraet</code> der Value (Ping ändert sich) und die MAC der Key.</p>`,
+  render(st) {
+    const N = 4;
+    st.appendChild(wrap('col', [bucketsView('B', N, [{ k: '#1 (2, 1)', v: '🌱', b: 2 }]), infoBox()]));
+    const code = steps[cur].code;
+    return seq([
+      () => { H(code, 'record Feld', 'a with'); say('Ein record lässt <code>a.X = 5</code> gar nicht zu. „Ändern“ erzeugt ein neues Objekt – der Key im Dictionary bleibt (2, 1).'); },
+      () => { H(code, 'Dictionary<string, Geraet>', 'Dictionary<(int, int)'); say('Oder gar kein Objekt als Key: die unveränderliche <b>ID</b> nehmen.'); },
+      () => { H(code, 'karte.Remove(a, out'); setBuckets('B', N, [], { b2: 'hot' }); say('Herausnehmen, <b>solange</b> der alte Hash noch stimmt – Fach 2.'); },
+      () => { H(code, 'a.X = 5;'); say('Jetzt gefahrlos ändern: #1 ist in keinem Fach mehr.'); },
+      () => { H(code, 'karte[a] = wert!'); setBuckets('B', N, [{ k: '#1 (5, 1)', v: '🌱', b: 0 }], { b0: 'hot', '#1 (5, 1)': 'yes' }); say('Neu einfügen → neuer Hash → <b>Fach 0</b>. ContainsKey(a) liefert wieder True, Count bleibt 1.'); },
+      () => { H(code, 'PingMs = 80'); say('Den <b>Value</b> zu ändern ist immer erlaubt: Er hat mit Hash und Fach nichts zu tun.'); },
+    ], 1500);
+  } },
+
+{ ch: 5, title: 'Daumenregeln: Was nehme ich als Key? – immutable!', code: C(`
+// 🔒 Grundregel: ein Key ist IMMUTABLE (unveränderlich)
+//    alles, was Equals und GetHashCode verwenden, ändert sich nie
+
 // ✅ 1. Wahl: einen einfachen, eindeutigen Wert
 Dictionary<string, Geraet> arp;                  // MAC-Adresse
 Dictionary<(int x, int y), Seedling> wiese;      // Koordinate (Tupel)
@@ -1042,13 +1143,18 @@ Dictionary<(int x, int y), Seedling> wiese;      // Koordinate (Tupel)
 record MacAdresse(string Wert);
 Dictionary<MacAdresse, Geraet> arp2;
 
+// ✅ kleiner Werttyp: readonly record struct (Compiler schreibt Equals/Hash)
+readonly record struct Punkt(int X, int Y);
+
 // ⚠️ class als Key: nur mit Equals + GetHashCode über UNVERÄNDERLICHE Properties
 // ❌ veränderbar: class oder record mit { get; set; }
 record FeldM { public int X { get; set; } }      // record, aber Key kann "verrutschen"
 
 // Aufgabe 1: Geraet bleibt eine class – PingMs ändert sich!
 public class Geraet { public string Mac { get; } public int PingMs { get; set; } }`), hl: [],
-  text: `<p><b>Daumenregeln für Keys</b></p>
+  text: `<p><b>🔒 Die Grundregel aus diesem Tab:</b> Ein Key muss <b>immutable</b> (unveränderlich) sein – zumindest alles, was <code>Equals</code> und <code>GetHashCode</code> verwenden. Ändert sich der Key, liegt der Eintrag im falschen Fach und ist <b>unerreichbar</b>.</p>
+<p><b>Wie wird etwas immutable?</b> Nur <code>{ get; }</code> oder <code>{ get; init; }</code>, kein <code>set</code> · <code>record</code> in Kurzform · <code>readonly struct</code> · <code>string</code>, <code>int</code>, Tupel-Werte sind es schon. „Ändern“ heißt dann: ein <b>neues</b> Objekt bauen (<code>with</code>).</p>
+<p><b>Daumenregeln für Keys</b></p>
 <p>1. Nimm wenn möglich einen <b>einfachen Wert</b> als Key: <code>int</code>, <code>string</code>, ein Tupel – also die eindeutige ID (MAC, Chipnummer, Koordinate).<br>
 2. Brauchst du einen eigenen Key-Typ, nimm ein <b><code>record</code> in Kurzform</b>: Wertsemantik und unveränderlich, ohne eine Zeile Equals.<br>
 3. Eine <b><code>class</code></b> als Key nur, wenn du <code>Equals</code> <b>und</b> <code>GetHashCode</code> überschreibst – und nur über Properties, die sich <b>nie</b> ändern.<br>
@@ -1058,14 +1164,17 @@ public class Geraet { public string Mac { get; } public int PingMs { get; set; }
     st.appendChild(el('table', 't pop', `<tr><th>Key-Typ</th><th>vergleicht</th><th>unveränderlich?</th><th>Was muss ich tun?</th><th>als Key</th></tr>
 <tr><td><code>int</code>, <code>string</code>, Tupel, <code>enum</code></td><td>Wert</td><td>✅</td><td>nichts</td><td>✅ 1. Wahl</td></tr>
 <tr><td><code>record R(int X, int Y)</code></td><td>Wert</td><td>✅ (init)</td><td>nichts – Compiler</td><td>✅ eigener Key-Typ</td></tr>
+<tr><td><code>readonly record struct</code></td><td>Wert</td><td>✅ (readonly)</td><td>nichts – Compiler</td><td>✅ kleiner Key-Typ</td></tr>
 <tr><td><code>class</code> + Equals/GetHashCode</td><td>Wert</td><td>nur mit <code>get</code></td><td>beides überschreiben</td><td>⚠️ aufwändig</td></tr>
 <tr><td><code>class</code> ohne Equals</td><td>Identität</td><td>–</td><td>–</td><td>⚠️ nur „genau dieses Objekt“</td></tr>
 <tr><td><code>record</code> / <code>class</code> mit <code>set</code></td><td>Wert</td><td>❌</td><td>–</td><td>❌ Key verrutscht</td></tr>`));
+    st.style.flexDirection = 'column'; st.style.gap = '14px';
+    st.insertBefore(el('div', 'okbox pop', '🔒 Key = immutable. Was sich ändern muss, gehört in den <b>Value</b>.'), st.firstChild);
     st.appendChild(el('div', 'story', '🌐 Aufgabe 1 (Schulnetzwerk): <b>Key</b> = <code>string Mac</code> (Regel 1) · <b>Value</b> = <code>class Geraet</code> mit Identität, weil sich <code>PingMs</code> ändert.'));
   } },
 
 // ---------- 5: Hamster Dictionary ----------
-{ ch: 5, title: '❌ Antibeispiel: Seedlings in einer Liste', code: cHamList, hl: [],
+{ ch: 6, title: '❌ Antibeispiel: Seedlings in einer Liste', code: cHamList, hl: [],
   text: `<p>So war die Hamster-Wiese im 3. Jahrgang (Wiederholung) zuerst gebaut: Die Wiese hat eine <b>Liste</b> von Seedlings. Will ein Hamster fressen, fragt sie: „Steht auf <i>meinem</i> Feld ein Seedling?“</p>
 <p>Die Liste kennt aber keine Felder, nur Positionen 0, 1, 2 … Also muss sie <b>jeden</b> Seedling anschauen. Und für <code>Remove</code> gleich <b>nochmal</b>. Bei vielen Hamstern und Seedlings passiert das in <b>jeder</b> Runde für <b>jeden</b> Hamster.</p>`,
   render(st) {
@@ -1083,7 +1192,7 @@ public class Geraet { public string Mac { get; } public int PingMs { get; set; }
     acts.push(() => { H(cHamList, '_seedlings.Remove'); setCount('cv', 12); say('<code>Remove(s)</code> sucht <b>noch einmal</b> von vorne: 12 Vergleiche für einen Bissen. Mit 100 Seedlings und 30 Hamstern: bis zu <b>6 000</b> Vergleiche pro Runde.'); });
     return seq(acts, 900);
   } },
-{ ch: 5, title: '✅ Dictionary: das Feld ist der Schlüssel', code: cHamDict, hl: [],
+{ ch: 6, title: '✅ Dictionary: das Feld ist der Schlüssel', code: cHamDict, hl: [],
   text: `<p>Die eigentliche Frage lautet: „Was liegt auf <b>diesem Feld</b>?“ Das Feld ist bekannt – also ist es der perfekte <b>Key</b>. Als Key nehmen wir das Tupel <code>(int x, int y)</code>: ein Werttyp, unveränderlich, vergleicht die Werte.</p>
 <p>Ein Bonus: Keys sind eindeutig. <code>TryAdd</code> verhindert automatisch, dass zwei Seedlings auf demselben Feld wachsen.</p>
 <p>Fressen ist jetzt <b>ein</b> Sprung – egal wie groß die Wiese ist.</p>`,
@@ -1100,7 +1209,7 @@ public class Geraet { public string Mac { get; } public int PingMs { get; set; }
   } },
 
 // ---------- 6: Hamster Liste ----------
-{ ch: 6, title: '✅ Liste: den Weg des Hamsters merken', code: cWegList, hl: [],
+{ ch: 7, title: '✅ Liste: den Weg des Hamsters merken', code: cWegList, hl: [],
   text: `<p>Jetzt soll der Hamster sich seinen <b>Weg</b> merken, um Schritte rückgängig zu machen. Hier ist die Liste perfekt:</p>
 <p>• Die <b>Reihenfolge</b> ist das Wichtigste.<br>• Dasselbe Feld darf <b>mehrmals</b> vorkommen (er läuft hin und zurück).<br>• Gebraucht wird immer nur das <b>Ende</b>: <code>Add</code> und <code>_weg[^1]</code> sind O(1).</p>
 <p>(Weil nur hinten hinzugefügt und hinten entfernt wird, wäre auch ein <code>Stack</code> eine gute Wahl.)</p>`,
@@ -1114,7 +1223,7 @@ public class Geraet { public string Mac { get; } public int PingMs { get; set; }
     acts.push(() => { H(cWegList, '_weg[^1]', 'RemoveAt'); show(3, {}); setWiese('W', 4, 3, [], P[3], { '1,0': 'hot' }); say('Zurueck(): letzter Eintrag (1, 0) → Position, dann am Ende entfernen. O(1), nichts rückt nach.'); });
     return seq(acts);
   } },
-{ ch: 6, title: '❌ Antibeispiel: der Weg als Dictionary', code: cWegDict, hl: [],
+{ ch: 7, title: '❌ Antibeispiel: der Weg als Dictionary', code: cWegDict, hl: [],
   text: `<p>Nimmt man das Feld als Key und die Schrittnummer als Value, scheitert das sofort: Läuft der Hamster ein <b>zweites</b> Mal über dasselbe Feld, wirft <code>Add</code> eine Exception – mit <code>dict[key] = …</code> würde der alte Eintrag still überschrieben. Der Weg wäre kaputt.</p>
 <p>Und „der letzte Schritt“? Ein Dictionary hat kein „letztes“. Wir müssten alle Values nach der größten Zahl durchsuchen – O(n). Nimmt man umgekehrt die Schrittnummer als Key (<code>Dictionary&lt;int, …&gt;</code>), baut man nur eine Liste mit Index nach – nur umständlicher.</p>
 <p><b>Faustregel:</b> Wenn die Keys einfach 0, 1, 2, … sind, willst du eine <b>Liste</b>.</p>`,
@@ -1131,7 +1240,7 @@ public class Geraet { public string Mac { get; } public int PingMs { get; set; }
   } },
 
 // ---------- 7: Zusammenfassung ----------
-{ ch: 7, title: 'Zusammenfassung: Wann nehme ich was?', code: C(`
+{ ch: 8, title: 'Zusammenfassung: Wann nehme ich was?', code: C(`
 List<T>             // Position, Reihenfolge, Duplikate
 Queue<T> / Stack<T> // nur vorne raus (FIFO) / nur oben (LIFO)
 HashSet<T>          // nur "enthalten?", keine Duplikate

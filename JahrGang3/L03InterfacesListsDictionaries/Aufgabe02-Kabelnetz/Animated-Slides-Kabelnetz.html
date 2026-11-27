@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kabelnetz</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Keine Ligaturen: == und != sollen als zwei Zeichen erkennbar sein, nicht zusammengestaucht */
+  * { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
+
+  :root {
+    --bg: #020617; --panel: #0f172a; --panel2: #1e293b; --line: #334155;
+    --text: #f8fafc; --muted: #94a3b8; --accent: #38bdf8; --x: #f59e0b; --y: #a855f7;
+    --ok: #10b981; --bad: #ef4444; --kw: #c084fc; --str: #fbbf24; --num: #34d399; --com: #64748b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; overflow: hidden; }
+  .mono { font-family: 'Fira Code', monospace; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 19px; color: var(--accent); }
+  header p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+  #tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  #tabs button { background: var(--panel2); color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  #tabs button.active { background: #0284c7; color: #fff; border-color: var(--accent); }
+  main { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; overflow: hidden; min-height: 0; }
+  #titlebar { display: flex; align-items: baseline; gap: 12px; }
+  #title { font-size: 22px; font-weight: 700; margin: 0; }
+  #counter { color: var(--muted); font-size: 13px; }
+  #content { flex: 1; min-height: 0; display: flex; gap: 12px; }
+  .pane { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+  .panehead { background: #020617; border-bottom: 1px solid var(--line); padding: 6px 14px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  #left { width: 40%; }
+  #right { width: 60%; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  #codebox { flex: 1; overflow: auto; padding: 10px 0; font-size: 14px; line-height: 1.65; }
+  #stage { flex: 1.9; min-height: 0; background: radial-gradient(circle at center, #0b1430 0%, #020617 75%); display: flex; position: relative; overflow: auto; padding: 16px; }
+  #stage > * { margin: auto; }
+  #text { flex: 1; min-height: 0; overflow: auto; padding: 10px 16px; font-size: 15px; line-height: 1.55; }
+  #text p { margin: 6px 0; }
+  #text code { font-family: 'Fira Code', monospace; background: var(--panel2); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+  .cl { padding: 0 14px; border-left: 4px solid transparent; white-space: pre; }
+  .cl.hl { background: rgba(56,189,248,.18); border-left-color: var(--accent); }
+  .tk-kw { color: var(--kw); } .tk-str { color: var(--str); } .tk-num { color: var(--num); } .tk-com { color: var(--com); font-style: italic; } .tk-ty { color: #38bdf8; } .tk-tp { color: var(--x); font-weight: 600; }
+  nav { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; }
+  nav button { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 18px; font-size: 15px; cursor: pointer; }
+  nav button:hover { border-color: var(--accent); }
+  nav button:disabled { opacity: .35; cursor: default; }
+  nav button#autoBtn:not(:disabled) { border-color: var(--ok); color: var(--ok); }
+  nav button.on { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,.15); }
+  nav span { color: var(--muted); font-size: 12px; }
+  .split-v { flex: none; width: 8px; margin: 0 -6px; cursor: col-resize; border-radius: 4px; position: relative; z-index: 2; }
+  .split-h { flex: none; height: 8px; margin: -6px 0; cursor: row-resize; border-radius: 4px; position: relative; z-index: 2; }
+  .split-v:hover, .split-h:hover, .split-v.drag, .split-h.drag { background: var(--accent); }
+  body.dragging { user-select: none; }
+
+  /* ---- Bausteine ---- */
+  .col { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .row { display: flex; align-items: center; justify-content: center; gap: 18px; flex-wrap: wrap; }
+  .row.top { align-items: flex-start; }
+  .lbl { color: var(--muted); font-size: 13px; }
+  .scene { position: relative; }
+  .ov { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 5; }
+  .vb { display: flex; flex-direction: column; align-items: center; gap: 2px; background: var(--panel); border: 2px solid var(--y); border-radius: 8px; padding: 6px 12px; min-width: 84px; }
+  .vb .vn { color: var(--y); font-size: 13px; } .vb .vv { font-size: 20px; border-radius: 4px; padding: 0 4px; }
+  .vb.ref { border-style: dashed; }
+  .flash { animation: flash 1s ease; } @keyframes flash { 0% { background: rgba(245,158,11,.8); } 100% { background: transparent; } }
+  .obj { background: var(--panel2); border: 2px solid var(--ok); border-radius: 10px; min-width: 200px; overflow: hidden; }
+  .objhead { background: rgba(16,185,129,.18); padding: 6px 12px; font-weight: 600; text-align: center; }
+  .frow { display: flex; gap: 8px; padding: 3px 12px; font-size: 14px; }
+  .frow .fn { color: var(--x); min-width: 70px; } .frow .eq { color: var(--muted); }
+  .fv { border-radius: 4px; padding: 0 4px; }
+  .msec { border-top: 1px solid var(--line); padding: 3px 0; }
+  .mrow { padding: 2px 10px; font-size: 13px; color: var(--ok); border-radius: 4px; }
+  .mrow.mblink { animation: mblink .9s ease; } @keyframes mblink { 0%, 60% { background: rgba(16,185,129,.55); color: #fff; } 100% { background: transparent; } }
+  .tpc { font-family: 'Fira Code', monospace; background: rgba(245,158,11,.12); border: 2px solid var(--x); color: var(--x); border-radius: 8px; padding: 4px 12px; font-size: 16px; font-weight: 600; }
+  .tpc.b { border-color: var(--y); color: var(--y); background: rgba(168,85,247,.12); }
+  .badge { padding: 6px 14px; border-radius: 999px; font-weight: 700; font-size: 14px; }
+  .badge.rt { background: rgba(239,68,68,.15); color: #fca5a5; border: 1px solid var(--bad); }
+  .badge.ct { background: rgba(16,185,129,.15); color: #6ee7b7; border: 1px solid var(--ok); }
+  .errbox { border: 2px solid var(--bad); background: rgba(239,68,68,.12); color: #fca5a5; border-radius: 8px; padding: 8px 12px; font-family: 'Fira Code', monospace; font-size: 14px; max-width: 520px; }
+  .okbox { border: 2px solid var(--ok); background: rgba(16,185,129,.12); color: #a7f3d0; border-radius: 8px; padding: 8px 12px; font-family: 'Fira Code', monospace; font-size: 14px; max-width: 520px; }
+  .card { background: var(--panel2); border: 2px solid var(--accent); border-radius: 10px; padding: 8px 14px; font-family: 'Fira Code', monospace; font-size: 14px; }
+  .card.gen { border-color: var(--x); }
+  .card.ghost { border-style: dashed; opacity: .55; }
+  .arr { display: flex; gap: 4px; }
+  .cell { min-width: 54px; height: 50px; padding: 0 6px; border: 2px solid var(--line); border-radius: 8px; background: var(--panel); display: flex; align-items: center; justify-content: center; font-size: 22px; font-family: 'Fira Code', monospace; transition: all .4s; }
+  .cell.hot { border-color: var(--ok); background: rgba(16,185,129,.25); }
+  .cell.dim { opacity: .35; }
+  .cell.bad { border-color: var(--bad); background: rgba(239,68,68,.25); }
+  .cell.a { border-color: var(--x); } .cell.b { border-color: var(--y); }
+  .idx { font-family: 'Fira Code', monospace; font-size: 11px; color: var(--muted); text-align: center; }
+  .console { background: #000; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; min-height: 54px; min-width: 200px; font-size: 14px; color: #d1fae5; font-family: 'Fira Code', monospace; }
+  .frame { border: 2px dashed var(--accent); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .frame .fh { font-family: 'Fira Code', monospace; font-size: 13px; color: var(--accent); }
+  .chip { font-family: 'Fira Code', monospace; font-size: 15px; padding: 4px 10px; border-radius: 6px; background: var(--panel2); border: 1px solid var(--line); transition: all .5s; }
+  .chip.no { opacity: .35; text-decoration: line-through; border-color: var(--bad); color: #fca5a5; }
+  .chip.yes { border-color: var(--ok); color: #6ee7b7; }
+  .hier { display: grid; grid-template-columns: auto 80px auto; align-items: center; gap: 10px 6px; }
+  .hier .ar { text-align: center; font-size: 26px; font-weight: 700; }
+  .ar.ok { color: var(--ok); } .ar.bad { color: var(--bad); } .ar.k { color: var(--accent); }
+  table.t { border-collapse: collapse; font-size: 14px; max-width: 100%; }
+  table.t th, table.t td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
+  table.t th { color: var(--muted); font-weight: 600; font-size: 12px; background: #020617; }
+  table.t td code { font-family: 'Fira Code', monospace; font-size: 13px; color: var(--accent); }
+  .pop { animation: pop .45s cubic-bezier(.2,.8,.3,1.3) both; }
+  @keyframes pop { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
+  .shake { animation: shake .5s ease; } @keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+  .hidden { visibility: hidden; }
+  .tree { font-family: 'Fira Code', monospace; font-size: 13px; line-height: 1.75; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; }
+  .tree .tl { white-space: pre; border-radius: 4px; padding: 0 6px; transition: all .4s; }
+  .tree .tl.i { color: var(--accent); } .tree .tl.c { color: #6ee7b7; } .tree .tl.h { color: var(--muted); font-size: 11px; letter-spacing: .08em; }
+  .tree .tl.hot { background: rgba(245,158,11,.3); color: #fff; }
+  /* ---- L03: Listen und Dictionaries ---- */
+  .grid { display: grid; gap: 4px; }
+  .cell.small { min-width: 42px; width: 42px; height: 42px; font-size: 20px; }
+  .cell.null { min-width: 54px; font-size: 13px; color: var(--com); }
+  .cell.colhot { border-color: var(--x); background: rgba(245,158,11,.2); }
+  .bucket { border: 2px dashed var(--line); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 6px; align-items: center; transition: border-color .4s; }
+  .bucket .bh { font-weight: 700; font-size: 14px; color: var(--accent); }
+  .pill { font-family: 'Fira Code', monospace; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; font-size: 15px; }
+  .pill b { color: var(--x); }
+  .story { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-size: 16px; line-height: 1.5; max-width: 640px; min-height: 52px; }
+  .tree { font-size: 14px; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🔌 Aufgabe 2: Das Kabelnetz</h1>
+    <p>Weiter: Pfeiltasten ← → oder Leertaste · die Musterlösung Schritt für Schritt an den Daten aus Program.cs</p>
+  </div>
+  <div id="tabs"></div>
+</header>
+<main>
+  <div id="titlebar"><h2 id="title"></h2><span id="counter"></span></div>
+  <div id="content">
+    <section id="left" class="pane"><div class="panehead">📄 Code</div><div id="codebox" class="mono"></div></section>
+    <div class="split-v" id="sv" title="ziehen: Breite von Code / Animation"></div>
+    <div id="right">
+      <section class="pane" style="flex:1.9"><div class="panehead">🎬 Animation</div><div id="stage"></div></section>
+      <div class="split-h" id="sh" title="ziehen: Höhe von Animation / Erklärung"></div>
+      <section class="pane" style="flex:1"><div class="panehead">💡 Erklärung</div><div id="text"></div></section>
+    </div>
+  </div>
+  <nav>
+    <button onclick="go(-1)">◀ zurück</button>
+    <button onclick="replay()">↻ nochmal</button>
+    <button onclick="go(1)">weiter ▶</button>
+    <button id="autoBtn" onclick="runAuto()" disabled>⏩ automatisch</button>
+    <button id="presBtn" onclick="togglePresenter()" title="Taste P">🎤 Presenter</button>
+    <button class="vbtn" id="vb0" onclick="setView(0)" title="Taste 1">📄🎬 Code + Animation</button>
+    <button class="vbtn" id="vb1" onclick="setView(1)" title="Taste 2">🎬 nur Animation</button>
+    <button class="vbtn" id="vb2" onclick="setView(2)" title="Taste 3">📄 nur Code</button>
+    <span>R = nochmal · P = Presenter · 1/2/3 = Ansicht</span>
+  </nav>
+</main>
+
+<script>
+// ===================== kleine Helfer =====================
+const $ = (id) => document.getElementById(id);
+const SVGNS = 'http://www.w3.org/2000/svg';
+let timers = [];
+function clearTimers() { timers.forEach(t => { clearTimeout(t); clearInterval(t); }); timers = []; }
+function el(tag, cls, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; }
+const C = s => s.replace(/^\n/, '').replace(/\n$/, '').split('\n');
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+function highlight(line) {
+  const re = /(\/\/.*$)|("(?:[^"\\]|\\.)*"|'.')|(\b(?:new|foreach|for|in|out|ref|while|if|else|return|int|string|double|bool|char|void|object|class|interface|abstract|override|public|private|where|struct|var|null|true|false)\b)|(\b(?:T|TA|TB|TName|TPunkte)\b)|(\b(?:Console|Form|Kreis|Quadrat|Stapel|ObjektStapel|Rangliste|Tier|Hund|Katze|List|IEnumerable|IEnumerator|IComparer|IComparable|NachAlter|IQuelle|IAblage|IFalsch|HundeZucht|TierHeim|Hamster|IHatName|Roboter|IList|ICollection|Array|Dictionary|IDictionary|IReadOnlyDictionary|IReadOnlyCollection|KeyValuePair|LinkedList|Queue|Stack|HashSet|ISet|SortedSet|SortedDictionary|Seedling|Wiese|Feld|Pos|Math|FeldK|FeldE|FeldR|FeldM|MacAdresse|Geraet|HashCode|PunktK|PunktR|PunktS)\b)|(\b\d+(?:\.\d+)?\b)/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(line)) !== null) {
+    out += esc(line.slice(last, m.index));
+    const cls = m[1] ? 'tk-com' : m[2] ? 'tk-str' : m[3] ? 'tk-kw' : m[4] ? 'tk-tp' : m[5] ? 'tk-ty' : 'tk-num';
+    out += `<span class="${cls}">${esc(m[0])}</span>`;
+    last = re.lastIndex;
+  }
+  return out + esc(line.slice(last));
+}
+function renderCode(lines, hl) {
+  const box = $('codebox'); box.innerHTML = '';
+  (lines || []).forEach((l, i) => {
+    const d = el('div', 'cl' + ((hl || []).includes(i) ? ' hl' : ''), highlight(l) || ' ');
+    d.id = 'code-' + i; box.appendChild(d);
+  });
+}
+function setHl(hl) {
+  document.querySelectorAll('.cl').forEach((d, i) => d.classList.toggle('hl', hl.includes(i)));
+  const f = $('code-' + hl[0]); if (f) f.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function vbox(id, name, val, cls) {
+  const v = el('div', 'vb mono ' + (cls || '')); v.id = id;
+  v.innerHTML = `<span class="vn">${name}</span><span class="vv" id="${id}-v">${val}</span>`;
+  return v;
+}
+function setV(id, val) { const e = $(id + '-v') || $(id); if (!e) return; e.innerHTML = val; e.classList.remove('flash'); void e.offsetWidth; e.classList.add('flash'); }
+function objCard(id, head, fields, methods) {
+  const c = el('div', 'obj'); c.id = id;
+  c.appendChild(el('div', 'objhead mono', head));
+  fields.forEach(([f, v]) => c.appendChild(el('div', 'frow mono', `<span class="fn">${f}</span><span class="eq">=</span><span class="fv" id="${id}-${f}">${v}</span>`)));
+  if (methods) {
+    const sec = el('div', 'msec');
+    methods.forEach(m => { const r = el('div', 'mrow mono', '+ ' + m); r.id = id + '-m-' + m.split('(')[0]; sec.appendChild(r); });
+    c.appendChild(sec);
+  }
+  return c;
+}
+function setF(id, f, v) { setV(id + '-' + f, v); }
+function blinkM(id, m) { const e = $(id + '-m-' + m); if (!e) return; e.classList.remove('mblink'); void e.offsetWidth; e.classList.add('mblink'); }
+function cells(id, vals, labels) {
+  const w = el('div', 'col'); w.style.gap = '2px';
+  const a = el('div', 'arr');
+  vals.forEach((v, i) => { const c = el('div', 'cell', v); c.id = id + '-' + i; a.appendChild(c); });
+  w.appendChild(a);
+  if (labels !== false) { const ix = el('div', 'arr'); vals.forEach((_, i) => { const d = el('div', 'idx', '[' + i + ']'); d.style.minWidth = '54px'; ix.appendChild(d); }); w.appendChild(ix); }
+  return w;
+}
+function setCell(id, v, cls) { const c = $(id); if (!c) return; c.innerHTML = v; c.className = 'cell pop' + (cls ? ' ' + cls : ''); }
+function konsole(id) { const k = el('div', 'console'); k.id = id; return k; }
+function print(id, t) { const k = $(id); if (k) k.innerHTML += esc(t) + '<br>'; }
+function show_(id) { const e = $(id); if (e) { e.classList.remove('hidden'); e.classList.add('pop'); } }
+function shake(id) { const e = $(id); if (!e) return; e.classList.remove('shake'); void e.offsetWidth; e.classList.add('shake'); }
+function lab(t) { return el('div', 'lbl', t); }
+function wrap(cls, kids) { const d = el('div', cls); kids.forEach(k => d.appendChild(k)); return d; }
+function hid(e) { e.classList.add('hidden'); return e; }
+function hide_(id) { const e = $(id); if (e) e.classList.add('hidden'); }
+function grid(n, kids, gap) { const g = wrap('', kids); g.style.cssText = `display:grid;grid-template-columns:repeat(${n},auto);gap:${gap || '22px 60px'};align-items:center;justify-items:center`; return g; }
+function arrBox(id, label, v) { const w = wrap('col', [lab(label), cells(id, [v], false)]); w.style.gap = '2px'; w.id = id + 'box'; return w; }
+function say(t) { const c = $('info'); if (!c) return; c.classList.remove('hidden'); c.innerHTML = t; c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); }
+function infoBox() { const i = hid(el('div', 'okbox', '')); i.id = 'info'; i.style.fontFamily = 'Inter, sans-serif'; i.style.maxWidth = '640px'; return i; }
+function relink(sc, from, to, opts) { unlink(sc, from); link(sc, from, to, opts); }
+
+// Szene für Tausche ohne ref: Hauptprogramm, Methode, Arrays im Speicher
+function swapScene(st, head, withInt, isRef) {
+  const pa = isRef ? 'ref a' : 'a  (Kopie)', pb = isRef ? 'ref b' : 'b  (Kopie)';
+  const sc = scene();
+  const tp = el('div', 'tpc', 'T = ?'); tp.id = 'tp';
+  const main = el('div', 'frame'); main.appendChild(el('div', 'fh', 'Hauptprogramm'));
+  main.appendChild(withInt
+    ? grid(2, [vbox('x', 'int x', '?'), vbox('s1', 'string[] s1', '?', 'ref'), vbox('y', 'int y', '?'), vbox('s2', 'string[] s2', '?', 'ref')], '14px 30px')
+    : grid(1, [vbox('s1', 'string[] s1', '?', 'ref'), vbox('s2', 'string[] s2', '?', 'ref')], '14px 30px'));
+  const fr = el('div', 'frame'); fr.appendChild(el('div', 'fh', head));
+  fr.appendChild(grid(2, [vbox('a', pa, '–', 'ref'), vbox('tmp', 'T temp', '–'), vbox('b', pb, '–', 'ref'), el('div')], '14px 30px'));
+  const arrs = wrap('col', [hid(arrBox('A', 'Array', '🐶')), hid(arrBox('B', 'Array', '🐱'))]); arrs.style.gap = '20px';
+  const row = wrap('row', [main, arrs, fr]); row.style.gap = '70px'; row.style.flexWrap = 'nowrap';
+  if (isRef) { row.style.margin = '40px 0'; }
+  sc.appendChild(wrap('col', [tp, row, infoBox(), konsole('k')])); st.appendChild(sc);
+  return sc;
+}
+function setT(t) { const e = $('tp'); if (!e) return; e.textContent = 'T = ' + t; e.classList.remove('pop'); void e.offsetWidth; e.classList.add('pop'); }
+
+// Schritte innerhalb einer Folie
+function seq(acts, delay) {
+  let i = 0;
+  return {
+    next() { if (i >= acts.length) return false; acts[i++](); return true; },
+    auto() { const t = () => { if (this.next()) timers.push(setTimeout(t, delay || 1300)); }; t(); }
+  };
+}
+
+// ---------- Szene mit SVG-Pfeilen ----------
+function scene() {
+  const s = el('div', 'scene');
+  const svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('class', 'ov');
+  svg.innerHTML = '<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>';
+  s.appendChild(svg); s._svg = svg; s._links = [];
+  return s;
+}
+function link(sc, fromId, toId, opts = {}) { sc._links.push({ fromId, toId, opts }); redraw(sc); setTimeout(() => redraw(sc), 450); }
+function unlink(sc, fromId) { sc._links = sc._links.filter(l => l.fromId !== fromId); redraw(sc); }
+function anchor(r, side, base) {
+  const cx = r.left - base.left + r.width / 2, cy = r.top - base.top + r.height / 2;
+  if (side === 'bottom') return [cx, r.bottom - base.top];
+  if (side === 'top') return [cx, r.top - base.top];
+  if (side === 'left') return [r.left - base.left, cy];
+  if (side === 'right') return [r.right - base.left, cy];
+  return [cx, cy];
+}
+function redraw(sc) {
+  if (!sc || !sc._svg) return;
+  const base = sc.getBoundingClientRect();
+  sc._svg.querySelectorAll('.ln').forEach(e => e.remove());
+  sc._links.forEach(({ fromId, toId, opts }) => {
+    const a = $(fromId), b = $(toId); if (!a || !b) return;
+    const [x1, y1] = anchor(a.getBoundingClientRect(), opts.from || 'right', base);
+    let [x2, y2] = anchor(b.getBoundingClientRect(), opts.to || 'left', base);
+    const cx = (x1 + x2) / 2, cy = opts.down ? Math.max(y1, y2) + opts.curve : Math.min(y1, y2) - (opts.curve || 0);
+    { const [px, py] = opts.curve ? [cx, cy] : [x1, y1]; const d = Math.hypot(x2 - px, y2 - py) || 1; x2 -= (x2 - px) / d * 16; y2 -= (y2 - py) / d * 16; }
+    const g = document.createElementNS(SVGNS, 'g'); g.setAttribute('class', 'ln'); g.style.color = opts.color || 'var(--accent)';
+    let l;
+    if (opts.curve) { l = document.createElementNS(SVGNS, 'path'); l.setAttribute('d', `M${x1},${y1} Q${cx},${cy} ${x2},${y2}`); l.setAttribute('fill', 'none'); }
+    else { l = document.createElementNS(SVGNS, 'line'); l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2); }
+    l.setAttribute('stroke', 'currentColor'); l.setAttribute('stroke-width', opts.width || '2.5'); l.setAttribute('marker-end', 'url(#ah)');
+    if (opts.dash) l.setAttribute('stroke-dasharray', '6 5');
+    g.appendChild(l);
+    if (opts.label) { const t = document.createElementNS(SVGNS, 'text'); t.setAttribute('x', x1 + (x2 - x1) * 0.3); t.setAttribute('y', y1 + (y2 - y1) * 0.3 + (y2 < y1 ? -10 : 20)); t.setAttribute('text-anchor', 'middle'); t.setAttribute('stroke', 'var(--bg, #0b1020)'); t.setAttribute('stroke-width', '5'); t.setAttribute('paint-order', 'stroke'); t.setAttribute('font-weight', '600'); t.setAttribute('fill', 'currentColor'); t.setAttribute('font-size', '13'); t.setAttribute('font-family', 'Fira Code, monospace'); t.textContent = opts.label; g.appendChild(t); }
+    sc._svg.appendChild(g);
+  });
+}
+
+// ===================== Helfer für das Kabelnetz =====================
+const at = (code, s) => code.findIndex(l => l.includes(s));
+const H = (code, ...subs) => setHl(subs.map(s => at(code, s)));
+document.head.insertAdjacentHTML('beforeend', `<style>
+  table.kt { border-collapse: collapse; font-family: 'Fira Code', monospace; font-size: 13px; }
+  table.kt th { color: var(--accent); padding: 3px 8px; border: 1px solid var(--line); background: var(--panel2); }
+  table.kt td { padding: 3px 8px; border: 1px solid var(--line); }
+  table.kt tr.hot td { background: rgba(245,158,11,.25); }
+  table.kt tr.ok td { background: rgba(16,185,129,.2); }
+  .lst { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-family: 'Fira Code', monospace; font-size: 13px; }
+  .lst .chip { padding: 3px 9px; }
+  .datei { font-family: 'Fira Code', monospace; font-size: 12px; background: #0b1220; border: 2px solid var(--line); border-radius: 8px; padding: 6px 10px; min-width: 260px; white-space: pre; }
+  .datei.offen { border-color: var(--x); } .datei.zu { border-color: var(--ok); }
+</style>`);
+
+const POS = { Server: [0, 0], Ost: [30, 40], West: [0, 20], Labor: [30, 0], Bibliothek: [60, 40] };
+const ALLE = ['Server', 'Ost', 'West', 'Labor', 'Bibliothek'];
+const KABEL = [['Server', 'Ost'], ['Server', 'West'], ['Server', 'Labor'], ['Labor', 'Ost'], ['Ost', 'Bibliothek']];
+const NB = { Server: ['Ost', 'West', 'Labor'], Ost: ['Server', 'Labor', 'Bibliothek'], West: ['Server'], Labor: ['Server', 'Ost'], Bibliothek: ['Ost'] };
+const kk = (a, b) => [a, b].sort().join('-');
+const luftD = (p, q) => Math.hypot(q[0] - p[0], q[1] - p[1]);
+const kanalD = (p, q) => Math.abs(q[0] - p[0]) + Math.abs(q[1] - p[1]);
+const f1 = x => x.toFixed(1).replace('.', ',');
+const pt = p => `(${p[0]}|${p[1]})`;
+
+// Gebäudeplan als SVG: Knoten, Kabel, Messlinie, Laptop
+function planView(id, o = {}) {
+  const S = 5, X0 = 46, Y0 = 245, W = 500, Hh = 275;
+  const px = p => [X0 + p[0] * S, Y0 - p[1] * S];
+  let s = `<svg width="${W}" height="${Hh}" viewBox="0 0 ${W} ${Hh}" style="max-width:100%">`;
+  for (let x = 0; x <= 70; x += 10) { const [a] = px([x, 0]); s += `<line x1="${a}" y1="${Y0 - 45 * S}" x2="${a}" y2="${Y0}" stroke="#1e293b"/><text x="${a}" y="${Y0 + 16}" fill="#64748b" font-size="10" text-anchor="middle">${x}</text>`; }
+  for (let y = 0; y <= 45; y += 10) { const [, b] = px([0, y]); s += `<line x1="${X0}" y1="${b}" x2="${X0 + 70 * S}" y2="${b}" stroke="#1e293b"/><text x="${X0 - 8}" y="${b + 4}" fill="#64748b" font-size="10" text-anchor="end">${y}</text>`; }
+  const farbe = c => c === 'hot' ? '#f59e0b' : c === 'ok' ? '#10b981' : c === 'bad' ? '#ef4444' : '#38bdf8';
+  (o.kabel || []).forEach(([a, b]) => {
+    const [x1, y1] = px(POS[a]), [x2, y2] = px(POS[b]); const c = (o.hotK || {})[kk(a, b)];
+    s += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${farbe(c)}" stroke-width="${c && c !== 'dim' ? 5 : 3}" opacity="${c === 'dim' ? 0.25 : 1}"/>`;
+  });
+  (o.mess || []).forEach(m => {
+    const [x1, y1] = px(m.a), [x2, y2] = px(m.b); const col = m.col || '#a855f7';
+    if (m.art === 'kanal') s += `<polyline points="${x1},${y1} ${x2},${y1} ${x2},${y2}" fill="none" stroke="${col}" stroke-width="3" stroke-dasharray="7 5"/>`;
+    else s += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="3" stroke-dasharray="7 5"/>`;
+    if (m.txt) s += `<text x="${(x1 + x2) / 2 + 6}" y="${(y1 + y2) / 2 - 6}" fill="${col}" font-size="13" font-weight="700">${m.txt}</text>`;
+  });
+  (o.knoten || []).forEach(n => {
+    const [x, y] = px(POS[n]); const c = (o.hot || {})[n];
+    s += `<circle cx="${x}" cy="${y}" r="9" fill="${c && c !== 'dim' ? farbe(c) : '#0f172a'}" stroke="#38bdf8" stroke-width="2" opacity="${c === 'dim' ? 0.3 : 1}"/>`;
+    s += `<text x="${x + 12}" y="${y - 10}" fill="#f8fafc" font-size="13" font-family="Fira Code, monospace" opacity="${c === 'dim' ? 0.3 : 1}">${n}</text>`;
+  });
+  (o.extra || []).forEach(e => { const [x, y] = px(e.p); s += `<rect x="${x - 8}" y="${y - 8}" width="16" height="16" rx="3" fill="#a855f7"/><text x="${x - 10}" y="${y + 24}" fill="#d8b4fe" font-size="13">${e.name}</text>`; });
+  const d = el('div', '', s + '</svg>'); d.id = id; return d;
+}
+const setPlan = (id, o) => $(id).replaceWith(planView(id, o));
+
+function dictView(id, title, rows, marks = {}) {
+  const t = el('table', 'kt'); t.id = id;
+  t.innerHTML = `<tr><th colspan="2">${title}</th></tr>` + (rows.length
+    ? rows.map(([k, v]) => `<tr class="${marks[k] || ''}"><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('')
+    : '<tr><td colspan="2" style="color:#64748b">(leer)</td></tr>');
+  return t;
+}
+const setDict = (id, title, rows, marks) => $(id).replaceWith(dictView(id, title, rows, marks));
+
+function listView(id, title, items, marks = {}) {
+  const d = el('div', 'lst'); d.id = id;
+  d.appendChild(el('span', 'lbl', title));
+  d.appendChild(el('span', '', '['));
+  items.forEach(t => d.appendChild(el('span', 'chip ' + (marks[t] || ''), esc(t))));
+  d.appendChild(el('span', '', ']'));
+  return d;
+}
+const setList = (id, title, items, marks) => $(id).replaceWith(listView(id, title, items, marks));
+
+// ===================== Code der Folien =====================
+const cDist = C(`
+public double Berechnen(Position a, Position b)   // Luftlinie
+{
+    int dx = b.X - a.X;
+    int dy = b.Y - a.Y;
+    return Math.Sqrt(dx * dx + dy * dy);
+}
+
+public double Berechnen(Position a, Position b)   // Kabelkanal
+{
+    return Math.Abs(b.X - a.X) + Math.Abs(b.Y - a.Y);
+}
+
+public double Berechnen(Position a, Position b)   // Hops
+{
+    return _wert;                                 // Default 1
+}
+
+Position server = new Position(0, 0);
+Position ost = new Position(30, 40);
+luft.Berechnen(server, ost)     // 50,0
+kanal.Berechnen(server, ost)    // 70,0
+hops.Berechnen(server, ost)     // 1,0`);
+
+const cKabel = C(`
+public bool Verbinden(Switch anderer)
+{
+    if (anderer == this || _nachbarn.Contains(anderer))
+    {
+        return false;
+    }
+    _nachbarn.Add(anderer);
+    anderer._nachbarn.Add(this);
+    return true;
+}
+
+public bool Trennen(Switch anderer)
+{
+    if (!_nachbarn.Remove(anderer))
+    {
+        return false;
+    }
+    anderer._nachbarn.Remove(this);
+    return true;
+}
+
+s1.Verbinden(s2);    // s1 = Server, s2 = Ost
+s1.Verbinden(s2);    // noch einmal
+s1.Verbinden(s1);    // mit sich selbst
+s1.Trennen(s2);
+s1.Trennen(s3);      // s3 = Labor, nie verbunden`);
+
+const cDict = C(`
+public bool Hinzufuegen(Switch neu)
+{
+    if (_nachName.ContainsKey(neu.Name) || _nachPosition.ContainsKey(neu.Position))
+    {
+        return false;
+    }
+    _nachName.Add(neu.Name, neu);
+    _nachPosition.Add(neu.Position, neu);
+    return true;
+}
+
+public Switch? An(Position position)
+{
+    if (_nachPosition.TryGetValue(position, out Switch? gefunden))
+    {
+        return gefunden;
+    }
+    return null;
+}
+
+netz.Hinzufuegen(new Switch("Server", new Position(0, 0)));
+netz.Hinzufuegen(new Switch("Ost", new Position(30, 40)));
+netz.Hinzufuegen(new Switch("West", new Position(0, 20)));
+netz.Hinzufuegen(new Switch("Labor", new Position(30, 0)));
+netz.Hinzufuegen(new Switch("Bibliothek", new Position(60, 40)));
+netz.Hinzufuegen(new Switch("Ost", new Position(99, 99)));   // Name vergeben
+netz.Hinzufuegen(new Switch("Neu", new Position(30, 40)));   // Platz belegt
+netz.An(new Position(0, 20));                                // NEUES Objekt als Key`);
+
+const cGesamt = C(`
+public double GesamtKabel()
+{
+    double summe = 0;
+    foreach (Switch a in _nachName.Values)
+    {
+        foreach (Switch b in a.Nachbarn)
+        {
+            if (a.CompareTo(b) < 0)
+            {
+                summe += Kabellaenge(a, b);
+            }
+        }
+    }
+    return summe;
+}
+
+public double Kabellaenge(Switch a, Switch b)
+{
+    return _distanz.Berechnen(a.Position, b.Position);   // hier: Luftlinie
+}`);
+
+const cRoute = C(`
+public double Routenlaenge(List<string> route)
+{
+    double summe = 0;
+    Switch? vorher = null;
+    foreach (string name in route)
+    {
+        Switch? aktuell = Finde(name);
+        if (aktuell == null)
+        {
+            return -1;
+        }
+        if (vorher != null)
+        {
+            if (!vorher.Nachbarn.Contains(aktuell))
+            {
+                return -1;
+            }
+            summe += Kabellaenge(vorher, aktuell);
+        }
+        vorher = aktuell;
+    }
+    return summe;
+}
+
+n.Routenlaenge(umweg)     // { "Server", "Labor", "Ost" }
+n.Routenlaenge(kaputt)    // { "West", "Ost" }
+
+// Composition Root: PROGRAM entscheidet, wie gemessen wird
+foreach (IDistanz distanz in new List<IDistanz> { new Luftlinie(), new Kabelkanal(), new Hops() })
+{
+    Kabelnetz n = Aufbauen(distanz);    // Dependency Injection
+}`);
+
+const cNaechster = C(`
+public Switch? Naechster(IHatPosition geraet)
+{
+    List<Switch> sortiert = Sortiert(new NachDistanzZu(geraet.Position, _distanz));
+    if (sortiert.Count == 0)
+    {
+        return null;
+    }
+    return sortiert[0];
+}
+
+public int Compare(Switch? a, Switch? b)       // in NachDistanzZu
+{
+    double da = _distanz.Berechnen(a.Position, _ziel);
+    double db = _distanz.Berechnen(b.Position, _ziel);
+    int vergleich = da.CompareTo(db);
+    if (vergleich != 0)
+    {
+        return vergleich;
+    }
+    return a.CompareTo(b);                      // gleich weit -> Name
+}
+
+Laptop laptop = new Laptop("Laptop Anna", new Position(25, 35));
+netz.Naechster(laptop)                        // Ost
+netz.Naechster(netz.Finde("Labor")!)          // Labor`);
+
+const cEntf = C(`
+public bool Entfernen(string name)
+{
+    if (!_nachName.Remove(name, out Switch? weg))
+    {
+        return false;
+    }
+    _nachPosition.Remove(weg.Position);
+    List<Switch> nachbarn = new List<Switch>(weg.Nachbarn);   // Kopie!
+    foreach (Switch nachbar in nachbarn)
+    {
+        weg.Trennen(nachbar);
+    }
+    return true;
+}
+
+netz.Entfernen("Ost");    // True
+netz.Entfernen("Ost");    // False
+
+using (Protokoll protokoll = new Protokoll("kabelnetz.txt"))
+{
+    netz.Exportieren(protokoll);
+}   // Dispose() -> Datei schließen`);
+
+// ===================== Folien =====================
+const chapters = ['Distanzen', 'Kabel (List)', 'Kabelnetz (Dictionary)', 'Kabellängen und DI', 'Der nächste Switch', 'Entfernen und Protokoll'];
+
+const steps = [
+// ---------- 0: Distanzen ----------
+{ ch: 0, title: 'Teil 1: drei Arten, eine Distanz zu messen', code: cDist, hl: [],
+  text: `<p>Alle drei Klassen setzen <code>IDistanz</code> um und haben dieselbe Methode <code>Berechnen(a, b)</code> – aber jede rechnet anders. Wir messen von <b>Server (0|0)</b> nach <b>Ost (30|40)</b>.</p>
+<p><b>Luftlinie</b>: das Kabel geht schräg durch den Raum – Pythagoras.<br><b>Kabelkanal</b>: das Kabel läuft nur waagrecht und senkrecht entlang der Wände.<br><b>Hops</b>: jedes Kabel zählt gleich viel, die Positionen sind egal.</p>`,
+  render(st) {
+    const vars = wrap('row', [vbox('va', 'Position a', '(0|0)'), vbox('vb', 'Position b', '(30|40)'), vbox('vdx', 'int dx', '?'), vbox('vdy', 'int dy', '?'), vbox('ver', 'return', '?')]);
+    st.appendChild(wrap('col', [planView('P', { knoten: ['Server', 'Ost'] }), vars, infoBox()]));
+    const code = steps[cur].code;
+    const k = { knoten: ['Server', 'Ost'], hot: { Server: 'hot', Ost: 'hot' } };
+    return seq([
+      () => { H(code, 'luft.Berechnen'); setPlan('P', k); say('Gemessen wird zwischen zwei <b>Positionen</b> – das sind records mit X und Y.'); },
+      () => { H(code, 'int dx'); setV('vdx', '30'); say('dx = 30 − 0 = <b>30</b> Meter nach rechts.'); },
+      () => { H(code, 'int dy'); setV('vdy', '40'); say('dy = 40 − 0 = <b>40</b> Meter nach oben.'); },
+      () => { H(code, 'Math.Sqrt'); setPlan('P', { ...k, mess: [{ a: POS.Server, b: POS.Ost, txt: '50 m' }] }); setV('ver', '50,0'); say('√(30² + 40²) = √(900 + 1600) = √2500 = <b>50</b> m.'); },
+      () => { H(code, '// Kabelkanal', 'Math.Abs', 'kanal.Berechnen'); setPlan('P', { ...k, mess: [{ a: POS.Server, b: POS.Ost, art: 'kanal', txt: '70 m' }] }); setV('ver', '70,0'); say('Entlang der Wände: |30| + |40| = <b>70</b> m – länger als die Luftlinie.'); },
+      () => { H(code, 'return _wert;', 'hops.Berechnen'); setPlan('P', k); setV('vdx', '–'); setV('vdy', '–'); setV('ver', '1,0'); say('Hops schaut die Positionen gar nicht an: <b>1</b> Sprung.'); },
+    ]);
+  } },
+
+// ---------- 1: Kabel ----------
+{ ch: 1, title: 'Teil 2: Ein Kabel hat zwei Enden', code: cKabel, hl: [],
+  text: `<p>Jeder <code>Switch</code> <b>hat</b> eine Liste <code>_nachbarn</code> (hat-Beziehung, Multiplizität *). Ein Kabel muss in <b>beiden</b> Listen stehen – sonst kennt Ost den Server, aber der Server nicht Ost.</p>
+<p><code>_nachbarn</code> ist <code>private</code>. Trotzdem darf <code>Verbinden</code> auf <code>anderer._nachbarn</code> zugreifen: <code>private</code> gilt pro <b>Klasse</b>, nicht pro Objekt.</p>
+<p><code>Contains</code> und <code>Remove</code> suchen mit <code>Equals</code> – bei einer <code>class</code> ohne überschriebenes Equals heißt das: <b>dasselbe Objekt</b>.</p>`,
+  render(st) {
+    const kn = ['Server', 'Ost', 'Labor'];
+    st.appendChild(wrap('col', [planView('P', { knoten: kn }), listView('L1', 's1 (Server)._nachbarn', []), listView('L2', 's2 (Ost)._nachbarn', []), listView('L3', 's3 (Labor)._nachbarn', []), konsole('k'), infoBox()]));
+    const code = steps[cur].code;
+    return seq([
+      () => { H(code, 's1.Verbinden(s2);    // s1', 'anderer == this'); setPlan('P', { knoten: kn, hot: { Server: 'hot', Ost: 'hot' } }); say('anderer = Ost. Ost ist nicht this und noch nicht in der Liste → weiter.'); },
+      () => { H(code, '_nachbarn.Add(anderer)'); setList('L1', 's1 (Server)._nachbarn', ['Ost'], { Ost: 'yes' }); say('Erstes Ende: Server kennt jetzt Ost.'); },
+      () => { H(code, 'anderer._nachbarn.Add(this)'); setList('L2', 's2 (Ost)._nachbarn', ['Server'], { Server: 'yes' }); setPlan('P', { knoten: kn, kabel: [['Server', 'Ost']], hotK: { 'Ost-Server': 'ok' } }); print('k', 'True'); say('Zweites Ende: Ost kennt den Server. Jetzt liegt das Kabel.'); },
+      () => { H(code, 's1.Verbinden(s2);    // noch', '_nachbarn.Contains'); setList('L1', 's1 (Server)._nachbarn', ['Ost'], { Ost: 'no' }); print('k', 'False'); say('Ost steht schon in der Liste → <b>false</b>. Kein doppeltes Kabel.'); },
+      () => { H(code, 's1.Verbinden(s1)', 'anderer == this'); setList('L1', 's1 (Server)._nachbarn', ['Ost']); print('k', 'False'); say('Ein Kabel zu sich selbst gibt es nicht → <b>false</b>.'); },
+      () => { H(code, 's1.Trennen(s2)', '!_nachbarn.Remove'); setList('L1', 's1 (Server)._nachbarn', []); say('Remove findet Ost und entfernt es → liefert true, also kein return false.'); },
+      () => { H(code, 'anderer._nachbarn.Remove(this)'); setList('L2', 's2 (Ost)._nachbarn', []); setPlan('P', { knoten: kn }); print('k', 'True'); say('Auch das zweite Ende ist weg.'); },
+      () => { H(code, 's1.Trennen(s3)', '!_nachbarn.Remove'); setPlan('P', { knoten: kn, hot: { Labor: 'bad' } }); print('k', 'False'); say('Labor war nie in der Liste: Remove liefert false → <b>false</b>.'); },
+    ]);
+  } },
+
+// ---------- 2: Dictionary ----------
+{ ch: 2, title: 'Teil 3: Zwei Dictionaries, dieselben Switches', code: cDict, hl: [],
+  text: `<p>Das Kabelnetz trägt jeden Switch in <b>zwei</b> Dictionaries ein: nach <b>Name</b> und nach <b>Position</b>. Beide Values zeigen auf <b>dasselbe</b> Switch-Objekt.</p>
+<p>Der Key <code>Position</code> ist ein <code>record</code> – <b>Wertsemantik</b>. Darum findet <code>An(new Position(0, 20))</code> den Eintrag, obwohl wir ein <b>neues</b> Objekt übergeben: gleiche Werte → gleicher Hash → gleiches Fach, und <code>Equals</code> vergleicht X und Y.</p>
+<p>Mit einer <code>class Position</code> ohne Equals/GetHashCode wäre das Ergebnis <code>null</code>.</p>`,
+  render(st) {
+    let kn = [], rn = [], rp = [];
+    st.appendChild(wrap('col', [planView('P', {}), wrap('row top', [dictView('DN', '_nachName', []), dictView('DP', '_nachPosition', [])]), konsole('k'), infoBox()]));
+    const code = steps[cur].code;
+    const add = n => () => {
+      H(code, `"${n}", new Position(${POS[n][0]}, ${POS[n][1]})`, '_nachName.Add', '_nachPosition.Add');
+      kn.push(n); rn.push([`"${n}"`, '→ Switch ' + n]); rp.push([pt(POS[n]), '→ Switch ' + n]);
+      setPlan('P', { knoten: kn, hot: { [n]: 'hot' } }); setDict('DN', '_nachName', rn, { [`"${n}"`]: 'ok' }); setDict('DP', '_nachPosition', rp, { [pt(POS[n])]: 'ok' });
+      say(`Name <b>und</b> Position frei → in beide Dictionaries. ${kn.length} Switch${kn.length > 1 ? 'es' : ''}.`);
+    };
+    return seq([
+      ...ALLE.map(add),
+      () => { H(code, '"Ost", new Position(99, 99)', '_nachName.ContainsKey'); setDict('DN', '_nachName', rn, { '"Ost"': 'hot' }); setDict('DP', '_nachPosition', rp); print('k', 'False'); say('Der Name "Ost" ist schon ein Key → <b>false</b>. Nichts wird eingetragen.'); },
+      () => { H(code, '"Neu", new Position(30, 40)', '_nachPosition.ContainsKey'); setDict('DN', '_nachName', rn); setDict('DP', '_nachPosition', rp, { '(30|40)': 'hot' }); setPlan('P', { knoten: kn, hot: { Ost: 'bad' } }); print('k', 'False'); say('Name frei, aber auf (30|40) steht schon Ost → <b>false</b>.'); },
+      () => { H(code, 'netz.An(new Position(0, 20))', 'TryGetValue'); setDict('DP', '_nachPosition', rp, { '(0|20)': 'ok' }); setPlan('P', { knoten: kn, hot: { West: 'ok' } }); print('k', 'West       (  0| 20)  0 Kabel'); say('Ein <b>neues</b> Position-Objekt – aber record vergleicht die Werte. Gefunden: West.'); },
+    ]);
+  } },
+
+// ---------- 3: Gesamtkabel ----------
+{ ch: 3, title: 'Teil 4: GesamtKabel – jedes Kabel nur einmal', code: cGesamt, hl: [],
+  text: `<p>Jedes Kabel steht in <b>zwei</b> Nachbarlisten. Würden wir einfach alles aufsummieren, käme jedes Kabel <b>doppelt</b> vor.</p>
+<p>Trick: Wir zählen ein Kabel nur, wenn <code>a.CompareTo(b) &lt; 0</code> – also nur von dem Ende aus, dessen Name im Alphabet <b>vorne</b> steht. Das andere Ende überspringt es.</p>
+<p>Wie lang ein Kabel ist, weiß <code>GesamtKabel</code> nicht: Es fragt <code>_distanz</code> – hier eine <code>Luftlinie</code>.</p>`,
+  render(st) {
+    const kab = KABEL;
+    st.appendChild(wrap('col', [planView('P', { knoten: ALLE, kabel: kab }), wrap('row', [vbox('va', 'Switch a', '–'), vbox('vb', 'Switch b', '–'), vbox('vs', 'double summe', '0')]), infoBox()]));
+    const code = steps[cur].code;
+    let summe = 0; const gezaehlt = {};
+    const acts = [() => { H(code, 'double summe = 0'); say('Wir gehen <b>alle</b> Switches und von jedem <b>alle</b> Nachbarn durch.'); }];
+    ALLE.forEach(a => NB[a].forEach(b => acts.push(() => {
+      setV('va', a); setV('vb', b);
+      const hk = { ...gezaehlt };
+      if (a < b) {
+        const l = luftD(POS[a], POS[b]); summe += l; gezaehlt[kk(a, b)] = 'ok'; hk[kk(a, b)] = 'hot';
+        H(code, 'if (a.CompareTo(b) < 0)', 'summe += Kabellaenge'); setV('vs', f1(summe));
+        say(`"${a}" &lt; "${b}" → zählen: ${f1(l)} m. Summe ${f1(summe)} m.`);
+      } else {
+        hk[kk(a, b)] = 'bad'; H(code, 'if (a.CompareTo(b) < 0)');
+        say(`"${a}" &gt; "${b}" → überspringen. Dieses Kabel zählt ${gezaehlt[kk(a, b)] ? 'schon' : 'später'} bei ${b}.`);
+      }
+      setPlan('P', { knoten: ALLE, kabel: kab, hotK: hk, hot: { [a]: 'hot' } });
+    })));
+    acts.push(() => { H(code, 'return summe'); setPlan('P', { knoten: ALLE, kabel: kab, hotK: gezaehlt }); say('5 Kabel, jedes genau einmal: 50 + 20 + 30 + 40 + 30 = <b>170</b> m.'); });
+    return seq(acts);
+  } },
+
+{ ch: 3, title: 'Teil 4: Routenlänge und Dependency Injection', code: cRoute, hl: [],
+  text: `<p><code>Routenlaenge</code> geht die Namen mit <code>foreach</code> durch und merkt sich den <b>vorherigen</b> Switch. Zwischen zwei aufeinanderfolgenden Switches muss ein Kabel liegen, sonst ist die Route kaputt → <code>-1</code>.</p>
+<p>Danach baut <code>Program</code> dasselbe Netz dreimal – jedes Mal mit einer <b>anderen</b> <code>IDistanz</code> im Konstruktor. Im <code>Kabelnetz</code> ändert sich <b>keine</b> Zeile: Es programmiert gegen das Interface. <b>Wer</b> entscheidet, wie gemessen wird? <code>Program</code> – das ist <b>Inversion of Control</b>, umgesetzt durch <b>Dependency Injection</b>.</p>`,
+  render(st) {
+    const kab = KABEL;
+    const tab = el('table', 'kt'); tab.id = 'T'; tab.innerHTML = '<tr><th>IDistanz</th><th>gesamt</th><th>direkt</th><th>Umweg</th><th>kaputt</th></tr>';
+    st.appendChild(wrap('col', [planView('P', { knoten: ALLE, kabel: kab }), wrap('row', [vbox('vn', 'string name', '–'), vbox('vv', 'Switch? vorher', 'null'), vbox('vs', 'double summe', '0')]), tab, infoBox()]));
+    const code = steps[cur].code;
+    const zeile = (n, g, d, u, k) => { const r = el('tr', 'pop', `<td>${n}</td><td>${g}</td><td>${d}</td><td>${u}</td><td>${k}</td>`); $('T').appendChild(r); };
+    return seq([
+      () => { H(code, 'n.Routenlaenge(umweg)', 'foreach (string name'); setV('vn', '"Server"'); setPlan('P', { knoten: ALLE, kabel: kab, hot: { Server: 'hot' } }); say('Erster Name: Server. vorher ist noch null → nichts zu messen.'); },
+      () => { H(code, 'vorher = aktuell'); setV('vv', 'Server'); say('Server merken.'); },
+      () => { H(code, '!vorher.Nachbarn.Contains', 'summe += Kabellaenge(vorher'); setV('vn', '"Labor"'); setV('vs', '30,0'); setPlan('P', { knoten: ALLE, kabel: kab, hot: { Server: 'hot', Labor: 'hot' }, hotK: { 'Labor-Server': 'ok' } }); say('Labor ist Nachbar von Server → + 30 m.'); },
+      () => { H(code, 'vorher = aktuell'); setV('vv', 'Labor'); setV('vn', '"Ost"'); setV('vs', '70,0'); setPlan('P', { knoten: ALLE, kabel: kab, hot: { Labor: 'hot', Ost: 'hot' }, hotK: { 'Labor-Server': 'ok', 'Labor-Ost': 'ok' } }); say('vorher = Labor. Ost ist Nachbar von Labor → + 40 m = <b>70</b> m.'); },
+      () => { H(code, 'n.Routenlaenge(kaputt)', '!vorher.Nachbarn.Contains', 'return -1;'); setV('vn', '"Ost"'); setV('vv', 'West'); setV('vs', '0'); setPlan('P', { knoten: ALLE, kabel: kab, hot: { West: 'hot', Ost: 'bad' }, mess: [{ a: POS.West, b: POS.Ost, col: '#ef4444', txt: 'kein Kabel' }] }); say('Route West → Ost: West kennt Ost nicht → <b>-1</b>.'); },
+      () => { H(code, 'new Luftlinie(), new Kabelkanal()', 'Aufbauen(distanz)'); setPlan('P', { knoten: ALLE, kabel: kab, mess: [{ a: POS.Server, b: POS.Ost, txt: '50' }] }); zeile('Luftlinie', '170,0', '50,0', '70,0', '-1'); say('Luftlinie: Der direkte Weg (50) ist kürzer als der Umweg (70).'); },
+      () => { setPlan('P', { knoten: ALLE, kabel: kab, mess: [{ a: POS.Server, b: POS.Ost, art: 'kanal', txt: '70' }] }); zeile('Kabelkanal', '190,0', '70,0', '70,0', '-1'); say('Kabelkanal: Das Kabel läuft entlang der Wände – direkt und Umweg sind <b>gleich</b> lang.'); },
+      () => { setPlan('P', { knoten: ALLE, kabel: kab }); zeile('Hops', '5,0', '1,0', '2,0', '-1'); say('Hops zählt Kabel: 5 Kabel, direkt 1 Sprung, Umweg 2. Dasselbe Kabelnetz – nur ein anderes IDistanz <b>hineingegeben</b>.'); },
+    ], 1500);
+  } },
+
+// ---------- 4: Naechster ----------
+{ ch: 4, title: 'Teil 5: Welcher Switch ist dem Laptop am nächsten?', code: cNaechster, hl: [],
+  text: `<p><code>Naechster</code> nimmt ein <code>IHatPosition</code> – alles, was eine Position <b>hat</b>: einen Laptop, aber auch einen Switch.</p>
+<p>Sortiert wird mit <code>NachDistanzZu</code>. Dieser Vergleicher hat <b>Zustand</b>: Er merkt sich das <b>Ziel</b> und die <b>Messart</b>. Darum kann es kein <code>CompareTo</code> in <code>Switch</code> sein – das kennt kein Ziel.</p>
+<p>Labor und Bibliothek sind <b>gleich weit</b> weg (35,4 m) – dann entscheidet der Name.</p>`,
+  render(st) {
+    const lap = { name: 'Laptop Anna', p: [25, 35] };
+    st.appendChild(wrap('col', [planView('P', { knoten: ALLE, kabel: KABEL }), listView('S', 'sortiert', []), konsole('k'), infoBox()]));
+    const code = steps[cur].code;
+    const d = ALLE.map(n => [n, luftD(POS[n], lap.p)]);
+    const sortiert = [...d].sort((x, y) => x[1] - y[1] || (x[0] < y[0] ? -1 : 1));
+    const fertig = [];
+    return seq([
+      () => { H(code, 'Laptop laptop = new'); setPlan('P', { knoten: ALLE, kabel: KABEL, extra: [lap] }); say('Der Laptop steht bei (25|35). Er hat eine Position, ist aber kein Switch.'); },
+      () => { H(code, 'new NachDistanzZu(geraet.Position, _distanz)'); say('Der Vergleicher bekommt <b>Ziel</b> (25|35) und <b>Messart</b> Luftlinie mit.'); },
+      ...d.map(([n, l]) => () => {
+        H(code, 'double da'); fertig.push(n);
+        setPlan('P', { knoten: ALLE, kabel: KABEL, extra: [lap], hot: { [n]: 'hot' }, mess: [{ a: POS[n], b: lap.p, txt: f1(l) }] });
+        setList('S', 'Distanzen', fertig.map(x => `${x} ${f1(d.find(z => z[0] === x)[1])}`));
+        say(`${n} ${pt(POS[n])} → Laptop: <b>${f1(l)}</b> m`);
+      }),
+      () => { H(code, 'return a.CompareTo(b)'); setList('S', 'sortiert', sortiert.map(([n, l]) => `${n} ${f1(l)}`), { 'Bibliothek 35,4': 'yes', 'Labor 35,4': 'yes' }); say('Sortiert nach Distanz. Bibliothek und Labor: beide 35,4 → <b>Name</b> entscheidet, Bibliothek zuerst.'); },
+      () => { H(code, 'return sortiert[0]', 'netz.Naechster(laptop)'); setPlan('P', { knoten: ALLE, kabel: KABEL, extra: [lap], hot: { Ost: 'ok' }, mess: [{ a: POS.Ost, b: lap.p, col: '#10b981', txt: '7,1' }] }); print('k', 'nächster zu Laptop Anna: Ost'); say('Das erste Element: <b>Ost</b>.'); },
+      () => { H(code, 'netz.Naechster(netz.Finde("Labor")!)'); setPlan('P', { knoten: ALLE, kabel: KABEL, hot: { Labor: 'ok' } }); setList('S', 'sortiert', ['Labor 0,0', 'Server 30,0', '…'], { 'Labor 0,0': 'yes' }); print('k', 'nächster zu Labor: Labor'); say('Ein Switch <b>ist</b> auch ein IHatPosition. Zu sich selbst hat er Distanz 0 → der nächste ist er selbst (Zusatzaufgabe!).'); },
+    ]);
+  } },
+
+// ---------- 5: Entfernen ----------
+{ ch: 5, title: 'Teil 6: Entfernen und Protokoll', code: cEntf, hl: [],
+  text: `<p><code>Entfernen</code> muss an <b>drei</b> Stellen aufräumen: in beiden Dictionaries <b>und</b> in den Nachbarlisten der anderen Switches – sonst zeigt das Labor noch auf einen Switch, den es nicht mehr gibt.</p>
+<p>Wir gehen über eine <b>Kopie</b> der Nachbarliste: <code>Trennen</code> entfernt Elemente aus <code>weg.Nachbarn</code>. Ein <code>foreach</code> über eine Liste, die sich dabei ändert, wirft eine <b>InvalidOperationException</b>.</p>
+<p>Zum Schluss schreibt <code>Exportieren</code> in ein <code>Protokoll</code>. <code>using</code> ruft am Ende <code>Dispose()</code> auf – auch bei einer Exception. Erst dann ist die Datei wieder frei.</p>`,
+  render(st) {
+    let kn = [...ALLE], kab = [...KABEL];
+    const rn = ALLE.map(n => [`"${n}"`, '→ ' + n]), rp = ALLE.map(n => [pt(POS[n]), '→ ' + n]);
+    const datei = el('div', 'datei', 'kabelnetz.txt  (zu)'); datei.id = 'F';
+    st.appendChild(wrap('col', [planView('P', { knoten: kn, kabel: kab }), wrap('row top', [dictView('DN', '_nachName', rn), dictView('DP', '_nachPosition', rp)]), listView('L', 'nachbarn (Kopie)', []), wrap('row top', [konsole('k'), datei]), infoBox()]));
+    const code = steps[cur].code;
+    const kopie = ['Server', 'Labor', 'Bibliothek'];
+    const trenn = (n, i) => () => {
+      H(code, 'weg.Trennen(nachbar)'); kab = kab.filter(([a, b]) => !(kk(a, b) === kk('Ost', n)));
+      setPlan('P', { knoten: kn, kabel: kab, hot: { Ost: 'dim', [n]: 'hot' } });
+      const m = {}; kopie.slice(0, i + 1).forEach(x => m[x] = 'no'); setList('L', 'nachbarn (Kopie)', kopie, m);
+      say(`Kabel Ost – ${n} trennen: aus <b>beiden</b> Nachbarlisten.`);
+    };
+    return seq([
+      () => { H(code, 'netz.Entfernen("Ost");    // True', '_nachName.Remove(name, out'); rn.splice(1, 1); setDict('DN', '_nachName', rn); setPlan('P', { knoten: kn, kabel: kab, hot: { Ost: 'hot' } }); say('Remove liefert true <b>und</b> das entfernte Objekt in <code>weg</code>.'); },
+      () => { H(code, '_nachPosition.Remove(weg.Position)'); rp.splice(1, 1); setDict('DP', '_nachPosition', rp); say('Auch der Platz (30|40) wird frei.'); },
+      () => { H(code, 'new List<Switch>(weg.Nachbarn)'); setList('L', 'nachbarn (Kopie)', kopie); say('Eine <b>Kopie</b> der Nachbarliste – über die laufen wir.'); },
+      ...kopie.map(trenn),
+      () => { H(code, 'return true;'); kn = kn.filter(n => n !== 'Ost'); setPlan('P', { knoten: kn, kabel: kab }); print('k', 'True'); say('Ost ist überall weg. Das Labor hat jetzt nur noch 1 Kabel.'); },
+      () => { H(code, 'netz.Entfernen("Ost");    // False', '_nachName.Remove(name, out', 'return false;'); print('k', 'False'); say('Ein zweites Mal: Remove findet nichts → <b>false</b>.'); },
+      () => { H(code, 'using (Protokoll'); $('F').className = 'datei offen pop'; $('F').textContent = 'kabelnetz.txt  (offen, gesperrt)'; print('k', 'Protokoll geöffnet'); say('Der Konstruktor öffnet die Datei. Ab jetzt ist sie <b>gesperrt</b>.'); },
+      () => { H(code, 'netz.Exportieren(protokoll)'); $('F').textContent = 'kabelnetz.txt  (offen)\nBibliothek ( 60| 40)  0 Kabel\nLabor      ( 30|  0)  1 Kabel\nServer     (  0|  0)  2 Kabel\nWest       (  0| 20)  1 Kabel\nGesamt: 50,0 m (Luftlinie)'; say('5 Zeilen: alle Switches nach Name und die Gesamtlänge (20 + 30 = 50 m).'); },
+      () => { H(code, '}   // Dispose()'); $('F').className = 'datei zu pop'; $('F').textContent = $('F').textContent.replace('(offen)', '(geschlossen)'); print('k', 'Protokoll geschlossen'); say('Am Ende von <code>using</code>: <b>Dispose()</b> schließt die Datei. Jetzt kann <code>File.ReadAllLines</code> sie lesen.'); },
+    ]);
+  } },
+];
+
+// ===================== Navigation =====================
+let cur = 0, ctrl = null;
+function buildTabs() {
+  chapters.forEach((c, i) => {
+    const b = el('button', '', (i + 1) + '. ' + c);
+    b.onclick = () => show(steps.findIndex(s => s.ch === i));
+    $('tabs').appendChild(b);
+  });
+}
+function show(i) {
+  clearTimers();
+  cur = Math.max(0, Math.min(steps.length - 1, i));
+  const s = steps[cur];
+  document.querySelectorAll('#tabs button').forEach((b, k) => b.classList.toggle('active', k === s.ch));
+  $('title').textContent = s.title;
+  $('counter').textContent = `Schritt ${cur + 1} / ${steps.length}`;
+  $('text').innerHTML = s.text;
+  renderCode(s.code, s.hl);
+  const st = $('stage'); st.innerHTML = ''; st.style.flexDirection = ''; st.style.gap = '';
+  ctrl = s.render(st) || null;
+  $('autoBtn').disabled = !(ctrl && ctrl.auto);
+}
+function go(d) { if (d > 0 && ctrl && ctrl.next && ctrl.next()) return; show(cur + d); }
+function runAuto() { if (ctrl && ctrl.auto) { $('autoBtn').disabled = true; ctrl.auto(); } }
+function replay() { show(cur); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+  if (e.key === 'r' || e.key === 'R') replay();
+  if (e.key === 'p' || e.key === 'P') togglePresenter();
+  if (e.key === '1' || e.key === '2' || e.key === '3') setView(Number(e.key) - 1);
+});
+// ===================== Trennlinien mit der Maus verschieben =====================
+function dragger(handle, onMove) {
+  handle.addEventListener('pointerdown', e => {
+    e.preventDefault(); handle.setPointerCapture(e.pointerId); handle.classList.add('drag'); document.body.classList.add('dragging');
+    const mv = ev => onMove(ev);
+    const up = () => { handle.removeEventListener('pointermove', mv); handle.removeEventListener('pointerup', up); handle.classList.remove('drag'); document.body.classList.remove('dragging'); redrawAll(); };
+    handle.addEventListener('pointermove', mv); handle.addEventListener('pointerup', up);
+  });
+}
+dragger($('sv'), e => {
+  const r = $('content').getBoundingClientRect();
+  const pct = Math.max(15, Math.min(75, (e.clientX - r.left) / r.width * 100));
+  $('left').style.width = pct + '%'; $('right').style.width = 'auto'; $('right').style.flex = '1';
+  redrawAll();
+});
+dragger($('sh'), e => {
+  const r = $('right').getBoundingClientRect();
+  const y = Math.max(80, Math.min(r.height - 60, e.clientY - r.top));
+  $('stage').parentElement.style.flex = String(y); $('text').parentElement.style.flex = String(r.height - y);
+  redrawAll();
+});
+function redrawAll() { document.querySelectorAll('.scene').forEach(redraw); }
+// ===================== Presenter-Modus und Ansicht =====================
+let presenter = false, view = 0;   // 0 = Code + Animation, 1 = nur Animation, 2 = nur Code
+function applyLayout() {
+  const L = $('left'), R = $('right'), sp = $('stage').parentElement, tp = $('text').parentElement;
+  if (presenter) { L.style.width = '30%'; R.style.width = '70%'; R.style.flex = 'none'; sp.style.flex = '1'; }
+  else { L.style.width = '40%'; R.style.width = '60%'; R.style.flex = ''; sp.style.flex = '1.9'; tp.style.flex = '1'; }
+  tp.style.display = presenter ? 'none' : ''; $('sh').style.display = presenter ? 'none' : '';
+  L.style.display = view === 1 ? 'none' : ''; $('sv').style.display = view === 0 ? '' : 'none'; R.style.display = view === 2 ? 'none' : '';
+  if (view === 1) { R.style.width = '100%'; R.style.flex = '1'; }
+  if (view === 2) { L.style.width = '100%'; }
+  $('presBtn').classList.toggle('on', presenter); [0, 1, 2].forEach(k => $('vb' + k).classList.toggle('on', view === k));
+  setTimeout(redrawAll, 50);
+}
+function togglePresenter() { presenter = !presenter; applyLayout(); }
+function setView(v) { view = v; applyLayout(); }
+window.addEventListener('resize', redrawAll);
+
+buildTabs();
+show(0);
+applyLayout();
+</script>
+</body>
+</html>

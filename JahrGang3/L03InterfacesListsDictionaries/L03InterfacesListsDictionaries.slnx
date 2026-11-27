@@ -4,4 +4,6 @@
   <Project Path="ZettelUebungen/ZettelUebungen.csproj" />
   <Project Path="Aufgabe01-Schulnetzwerk/Loesung/SchulnetzwerkLoesung.csproj" />
   <Project Path="Aufgabe01-Schulnetzwerk/Vorlage/SchulnetzwerkVorlage.csproj" />
+  <Project Path="Aufgabe02-Kabelnetz/Loesung/KabelnetzLoesung.csproj" />
+  <Project Path="Aufgabe02-Kabelnetz/Vorlage/KabelnetzVorlage.csproj" />
 </Solution>

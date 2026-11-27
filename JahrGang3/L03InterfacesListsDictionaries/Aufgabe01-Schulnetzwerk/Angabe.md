@@ -33,6 +33,7 @@ Beide speichern **Referenzen** auf dieselben ``Geraet``-Objekte.
 ## So arbeitest du
 * Kopiere die ``.cs``-Dateien aus ``Vorlage`` in ein neues Projekt ``Schulnetzwerk``.
 * Properties, ``ToString`` und die **Köpfe** aller ``Methoden`` sind fertig. Du schreibst nur die Inhalte – überall, wo ``// TODO`` steht.
+* Im erwarteten Output steht hinter ``←``, **welcher Aufruf** die Zeile erzeugt. Das steht nicht in deiner Konsole.
 * ``Program.cs`` ist **fertig** und testet von Anfang an **alle** Methoden. Starte nach jedem Teil und vergleiche mit dem **erwarteten Output**. Am Anfang steht überall ``False``, ``0`` oder nichts – mit jedem Teil stimmt mehr.
 
 ### Klassendiagramm
@@ -100,12 +101,12 @@ Netzwerk --> "*" Geraet
 Erwarteter Output:
 ```
 --- Teil 1: Geraet ---
-Laptop   B2:02 E12      95 ms
-True
-True
-True
-True
-False
+Laptop   B2:02 E12      95 ms   ← laptop.ToString()
+True                            ← laptop.CompareTo(drucker) < 0
+True                            ← drucker.CompareTo(laptop) > 0
+True                            ← laptop.Equals(kopie)
+True                            ← laptop.GetHashCode() == kopie.GetHashCode()
+False                           ← laptop.Equals(drucker)
 ```
 
 ### Teil 2 - level: 🙂 - Warteschlange (List CRUD) - ~15 min
@@ -117,18 +118,18 @@ False
 Erwarteter Output (``Vordraengen`` erst, wenn ``Finde`` fertig ist):
 ```
 --- Teil 2: Warteschlange ---
-True
-True
-True
-True
-True
-False
-5 Geräte
-angepingt: Drucker
-angepingt: Laptop
-True
-False
-  Router   00:01 Keller  110 ms
+True                              ← netz.Anmelden(drucker)
+True                              ← netz.Anmelden(laptop)
+True                              ← netz.Anmelden(Beamer)
+True                              ← netz.Anmelden(Router)
+True                              ← netz.Anmelden(Switch)
+False                             ← netz.Anmelden(kopie)   gleiche MAC
+5 Geräte                          ← netz.Warteschlange.Count
+angepingt: Drucker                ← netz.NaechstesAnpingen()
+angepingt: Laptop                 ← netz.NaechstesAnpingen()
+True                              ← netz.Vordraengen("00:01")
+False                             ← netz.Vordraengen("FF:99")
+  Router   00:01 Keller  110 ms       ← foreach über netz.Warteschlange
   Beamer   C3:33 E14     140 ms
   Switch   D4:08 E14      95 ms
   Drucker  A1:17 E12     120 ms
@@ -149,14 +150,14 @@ False
 Erwarteter Output:
 ```
 --- Teil 3: ARP-Tabelle ---
-Beamer   C3:33 E14     140 ms
-True
-True
-False
-Beamer   C3:33 E14      80 ms
-True
-False
-4 in ARP, 4 in der Warteschlange
+Beamer   C3:33 E14     140 ms      ← netz.Finde("C3:33")
+True                               ← netz.Finde("FF:99") == null
+True                               ← netz.PingMessen("C3:33", 80)
+False                              ← netz.PingMessen("FF:99", 10)
+Beamer   C3:33 E14      80 ms      ← netz.Warteschlange[1]
+True                               ← netz.Abmelden("A1:17")
+False                              ← netz.Abmelden("A1:17")
+4 in ARP, 4 in der Warteschlange   ← netz.Arp.Count, netz.Warteschlange.Count
 ```
 
 ### Teil 4 - level: 🤔 - Sortieren mit IComparable und IComparer - ~10 min
@@ -171,22 +172,22 @@ False
 Erwarteter Output:
 ```
 --- Teil 4: Sortieren ---
-nach Ping:
+nach Ping:                             ← netz.Sortiert()
   Beamer   C3:33 E14      80 ms
   Laptop   B2:02 E12      95 ms
   Switch   D4:08 E14      95 ms
   Router   00:01 Keller  110 ms
-nach Name:
+nach Name:                             ← netz.Sortiert(new NachName())
   Beamer   C3:33 E14      80 ms
   Laptop   B2:02 E12      95 ms
   Router   00:01 Keller  110 ms
   Switch   D4:08 E14      95 ms
-nach Raum:
+nach Raum:                             ← netz.Sortiert(new NachRaum())
   Laptop   B2:02 E12      95 ms
   Beamer   C3:33 E14      80 ms
   Switch   D4:08 E14      95 ms
   Router   00:01 Keller  110 ms
-erstes in der Warteschlange: Router
+erstes in der Warteschlange: Router   ← netz.Warteschlange[0].Name
 ```
 
 ### Teil 5 - level: 💀 - Ein Dictionary mit Listen - ~10 min
@@ -201,7 +202,7 @@ erstes in der Warteschlange: Router
 Erwarteter Output:
 ```
 --- Teil 5: pro Raum ---
-Keller: Router
+Keller: Router             ← foreach über netz.ProRaum()
 E14: Beamer Switch
 E12: Laptop
 ```
