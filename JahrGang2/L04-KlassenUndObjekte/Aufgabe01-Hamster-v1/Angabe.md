@@ -61,8 +61,8 @@ class Plane {
   + Print()
 }
 
-Plane --> "*" Hamster : "  _hamsters"
-Plane --> "*" Seedling : "  _seedlings"
+Plane --> "1:n" Hamster : "  _hamsters"
+Plane --> "1:n" Seedling : "  _seedlings"
 Hamster --> "1" Seedling : "  _mouth"
 @enduml
 ```

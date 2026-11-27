@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Properties und Data Hiding</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020617; --panel: #0f172a; --panel2: #1e293b; --line: #334155;
+    --text: #f8fafc; --muted: #94a3b8; --accent: #38bdf8; --x: #f59e0b; --y: #a855f7;
+    --ok: #10b981; --bad: #ef4444; --kw: #c084fc; --str: #fbbf24; --num: #34d399; --com: #64748b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; overflow: hidden; }
+  .mono { font-family: 'Fira Code', monospace; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 19px; color: var(--accent); }
+  header p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+  #tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  #tabs button { background: var(--panel2); color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  #tabs button.active { background: #0284c7; color: #fff; border-color: var(--accent); }
+  main { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; overflow: hidden; min-height: 0; }
+  #titlebar { display: flex; align-items: baseline; gap: 12px; }
+  #title { font-size: 22px; font-weight: 700; margin: 0; }
+  #counter { color: var(--muted); font-size: 13px; }
+  #content { flex: 1; min-height: 0; display: flex; gap: 12px; }
+  .pane { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+  .panehead { background: #020617; border-bottom: 1px solid var(--line); padding: 6px 14px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  #left { width: 40%; }
+  #right { width: 60%; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  #codebox, #codebox2 { flex: 1; overflow: auto; padding: 10px 0; font-size: 15px; line-height: 1.7; }
+  .panehead.file { text-transform: none; letter-spacing: .02em; font-size: 13px; color: var(--accent); }
+  #headKl { border-top: 2px solid var(--line); }
+  #stage { flex: 1.9; min-height: 0; background: radial-gradient(circle at center, #0b1430 0%, #020617 75%); display: flex; align-items: center; justify-content: center; position: relative; overflow: auto; padding: 16px; }
+  #text { flex: 1; min-height: 0; overflow: auto; padding: 10px 16px; font-size: 15px; line-height: 1.55; }
+  #text p { margin: 6px 0; }
+  #text code { font-family: 'Fira Code', monospace; background: var(--panel2); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+  .cl { padding: 0 14px; border-left: 4px solid transparent; white-space: pre; }
+  .cl.hl { background: rgba(56,189,248,.18); border-left-color: var(--accent); }
+  .cl.blink { animation: blink .5s ease 2; border-left-color: var(--x); }
+  @keyframes blink { 0%, 100% { background: rgba(56,189,248,.18); } 50% { background: rgba(245,158,11,.6); } }
+  .tk-kw { color: var(--kw); } .tk-str { color: var(--str); } .tk-num { color: var(--num); } .tk-com { color: var(--com); font-style: italic; } .tk-ty { color: #38bdf8; }
+  nav { display: flex; gap: 8px; align-items: center; justify-content: center; }
+  nav button { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 18px; font-size: 15px; cursor: pointer; }
+  nav button:hover { border-color: var(--accent); }
+  nav button:disabled { opacity: .35; cursor: default; }
+  nav button#autoBtn:not(:disabled) { border-color: var(--ok); color: var(--ok); }
+  .brow { display: flex; align-items: center; gap: 10px; }
+  .brow .lbl { min-width: 150px; text-align: right; font-size: 13px; color: var(--muted); }
+  .bgrp { display: inline-flex; flex-direction: column; align-items: center; margin: 0 4px; gap: 2px; }
+  .bgrp .bb { display: flex; gap: 1px; }
+  .bit { font-family: 'Fira Code', monospace; font-size: 14px; width: 16px; text-align: center; border: 1px solid var(--line); border-radius: 3px; background: var(--panel); }
+  .bit.p { color: #a855f7; border-color: #a855f7; } .bit.o { color: #f59e0b; border-color: #f59e0b; } .bit.g { color: #475569; border-style: dashed; } .bit.k { color: #38bdf8; border-color: #38bdf8; } .bit.r { color: #ef4444; border-color: #ef4444; background: rgba(239,68,68,.15); }
+  .bgrp .hx { font-family: 'Fira Code', monospace; font-size: 14px; font-weight: 700; color: var(--text); }
+  .hexcheat { display: grid; grid-template-columns: repeat(8, auto); gap: 2px 10px; font-family: 'Fira Code', monospace; font-size: 12px; color: var(--muted); }
+  .hexcheat b { color: var(--accent); }
+  .ptr { outline: 3px solid var(--accent); outline-offset: 2px; }
+  nav span { color: var(--muted); font-size: 12px; }
+
+  .col { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .row { display: flex; align-items: center; gap: 14px; }
+  .label { color: var(--muted); font-size: 14px; }
+  .arr { display: flex; gap: 4px; }
+  .cell { width: 54px; height: 54px; border: 2px solid var(--line); border-radius: 8px; background: var(--panel); display: flex; align-items: center; justify-content: center; font-size: 26px; position: relative; transition: all .45s cubic-bezier(.2,.8,.3,1.2); }
+  .cell.small { width: 44px; height: 44px; font-size: 22px; }
+  .cell.txt { width: auto; min-width: 92px; padding: 0 8px; font-size: 13px; font-family: 'Fira Code', monospace; }
+  .cell.null { color: var(--com); font-size: 12px; font-family: 'Fira Code', monospace; }
+  .cell.hot { border-color: var(--ok); background: rgba(16,185,129,.25); transform: scale(1.08); }
+  .cell.rowhot { border-color: var(--y); background: rgba(168,85,247,.18); }
+  .cell.colhot { border-color: var(--x); background: rgba(245,158,11,.18); }
+  .cell.both { border-color: var(--ok); background: rgba(16,185,129,.35); }
+  .cell.dim { opacity: .3; }
+  .idx { font-family: 'Fira Code', monospace; font-size: 12px; color: var(--muted); text-align: center; }
+  .idx.x { color: var(--x); } .idx.y { color: var(--y); }
+  .grid { display: grid; gap: 4px; }
+  .pop { animation: pop .45s cubic-bezier(.2,.8,.3,1.3) both; }
+  @keyframes pop { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
+  .fade { animation: fade .6s ease both; }
+  @keyframes fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .stack { display: flex; flex-direction: column; gap: 26px; transition: gap .8s ease; }
+  .stack.merged { gap: 4px; }
+  .stack .tag { font-family: 'Fira Code', monospace; font-size: 13px; color: var(--muted); width: 70px; text-align: right; transition: opacity .5s; }
+  .stack.merged .tag { opacity: 0; }
+  .frame { border: 2px dashed transparent; border-radius: 12px; padding: 8px; transition: border-color .8s; }
+  .frame.on { border-color: var(--accent); }
+  .pill { font-family: 'Fira Code', monospace; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 15px; }
+  .pill.x { border-color: var(--x); color: var(--x); } .pill.y { border-color: var(--y); color: var(--y); } .pill.ok { border-color: var(--ok); color: var(--ok); } .pill.bad { border-color: var(--bad); color: var(--bad); }
+  .file { background: #0b1220; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-family: 'Fira Code', monospace; font-size: 22px; line-height: 1.35; }
+  .file .ln { display: flex; gap: 12px; align-items: center; border-radius: 6px; padding: 0 6px; transition: background .3s; }
+  .file .ln b { font-size: 12px; color: var(--muted); width: 18px; }
+  .file .ln.hl { background: rgba(245,158,11,.18); }
+  .ch { display: inline-block; border-radius: 4px; transition: background .2s; }
+  .ch.hl { background: rgba(16,185,129,.45); outline: 2px solid var(--ok); }
+  .table th { font-size: 12px; color: var(--x); font-family: 'Fira Code', monospace; font-weight: 600; padding: 2px 4px; }
+  .table td.ri { font-size: 12px; color: var(--y); font-family: 'Fira Code', monospace; padding-right: 6px; }
+  table.uni { border-collapse: collapse; font-family: 'Fira Code', monospace; font-size: 14px; }
+  table.uni th, table.uni td { border: 1px solid var(--line); padding: 6px 10px; text-align: center; }
+  table.uni th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  table.uni td.big { font-size: 26px; }
+  .unit { font-family: 'Fira Code', monospace; font-size: 13px; padding: 6px 8px; border-radius: 6px; border: 2px solid var(--line); background: var(--panel); transition: all .3s; }
+  .unit.hi { border-color: var(--y); color: #e9d5ff; } .unit.lo { border-color: var(--x); color: #fde68a; } .unit.bmp { border-color: var(--ok); color: #a7f3d0; }
+  .unit.sel { background: rgba(239,68,68,.35); border-color: var(--bad); transform: translateY(-6px); }
+  .bits { font-family: 'Fira Code', monospace; font-size: 17px; letter-spacing: 1px; }
+  .chip { font-family: 'Fira Code', monospace; font-size: 15px; padding: 4px 8px; border-radius: 6px; background: var(--panel2); border: 1px solid var(--line); transition: opacity .4s; }
+  .warn { color: var(--x); }
+
+  /* ---- L04: Klassen & Objekte ---- */
+  .obj { background: var(--panel2); border: 2px solid var(--ok); border-radius: 10px; min-width: 210px; overflow: hidden; transition: box-shadow .4s; }
+  .obj.glow { box-shadow: 0 0 0 3px rgba(16,185,129,.35), 0 0 24px rgba(16,185,129,.35); }
+  .objhead { background: rgba(16,185,129,.18); padding: 6px 12px; font-weight: 600; text-align: center; }
+  .frow { display: flex; gap: 8px; padding: 4px 12px; font-size: 15px; }
+  .frow .fn { color: var(--x); min-width: 72px; } .frow .eq { color: var(--muted); }
+  .fv { border-radius: 4px; padding: 0 4px; transition: background .3s; }
+  .fv.flash { animation: flash 1s ease; } @keyframes flash { 0% { background: rgba(245,158,11,.8); } 100% { background: transparent; } }
+  .fv.read { outline: 2px solid var(--accent); background: rgba(56,189,248,.25); }
+  .fv.bad { outline: 2px solid var(--bad); background: rgba(239,68,68,.25); }
+  .cls { background: var(--panel2); border: 2px solid var(--accent); border-radius: 10px; min-width: 280px; overflow: hidden; }
+  .clshead { background: rgba(56,189,248,.2); padding: 8px 12px; font-weight: 700; text-align: center; font-size: 17px; }
+  .clssec { border-top: 1px solid var(--line); padding: 6px 12px; font-size: 14px; line-height: 1.6; transition: background .4s; }
+  .clssec.on { background: rgba(245,158,11,.22); }
+  .var { display: flex; flex-direction: column; align-items: center; gap: 4px; background: var(--panel); border: 2px dashed var(--y); border-radius: 8px; padding: 8px 12px; }
+  .var .vn { color: var(--y); font-size: 14px; } .var .vref { font-size: 20px; color: var(--accent); }
+  .arrow { display: flex; flex-direction: column; align-items: center; color: var(--accent); font-size: 13px; transition: opacity .5s; }
+  .arrow b { font-weight: 400; letter-spacing: -2px; font-size: 16px; }
+  .arrow.hat { color: var(--x); }
+  .arrow.pulse b { animation: pulse .6s ease 3; } @keyframes pulse { 50% { color: #fff; text-shadow: 0 0 8px var(--x); } }
+  .bucket { border: 2px dashed; border-radius: 10px; min-width: 190px; min-height: 120px; padding: 8px; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  .bucket .bh { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .selfarrow { color: var(--x); font-size: 14px; }
+  .console { background: #000; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; min-height: 60px; min-width: 210px; font-size: 13px; color: #d1fae5; }
+
+  /* ---- L04 v2 ---- */
+  .scene { position: relative; }
+  .ov { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 5; }
+  .obj.sm { min-width: 190px; } .obj.sm .frow { font-size: 13px; padding: 2px 10px; } .obj.sm .objhead { padding: 4px 10px; font-size: 14px; }
+  .msec { border-top: 1px solid var(--line); padding: 3px 0; }
+  .mrow { padding: 2px 10px; font-size: 13px; color: var(--ok); border-radius: 4px; }
+  .mrow.mblink { animation: mblink .9s ease; } @keyframes mblink { 0%, 60% { background: rgba(16,185,129,.55); color: #fff; } 100% { background: transparent; } }
+  .extra { border: 1px dashed var(--bad); color: #fca5a5; transition: opacity .7s, transform .7s; }
+  .extra.gone { opacity: 0; transform: translateX(30px); text-decoration: line-through; }
+  .hm { display: inline-block; transition: font-size .4s; }
+  .hm.big { font-size: 44px; } .hm.spin { animation: spin 1.2s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }
+  .cell { overflow: visible; }
+  .fv.bad { color: var(--bad); outline: 2px solid var(--bad); border-radius: 4px; }
+  .frow.locked .fn::before { content: "🔒 "; }
+  .clshead.on { background: rgba(245,158,11,.35); }
+  .hlf { background: rgba(245,158,11,.25); color: var(--x); border-radius: 4px; }
+  .obj.seed { border-color: #a78bfa; } .obj.seed .objhead { background: rgba(167,139,250,.18); }
+  .hmw { position: relative; display: inline-block; }
+  .grid.gross .cell { width: 72px; height: 72px; font-size: 38px; }
+  .grid.gross .hmw .nm { font-size: 13px; }
+  .grid.gross .hmw .mood { font-size: 22px; right: -14px; top: -9px; }
+  .hmw .nm { position: absolute; bottom: 92%; left: 50%; transform: translateX(-50%); font-size: 9px; font-weight: 700; line-height: 1; padding: 1px 4px; border-radius: 4px; background: rgba(2,6,23,.85); color: #fff; white-space: nowrap; z-index: 3; pointer-events: none; }
+  .hmw .mood { position: absolute; right: -9px; top: -6px; font-size: 13px; }
+  .pill.konstr { border-color: var(--accent); color: var(--accent); text-align: center; }
+  .pill.hat { border-color: var(--x); color: var(--x); text-align: center; box-shadow: 0 0 12px rgba(245,158,11,.5); }
+  .pill small { color: var(--muted); font-size: 11px; }
+  .sticker { background: #fde68a; color: #1f2937; border-radius: 4px; padding: 12px 14px; max-width: 260px; font-size: 15px; line-height: 1.4; box-shadow: 4px 6px 14px rgba(0,0,0,.45); transform: rotate(-2deg); }
+  .sticker b { font-size: 17px; }
+  .split-v { flex: none; width: 8px; margin: 0 -6px; cursor: col-resize; border-radius: 4px; background: transparent; position: relative; z-index: 2; }
+  .split-h { flex: none; height: 8px; margin: -6px 0; cursor: row-resize; border-radius: 4px; background: transparent; position: relative; z-index: 2; }
+  .split-v:hover, .split-h:hover, .split-v.drag, .split-h.drag { background: var(--accent); }
+  body.dragging { user-select: none; }
+  nav button.on { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,.15); }
+  .ztab { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; }
+  .zcol { border: 2px dashed; border-radius: 10px; min-height: 190px; padding: 8px; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  .zh { font-weight: 700; font-size: 17px; text-align: center; } .zh small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; }
+  .story { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-size: 15px; line-height: 1.5; max-width: 900px; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🔒 Properties und Data Hiding</h1>
+    <p>Weiter: Pfeiltasten ← → oder Leertaste · private, public, Data Hiding, get, set, Properties, + und -</p>
+  </div>
+  <div id="tabs"></div>
+</header>
+<main>
+  <div id="titlebar"><h2 id="title"></h2><span id="counter"></span></div>
+  <div id="content">
+    <section id="left" class="pane"><div class="panehead file" id="headMain">📄 Program.cs</div><div id="codebox" class="mono"></div><div class="panehead file" id="headKl">📄 Hamster.cs</div><div id="codebox2" class="mono"></div></section>
+    <div class="split-v" id="sv" title="ziehen: Breite von Code / Animation"></div>
+    <div id="right">
+      <section class="pane" style="flex:1.9"><div class="panehead">🎬 Animation</div><div id="stage"></div></section>
+      <div class="split-h" id="sh" title="ziehen: Höhe von Animation / Erklärung"></div>
+      <section class="pane" style="flex:1"><div class="panehead">💡 Erklärung</div><div id="text"></div></section>
+    </div>
+  </div>
+  <nav>
+    <button onclick="go(-1)">◀ zurück</button>
+    <button onclick="replay()">↻ nochmal</button>
+    <button onclick="go(1)">weiter ▶</button>
+    <button id="autoBtn" onclick="runAuto()" disabled>⏩ automatisch</button>
+    <button id="presBtn" onclick="togglePresenter()" title="Taste P">🎤 Presenter</button>
+    <button class="vbtn" id="vb0" onclick="setView(0)" title="Taste 1">📄🎬 Code + Animation</button>
+    <button class="vbtn" id="vb1" onclick="setView(1)" title="Taste 2">🎬 nur Animation</button>
+    <button class="vbtn" id="vb2" onclick="setView(2)" title="Taste 3">📄 nur Code</button>
+    <span>R = nochmal · P = Presenter · 1/2/3 = Ansicht</span>
+  </nav>
+</main>
+
+<script>
+// ===================== kleine Helfer =====================
+const $ = (id) => document.getElementById(id);
+let timers = [];
+function later(ms, fn) { timers.push(setTimeout(fn, ms)); }
+function every(ms, fn) { timers.push(setInterval(fn, ms)); }
+function clearTimers() { timers.forEach(t => { clearTimeout(t); clearInterval(t); }); timers = []; }
+function el(tag, cls, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; }
+const hex = (n, w) => n.toString(16).toUpperCase().padStart(w || 4, '0');
+
+function highlight(line) {
+  const re = /(\/\/.*$)|("(?:[^"\\]|\\.)*")|(\b(?:new|for|while|if|else|return|int|string|double|bool|void|char|class|public|private|this|null)\b)|(\b(?:File|Console|Random|Hamster)\b)|(\b\d+\b)/g;
+  let out = '', last = 0, m;
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  while ((m = re.exec(line)) !== null) {
+    out += esc(line.slice(last, m.index));
+    const cls = m[1] ? 'tk-com' : m[2] ? 'tk-str' : m[3] ? 'tk-kw' : m[4] ? 'tk-ty' : 'tk-num';
+    out += `<span class="${cls}">${esc(m[0])}</span>`;
+    last = re.lastIndex;
+  }
+  return out + esc(line.slice(last));
+}
+// Links stehen zwei Dateien untereinander: Program.cs (Hauptprogramm) und Hamster.cs (die Klasse).
+// Die Zeilennummern (id code-i) laufen durch, damit die Hervorhebungen (hl) gleich bleiben.
+function renderCode(lines, hl) {
+  const main = $('codebox'), kl = $('codebox2'); main.innerHTML = ''; kl.innerHTML = '';
+  let inKlasse = false;
+  (lines || []).forEach((l, i) => {
+    const d = el('div', 'cl' + ((hl || []).includes(i) ? ' hl' : ''), highlight(l) || ' ');
+    d.id = 'code-' + i;
+    if (l.includes('Hamster.cs (eigene Datei)')) { d.style.display = 'none'; main.appendChild(d); return; }
+    const kopf = l.startsWith('class ');
+    if (kopf) inKlasse = !l.includes('}');   // "class Hamster { ... }" ist einzeilig
+    const ziel = (inKlasse || kopf) ? kl : main;
+    if (!l.trim() && !ziel.textContent.trim()) d.style.display = 'none';   // keine Leerzeile am Anfang einer Datei
+    ziel.appendChild(d);
+    if (inKlasse && l === '}') inKlasse = false;
+  });
+  const leer = box => !box.textContent.trim();
+  const zeigeMain = !leer(main) || leer(kl);
+  $('headMain').style.display = main.style.display = zeigeMain ? '' : 'none';
+  $('headKl').style.display = kl.style.display = leer(kl) ? 'none' : '';
+}
+function setHl(hl) { document.querySelectorAll('.cl').forEach((d, i) => { d.classList.toggle('hl', hl.includes(i)); if (!hl.includes(i)) d.classList.remove('blink'); }); const f = document.getElementById('code-' + Math.min(...hl)); if (f && hl.length) f.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+// Schleifenkopf blinkt, wenn die Schleife (weiter)laeuft
+function blink(i) { const d = $('code-' + i); if (!d) return; d.classList.add('hl'); d.classList.remove('blink'); void d.offsetWidth; d.classList.add('blink'); }
+
+function arr1D(values, opts = {}) {
+  const wrap = el('div', 'col'); wrap.style.gap = '6px';
+  const a = el('div', 'arr'), idx = el('div', 'arr');
+  const w = opts.txt ? 92 : opts.small ? 44 : 54;
+  values.forEach((v, i) => {
+    const c = el('div', 'cell' + (opts.small ? ' small' : '') + (opts.txt ? ' txt' : '') + (v === null ? ' null' : ''), v === null ? 'null' : v);
+    if (opts.pop) { c.classList.add('pop'); c.style.animationDelay = (i * 0.12) + 's'; }
+    c.id = (opts.id || 'a') + '-' + i; a.appendChild(c);
+    const ix = el('div', 'idx ' + (opts.idxCls || 'x'), '[' + i + ']'); ix.style.width = w + 'px'; ix.style.minWidth = w + 'px'; idx.appendChild(ix);
+  });
+  wrap.appendChild(a); if (!opts.noIdx) wrap.appendChild(idx);
+  return wrap;
+}
+function grid2D(data, opts = {}) {
+  const rows = data.length, cols = data[0].length;
+  const g = el('div', 'grid');
+  g.style.gridTemplateColumns = `40px repeat(${cols}, auto)`;
+  g.appendChild(el('div'));
+  for (let x = 0; x < cols; x++) g.appendChild(el('div', 'idx x', String(x)));
+  for (let y = 0; y < rows; y++) {
+    const ri = el('div', 'idx y', String(y)); ri.style.alignSelf = 'center'; g.appendChild(ri);
+    for (let x = 0; x < cols; x++) {
+      const v = data[y][x];
+      const c = el('div', 'cell' + (opts.small ? ' small' : '') + (opts.txt ? ' txt' : '') + (v === null ? ' null' : ''), v === null ? 'null' : v);
+      c.id = (opts.id || 'g') + '-' + y + '-' + x;
+      if (opts.pop) { c.classList.add('pop'); c.style.animationDelay = ((y * cols + x) * 0.04) + 's'; }
+      g.appendChild(c);
+    }
+  }
+  return g;
+}
+function cell(id, y, x) { return $(id + '-' + y + '-' + x); }
+function setCell(c, v) { if (!c) return; c.classList.remove('null'); c.innerHTML = v; c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); }
+function clearHot() { document.querySelectorAll('#stage .cell.hot').forEach(e => e.classList.remove('hot')); }
+
+// ===================== Daten =====================
+const DIRS = ['N', 'O', 'S', 'W'];
+const ARROW = { N: '⬆️', O: '➡️', S: '⬇️', W: '⬅️' };
+const DELTA = { N: [0, -1], O: [1, 0], S: [0, 1], W: [-1, 0] };
+const MUSTER = ['N', 'N', 'S', 'S', 'O', 'W'];          // rauf rauf runter runter rechts links
+const KREIS = ['O', 'O', 'S', 'S', 'W', 'W', 'N', 'N']; // im Kreis
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+// ---------- Hamster auf der Wiese ----------
+function wiese(n, id) {
+  const g = el('div', 'grid'); g.id = id;
+  g.style.gridTemplateColumns = `repeat(${n}, auto)`;
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const c = el('div', 'cell small', '🟩'); c.id = id + '-' + y + '-' + x; g.appendChild(c); }
+  return g;
+}
+// Alle Hamster sehen gleich aus (🐹) – unterscheiden kann man sie nur am Namen darüber.
+const HNAMEN = { p: 'paul', w: 'willi' };
+// hs: [{ name, label, pos:[x,y], cls, mood }], seeds: ['x,y', ...]
+function drawAll(id, n, hs, seeds = []) {
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const c = $(id + '-' + y + '-' + x); if (c) c.innerHTML = seeds.includes(x + ',' + y) ? '🌱' : '🟩'; }
+  hs.forEach(h => {
+    const c = $(id + '-' + h.pos[1] + '-' + h.pos[0]); if (!c) return;
+    const mood = h.mood ? `<span class="mood">${h.mood}</span>` : '';
+    c.innerHTML = `<span class="hmw"><span class="nm">${h.label || HNAMEN[h.name] || h.name}</span><span class="hm ${h.cls || ''}" id="${id}-h-${h.name}">🐹</span>${mood}</span>`;
+  });
+}
+function move(pos, d, n) { const nx = pos[0] + DELTA[d][0], ny = pos[1] + DELTA[d][1]; return [Math.max(0, Math.min(n - 1, nx)), Math.max(0, Math.min(n - 1, ny))]; }
+
+// ---------- Objekt-Karte (Felder + Methoden) ----------
+function objCard(id, name, fields, opts = {}) {
+  const c = el('div', 'obj' + (opts.pop ? ' pop' : '') + (opts.small ? ' sm' : '') + (opts.cls ? ' ' + opts.cls : ''));
+  c.id = id;
+  c.appendChild(el('div', 'objhead mono', name.includes(':') ? name : `<u>${name}</u> : Hamster`));
+  fields.forEach(([f, v]) => {
+    const r = el('div', 'frow mono');
+    r.innerHTML = `<span class="fn">${f}</span><span class="eq">=</span><span class="fv" id="${id}-${f}">${v}</span>`;
+    c.appendChild(r);
+  });
+  if (opts.methods) {
+    const sec = el('div', 'msec'); sec.id = id + '-ms';
+    opts.methods.forEach(m => { const r = el('div', 'mrow mono', '+ ' + m); r.id = id + '-m-' + m.split('(')[0]; sec.appendChild(r); });
+    c.appendChild(sec);
+  }
+  return c;
+}
+function setField(id, f, v) { const e = $(id + '-' + f); if (!e) return; e.innerHTML = v; e.classList.remove('flash'); void e.offsetWidth; e.classList.add('flash'); }
+function blinkM(id, m) { const e = $(id + '-m-' + m); if (!e) return; e.classList.remove('mblink'); void e.offsetWidth; e.classList.add('mblink'); }
+function addExtra(id, html, method) {
+  const c = $(id); if (!c) return;
+  const r = el('div', (method ? 'mrow' : 'frow') + ' mono extra pop', html);
+  if (method) { r.id = id + '-m-' + method; $(id + '-ms').appendChild(r); } else c.insertBefore(r, $(id + '-ms'));
+}
+
+// ---------- Klassen-Box ----------
+const FELDER = ['position : (int x, int y)', 'darstellung : string', 'richtung : string', 'anzahlSchritte : int', 'freund : Hamster'];
+const METHODEN = ['Bewegen(richtung : string)', 'Nachmachen()'];
+function classBox(opts = {}) {
+  const b = el('div', 'cls' + (opts.pop ? ' pop' : '')); b.id = opts.id || 'cls';
+  b.appendChild(el('div', 'clshead mono', 'Hamster'));
+  const f = el('div', 'clssec mono'); f.id = b.id + '-f'; f.innerHTML = FELDER.map(x => '+ ' + x).join('<br>');
+  const k = el('div', 'clssec mono'); k.id = b.id + '-k'; k.innerHTML = '+ Hamster(start, darstellung, freund)';
+  const m = el('div', 'clssec mono'); m.id = b.id + '-m'; m.innerHTML = METHODEN.map(x => '+ ' + x).join('<br>');
+  b.appendChild(f); b.appendChild(k); b.appendChild(m);
+  return b;
+}
+function varBox(name, id) {
+  const v = el('div', 'var mono'); v.id = id;
+  v.innerHTML = `<span class="vn">Hamster ${name}</span><span class="vref" id="${id}-ref">?</span>`;
+  return v;
+}
+function arrowEl(label, id, cls) { const a = el('div', 'arrow mono ' + (cls || ''), `<span>${label}</span><b>──────▶</b>`); if (id) a.id = id; return a; }
+function konsole(id) { const k = el('div', 'console mono'); k.id = id; return k; }
+function print(id, txt) { const k = $(id); if (!k) return; k.innerHTML += txt + '<br>'; const lines = k.innerHTML.split('<br>'); if (lines.length > 9) k.innerHTML = lines.slice(-9).join('<br>'); }
+
+// Schritte innerhalb einer Folie, OHNE laufende Animationen zu stoppen
+function seq(acts, delay) {
+  let i = 0;
+  return {
+    next() { if (i >= acts.length) return false; acts[i++](); return true; },
+    auto() { const t = () => { if (this.next()) timers.push(setTimeout(t, delay)); }; t(); }
+  };
+}
+
+// ---------- Szene mit SVG-Pfeilen ----------
+function scene() {
+  const s = el('div', 'scene');
+  const svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('class', 'ov');
+  svg.innerHTML = '<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>';
+  s.appendChild(svg); s._svg = svg; s._links = [];
+  return s;
+}
+// verbindet zwei Elemente (ids) mit einem Pfeil; wird bei redraw() neu berechnet
+function link(sc, fromId, toId, opts = {}) { sc._links.push({ fromId, toId, opts }); redraw(sc); }
+function anchor(r, side, base) {
+  const cx = r.left - base.left + r.width / 2, cy = r.top - base.top + r.height / 2;
+  if (side === 'bottom') return [cx, r.bottom - base.top];
+  if (side === 'top') return [cx, r.top - base.top];
+  if (side === 'left') return [r.left - base.left, cy];
+  if (side === 'right') return [r.right - base.left, cy];
+  return [cx, cy];
+}
+function redraw(sc) {
+  if (!sc || !sc._svg) return;
+  const base = sc.getBoundingClientRect();
+  sc._svg.querySelectorAll('.ln').forEach(e => e.remove());
+  sc._links.forEach(({ fromId, toId, opts }) => {
+    const a = $(fromId), b = $(toId); if (!a || !b) return;
+    const [x1, y1] = anchor(a.getBoundingClientRect(), opts.from || 'bottom', base);
+    const [x2, y2] = anchor(b.getBoundingClientRect(), opts.to || 'center', base);
+    const g = document.createElementNS(SVGNS, 'g'); g.setAttribute('class', 'ln'); g.style.color = opts.color || 'var(--accent)';
+    let l, lx = (x1 + x2) / 2 + 6, ly = (y1 + y2) / 2 - 6;
+    if (opts.curve) {   // Bogen nach unten, damit keine Schrift überdeckt wird
+      const cy = Math.max(y1, y2) + opts.curve;
+      l = document.createElementNS(SVGNS, 'path');
+      l.setAttribute('d', `M ${x1} ${y1} Q ${(x1 + x2) / 2} ${cy} ${x2} ${y2}`); l.setAttribute('fill', 'none');
+      lx = (x1 + x2) / 2; ly = Math.max(y1, y2) + opts.curve / 2 + 16;
+    } else {
+      l = document.createElementNS(SVGNS, 'line');
+      l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+    }
+    l.setAttribute('stroke', 'currentColor'); l.setAttribute('stroke-width', '2.5'); l.setAttribute('marker-end', 'url(#ah)');
+    if (opts.dash) l.setAttribute('stroke-dasharray', '6 5');
+    g.appendChild(l);
+    if (opts.label) { const t = document.createElementNS(SVGNS, 'text'); t.setAttribute('x', lx); t.setAttribute('y', ly); if (opts.curve) t.setAttribute('text-anchor', 'middle'); t.setAttribute('stroke', '#020617'); t.setAttribute('stroke-width', '4'); t.setAttribute('paint-order', 'stroke'); t.setAttribute('font-weight', '700'); t.setAttribute('fill', 'currentColor'); t.setAttribute('font-size', '13'); t.setAttribute('font-family', 'Fira Code, monospace'); t.textContent = opts.label; g.appendChild(t); }
+    sc._svg.appendChild(g);
+  });
+}
+function unlink(sc, fromId) { sc._links = sc._links.filter(l => l.fromId !== fromId); redraw(sc); }
+
+// ---------- Helfer für diesen Foliensatz ----------
+// UML-Box: Einträge bringen ihr + oder - selbst mit
+function umlBox(id, name, felder, methoden, opts = {}) {
+  const b = el('div', 'cls' + (opts.pop ? ' pop' : '')); b.id = id;
+  b.appendChild(el('div', 'clshead mono', name));
+  const f = el('div', 'clssec mono'); f.id = id + '-f'; f.innerHTML = felder.map(colorVis).join('<br>'); b.appendChild(f);
+  const m = el('div', 'clssec mono'); m.id = id + '-m'; m.innerHTML = methoden.map(colorVis).join('<br>'); b.appendChild(m);
+  return b;
+}
+const colorVis = x => x.startsWith('-') ? `<span style="color:var(--bad)">-</span>${x.slice(1)}` : `<span style="color:var(--ok)">+</span>${x.slice(1)}`;
+function lock(id, felder) { felder.forEach(f => { const e = $(id + '-' + f); if (e) e.parentElement.classList.add('locked'); }); }
+function bad(id, f) { const e = $(id + '-' + f); if (e) e.classList.add('bad'); }
+function hinweis(st, html, farbe) { st.style.flexDirection = 'column'; const l = el('div', 'label fade', html); l.style.marginTop = '22px'; l.style.color = farbe || 'var(--x)'; l.style.fontSize = '17px'; st.appendChild(l); return l; }
+const hansKarte = (felder, opts = {}) => objCard('oh', '<u>#28016690</u> : Hamster', felder, Object.assign({ pop: true }, opts));
+
+// ===================== Code =====================
+const codeOffen = [
+  'Hamster hans = new Hamster((1, 5), s1);',
+  'hans._position = (-5, 99);    // 😱',
+  'hans._planeSize = 0;           // 😱',
+  '',
+  'class Hamster',
+  '{',
+  '    // Felder: der Zustand',
+  '    public (int x, int y) _position;',
+  '    public int _planeSize = 10;',
+  '    ...',
+  '}'
+];
+const codePrivate = [
+  'hans._position = (-5, 99);    // ❌ CS0122: nicht zugänglich',
+  '',
+  'class Hamster',
+  '{',
+  '    // Felder: der Zustand',
+  '    private (int x, int y) _position;',
+  '    private int _planeSize = 10;',
+  '    ...',
+  '}'
+];
+const codeGetSet = [
+  'hans.SetPosition((-5, 99));             // wird ignoriert',
+  'hans.SetPosition((2, 3));               // ✅',
+  'Console.WriteLine(hans.GetPosition());  // (2, 3)',
+  '',
+  'class Hamster',
+  '{',
+  '    // Felder: der Zustand',
+  '    private (int x, int y) _position;',
+  '    private int _planeSize = 10;',
+  '',
+  '    // Methoden: das Verhalten',
+  '    public (int x, int y) GetPosition()',
+  '    {',
+  '        return _position;',
+  '    }',
+  '',
+  '    public void SetPosition((int x, int y) position)',
+  '    {',
+  '        // Guard: außerhalb des Spielfelds ❌',
+  '        if (position.x < 0 || position.y < 0 ||',
+  '            position.x >= _planeSize || position.y >= _planeSize)',
+  '        {',
+  '            return;',
+  '        }',
+  '        _position = position;   // gewünschter Zustand ✅',
+  '    }',
+  '}'
+];
+const codeProperty = [
+  'hans.Position = (-5, 99);             // set → wird ignoriert',
+  'hans.Position = (2, 3);               // set ✅',
+  'Console.WriteLine(hans.Position);     // get → (2, 3)',
+  '',
+  'class Hamster',
+  '{',
+  '    // Felder: der Zustand',
+  '    private (int x, int y) _position;',
+  '    private int _planeSize = 10;',
+  '',
+  '    // Properties: Zugriff auf den Zustand',
+  '    public (int x, int y) Position',
+  '    {',
+  '        get { return _position; }',
+  '        set',
+  '        {',
+  '            // Guard: außerhalb des Spielfelds ❌',
+  '            if (value.x < 0 || value.y < 0 ||',
+  '                value.x >= _planeSize || value.y >= _planeSize)',
+  '            {',
+  '                return;',
+  '            }',
+  '            _position = value;   // gewünschter Zustand ✅',
+  '        }',
+  '    }',
+  '}'
+];
+const codeAuto = [
+  'Console.WriteLine(hans.Position);   // ✅ get ist public',
+  'hans.Position = (2, 3);             // ❌ set ist private',
+  'Console.WriteLine(hans.Representation);  // ✅ "🐹"',
+  '',
+  'class Hamster',
+  '{',
+  '    // Properties: der Zustand',
+  '    public (int x, int y) Position { get; private set; }',
+  '    public string Representation { get; } = "🐹";',
+  '',
+  '    // Methoden: das Verhalten',
+  '    public void Move()',
+  '    {',
+  '        Position = (Position.x, Position.y - 1);   // in der Klasse erlaubt',
+  '    }',
+  '}'
+];
+
+// ===================== Folien =====================
+const NEU = {
+  ziele: { title: 'Heute lernst du …', code: [], hl: [],
+    text: '<p>Bis jetzt waren alle unsere Felder <code>public</code>. Jeder durfte alles hineinschreiben – auch Unsinn.</p><p>Heute lernen wir, wie ein Objekt seinen <b>Zustand schützt</b>.</p>',
+    render(st) {
+      const c = el('div', 'col');
+      ['🔒 <b>private</b>: Felder verstecken (Data Hiding)', '🚪 Zugriff nur über <b>Methoden</b>, die prüfen', '🏷️ <b>Properties</b>: get und set in einem', '⚡ <b>Auto-Properties</b>: { get; private set; }', '📐 <b>+</b> und <b>-</b> im Klassendiagramm']
+        .forEach((t, i) => { const p = el('div', 'pill pop', t); p.style.animationDelay = (i * .25) + 's'; p.style.fontSize = '18px'; c.appendChild(p); });
+      st.appendChild(c);
+    } },
+
+  problem: { title: 'Was kann schiefgehen?', code: codeOffen, hl: [0], dateiMain: 'Program.cs', dateiKl: 'Hamster.cs',
+    text: '<p>Alle Felder sind <code>public</code>. Das Hauptprogramm darf <b>alles</b> hineinschreiben.</p><p>Weiter ▶: Der Hamster steht plötzlich auf <code>(-5, 99)</code> – außerhalb des Spielfelds. Und das Spielfeld ist auf einmal <code>0</code> groß.</p><p>Der Hamster kann sich <b>nicht wehren</b>. Niemand prüft, ob die Werte Sinn ergeben.</p>',
+    render(st) {
+      st.appendChild(hansKarte([['_position', '(1, 5)'], ['_planeSize', '10']]));
+      return seq([
+        () => { setHl([1]); setField('oh', '_position', '(-5, 99)'); bad('oh', '_position'); },
+        () => { setHl([2]); setField('oh', '_planeSize', '0'); bad('oh', '_planeSize'); },
+        () => hinweis(st, '😱 Ein <b>ungültiger Zustand</b> – und keiner hat es gemerkt.', 'var(--bad)')
+      ], 1400);
+    } },
+
+  private: { title: 'Data Hiding: private', code: codePrivate, hl: [5, 6], dateiMain: 'Program.cs', dateiKl: 'Hamster.cs',
+    text: '<p><code>private</code> heißt: Nur <b>innerhalb der Klasse</b> darf man das Feld lesen und ändern.</p><p>Das nennt man <b>Data Hiding</b>: Das Objekt <b>versteckt</b> seinen Zustand. Nur die Klasse selbst ändert ihn – und kann dabei aufpassen.</p><p>Weiter ▶: Das Hauptprogramm versucht es trotzdem → der <b>Compiler</b> meldet einen Fehler.</p><p>Jetzt passt auch unser <code>_</code>: Er steht vor <b>private</b> Feldern.</p>',
+    render(st) {
+      const sc = scene(); const r = el('div', 'row'); r.style.gap = '130px';
+      const v = varBox('hans', 'vh'); v.querySelector('.vn').textContent = 'Program.cs: hans'; r.appendChild(v);
+      r.appendChild(hansKarte([['_position', '(1, 5)'], ['_planeSize', '10']]));
+      sc.appendChild(r); st.appendChild(sc); lock('oh', ['_position', '_planeSize']);
+      return seq([
+        () => { setHl([0]); $('vh-ref').textContent = '✋'; link(sc, 'vh', 'oh-_position', { from: 'right', to: 'left', color: 'var(--bad)', dash: true, label: '_position = …' }); },
+        () => hinweis(st, '❌ CS0122: „_position“ ist aufgrund des Schutzgrads <b>nicht zugänglich</b>.', 'var(--bad)'),
+        () => hinweis(st, '🔒 Der Zustand ist <b>versteckt</b> – von außen kann ihn niemand kaputt machen.', 'var(--ok)')
+      ], 1400);
+    } },
+
+  getset: { title: 'Zugriff über Methoden, die prüfen', code: codeGetSet, hl: [11, 16], dateiMain: 'Program.cs', dateiKl: 'Hamster.cs',
+    text: '<p>Von außen soll man die Position trotzdem <b>lesen</b> und <b>ändern</b> können – aber nur <b>gültig</b>.</p><p>Darum bekommt die Klasse zwei <b>public</b> Methoden:</p><ul><li><code>GetPosition()</code> gibt den Wert zurück</li><li><code>SetPosition(...)</code> prüft zuerst mit einer <b>Guard-Clause</b> und ändert nur, wenn der Wert passt</li></ul><p>Weiter ▶ spielt die drei Zeilen aus dem Hauptprogramm durch.</p>',
+    render(st) {
+      const r = el('div', 'row'); r.style.gap = '40px'; r.style.alignItems = 'flex-start';
+      r.appendChild(hansKarte([['_position', '(1, 5)'], ['_planeSize', '10']], { methods: ['GetPosition()', 'SetPosition(position)'] }));
+      const k = konsole('out'); k.style.minWidth = '240px'; r.appendChild(k); st.appendChild(r);
+      lock('oh', ['_position', '_planeSize']);
+      return seq([
+        () => { setHl([0, 16, 18, 19, 20, 22]); blinkM('oh', 'SetPosition'); print('out', 'SetPosition((-5, 99)) → Guard ❌ ignoriert'); },
+        () => { setHl([1, 16, 24]); blinkM('oh', 'SetPosition'); setField('oh', '_position', '(2, 3)'); print('out', 'SetPosition((2, 3)) → ✅'); },
+        () => { setHl([2, 11, 13]); blinkM('oh', 'GetPosition'); print('out', '(2, 3)'); }
+      ], 1500);
+    } },
+
+  property: { title: 'Properties: get und set in einem', code: codeProperty, hl: [11], dateiMain: 'Program.cs', dateiKl: 'Hamster.cs',
+    text: '<p>Eine <b>Property</b> verbindet Get- und Set-Methode. Von außen sieht sie aus wie ein <b>Feld</b> – ohne Klammern: <code>hans.Position = (2, 3);</code></p><p>Drinnen hat sie zwei Teile:</p><ul><li><code>get</code> läuft beim <b>Lesen</b></li><li><code>set</code> läuft beim <b>Zuweisen</b>. Der zugewiesene Wert heißt dort <code>value</code>.</li></ul><p>Namen: <b>Feld</b> privat mit <code>_position</code>, <b>Property</b> öffentlich mit großem Anfangsbuchstaben: <code>Position</code>.</p>',
+    render(st) {
+      const r = el('div', 'row'); r.style.gap = '40px'; r.style.alignItems = 'flex-start';
+      r.appendChild(hansKarte([['_position', '(1, 5)'], ['_planeSize', '10']], { methods: ['Position { get; set; }'] }));
+      const k = konsole('out'); k.style.minWidth = '240px'; r.appendChild(k); st.appendChild(r);
+      lock('oh', ['_position', '_planeSize']);
+      return seq([
+        () => { setHl([0, 14, 16, 17, 18, 20]); blinkM('oh', 'Position { get; set; }'.split('(')[0]); print('out', 'Position = (-5, 99) → set → Guard ❌'); },
+        () => { setHl([1, 14, 22]); setField('oh', '_position', '(2, 3)'); print('out', 'Position = (2, 3) → set → value = (2, 3) ✅'); },
+        () => { setHl([2, 13]); print('out', 'Position → get → (2, 3)'); }
+      ], 1500);
+    } },
+
+  auto: { title: 'Auto-Properties: { get; private set; }', code: codeAuto, hl: [7, 8], dateiMain: 'Program.cs', dateiKl: 'Hamster.cs',
+    text: '<p>Muss nichts geprüft werden, geht es kürzer: eine <b>Auto-Property</b>. Das private Feld legt der Compiler <b>selbst</b> an.</p><p>Vor <code>get</code> oder <code>set</code> kann ein eigener Zugriffsmodifizierer stehen:</p><ul><li><code>{ get; private set; }</code>: alle dürfen <b>lesen</b>, nur die Klasse darf <b>ändern</b> (z. B. in <code>Move()</code>)</li><li><code>{ get; }</code>: nur lesen – der Wert wird beim Erstellen festgelegt</li></ul><p>So sind die Hamster in <b>Variante 2</b> gebaut.</p>',
+    render(st) {
+      const t = el('table', 'tbl'); t.style.fontSize = '17px'; t.style.borderCollapse = 'collapse';
+      const zeilen = [['{ get; set; }', '✅ alle', '✅ alle', 'fast wie ein public Feld'], ['{ get; private set; }', '✅ alle', '🔒 nur die Klasse', 'Position'], ['{ get; }', '✅ alle', '❌ niemand (nur beim Erstellen)', 'Representation']];
+      t.innerHTML = '<tr><th>Auto-Property</th><th>lesen</th><th>ändern</th><th>Beispiel</th></tr>' + zeilen.map((z, i) => `<tr id="ap-${i}" style="opacity:.12; transition:opacity .5s"><td class="mono" style="color:var(--accent)">${z[0]}</td><td>${z[1]}</td><td>${z[2]}</td><td class="mono">${z[3]}</td></tr>`).join('');
+      t.querySelectorAll('th, td').forEach(c => { c.style.border = '1px solid var(--line)'; c.style.padding = '8px 14px'; });
+      st.appendChild(t);
+      return seq([
+        () => { $('ap-0').style.opacity = '1'; },
+        () => { $('ap-1').style.opacity = '1'; setHl([0, 1, 7, 13]); },
+        () => { $('ap-2').style.opacity = '1'; setHl([2, 8]); }
+      ], 1400);
+    } },
+
+  uml: { title: 'Im Klassendiagramm: + und -', code: codeAuto, hl: [7, 8], dateiMain: 'Program.cs', dateiKl: 'Hamster.cs',
+    text: '<p>Im Klassendiagramm steht vor jedem Mitglied, wer es sehen darf:</p><ul><li><b style="color:var(--ok)">+</b> = <code>public</code> – alle</li><li><b style="color:var(--bad)">-</b> = <code>private</code> – nur die Klasse selbst</li></ul><p>Typisch: <b>Felder</b> sind <code>-</code>, <b>Properties</b> und <b>Methoden</b> sind <code>+</code>. Bei einer Property schreiben wir dazu, was erlaubt ist: <code>{ get; private set; }</code>.</p>',
+    render(st) {
+      const r = el('div', 'row'); r.style.gap = '60px'; r.style.alignItems = 'flex-start';
+      const c1 = el('div', 'col'); c1.appendChild(el('div', 'label', 'mit Get-/Set-Methoden'));
+      c1.appendChild(umlBox('u1', 'Hamster', ['- _position : (int x, int y)', '- _planeSize : int = 10'], ['+ GetPosition() : (int x, int y)', '+ SetPosition(position)'], { pop: true }));
+      const c2 = el('div', 'col'); c2.appendChild(el('div', 'label', 'mit Auto-Properties'));
+      c2.appendChild(umlBox('u2', 'Hamster', ['+ Position : (int x, int y) { get; private set; }', '+ Representation : string { get; }'], ['+ Move()'], { pop: true }));
+      r.appendChild(c1); r.appendChild(c2); st.appendChild(r);
+    } },
+
+  merken: { title: 'Wir merken uns', code: [], hl: [],
+    text: '<p>Diese Punkte kommen in die Mitschrift.</p>',
+    render(st) {
+      const c = el('div', 'col'); c.style.alignItems = 'flex-start'; c.style.maxWidth = '900px';
+      ['<b>Data Hiding</b>: Ein Objekt versteckt seinen Zustand mit <code>private</code>. Nur die Klasse selbst darf ihn ändern – so kann er nicht ungültig werden.',
+       '<code>private</code> = nur innerhalb der Klasse, <code>public</code> = alle. Ohne Angabe ist ein Mitglied <code>private</code>.',
+       'Private Felder schreiben wir mit <code>_</code>: <code>_position</code>. Properties und Methoden beginnen mit einem Großbuchstaben: <code>Position</code>, <code>Move()</code>.',
+       'Eine <b>Property</b> sieht von außen aus wie ein Feld. <code>get</code> läuft beim Lesen, <code>set</code> beim Zuweisen – der neue Wert heißt <code>value</code>. Im <code>set</code> kann eine Guard-Clause prüfen.',
+       '<b>Auto-Property</b>: <code>{ get; private set; }</code> – alle lesen, nur die Klasse ändert. <code>{ get; }</code> – nur lesen.',
+       'Im Klassendiagramm: <b>+</b> = public, <b>-</b> = private.']
+        .forEach((t, i) => { const p = el('div', 'story pop', `${i + 1}. ${t}`); p.style.animationDelay = (i * .3) + 's'; c.appendChild(p); });
+      st.appendChild(c);
+    } }
+};
+
+const PLAN = [
+  ["Intro", [NEU.ziele]],
+  ["Data Hiding", [NEU.problem, NEU.private, NEU.getset]],
+  ["Properties", [NEU.property, NEU.auto]],
+  ["Klassendiagramm", [NEU.uml]],
+  ["Zusammenfassung", [NEU.merken]]
+];
+const chapters = PLAN.map(p => p[0]);
+const steps = [];
+PLAN.forEach(([, list], ch) => list.forEach(s => { if (!s) throw new Error('Folie fehlt'); steps.push(Object.assign({}, s, { ch })); }));
+
+// ===================== Navigation =====================
+let cur = 0, ctrl = null;
+function stepper(n, step, delay) {
+  let i = 0;
+  return {
+    next() { if (i >= n) return false; clearTimers(); step(i); i++; return true; },
+    auto() { const tick = () => { if (this.next()) timers.push(setTimeout(tick, delay)); }; tick(); }
+  };
+}
+function buildTabs() {
+  chapters.forEach((c, i) => {
+    const b = el('button', '', (i + 1) + '. ' + c);
+    b.onclick = () => show(steps.findIndex(s => s.ch === i));
+    $('tabs').appendChild(b);
+  });
+}
+function show(i) {
+  clearTimers();
+  cur = Math.max(0, Math.min(steps.length - 1, i));
+  const s = steps[cur];
+  document.querySelectorAll('#tabs button').forEach((b, k) => b.classList.toggle('active', k === s.ch));
+  $('title').textContent = s.title;
+  $('counter').textContent = `Schritt ${cur + 1} / ${steps.length}`;
+  $('text').innerHTML = s.text;
+  if (!userSplit && !presenter) { $('stage').parentElement.style.flex = '1.9'; $('text').parentElement.style.flex = s.small ? '0.35' : '1'; }
+  $('headKl').textContent = '📄 ' + (s.dateiKl || 'Hamster.cs');
+  $('headMain').textContent = '📄 ' + (s.dateiMain || 'Program.cs');
+  renderCode(s.code, s.hl);
+  const st = $('stage'); st.innerHTML = ''; st.style.flexDirection = '';
+  ctrl = s.render(st) || null;
+  const noCode = !(s.code || []).length;
+  if (typeof applyLayout === 'function' && noCode !== lastNoCode) { lastNoCode = noCode; applyLayout(); }
+  $("autoBtn").disabled = !(ctrl && ctrl.auto);
+}
+function go(d) { if (d > 0 && ctrl && ctrl.next && ctrl.next()) return; show(cur + d); }
+function runAuto() { if (ctrl && ctrl.auto) { $("autoBtn").disabled = true; ctrl.auto(); } }
+function replay() { show(cur); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+  if (e.key === 'r' || e.key === 'R') replay();
+});
+// ===================== Trennlinien mit der Maus verschieben =====================
+let userSplit = false;
+function dragger(handle, onMove) {
+  handle.addEventListener('pointerdown', e => {
+    e.preventDefault(); handle.setPointerCapture(e.pointerId); handle.classList.add('drag'); document.body.classList.add('dragging');
+    const mv = ev => onMove(ev);
+    const up = () => { handle.removeEventListener('pointermove', mv); handle.removeEventListener('pointerup', up); handle.classList.remove('drag'); document.body.classList.remove('dragging'); };
+    handle.addEventListener('pointermove', mv); handle.addEventListener('pointerup', up);
+  });
+}
+dragger($('sv'), e => {
+  const r = $('content').getBoundingClientRect();
+  const pct = Math.max(15, Math.min(75, (e.clientX - r.left) / r.width * 100));
+  $('left').style.width = pct + '%'; $('right').style.width = 'auto'; $('right').style.flex = '1';
+});
+dragger($('sh'), e => {
+  const r = $('right').getBoundingClientRect();
+  const y = Math.max(80, Math.min(r.height - 60, e.clientY - r.top));
+  $('stage').parentElement.style.flex = String(y); $('text').parentElement.style.flex = String(r.height - y);
+  userSplit = true;
+});
+// ===================== Presenter-Modus und Ansicht =====================
+let presenter = false, view = 0, lastNoCode = null;   // 0 = Code + Animation, 1 = nur Animation, 2 = nur Code
+function applyLayout() {
+  const L = $('left'), R = $('right'), sp = $('stage').parentElement, tp = $('text').parentElement;
+  if (presenter) { L.style.width = '30%'; R.style.width = '70%'; R.style.flex = 'none'; sp.style.flex = '1'; }
+  else { L.style.width = '40%'; R.style.width = '60%'; R.style.flex = ''; sp.style.flex = '1.9'; tp.style.flex = steps[cur].small ? '0.35' : '1'; userSplit = false; }
+  tp.style.display = presenter ? 'none' : ''; $('sh').style.display = presenter ? 'none' : '';
+  // Folien ohne Code: Code-Bereich automatisch ausblenden
+  const v = (view === 0 && !(steps[cur].code || []).length) ? 1 : view;
+  L.style.display = v === 1 ? 'none' : ''; $('sv').style.display = v === 0 ? '' : 'none'; R.style.display = v === 2 ? 'none' : '';
+  if (v === 1) { R.style.width = '100%'; R.style.flex = '1'; }
+  if (v === 2) { L.style.width = '100%'; }
+  $('presBtn').classList.toggle('on', presenter); [0, 1, 2].forEach(k => $('vb' + k).classList.toggle('on', view === k));
+  setTimeout(() => document.querySelectorAll('.scene').forEach(redraw), 50);
+}
+function togglePresenter() { presenter = !presenter; applyLayout(); }
+function setView(v) { view = v; applyLayout(); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'p' || e.key === 'P') togglePresenter();
+  if (e.key === '1' || e.key === '2' || e.key === '3') setView(Number(e.key) - 1);
+});
+window.addEventListener('resize', () => document.querySelectorAll('.scene').forEach(redraw));
+
+buildTabs();
+show(0);
+applyLayout();
+</script>
+</body>
+</html>

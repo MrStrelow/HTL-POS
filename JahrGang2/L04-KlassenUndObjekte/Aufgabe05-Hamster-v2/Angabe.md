@@ -67,9 +67,9 @@ class Plane {
   - AssignRepresentations()
 }
 
-Plane --> "*" Hamster : "  _hamsters"
-Plane --> "*" Seedling : "  _seedlings"
-Hamster --> "*" Seedling : "  Mouth"
+Plane --> "1:n" Hamster : "  _hamsters"
+Plane --> "1:n" Seedling : "  _seedlings"
+Hamster --> "0:n" Seedling : "  Mouth"
 @enduml
 ```
 

@@ -13,6 +13,8 @@ class Hamster
         _representation = "🐹";
         _position = position;
         _mouth = mouth;
+
+        public void Move();
     }
 
     // Methoden: das Verhalten

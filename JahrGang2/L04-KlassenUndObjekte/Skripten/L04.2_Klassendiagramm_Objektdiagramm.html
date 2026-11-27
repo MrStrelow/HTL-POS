@@ -477,8 +477,8 @@ const codePlane = [
   'class Plane',
   '{',
   '    // Felder: der Zustand',
-  '    public Hamster[] _hamsters;       // hat-Beziehung 0:n',
-  '    public Seedling[] _seedlings;     // hat-Beziehung 0:n',
+  '    public Hamster[] _hamsters;       // hat-Beziehung 1:n',
+  '    public Seedling[] _seedlings;     // hat-Beziehung 1:n',
   '',
   '    // Konstruktor: der Startzustand',
   '    public Plane(Hamster[] hamsters, Seedling[] seedlings)',
@@ -521,7 +521,7 @@ function selbstPfeil(sc, id) {
   const pth = document.createElementNS(SVGNS, 'path');
   pth.setAttribute('d', `M ${x} ${y1} C ${x + 120} ${y1}, ${x + 120} ${y2}, ${x} ${y2}`); pth.setAttribute('fill', 'none');
   pth.setAttribute('stroke', 'currentColor'); pth.setAttribute('stroke-width', '2.5'); pth.setAttribute('marker-end', 'url(#ah)');
-  const t = document.createElementNS(SVGNS, 'text'); t.setAttribute('x', x + 95); t.setAttribute('y', (y1 + y2) / 2 + 5); t.setAttribute('fill', 'currentColor'); t.setAttribute('font-size', '13'); t.setAttribute('font-weight', '700'); t.setAttribute('font-family', 'Fira Code, monospace'); t.textContent = '_freund   0:1';
+  const t = document.createElementNS(SVGNS, 'text'); t.setAttribute('x', x + 95); t.setAttribute('y', (y1 + y2) / 2 + 5); t.setAttribute('fill', 'currentColor'); t.setAttribute('font-size', '13'); t.setAttribute('font-weight', '700'); t.setAttribute('font-family', 'Fira Code, monospace'); t.textContent = '_freund   0';
   t.setAttribute('stroke', '#020617'); t.setAttribute('stroke-width', '4'); t.setAttribute('paint-order', 'stroke');
   g.appendChild(pth); g.appendChild(t); sc._svg.appendChild(g);
 }
@@ -574,13 +574,13 @@ const NEU = {
     } },
 
   hatKD: { title: 'Die hat-Beziehung im Klassendiagramm', code: codeBeide, hl: HL_MOUTH, datei: 'Hamster.cs · Seedling.cs',
-    text: '<p>Der Hamster hat ein Feld <code>_mouth</code> vom Typ <code>Seedling</code> – und <code>Seedling</code> ist <b>auch eine unserer Klassen</b>.</p><p>Weiter ▶: Wir zeichnen dafür einen <b>Pfeil</b>. Am Pfeil steht der Name des Feldes, am Ende die Anzahl: <b>1:1</b> – genau ein Seedling.</p><p>Die Pfeilrichtung sagt, <b>wer wen kennt</b>: Der Hamster kennt seinen Seedling – der Seedling weiß nichts vom Hamster.</p>',
+    text: '<p>Der Hamster hat ein Feld <code>_mouth</code> vom Typ <code>Seedling</code> – und <code>Seedling</code> ist <b>auch eine unserer Klassen</b>.</p><p>Weiter ▶: Wir zeichnen dafür einen <b>Pfeil</b>. Am Pfeil steht der Name des Feldes, am Ende die Anzahl: <b>1</b> – genau ein Seedling.</p><p>Die Pfeilrichtung sagt, <b>wer wen kennt</b>: Der Hamster kennt seinen Seedling – der Seedling weiß nichts vom Hamster.</p>',
     render(st) {
       const sc = scene(); const r = el('div', 'row'); r.style.gap = '170px'; r.style.alignItems = 'flex-start';
       r.appendChild(hamsterBox('kH', true)); r.appendChild(seedlingBox('kS', true)); sc.appendChild(r); st.appendChild(sc);
       const mouth = $('kH-f-_mouth'); mouth.classList.add('hlf');
       return seq([
-        () => link(sc, 'kH', 'kS', { from: 'right', to: 'left', color: 'var(--x)', label: '_mouth   1:1' }),
+        () => link(sc, 'kH', 'kS', { from: 'right', to: 'left', color: 'var(--x)', label: '_mouth   1' }),
         () => { const l = el('div', 'label fade', 'Ein Feld, dessen Typ eine <b>andere Klasse</b> ist → <b>Pfeil</b> = hat-Beziehung'); l.style.marginTop = '22px'; l.style.color = 'var(--x)'; st.appendChild(l); }
       ], 1400);
     } },
@@ -606,35 +606,35 @@ const NEU = {
       unterschrift(st, '<b>bidirektional</b>: Hamster → Seedling <b>und</b> Seedling → Hamster', 'var(--ok)');
     } },
 
-  eins: { title: 'Anzahl: 1:1', code: codeBeide, hl: HL_MOUTH, datei: 'Hamster.cs · Seedling.cs',
-    text: '<p>Am Ende des Pfeils steht, <b>wie viele</b> Objekte gemeint sind.</p><p>Wir schreiben die Anzahl als <b>Minimum:Maximum</b>.</p><p><b>1:1</b> heißt: mindestens eines und höchstens eines – also genau <b>ein</b> Objekt. Im Code ist das ein <b>einzelnes Feld</b>: <code>Seedling _mouth</code>.</p><p>Ein Hamster trägt immer <b>genau einen</b> Seedling herum.</p>',
+  eins: { title: 'Anzahl: 1', code: codeBeide, hl: HL_MOUTH, datei: 'Hamster.cs · Seedling.cs',
+    text: '<p>Am Ende des Pfeils steht, <b>wie viele</b> Objekte gemeint sind.</p><p><b>1</b> heißt: genau <b>ein</b> Objekt. Im Code ist das ein <b>einzelnes Feld</b>: <code>Seedling _mouth</code>.</p><p>Ein Hamster trägt immer <b>genau einen</b> Seedling herum.</p>',
     render(st) {
       const sc = zweiBoxen(st);
-      later(300, () => link(sc, 'kH-f', 'kS-f', { from: 'right', to: 'left', color: 'var(--x)', label: '_mouth   1:1' }));
-      unterschrift(st, '<b>1:1</b> = genau ein Objekt → ein Feld <code>Seedling _mouth</code>', 'var(--x)');
+      later(300, () => link(sc, 'kH-f', 'kS-f', { from: 'right', to: 'left', color: 'var(--x)', label: '_mouth   1' }));
+      unterschrift(st, '<b>1</b> = genau ein Objekt → ein Feld <code>Seedling _mouth</code>', 'var(--x)');
     } },
 
-  einsN: { title: 'Anzahl: 0:n (viele)', code: codePlane, hl: [3, 4], datei: 'Plane.cs',
-    text: '<p><b>0:n</b> heißt: mindestens <b>0</b>, höchstens <b>n</b> – also <b>beliebig viele</b> Objekte. Eine Plane hat <b>n</b> Hamster.</p><p>Im Code ist das ein <b>Array</b>: <code>Hamster[] _hamsters</code>.</p><p>Die Plane hat zwei solche Beziehungen: zu vielen Hamstern und zu vielen Seedlings.</p>',
+  einsN: { title: 'Anzahl: 1:n (viele)', code: codePlane, hl: [3, 4], datei: 'Plane.cs',
+    text: '<p><b>1:n</b> heißt: mindestens <b>1</b>, höchstens <b>n</b> – also <b>viele</b> Objekte. Links vom <code>:</code> steht das Minimum, rechts das Maximum. Eine Plane hat mindestens einen und beliebig viele Hamster.</p><p>Im Code ist das ein <b>Array</b>: <code>Hamster[] _hamsters</code>.</p><p>Die Plane hat zwei solche Beziehungen: zu vielen Hamstern und zu vielen Seedlings.</p>',
     render(st) {
       const sc = scene(); const c = el('div', 'col'); c.style.gap = '70px';
       const top = el('div', 'row'); top.appendChild(planeBox('kP', true)); c.appendChild(top);
       const r = el('div', 'row'); r.style.gap = '170px'; r.style.alignItems = 'flex-start';
       r.appendChild(hamsterBox('kH', true)); r.appendChild(seedlingBox('kS', true)); c.appendChild(r);
       sc.appendChild(c); st.appendChild(sc);
-      later(400, () => { link(sc, 'kP', 'kH', { from: 'bottom', to: 'top', color: 'var(--accent)', label: '_hamsters   0:n' }); link(sc, 'kP', 'kS', { from: 'bottom', to: 'top', color: 'var(--accent)', label: '_seedlings   0:n' }); });
-      unterschrift(st, '<b>0:n</b> = beliebig viele Objekte → ein Array <code>Hamster[] _hamsters</code>', 'var(--accent)');
+      later(400, () => { link(sc, 'kP', 'kH', { from: 'bottom', to: 'top', color: 'var(--accent)', label: '_hamsters   1:n' }); link(sc, 'kP', 'kS', { from: 'bottom', to: 'top', color: 'var(--accent)', label: '_seedlings   1:n' }); });
+      unterschrift(st, '<b>1:n</b> = viele Objekte → ein Array <code>Hamster[] _hamsters</code>', 'var(--accent)');
     } },
 
   multi: { title: 'Multiplizitäten: alle Schreibweisen', code: [], hl: [],
-    text: '<p>Die Zahl am Pfeilende heißt <b>Multiplizität</b>. Sie sagt, <b>wie viele</b> Objekte am anderen Ende gemeint sind.</p><p>Wir schreiben sie als <b>Minimum:Maximum</b>. Links vom <code>:</code> steht das <b>Minimum</b>, rechts das <b>Maximum</b>. <code>n</code> heißt „beliebig viele“.</p><p>Weiter ▶ zeigt die Schreibweisen nacheinander.</p>',
+    text: '<p>Die Zahl am Pfeilende heißt <b>Multiplizität</b>. Sie sagt, <b>wie viele</b> Objekte am anderen Ende gemeint sind.</p><p>Eine <b>einzelne Zahl</b> steht für eine einzelne Beziehung: <b>1</b> = genau eines, <b>0</b> = keines oder eines (die Beziehung darf fehlen).</p><p>Bei <b>vielen</b> Objekten schreiben wir <b>Minimum:Maximum</b>. <code>n</code> heißt „beliebig viele“.</p><p>Weiter ▶ zeigt die Schreibweisen nacheinander.</p>',
     render(st) {
       const zeilen = [
-        ['1:1', 'genau ein Objekt', 'Seedling _mouth'],
-        ['0:1', 'keines oder eines (höchstens eines)', 'Kunde _ausgeliehenVon'],
-        ['0:n', 'beliebig viele, auch keines', 'Hamster[] _hamsters'],
-        ['1:n', 'mindestens eines, nach oben offen', 'Fahrrad[] _fahrraeder'],
-        ['2:2', 'genau zwei Objekte', 'Kunde[] _notfall  (Länge 2)']
+        ['1', 'genau ein Objekt', 'Seedling _mouth'],
+        ['0', 'keines oder eines (darf fehlen)', 'Kunde _ausgeliehenVon'],
+        ['0:n', 'beliebig viele, auch keines', 'Seedling[] _gefressen'],
+        ['1:n', 'mindestens eines, beliebig viele', 'Hamster[] _hamsters'],
+        ['3:17', 'mindestens 3, höchstens 17', 'Fahrrad[] _fahrraeder']
       ];
       const t = el('table', 'tbl'); t.style.fontSize = '17px'; t.style.borderCollapse = 'collapse';
       t.innerHTML = '<tr><th>am Pfeilende</th><th>bedeutet</th><th>im Code z. B.</th></tr>' +
@@ -709,7 +709,7 @@ const NEU = {
       sCol.appendChild(seedObj('oS2', '33826822', '(1, 2)', { small: true }));
       r2.appendChild(sCol); c.appendChild(r2); sc.appendChild(c); st.appendChild(sc);
       $('oS2').style.opacity = '.4';
-      later(200, () => { link(sc, 'kH', 'kS', { from: 'right', to: 'left', color: 'var(--x)', label: '_mouth   1:1' }); link(sc, 'oH', 'oS1', { from: 'right', to: 'left', color: 'var(--x)', label: '_mouth' }); });
+      later(200, () => { link(sc, 'kH', 'kS', { from: 'right', to: 'left', color: 'var(--x)', label: '_mouth   1' }); link(sc, 'oH', 'oS1', { from: 'right', to: 'left', color: 'var(--x)', label: '_mouth' }); });
       const runde = (n, pos, seedPos) => () => { setHl([2 + n]); setField('oH', '_position', pos); setField('oS1', '_position', seedPos); $('odLabel').textContent = `Objektdiagramm nach Runde ${n}`; redraw(sc); };
       return seq([
         runde(1, '(1, 4)', '(1, 4)'),
@@ -731,7 +731,7 @@ const NEU = {
       ['Ein <b>Klassendiagramm</b> zeigt den Bauplan: Name, Felder (Zustand), Konstruktor und Methoden (Verhalten). <b>+</b> heißt <code>public</code>.',
        'Ist der Typ eines Feldes eine <b>andere Klasse</b>, zeichnen wir einen <b>Pfeil</b> – die <b>hat-Beziehung</b>. Am Pfeil stehen der Feldname und die Anzahl.',
        '<b>unidirektional</b>: nur eine Klasse kennt die andere (ein Pfeil). <b>bidirektional</b>: beide kennen sich (Pfeile in beide Richtungen). <b>rekursiv</b>: eine Klasse kennt sich selbst (Pfeil zurück zur eigenen Klasse).',
-       'Die <b>Multiplizität</b> am Pfeilende sagt, wie viele – als <b>Minimum:Maximum</b>: <b>1:1</b> = genau eines, <b>0:1</b> = höchstens eines, <b>0:n</b> = beliebig viele (z. B. ein Array), <b>1:n</b> = mindestens eines, <b>2:2</b> = genau zwei.',
+       'Die <b>Multiplizität</b> am Pfeilende sagt, wie viele: <b>1</b> = genau eines, <b>0</b> = keines oder eines, <b>0:n</b> = beliebig viele, <b>1:n</b> = mindestens eines, <b>3:17</b> = mindestens 3 und höchstens 17. Bei vielen gilt <b>Minimum:Maximum</b>.',
        'Ein <b>Objektdiagramm</b> zeigt eine Momentaufnahme: konkrete Objekte mit konkreten Werten, ohne Methoden.',
        'Objekte haben keinen Namen – die <b>Variable</b> hat einen. Wir erkennen ein Objekt an seiner <b>Hash-ID</b> (<code>GetHashCode()</code>): gleiche Zahl = dasselbe Objekt.']
         .forEach((t, i) => { const p = el('div', 'story pop', `${i + 1}. ${t}`); p.style.animationDelay = (i * .3) + 's'; c.appendChild(p); });
