@@ -40,6 +40,12 @@
   #text p { margin: 6px 0; }
   #text code { font-family: 'Fira Code', monospace; background: var(--panel2); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
   .cl { padding: 0 14px; border-left: 4px solid transparent; white-space: pre; }
+  mark.m-neu { background: rgba(250,204,21,.35); color: inherit; border-radius: 3px; outline: 1px solid #facc15; }
+  mark.m-weg { background: rgba(248,113,113,.25); color: inherit; text-decoration: line-through 2px #f87171; border-radius: 3px; }
+  .splitgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; font-size: 12px; }
+  .splitcol { overflow-x: auto; min-width: 0; }
+  .splitgrid .splitcol + .splitcol { border-left: 1px dashed rgba(148,163,184,.4); }
+  .splitrest { font-size: 12px; border-top: 1px dashed rgba(148,163,184,.4); margin-top: 6px; padding-top: 6px; }
   .cl.hl { background: rgba(56,189,248,.18); border-left-color: var(--accent); }
   .tk-kw { color: var(--kw); } .tk-str { color: var(--str); } .tk-num { color: var(--num); } .tk-com { color: var(--com); font-style: italic; } .tk-ty { color: #38bdf8; } .tk-tp { color: var(--x); font-weight: 600; }
   nav { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; }
@@ -133,7 +139,7 @@
 <header>
   <div>
     <h1>🔌 Interfaces: Verträge statt Klassen</h1>
-    <p>Weiter: Pfeiltasten ← → oder Leertaste · hat-Beziehungen, IComparable + Sortieren, IComparer, IDisposable, gegen ein Interface programmieren, Dependency Injection, Inversion of Control</p>
+    <p>Weiter: Pfeiltasten ← → oder Leertaste · Klasse → Interface, abstrakte Klasse, hat-Beziehungen, IComparable + Sortieren, IComparer, IDisposable, gegen ein Interface programmieren, Dependency Injection, Inversion of Control</p>
   </div>
   <div id="tabs"></div>
 </header>
@@ -172,7 +178,7 @@ const C = s => s.replace(/^\n/, '').replace(/\n$/, '').split('\n');
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 function highlight(line) {
-  const re = /(\/\/.*$)|("(?:[^"\\]|\\.)*"|'.')|(\b(?:new|foreach|for|in|out|ref|while|if|else|return|int|string|double|bool|char|void|object|class|interface|abstract|override|public|private|where|struct|var|null|true|false)\b)|(\b(?:T|TA|TB|TName|TPunkte)\b)|(\b(?:Console|Form|Kreis|Quadrat|Stapel|ObjektStapel|Rangliste|Tier|Hund|Katze|List|IEnumerable|IEnumerator|IComparer|IComparable|NachAlter|IQuelle|IAblage|IFalsch|HundeZucht|TierHeim|Hamster|IHatName|Roboter|IList|ICollection|Array|Dictionary|IDictionary|IReadOnlyDictionary|IReadOnlyCollection|KeyValuePair|LinkedList|Queue|Stack|HashSet|ISet|SortedSet|SortedDictionary|Seedling|Wiese|Feld|Pos|Math|FeldK|FeldE|FeldR|FeldM|MacAdresse|Geraet|HashCode|ISensor|Thermometer|Rauchmelder|FakeSensor|Alarmanlage|Logdatei|StreamWriter|IDisposable|IComparer|IComparable|NachName|Fahrzeug|EAuto|IAufladbar|IVernetzt|ServiceCollection|InvalidOperationException)\b)|(\b\d+(?:\.\d+)?\b)/g;
+  const re = /(\/\/.*$)|("(?:[^"\\]|\\.)*"|'.')|(\b(?:new|foreach|for|in|out|ref|while|if|else|return|int|string|double|bool|char|void|object|class|interface|abstract|override|public|private|where|struct|var|null|true|false|get|set|init|field|value)\b)|(\b(?:T|TA|TB|TName|TPunkte)\b)|(\b(?:Console|Form|Kreis|Quadrat|Stapel|ObjektStapel|Rangliste|Tier|Hund|Katze|List|IEnumerable|IEnumerator|IComparer|IComparable|NachAlter|IQuelle|IAblage|IFalsch|HundeZucht|TierHeim|Hamster|IHatName|Roboter|IList|ICollection|Array|Dictionary|IDictionary|IReadOnlyDictionary|IReadOnlyCollection|KeyValuePair|LinkedList|Queue|Stack|HashSet|ISet|SortedSet|SortedDictionary|Seedling|Wiese|Feld|Pos|Math|FeldK|FeldE|FeldR|FeldM|MacAdresse|Geraet|HashCode|ISensor|Thermometer|Rauchmelder|FakeSensor|Alarmanlage|Logdatei|StreamWriter|IDisposable|IComparer|IComparable|NachName|Fahrzeug|EAuto|IAufladbar|IVernetzt|ServiceCollection|InvalidOperationException)\b)|(\b\d+(?:\.\d+)?\b)/g;
   let out = '', last = 0, m;
   while ((m = re.exec(line)) !== null) {
     out += esc(line.slice(last, m.index));
@@ -188,6 +194,15 @@ function renderCode(lines, hl) {
     const d = el('div', 'cl' + ((hl || []).includes(i) ? ' hl' : ''), highlight(l) || ' ');
     d.id = 'code-' + i; box.appendChild(d);
   });
+}
+// Code in zwei Spalten (links/rechts) + Rest darunter
+function splitCode(lines, [rechts, unten]) {
+  const box = $('codebox'), r = at(lines, rechts), u = at(lines, unten);
+  const kids = [...box.children];
+  const sp = (a, b) => { const d = el('div', 'splitcol'); kids.slice(a, b).forEach(k => d.appendChild(k)); return d; };
+  const grid = el('div', 'splitgrid'); grid.appendChild(sp(0, r)); grid.appendChild(sp(r, u < 0 ? kids.length : u));
+  box.innerHTML = ''; box.appendChild(grid);
+  if (u >= 0) { const rest = sp(u, kids.length); rest.classList.add('splitrest'); box.appendChild(rest); }
 }
 function setHl(hl) {
   document.querySelectorAll('.cl').forEach((d, i) => d.classList.toggle('hl', hl.includes(i)));
@@ -299,7 +314,7 @@ function redraw(sc) {
     l.setAttribute('stroke', 'currentColor'); l.setAttribute('stroke-width', opts.width || '2.5'); l.setAttribute('marker-end', 'url(#ah)');
     if (opts.dash) l.setAttribute('stroke-dasharray', '6 5');
     g.appendChild(l);
-    if (opts.label) { const t = document.createElementNS(SVGNS, 'text'); t.setAttribute('x', x1 + (x2 - x1) * 0.3); t.setAttribute('y', y1 + (y2 - y1) * 0.3 + (y2 < y1 ? -10 : 20)); t.setAttribute('text-anchor', 'middle'); t.setAttribute('stroke', 'var(--bg, #0b1020)'); t.setAttribute('stroke-width', '5'); t.setAttribute('paint-order', 'stroke'); t.setAttribute('font-weight', '600'); t.setAttribute('fill', 'currentColor'); t.setAttribute('font-size', '13'); t.setAttribute('font-family', 'Fira Code, monospace'); t.textContent = opts.label; g.appendChild(t); }
+    if (opts.label) { const t = document.createElementNS(SVGNS, 'text'); t.setAttribute('x', x1 + (x2 - x1) * (opts.at || 0.3)); t.setAttribute('y', y1 + (y2 - y1) * (opts.at || 0.3) + (y2 < y1 ? -10 : 20)); t.setAttribute('text-anchor', 'middle'); t.setAttribute('stroke', 'var(--bg, #0b1020)'); t.setAttribute('stroke-width', '5'); t.setAttribute('paint-order', 'stroke'); t.setAttribute('font-weight', '600'); t.setAttribute('fill', 'currentColor'); t.setAttribute('font-size', '13'); t.setAttribute('font-family', 'Fira Code, monospace'); t.textContent = opts.label; g.appendChild(t); }
     sc._svg.appendChild(g);
   });
 }
@@ -307,6 +322,22 @@ function redraw(sc) {
 // ===================== Helfer für diese Folien =====================
 const at = (code, s) => code.findIndex(l => l.includes(s));
 const H = (code, ...subs) => setHl(subs.map(s => at(code, s)));
+// Code tauschen + einzelne Wörter markieren: marks = [[zeilenTeil, wort, 'neu'|'weg'], ...]
+function setCode(code, marks) {
+  renderCode(code, []);
+  (marks || []).forEach(([teil, wort, art]) => {
+    const d = $('code-' + at(code, teil)); if (!d) return;
+    const k = d.textContent.indexOf(wort); if (k < 0) return;
+    const w = document.createTreeWalker(d, NodeFilter.SHOW_TEXT), teile = [];
+    let n, pos = 0;
+    while ((n = w.nextNode())) {
+      const von = Math.max(k, pos), bis = Math.min(k + wort.length, pos + n.data.length);
+      if (von < bis) teile.push([n, von - pos, bis - pos]);
+      pos += n.data.length;
+    }
+    teile.forEach(([t, x, y]) => { const r = document.createRange(); r.setStart(t, x); r.setEnd(t, y); r.surroundContents(el('mark', 'm-' + art)); });
+  });
+}
 function tree(nodes) {
   const t = el('div', 'tree');
   nodes.forEach(([k, txt, d, id]) => { const l = el('div', 'tl ' + k, esc((d ? '   '.repeat(d - 1) + '└─ ' : '') + txt)); l.id = id; t.appendChild(l); });
@@ -384,47 +415,143 @@ ISensor s = new Thermometer();       // Variable vom Typ des Interfaces
 Console.WriteLine(s.Messen());       // 21,5
 // ISensor x = new ISensor();        // ❌ ein Interface kann man nicht erzeugen`);
 
-const cVsAbstract = C(`
-// abstrakte Klasse: IST-EIN, gemeinsamer Code, nur EINE Basisklasse
-abstract class Fahrzeug { public int Raeder; public abstract void Fahren(); }
-
-// Interface: KANN, kein Zustand, BELIEBIG viele
-interface IAufladbar { void Laden(); }
-interface IVernetzt  { string Ip { get; } }
-
-class EAuto : Fahrzeug, IAufladbar, IVernetzt
+const kzKlasse = C(`
+public class Sensor
 {
-    public override void Fahren() { }
-    public void Laden() { }
-    public string Ip { get { return "10.0.0.7"; } }
+    public virtual string Name { get { return "?"; } }   // Platzhalter
+    public virtual double Messen() { return 0; }         // Platzhalter
 }`);
+const kzKind = C(`
 
-const cHat = C(`
-// Vertrag: "Wer IHatSensor ist, HAT einen Sensor"
-public interface IHatSensor
+public class Thermometer : Sensor
 {
-    ISensor Sensor { get; }          // ✅ Property: Lesen wird verlangt
+    public override string Name { get { return "Thermometer"; } }
+    public override double Messen() { return 21.5; }
+}`);
+const kzMain = C(`
+
+Sensor s = new Sensor();
+Console.WriteLine(s.Messen());       // 0 – was misst "ein Sensor"?!`);
+const kzAbstrakt = C(`
+public abstract class Sensor
+{
+    public abstract string Name { get; }     // kein Inhalt mehr
+    public abstract double Messen();         // kein Inhalt mehr
 }
 
-// interface IFeld { ISensor _sensor; }   // ❌ CS0525: Interfaces haben keine Felder
-
-public interface IHatSensor2
+public class Thermometer : Sensor
 {
-    ISensor GibSensor();             // ✅ ohne Property: eine Methode
+    public override string Name { get { return "Thermometer"; } }
+    public override double Messen() { return 21.5; }
+}
+
+// Sensor s = new Sensor();          // ❌ CS0144`);
+const kzInterface = C(`
+public interface ISensor
+{
+    string Name { get; }             // kein public, kein abstract
+    double Messen();
+}
+
+public class Thermometer : Sensor
+{
+    public override string Name { get { return "Thermometer"; } }
+    public override double Messen() { return 21.5; }
+}`);
+const kzFertig = C(`
+public interface ISensor
+{
+    string Name { get; }             // kein public, kein abstract
+    double Messen();
+}
+
+public class Thermometer : ISensor
+{
+    public string Name { get { return "Thermometer"; } }   // kein override
+    public double Messen() { return 21.5; }
+}
+
+ISensor s = new Thermometer();
+Console.WriteLine(s.Messen());       // 21,5`);
+const cKlasseZuIf = kzKlasse;
+
+const cVergleich = C(`
+// ---------- abstrakte Klasse ----------
+public abstract class Sensor
+{
+    protected int _anzahl;                       // ① Feld (Zustand)
+    public Sensor() { _anzahl = 0; }             // ② Konstruktor
+    public abstract string Name { get; }         // ③ abstrakte Property
+    public abstract double Messen();             // ③ abstrakte Methode
+    public string Beschreiben()                  // ④ fertiger Code für alle
+    {
+        _anzahl++;
+        return Name + " #" + _anzahl;
+    }
+}
+public class Thermo : Sensor
+{
+    public override string Name { get { return "Thermo"; } }    // ⑤ override nötig
+    public override double Messen() { return 21.5; }
+}
+
+// ---------- Interface ----------
+public interface ISensor
+{
+    // int _anzahl;                  // ① ❌ CS0525: keine Felder
+    // ISensor() { }                 // ② ❌ CS0526: kein Konstruktor
+    string Name { get; }             // ③ ✅ automatisch public + abstract
+    double Messen();                 // ③ ✅
+}
+public class Thermometer : ISensor
+{
+    public string Name { get { return "Thermometer"; } }   // ⑤ kein override,
+    public double Messen() { return 21.5; }                // ⑤ aber public!
+}
+
+// ---------- erben und umsetzen ----------
+// class Doppelt : Sensor, Sensor2 { }          // ⑥ ❌ CS1721: nur EINE Basisklasse
+class EAuto : Fahrzeug, IAufladbar, IVernetzt { } // ⑥ ✅ beliebig viele Interfaces
+struct Wert : ISensor { ... }                     // ⑦ ✅ auch ein struct
+// struct S : Sensor { }                          // ⑦ ❌ CS0527
+// new Sensor();   new ISensor();                 // ⑧ ❌ beide CS0144`);
+
+const cHat = C(`
+// Wunsch: Jedes Gerät MUSS einen Sensor HABEN (Zustand) und prüfen können.
+
+// interface IHatSensor { ISensor _sensor; }      // ❌ CS0525: keine Felder
+
+// Java: Felder im Interface sind nur Konstanten (static final).
+// Zustand geht dort nur indirekt über Methoden:
+// interface HatSensor { Sensor getSensor(); void setSensor(Sensor s); }
+
+// C#: Property im Interface = Zustand im Vertrag
+public interface IHatSensor
+{
+    ISensor Sensor { get; set; }     // was ich HABE  (Zustand)
+    bool Pruefen();                  // was ich TUE   (Verhalten)
 }
 
 public class Alarmanlage : IHatSensor
 {
-    private ISensor _sensor;         // die eigentliche hat-Beziehung: ein FELD
-    public Alarmanlage(ISensor sensor) { _sensor = sensor; }
-    public ISensor Sensor { get { return _sensor; } }   // erfüllt den Vertrag
+    public ISensor Sensor { get; set; }     // Auto-Property: Feld entsteht automatisch
+    public bool Pruefen() { return Sensor.Messen() > 30; }
 }
-
-public class Logger                  // hat-Beziehung ganz OHNE Property
+public class Heizung : IHatSensor
 {
-    private ISensor _sensor;         // privat – nicht Teil eines Vertrags
-    public Logger(ISensor sensor) { _sensor = sensor; }
-}`);
+    public ISensor Sensor                   // Full Property mit field (C# 14)
+    {
+        get { return field; }               // field = das Feld dahinter
+        set { field = value; }
+    }
+    public bool Pruefen() { return Sensor.Messen() < 20; }
+}
+// class Leer : IHatSensor { public bool Pruefen() ... }   // ❌ CS0535: Sensor fehlt
+
+IHatSensor g = new Alarmanlage();
+g.Sensor = new Thermometer();        // Zustand setzen – über den Vertrag!
+Console.WriteLine(g.Sensor.Name);    // Thermometer
+Console.WriteLine(g.Pruefen());      // False`);
 
 const cSortWie = C(`
 List<Geraet> geraete = ...;
@@ -454,6 +581,65 @@ public class Geraet : IComparable<Geraet>
 
 List<Geraet> geraete = ...;
 geraete.Sort();          // Sort ruft für je zwei Geräte a.CompareTo(b) auf`);
+
+const ciIf = C(`
+public interface IGeraet
+{
+    string Name { get; }
+    int PingMs { get; }
+}`);
+const ciRouter = C(`
+
+public class Router : IGeraet, IComparable<IGeraet>
+{
+    public string Name { get; }
+    public int PingMs { get; }
+    public Router(string name, int pingMs) { Name = name; PingMs = pingMs; }
+
+    public int CompareTo(IGeraet? other)       // JEDES Gerät, nicht nur Router
+    {
+        if (other == null) { return 1; }
+        return PingMs.CompareTo(other.PingMs);
+    }
+}`);
+const ciDrucker = C(`
+public class Drucker : IGeraet, IComparable<IGeraet>
+{
+    // Name, PingMs, Konstruktor, CompareTo(IGeraet? other) – wie bei Router
+}`);
+const ciMain = C(`
+
+List<IGeraet> geraete = new List<IGeraet>();
+geraete.Add(new Router("Router", 110));
+geraete.Add(new Drucker("Drucker", 120));
+geraete.Add(new Router("Switch", 95));
+geraete.Add(new Drucker("Plotter", 80));
+
+Console.WriteLine(new Router("R", 110).CompareTo(new Drucker("D", 120)));  // -1
+geraete.Sort();    // 💥 InvalidOperationException`);
+const ciLoesung = C(`
+public interface IGeraet : IComparable<IGeraet>   // jedes Gerät IST vergleichbar
+{
+    string Name { get; }
+    int PingMs { get; }
+}
+
+public class Router : IGeraet                       // CompareTo muss trotzdem rein
+{
+    public string Name { get; }
+    public int PingMs { get; }
+    public Router(string name, int pingMs) { Name = name; PingMs = pingMs; }
+
+    public int CompareTo(IGeraet? other)
+    {
+        if (other == null) { return 1; }
+        return PingMs.CompareTo(other.PingMs);
+    }
+}
+public class Drucker : IGeraet { /* ... wie Router ... */ }
+
+List<IGeraet> geraete = ...;   // Router, Drucker, Switch, Plotter
+geraete.Sort();                // ✅ Plotter 80, Switch 95, Router 110, Drucker 120`);
 
 const cComparer = C(`
 public class NachName : IComparer<Geraet>
@@ -586,10 +772,38 @@ public int CompareTo(Geraet? other)          // ... SORT ruft UNS zurück
 }`);
 
 // ===================== Folien =====================
-const chapters = ['Was ist ein Interface?', 'IComparable', 'IComparer','IDisposable', 'Gegen ein Interface', 'Dependency Injection', 'Inversion of Control', 'Zusammenfassung'];
+const chapters = ['Was ist ein Interface?', 'Interface vs. abstrakte Klasse', 'Hat-Beziehung', 'IComparable', 'IComparer','IDisposable', 'Gegen ein Interface', 'Dependency Injection', 'Inversion of Control', 'Zusammenfassung'];
 
 const steps = [
 // ---------- 0 ----------
+{ ch: 0, title: 'Von der Klasse zum Interface', code: cKlasseZuIf, hl: [],
+  text: `<p>Wir starten mit einer <b>ganz normalen Klasse</b> <code>Sensor</code>. Jede Unterklasse überschreibt ohnehin <code>Name</code> und <code>Messen()</code>. Die Inhalte in <code>Sensor</code> sind nur <b>Platzhalter</b> – „?“ und 0 sind keine echten Messwerte.</p>
+<p><b>Schritt 2:</b> Wir machen daraus eine <b>abstrakte Klasse</b>: Die Methoden verlieren ihren Inhalt und werden <code>abstract</code>. Jetzt kann niemand mehr einen sinnlosen „Sensor an sich“ erzeugen.</p>
+<p><b>Schritt 3:</b> Übrig sind nur noch <b>Köpfe</b> – kein Feld, kein Konstruktor, kein fertiger Code. Genau das ist ein <b>Interface</b>: ein reiner <b>Vertrag</b>. <code>public</code> und <code>abstract</code> sind automatisch, die Klasse schreibt kein <code>override</code>.</p>
+<p><b>Merke:</b> Eine abstrakte Klasse, die <b>nur noch</b> abstrakte Methoden und Properties hat, ist eigentlich ein Interface.</p>`,
+  render(st) {
+    const sc = scene();
+    const typ = el('div', 'cls'); typ.id = 'typ';
+    const kind = el('div', 'cls'); kind.id = 'kind';
+    const row = wrap('row', [kind, typ]); row.style.gap = '90px'; row.style.flexWrap = 'nowrap';
+    const err = hid(el('div', 'errbox', '')); err.id = 'err';
+    sc.appendChild(wrap('col', [row, err, konsole('k'), infoBox()])); st.appendChild(sc);
+    const code = steps[cur].code;
+    const box = (id, kopf, zeilen, gestrichelt) => { const b = $(id); b.style.borderStyle = gestrichelt ? 'dashed' : 'solid'; b.innerHTML = `<div class="clshead">${kopf}</div><div class="clssec">${zeilen.join('<br>')}</div>`; b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); };
+    const fehler = t => { const e = $('err'); e.className = 'errbox pop'; e.textContent = t; };
+    return seq([
+      () => { setCode(kzKlasse, [['class Sensor', 'class', 'neu'], ['string Name', 'virtual', 'neu'], ['Messen()', 'virtual', 'neu']]); H(kzKlasse, 'public class Sensor'); box('typ', 'Sensor', ['+ Name : string = "?"', '+ Messen() : double { return 0; }']); say('① Eine <b>normale Klasse</b> mit <code>virtual</code>-Methoden. Ihre Inhalte („?“, 0) sind nur <b>Platzhalter</b>.'); },
+      () => { const c = kzKlasse.concat(kzKind); setCode(c, [['public override string Name', 'override', 'neu'], ['public override double', 'override', 'neu']]); H(c, 'class Thermometer'); box('kind', 'Thermometer', ['+ override Name', '+ override Messen()']); link(sc, 'kind', 'typ', { label: 'erbt' }); say('Jede Unterklasse überschreibt mit <code>override</code> – die Platzhalter werden nie gebraucht.'); },
+      () => { const c = kzKlasse.concat(kzKind, kzMain); setCode(c); H(c, 'Sensor s = new Sensor()', 'Console.WriteLine'); print('k', '0'); say('Trotzdem kann man einen „Sensor an sich“ erzeugen – und er misst <b>0</b>. Das ergibt keinen Sinn.'); },
+      () => { const c = kzKlasse.concat(kzKind, kzMain); setCode(c, [['string Name', 'virtual', 'weg'], ['string Name', '{ get { return "?"; } }', 'weg'], ['Messen()', 'virtual', 'weg'], ['Messen()', '{ return 0; }', 'weg']]); H(c, 'virtual string Name', 'virtual double'); say('Umbau: <code>virtual</code> und die Platzhalter-Inhalte <s>fallen weg</s> …'); },
+      () => { setCode(kzAbstrakt, [['class Sensor', 'abstract', 'neu'], ['string Name', 'abstract', 'neu'], ['string Name', '{ get; }', 'neu'], ['Messen()', 'abstract', 'neu'], ['Messen()', ';', 'neu']]); H(kzAbstrakt, 'abstract class Sensor', 'abstract string', 'abstract double'); box('typ', '«abstract»<br>Sensor', ['+ <i>Name : string</i>', '+ <i>Messen() : double</i>']); say('② … und <code>abstract</code> kommt dazu: <b>abstrakte Klasse</b>. Es bleiben nur die <b>Köpfe</b>. <code>Thermometer</code> bleibt gleich (noch mit <code>override</code>).'); },
+      () => { H(kzAbstrakt, '// Sensor s = new Sensor();'); fehler('❌ CS0144: Cannot create an instance of the abstract type or interface \'Sensor\''); say('Einen unfertigen Sensor kann man nicht mehr erzeugen. Gut so.'); },
+      () => { hide_('err'); setCode(kzAbstrakt, [['class Sensor', 'abstract class', 'weg'], ['string Name', 'public abstract', 'weg'], ['Messen()', 'public abstract', 'weg']]); H(kzAbstrakt, 'abstract string', 'abstract double'); shake('typ'); say('Was ist noch übrig? <b>Kein Feld, kein Konstruktor, kein fertiger Code</b> – nur Köpfe. Dann sind <code>public abstract</code> überflüssig …'); },
+      () => { setCode(kzInterface, [['interface ISensor', 'interface', 'neu'], ['interface ISensor', 'ISensor', 'neu'], ['string Name', 'string', 'neu'], ['double Messen', 'double', 'neu']]); H(kzInterface, 'public interface ISensor', 'string Name { get; }', 'double Messen();'); box('typ', '«interface»<br>ISensor', ['+ Name : string', '+ Messen() : double'], true); unlink(sc, 'kind'); link(sc, 'kind', 'typ', { color: 'var(--x)', dash: true, label: '?' }); say('③ … also ein <b>Interface</b>: <code>class</code> → <code>interface</code>, Name mit <b>I</b>. <code>public</code> und <code>abstract</code> sind automatisch.'); },
+      () => { setCode(kzInterface, [['class Thermometer', 'Sensor', 'weg'], ['public override string', 'override', 'weg'], ['public override double', 'override', 'weg']]); H(kzInterface, 'class Thermometer', 'override string', 'override double'); say('Jetzt muss auch <code>Thermometer</code> umgebaut werden: <code>Sensor</code> gibt es nicht mehr, und <code>override</code> <s>fällt weg</s>.'); },
+      () => { setCode(kzFertig, [['class Thermometer', 'ISensor', 'neu'], ['ISensor s', 'ISensor', 'neu']]); H(kzFertig, 'public class Thermometer : ISensor', 'ISensor s', 'Console.WriteLine'); box('kind', 'Thermometer', ['+ Name : string', '+ Messen() : double']); unlink(sc, 'kind'); link(sc, 'kind', 'typ', { color: 'var(--x)', dash: true, label: 'setzt um' }); $('k').innerHTML = ''; print('k', '21,5'); say('Die Klasse <b>setzt</b> das Interface <b>um</b>: nur <code>public</code>, kein <code>override</code>. Und ihre einzige Basisklasse ist noch frei.'); },
+    ], 1500);
+  } },
 { ch: 0, title: 'Ein Interface ist ein Vertrag', code: cWas, hl: [],
   text: `<p>Ein <b>Interface</b> beschreibt, was eine Klasse <b>kann</b> – aber nicht, <b>wie</b>. Es enthält nur die <b>Köpfe</b> von Methoden und Properties. Eine Klasse, die das Interface umsetzt, <b>muss</b> alle diese Mitglieder schreiben, sonst gibt es einen Compilerfehler.</p>
 <p>Man kann von einem Interface <b>kein Objekt</b> erzeugen. Aber man kann es als <b>Typ einer Variable</b> verwenden: <code>ISensor s</code> darf auf <b>jedes</b> Objekt zeigen, das den Vertrag erfüllt. Über <code>s</code> sieht man nur, was im Vertrag steht.</p>
@@ -611,53 +825,72 @@ const steps = [
       () => { H(code, 'new ISensor()'); show_('err'); say('Ein Vertrag allein misst nichts – darum kein <code>new ISensor()</code>.'); },
     ]);
   } },
-{ ch: 0, title: 'Interface oder abstrakte Klasse?', code: cVsAbstract, hl: [],
-  text: `<p>Beides sind „unfertige“ Typen, von denen man kein Objekt erzeugen kann. Der Unterschied liegt in der <b>Beziehung</b>:</p>
+
+
+// ---------- 1: IComparable ----------
+// ---------- 1: Interface vs. abstrakte Klasse ----------
+{ ch: 1, title: 'Interface oder abstrakte Klasse? Schritt für Schritt', code: cVergleich, split: ['// ---------- Interface', '// ---------- erben'], hl: [],
+  text: `<p>Beide sind „unfertige“ Typen. Wir vergleichen Punkt für Punkt, was <b>geht</b> und was <b>nicht</b> – alle Fehler sind echte Compilerfehler.</p>
 <table class="t"><tr><th></th><th>abstrakte Klasse</th><th>Interface</th></tr>
-<tr><td>Beziehung</td><td><b>ist-ein</b> (ein E-Auto <i>ist ein</i> Fahrzeug)</td><td><b>kann</b> (ein E-Auto <i>kann</i> geladen werden)</td></tr>
-<tr><td>wie viele?</td><td>genau <b>eine</b> Basisklasse</td><td><b>beliebig viele</b></td></tr>
-<tr><td>Felder / Zustand</td><td>✅</td><td>❌</td></tr>
-<tr><td>gemeinsamer Code</td><td>✅</td><td>❌ (fast nie)</td></tr>
-<tr><td>Schlüsselwort</td><td><code>abstract</code> + <code>override</code></td><td>einfach umsetzen</td></tr></table>
-<p><b>Faustregel:</b> Haben die Klassen gemeinsamen <b>Zustand und Code</b> → abstrakte Klasse. Geht es nur um eine <b>Fähigkeit</b>, die auch ganz verschiedene Klassen haben können (ein Handy, ein E-Auto und eine Powerbank sind alle <code>IAufladbar</code>) → Interface.</p>`,
+<tr><td>① Felder / Zustand</td><td>✅</td><td>❌ CS0525</td></tr>
+<tr><td>② Konstruktor</td><td>✅</td><td>❌ CS0526</td></tr>
+<tr><td>③ abstrakte Methoden + Properties</td><td>✅ mit <code>abstract</code></td><td>✅ automatisch</td></tr>
+<tr><td>④ fertiger Code für alle</td><td>✅</td><td>❌ (seit C# 8 als Default-Methode möglich – verwenden wir nicht)</td></tr>
+<tr><td>⑤ in der Unterklasse</td><td><code>override</code> (sonst CS0534)</td><td>einfach <code>public</code> (sonst CS0535 / CS0737)</td></tr>
+<tr><td>⑥ wie viele?</td><td>genau <b>eine</b> Basisklasse (CS1721)</td><td><b>beliebig viele</b></td></tr>
+<tr><td>⑦ auch für <code>struct</code>?</td><td>❌ CS0527</td><td>✅</td></tr>
+<tr><td>⑧ <code>new</code></td><td>❌ CS0144</td><td>❌ CS0144</td></tr>
+<tr><td>⑨ Beziehung</td><td><b>ist-ein</b></td><td><b>kann</b></td></tr></table>
+<p><b>Faustregel:</b> Haben die Klassen gemeinsamen <b>Zustand und Code</b> → abstrakte Klasse. Geht es nur um eine <b>Fähigkeit</b>, die auch ganz verschiedene Klassen (oder structs) haben können → Interface.</p>`,
   render(st) {
-    const ifs = wrap('row', [el('div', 'pill hat', '«interface»<br>IAufladbar'), el('div', 'pill hat', '«interface»<br>IVernetzt')]);
-    st.appendChild(wrap('col', [wrap('row', [el('div', 'pill konstr', '«abstract»<br>Fahrzeug'), ifs]), el('div', 'ar k', '▲ ist-ein &nbsp; ▲ kann &nbsp; ▲ kann'), el('div', 'pill', 'EAuto'), el('div', 'lbl', 'eine Basisklasse · beliebig viele Interfaces')]));
+    const Z = [
+      ['① Felder / Zustand', '✅ protected int _anzahl', '❌ CS0525', '// ① Feld', '// int _anzahl;', 'Ein Interface hat <b>keinen Zustand</b>. Es sagt nur, was man kann.'],
+      ['② Konstruktor', '✅ public Sensor()', '❌ CS0526', '// ② Konstruktor', '// ISensor() { }', 'Ohne Zustand gibt es nichts zu initialisieren → kein Konstruktor.'],
+      ['③ abstrakte Methoden/Properties', '✅ mit abstract', '✅ automatisch public + abstract', 'public abstract double Messen();', 'double Messen();                 // ③', 'Beide können Köpfe vorschreiben – Methoden <b>und</b> Properties.'],
+      ['④ fertiger Code für alle', '✅ Beschreiben()', '❌ (C# 8: Default-Methode)', '// ④ fertiger Code', 'double Messen();                 // ③', 'Gemeinsamen Code kann nur die abstrakte Klasse vererben.'],
+      ['⑤ in der Unterklasse', 'override (sonst CS0534)', 'public (sonst CS0535/CS0737)', '// ⑤ override nötig', '// ⑤ aber public!', 'Abstrakte Klasse: <b>überschreiben</b>. Interface: <b>umsetzen</b> – kein override, aber unbedingt public.'],
+      ['⑥ wie viele?', '1 Basisklasse (CS1721)', 'beliebig viele', '// class Doppelt', 'class EAuto', 'Eine Klasse <b>ist</b> nur eine Sache, <b>kann</b> aber vieles.'],
+      ['⑦ auch für struct?', '❌ CS0527', '✅', '// struct S : Sensor', 'struct Wert : ISensor', 'Ein struct kann nicht erben – aber Interfaces umsetzen (wie int : IComparable).'],
+      ['⑧ new', '❌ CS0144', '❌ CS0144', '// new Sensor();', '// new Sensor();', 'Von beiden gibt es <b>kein</b> Objekt. Aber beide gehen als Typ einer Variable.'],
+      ['⑨ Beziehung', 'ist-ein', 'kann', 'public class Thermo : Sensor', 'public class Thermometer : ISensor', 'Thermo <b>ist ein</b> Sensor. Thermometer <b>kann</b> messen.'],
+    ];
+    const t = el('table', 't'); t.innerHTML = '<tr><th></th><th>abstrakte Klasse</th><th>Interface</th></tr>' + Z.map((z, i) => `<tr id="z${i}" style="opacity:.15;transition:opacity .4s"><td><b>${z[0]}</b></td><td>${esc(z[1])}</td><td>${esc(z[2])}</td></tr>`).join('');
+    st.appendChild(wrap('col', [t, infoBox()]));
+    const code = steps[cur].code;
+    return seq(Z.map((z, i) => () => { H(code, z[3], z[4]); for (let k = 0; k < Z.length; k++) { const r = $('z' + k); r.style.opacity = k < i ? '.6' : k === i ? '1' : '.15'; r.style.background = k === i ? 'rgba(56,189,248,.15)' : ''; } say(z[5]); }), 1600);
   } },
 
-{ ch: 0, title: 'Hat-Beziehungen mit Interfaces', code: cHat, hl: [],
-  text: `<p>Eine <b>hat-Beziehung</b> (Assoziation) ist in C# immer ein <b>Feld</b>: <code>private ISensor _sensor;</code>. Ist der Typ des Felds ein Interface, <b>hat</b> die Alarmanlage „irgendeinen Sensor“ – welchen, ist offen.</p>
-<p><b>Kann ein Interface eine hat-Beziehung vorschreiben?</b> Ein Interface hat <b>keinen Zustand</b>, also <b>keine Felder</b> (Compilerfehler <b>CS0525</b>). Es kann nur verlangen, dass man <b>von außen</b> an das Gehabte herankommt:</p>
-<p>• über eine <b>Property</b> <code>ISensor Sensor { get; }</code> – der übliche Weg,<br>
-• oder <b>ohne Property</b> über eine <b>Methode</b> <code>ISensor GibSensor()</code> – gleiche Wirkung, nur umständlicher.</p>
-<p><b>Ganz ohne Property und Methode?</b> Ja – dann steht die hat-Beziehung eben <b>nicht im Vertrag</b>, sondern nur <b>in der Klasse</b>: ein privates Feld, das über den Konstruktor befüllt wird (siehe <code>Logger</code>). Das ist sogar der Normalfall: Was eine Klasse <b>hat</b>, ist meist ein Implementierungsdetail. Ins Interface gehört es nur, wenn andere es <b>wirklich brauchen</b>.</p>
-<p>In der Property steckt also nie die Beziehung selbst, sondern nur das <b>Fenster</b> darauf. Die Beziehung ist das Feld.</p>`,
+// ---------- 2: Hat-Beziehung ----------
+{ ch: 2, title: 'Hat-Beziehungen mit Interfaces: Zustand vorschreiben', code: cHat, hl: [],
+  text: `<p>Eine <b>hat-Beziehung</b> ist <b>Zustand</b>: Die Alarmanlage <b>hat</b> einen Sensor. Kann ein Interface vorschreiben, dass jede Klasse diesen Zustand hat?</p>
+<p><b>Mit einem Feld: nein.</b> Felder im Interface sind verboten (<b>CS0525</b>). In <b>Java</b> ist es genauso: Felder im Interface sind dort nur Konstanten (<code>static final</code>). Zustand kann man in Java nur indirekt über ein Methodenpaar <code>getSensor()</code>/<code>setSensor()</code> verlangen.</p>
+<p><b>Mit einer Property: ja.</b> In C# schreibt man <code>ISensor Sensor { get; set; }</code> ins Interface. Das liest sich wie ein Feld und verlangt von <b>jeder</b> Klasse: „Du hast einen Sensor, den man lesen und setzen kann.“ Das geht, weil eine Property technisch ein get/set-<b>Methodenpaar</b> ist – genau das, was Java von Hand schreibt. Die Klasse setzt sie um – als <b>Auto-Property</b> (<code>Alarmanlage</code>: <code>{ get; set; }</code>) oder als <b>Full Property</b> (<code>Heizung</code>: <code>get { return field; }</code>). In beiden Fällen legt C# das Feld dahinter selbst an; mit <code>field</code> (C# 14) spricht man es direkt an. Dem Interface ist das egal.</p>
+<p><b>Zustand und Verhalten zusammen:</b> Das Interface schreibt die Property (was ich <b>habe</b>) und die Methode (was ich <b>tue</b>) gleichzeitig vor. Fehlt eines davon: <b>CS0535</b>.</p>`,
   render(st) {
     const sc = scene();
     const box = (id, kopf, inhalt, ifc) => { const b = el('div', 'cls'); b.id = id; if (ifc) b.style.borderStyle = 'dashed'; b.innerHTML = `<div class="clshead">${kopf}</div><div class="clssec">${inhalt}</div>`; return hid(b); };
-    const ihs = box('ihs', '«interface»<br>IHatSensor', '+ Sensor : ISensor {get}', true);
-    const ihs2 = box('ihs2', '«interface»<br>IHatSensor2', '+ GibSensor() : ISensor', true);
-    const al = box('al', 'Alarmanlage', '- _sensor : ISensor<br>+ Sensor : ISensor {get}');
-    const lg = box('lg', 'Logger', '- _sensor : ISensor');
-    const is = box('is', '«interface»<br>ISensor', '+ Messen() : double', true);
-    const oben = wrap('row', [ihs, ihs2]); oben.style.gap = '40px';
-    const mitte = wrap('row', [al, lg]); mitte.style.gap = '60px';
-    const spalte = wrap('col', [oben, mitte, is]); spalte.style.gap = '46px';
-    const err = hid(el('div', 'errbox', '❌ CS0525: Interfaces cannot contain instance fields')); err.id = 'err';
-    sc.appendChild(wrap('col', [spalte, err, infoBox()])); st.appendChild(sc);
+    const ihs = box('ihs', '«interface»<br>IHatSensor', '+ Sensor : ISensor {get; set}<br>+ Pruefen() : bool', true);
+    const al = box('al', 'Alarmanlage', '+ Sensor : ISensor {get; set}<br>+ Pruefen() : bool');
+    const hz = box('hz', 'Heizung', '+ Sensor : ISensor {get; set}<br>+ Pruefen() : bool');
+    const mitte = wrap('row', [al, hz]); mitte.style.gap = '60px';
+    const spalte = wrap('col', [ihs, mitte]); spalte.style.gap = '60px';
+    const err = hid(el('div', 'errbox', '')); err.id = 'err';
+    sc.appendChild(wrap('col', [spalte, err, konsole('k'), infoBox()])); st.appendChild(sc);
     const code = steps[cur].code;
+    const fehler = t => { const x = $('err'); x.className = 'errbox pop'; x.textContent = t; };
     return seq([
-      () => { H(code, 'public interface IHatSensor', 'ISensor Sensor { get; }'); show_('ihs'); show_('is'); say('Der Vertrag verlangt: Wer IHatSensor ist, liefert einen Sensor – über eine <b>Property</b>.'); },
-      () => { H(code, 'interface IFeld'); show_('err'); shake('err'); say('Ein Feld im Interface? <b>Geht nicht</b>: Ein Vertrag hat keinen Zustand.'); },
-      () => { H(code, 'public interface IHatSensor2', 'ISensor GibSensor();'); hide_('err'); show_('ihs2'); say('<b>Ohne Property</b>: Eine Methode verlangt dasselbe – „gib mir deinen Sensor“.'); },
-      () => { H(code, 'public class Alarmanlage', 'private ISensor _sensor;         // die'); show_('al'); link(sc, 'al', 'is', { label: 'hat (Feld)', from: 'bottom', to: 'top' }); say('Die <b>eigentliche</b> hat-Beziehung ist das <b>private Feld</b> vom Interface-Typ.'); },
-      () => { H(code, 'public ISensor Sensor { get'); link(sc, 'al', 'ihs', { color: 'var(--x)', dash: true, label: 'setzt um', from: 'top', to: 'bottom' }); say('Die Property ist nur das <b>Fenster</b> auf das Feld – sie erfüllt den Vertrag.'); },
-      () => { H(code, 'public class Logger', 'privat – nicht Teil'); show_('lg'); link(sc, 'lg', 'is', { label: 'hat (Feld)', from: 'bottom', to: 'top' }); say('Hat-Beziehung <b>ganz ohne Property</b>: Feld + Konstruktor. Kein Interface muss davon wissen.'); },
-    ]);
+      () => { H(code, '// Wunsch'); say('Ziel: Der Vertrag soll sagen „jedes Gerät <b>hat</b> einen Sensor“ – also <b>Zustand</b> vorschreiben.'); },
+      () => { H(code, 'interface IHatSensor { ISensor _sensor; }'); fehler('❌ CS0525: Interfaces cannot contain instance fields'); say('Der naheliegende Weg – ein Feld – ist verboten.'); },
+      () => { H(code, '// Java: Felder', '// Zustand geht dort', '// interface HatSensor'); hide_('err'); say('In <b>Java</b> auch: dort bleibt nur ein Methodenpaar <code>getSensor/setSensor</code>. Der Zustand ist nur <b>angedeutet</b>.'); },
+      () => { H(code, 'public interface IHatSensor', 'ISensor Sensor { get; set; }     // was', 'bool Pruefen();'); show_('ihs'); say('C#: Eine <b>Property</b> im Interface schreibt den Zustand direkt vor – und die Methode das Verhalten dazu.'); },
+      () => { H(code, 'public class Alarmanlage', 'public ISensor Sensor { get; set; }     // Auto'); show_('al'); link(sc, 'al', 'ihs', { color: 'var(--x)', dash: true, label: 'setzt um', from: 'top', to: 'bottom' }); say('Die Klasse erfüllt die Property mit einer <b>Auto-Property</b>. Dahinter legt C# selbst ein Feld an – die Alarmanlage <b>hat</b> jetzt wirklich einen Sensor.'); },
+      () => { H(code, 'public class Heizung', 'public ISensor Sensor                   // Full', 'get { return field; }', 'set { field = value; }'); show_('hz'); link(sc, 'hz', 'ihs', { color: 'var(--x)', dash: true, label: 'setzt um', from: 'top', to: 'bottom' }); say('Die Heizung schreibt die Property <b>ausführlich</b> (Full Property). Mit dem Keyword <code>field</code> greift man auf das Feld dahinter zu – ohne es selbst anzulegen. Wie, ist egal: Hauptsache, der Sensor ist da.'); },
+      () => { H(code, 'class Leer : IHatSensor'); fehler('❌ CS0535: \'Leer\' does not implement interface member \'IHatSensor.Sensor\''); shake('ihs'); say('Wer den Zustand weglässt, erfüllt den Vertrag nicht.'); },
+      () => { H(code, 'g.Sensor = new Thermometer()', 'g.Sensor.Name', 'g.Pruefen()'); hide_('err'); print('k', 'Thermometer'); print('k', 'False'); say('Über den Vertrag kann man den Zustand <b>setzen und lesen</b> – ohne zu wissen, ob es eine Alarmanlage oder Heizung ist.'); },
+    ], 1500);
   } },
 
-// ---------- 1: IComparable ----------
-{ ch: 1, title: 'Wie passt Sortieren dazu?', code: cSortWie, hl: [],
+{ ch: 3, title: 'Wie passt Sortieren dazu?', code: cSortWie, hl: [],
   text: `<p><b>Sortieren ist kein Interface</b> – <code>List.Sort()</code> ist ein fertiger <b>Algorithmus</b>. Er weiß, <b>wie</b> man sortiert, aber nicht, <b>was</b> „kleiner“ bei einem Gerät heißt. Ein Router und ein Drucker – wer kommt zuerst?</p>
 <p>Genau diese eine Frage beantworten die beiden Interfaces:</p>
 <p>• <b><code>IComparable&lt;T&gt;</code></b>: Das Gerät <b>vergleicht sich selbst</b> mit einem anderen – <code>a.CompareTo(b)</code>. Es gibt genau <b>eine</b> natürliche Ordnung. Aufruf: <code>Sort()</code>.<br>
@@ -672,18 +905,19 @@ const steps = [
     const unten = wrap('row', [icb, icr]); unten.style.gap = '60px'; unten.style.flexWrap = 'nowrap';
     const frage = el('div', 'story', '❓ „Wer von zwei Geräten kommt zuerst?“'); frage.id = 'fr';
     const err = hid(el('div', 'errbox', '💥 InvalidOperationException: Failed to compare two elements in the array.')); err.id = 'err';
-    const sp = wrap('col', [sort, frage, unten]); sp.style.gap = '40px';
+    const oben = wrap('row', [sort, frage]); oben.style.gap = '40px'; oben.style.flexWrap = 'nowrap';
+    const sp = wrap('col', [oben, unten]); sp.style.gap = '90px';
     sc.appendChild(wrap('col', [sp, err, infoBox()])); st.appendChild(sc);
     const code = steps[cur].code;
     return seq([
       () => { H(code, 'Sort ist der ALGORITHMUS', 'Wer von zwei'); say('Sort kann tauschen und vergleichen lassen – aber nicht <b>selbst</b> vergleichen.'); },
-      () => { H(code, 'geraete.Sort();                  // fragt das'); show_('icb'); link(sc, 'so', 'icb', { label: 'a.CompareTo(b)', from: 'bottom', to: 'top' }); say('<code>Sort()</code> ohne Argument fragt das <b>Gerät selbst</b> → IComparable.'); },
-      () => { H(code, 'new NachName()'); show_('icr'); link(sc, 'so', 'icr', { color: 'var(--x)', label: 'c.Compare(a, b)', from: 'bottom', to: 'top' }); say('<code>Sort(comparer)</code> fragt einen <b>Schiedsrichter</b> → IComparer.'); },
+      () => { H(code, 'geraete.Sort();                  // fragt das'); show_('icb'); link(sc, 'so', 'icb', { label: 'a.CompareTo(b)', from: 'bottom', to: 'top', at: 0.6 }); say('<code>Sort()</code> ohne Argument fragt das <b>Gerät selbst</b> → IComparable.'); },
+      () => { H(code, 'new NachName()'); show_('icr'); link(sc, 'so', 'icr', { color: 'var(--x)', label: 'c.Compare(a, b)', from: 'bottom', to: 'top', at: 0.6 }); say('<code>Sort(comparer)</code> fragt einen <b>Schiedsrichter</b> → IComparer.'); },
       () => { H(code, '💥'); sc._links = []; redraw(sc); hide_('icb'); hide_('icr'); show_('err'); shake('err'); say('Niemand beantwortet die Frage → Sort gibt auf.'); },
     ]);
   } },
 
-{ ch: 1, title: 'IComparable<T>: sich selbst vergleichen', code: cSort, hl: [],
+{ ch: 3, title: 'IComparable<T>: sich selbst vergleichen', code: cSort, hl: [],
   text: `<p><code>List.Sort()</code> ist ein fertiger Algorithmus. Er weiß aber nicht, ob ein Router vor einem Drucker kommt. Darum fragt er <b>immer zwei Elemente</b>: <code>a.CompareTo(b)</code>.</p>
 <p>Das Ergebnis ist eine Zahl: <b>&lt; 0</b> a kommt vorher · <b>0</b> gleich · <b>&gt; 0</b> a kommt nachher. <code>int</code>, <code>string</code>, <code>double</code> setzen <code>IComparable</code> schon um – darum können wir einfach <code>PingMs.CompareTo(…)</code> weitergeben.</p>
 <p>Ohne das Interface wirft <code>Sort()</code> eine <b>InvalidOperationException</b>: „At least one object must implement IComparable.“</p>`,
@@ -707,7 +941,33 @@ const steps = [
     acts.push(() => { setArr('L', fmt(A), 4, { 0: 'hot', 1: 'hot', 2: 'hot', 3: 'hot' }); wide(); hide_('cmp'); say(`Sortiert – mit ${n} Fragen an <b>unser</b> CompareTo.`); });
     return seq(acts, 1100);
   } },
-{ ch: 2, title: 'IComparer<T>: die austauschbare Regel', code: cComparer, hl: [],
+{ ch: 3, title: 'Erweiterung: verschiedene Geräte vergleichen – IComparable<IGeraet>', code: ciIf, hl: [],
+  text: `<p>Bisher konnte ein <code>Geraet</code> sich nur mit einem <code>Geraet</code> vergleichen. Jetzt haben wir <b>verschiedene</b> Klassen – <code>Router</code>, <code>Drucker</code> – und alle sollen in <b>einer</b> Liste <code>List&lt;IGeraet&gt;</code> sortiert werden.</p>
+<p><b>Idee:</b> Statt <code>IComparable&lt;Router&gt;</code> schreiben wir <code>IComparable&lt;IGeraet&gt;</code>. Dann bekommt <code>CompareTo</code> ein <code>IGeraet</code> – also <b>jedes</b> beliebige Gerät. Das geht, weil im Interface <code>PingMs</code> vorgeschrieben ist.</p>
+<p><b>Die Falle:</b> Steht <code>IComparable&lt;IGeraet&gt;</code> nur bei den <b>Klassen</b>, funktioniert <code>router.CompareTo(drucker)</code> – aber <code>List&lt;IGeraet&gt;.Sort()</code> wirft eine <b>InvalidOperationException</b>. Sort sieht nur den Typ <code>IGeraet</code>, und <b>der</b> verspricht keine Vergleichbarkeit.</p>
+<p><b>Lösung:</b> Das Interface <b>erbt</b> den Vertrag: <code>interface IGeraet : IComparable&lt;IGeraet&gt;</code>. Jetzt ist <b>jedes</b> Gerät vergleichbar, und jede Klasse <b>muss</b> <code>CompareTo</code> schreiben (sonst CS0535).</p>`,
+  render(st) {
+    const names = ['Router 110', 'Drucker 120', 'Switch 95', 'Plotter 80'];
+    const cls = el('div', 'story', ''); cls.id = 'cls';
+    const ok = hid(el('div', 'okbox', '')); ok.id = 'ok';
+    const err = hid(el('div', 'errbox', '')); err.id = 'err';
+    const liste = hid(wrap('col', [lab('List&lt;IGeraet&gt; geraete'), arrRow('L', ['', '', '', ''], 4)])); liste.id = 'liste';
+    st.appendChild(wrap('col', [cls, liste, ok, err, infoBox()]));
+    const wide = () => document.querySelectorAll('.cell[id^="L-"]').forEach(c => { c.style.width = 'auto'; c.style.minWidth = '110px'; c.style.fontSize = '15px'; });
+    const zeig = (id, t) => { const e = $(id); e.className = (id === 'ok' ? 'okbox' : 'errbox') + ' pop'; e.textContent = t; };
+    const vers1 = ciIf.concat(ciRouter, ciDrucker, ciMain);
+    return seq([
+      () => { setCode(ciIf); H(ciIf, 'public interface IGeraet'); $('cls').innerHTML = '«interface» <b>IGeraet</b>: Name, PingMs'; say('Ein gemeinsames Interface für alle Geräte – mit <code>PingMs</code>, nach dem wir sortieren.'); },
+      () => { const c = ciIf.concat(ciRouter); setCode(c, [['class Router', 'IComparable<IGeraet>', 'neu'], ['CompareTo(IGeraet?', 'IGeraet', 'neu']]); H(c, 'public class Router', 'public int CompareTo(IGeraet? other)'); $('cls').innerHTML = '<b>Router</b> : IGeraet, IComparable&lt;<b>IGeraet</b>&gt;'; say('Der Trick: <code>IComparable&lt;IGeraet&gt;</code> statt <code>IComparable&lt;Router&gt;</code>. CompareTo nimmt <b>jedes</b> Gerät.'); },
+      () => { const c = ciIf.concat(ciRouter, ciDrucker); setCode(c, [['class Drucker', 'IComparable<IGeraet>', 'neu']]); H(c, 'public class Drucker'); $('cls').innerHTML = '<b>Router</b>, <b>Drucker</b> : IGeraet, IComparable&lt;IGeraet&gt;'; say('Der Drucker macht es genauso.'); },
+      () => { setCode(vers1); H(vers1, 'List<IGeraet> geraete', 'geraete.Add(new Router("Router"', 'geraete.Add(new Drucker("Drucker"', 'geraete.Add(new Router("Switch"', 'geraete.Add(new Drucker("Plotter"'); show_('liste'); setArr('L', names, 4); wide(); say('Eine Liste mit <b>gemischten</b> Geräten.'); },
+      () => { H(vers1, 'Console.WriteLine(new Router'); zeig('ok', 'Router(110).CompareTo(Drucker(120))  →  110.CompareTo(120) = -1'); say('Direkt geht es: Ein Router kann sich mit einem Drucker vergleichen. ✅'); },
+      () => { H(vers1, 'geraete.Sort();'); hide_('ok'); zeig('err', '💥 InvalidOperationException: Failed to compare two elements in the array.  Inner: At least one object must implement IComparable.'); shake('liste'); say('Aber <code>Sort()</code> scheitert! Sort sieht nur den Typ <b>IGeraet</b> – und <code>IGeraet</code> verspricht <b>kein</b> CompareTo. Dass Router und Drucker es können, weiß Sort nicht.'); },
+      () => { setCode(ciLoesung, [['interface IGeraet', ': IComparable<IGeraet>', 'neu'], ['class Router', 'IGeraet', 'neu']]); H(ciLoesung, 'public interface IGeraet : IComparable<IGeraet>', 'public class Router : IGeraet'); hide_('err'); $('cls').innerHTML = '«interface» <b>IGeraet : IComparable&lt;IGeraet&gt;</b><br>Router, Drucker : IGeraet'; say('Lösung: Das <b>Interface</b> erbt den Vertrag. Jetzt ist jedes <code>IGeraet</code> vergleichbar – und jede Klasse <b>muss</b> CompareTo schreiben.'); },
+      () => { H(ciLoesung, 'geraete.Sort();'); setArr('L', ['Plotter 80', 'Switch 95', 'Router 110', 'Drucker 120'], 4, { 0: 'hot', 1: 'hot', 2: 'hot', 3: 'hot' }); wide(); zeig('ok', '✅ Plotter 80 · Switch 95 · Router 110 · Drucker 120'); say('Sort fragt <code>a.CompareTo(b)</code> – egal ob Router oder Drucker. Gemischt sortiert!'); },
+    ], 1500);
+  } },
+{ ch: 4, title: 'IComparer<T>: die austauschbare Regel', code: cComparer, hl: [],
   text: `<p>Ein Gerät kann nur <b>ein</b> <code>CompareTo</code> haben – die „natürliche“ Ordnung. Für jede weitere Sortierung schreiben wir eine kleine Klasse, die <code>IComparer&lt;Geraet&gt;</code> umsetzt. Sie vergleicht zwei <b>fremde</b> Objekte <code>a</code> und <code>b</code>.</p>
 <table class="t"><tr><th></th><th>IComparable&lt;T&gt;</th><th>IComparer&lt;T&gt;</th></tr>
 <tr><td>steht</td><td>in der Klasse selbst</td><td>in einer eigenen Klasse</td></tr>
@@ -728,7 +988,7 @@ const steps = [
   } },
 
 // ---------- 3: IDisposable ----------
-{ ch: 3, title: 'IDisposable: Ressourcen sicher freigeben', code: cDispose, hl: [],
+{ ch: 5, title: 'IDisposable: Ressourcen sicher freigeben', code: cDispose, hl: [],
   text: `<p>Manche Objekte halten etwas fest, das <b>nicht</b> der Garbage Collector verwaltet: eine offene <b>Datei</b>, eine <b>Netzwerk-</b> oder <b>Datenbankverbindung</b>. Solange sie offen ist, kann z. B. kein anderes Programm die Datei verwenden.</p>
 <p>Wer so etwas festhält, setzt <code>IDisposable</code> um und gibt es in <code>Dispose()</code> wieder frei. Mit <code>using</code> ruft C# <code>Dispose()</code> <b>automatisch</b> am Ende des Blocks auf – <b>auch dann, wenn eine Exception fliegt</b>.</p>
 <p>Fertige Klassen mit <code>IDisposable</code>, die ihr schon kennt: <code>StreamWriter</code>, <code>StreamReader</code>, <code>FileStream</code>, <code>HttpClient</code>.</p>`,
@@ -744,7 +1004,7 @@ const steps = [
       () => { H(code, '}   // Dispose()', 'public void Dispose()'); d('🔒 zu', 'hot'); print('k', '🔒 Datei geschlossen'); say('… aber <code>using</code> ruft <b>trotzdem</b> Dispose() auf, bevor die Exception weiterfliegt.'); },
     ]);
   } },
-{ ch: 3, title: 'Was macht using eigentlich?', code: cUsing, hl: [],
+{ ch: 5, title: 'Was macht using eigentlich?', code: cUsing, hl: [],
   text: `<p><code>using</code> ist keine Magie, sondern eine <b>Kurzschreibweise</b> für <code>try</code> / <code>finally</code>. Der <code>finally</code>-Block läuft <b>immer</b> – nach normalem Ende, nach <code>return</code> und nach einer Exception.</p>
 <p>Darum funktioniert <code>using</code> nur mit Typen, die <code>IDisposable</code> umsetzen: Der Compiler muss sich darauf verlassen können, dass es eine Methode <code>Dispose()</code> gibt. Genau das garantiert der <b>Vertrag</b>.</p>
 <p>Die moderne Form <code>using Logdatei log2 = …;</code> (ohne Klammern) gibt am Ende der umschließenden Methode frei.</p>`,
@@ -753,7 +1013,7 @@ const steps = [
   } },
 
 // ---------- 4: Gegen ein Interface programmieren ----------
-{ ch: 4, title: 'Gegen ein Interface programmieren', code: cGegen, hl: [],
+{ ch: 6, title: 'Gegen ein Interface programmieren', code: cGegen.slice(0, cGegen.findIndex((l, i) => i > 0 && l.startsWith('// ---- 2)')) - 1), hl: [],
   text: `<p><b>1) Gegen eine Klasse:</b> Die Alarmanlage kennt die <b>Klasse</b> <code>Thermometer</code> – im Feld und im Konstruktor. Das funktioniert, solange es nur Thermometer gibt.</p>
 <p><b>2) Ein neuer Sensor:</b> Ein <code>Rauchmelder</code> kann auch <code>Messen()</code>. Trotzdem lehnt der Compiler ihn ab (<b>CS1503</b>): Die Alarmanlage will genau ein <code>Thermometer</code>.</p>
 <p><b>3) Austauschen:</b> Wir müssen in der <b>anderen Klasse</b> – der Alarmanlage – den Typ ändern. Damit geht aber das Thermometer nicht mehr. Bei jedem neuen Sensor dasselbe Spiel: fremde Klasse öffnen, ändern, neu testen. 😩</p>
@@ -770,23 +1030,27 @@ const steps = [
     const row = wrap('row', [al, right]); row.style.gap = '120px'; row.style.flexWrap = 'nowrap';
     const err = hid(el('div', 'errbox', '')); err.id = 'err';
     sc.appendChild(wrap('col', [row, err, infoBox()])); st.appendChild(sc);
-    const code = steps[cur].code;
+    // jeder Teil 1) 2) 3) 4) bekommt einen eigenen Übergang im Code
+    const teile = []; cGegen.forEach(l => { if (l.startsWith('// ---- ')) teile.push([l]); else if (teile.length) teile[teile.length - 1].push(l); });
+    teile.forEach(t => { while (t.length && t[t.length - 1] === '') t.pop(); });
+    let akt = 0;
+    const HH = (...subs) => { const k = teile.findIndex(t => at(t, subs[0]) >= 0); if (k !== akt) { akt = k; setCode(teile[k]); } H(teile[k], ...subs); };
     const fehler = t => { const e = $('err'); e.className = 'errbox pop'; e.textContent = t; shake('err'); };
     const typ = t => { $('alt').textContent = '_sensor : ' + t; };
     return seq([
-      () => { H(code, 'private Thermometer _sensor', 'public Alarmanlage(Thermometer'); link(sc, 'al', 'th', { color: 'var(--bad)', label: 'kennt die Klasse' }); say('Die Alarmanlage hängt direkt an <b>einer</b> konkreten Klasse.'); },
-      () => { H(code, 'public class Rauchmelder {'); show_('rm'); say('Ein neuer Sensor wird geschrieben. Er kann auch <code>Messen()</code>.'); },
-      () => { H(code, 'new Alarmanlage(new Rauchmelder());   // ❌'); fehler('❌ CS1503: cannot convert from Rauchmelder to Thermometer'); say('Die Alarmanlage nimmt ihn <b>nicht</b> – sie kennt nur Thermometer.'); },
-      () => { H(code, 'private Rauchmelder _sensor', 'public Alarmanlage(Rauchmelder'); unlink(sc, 'al'); link(sc, 'al', 'rm', { color: 'var(--bad)', label: 'umgeschrieben' }); typ('Rauchmelder'); shake('al'); hide_('err'); say('Also <b>in der anderen Klasse</b> austauschen: Feld und Konstruktor ändern.'); },
-      () => { H(code, 'new Alarmanlage(new Thermometer());   // ❌'); fehler('❌ CS1503: cannot convert from Thermometer to Rauchmelder'); say('Jetzt ist das Thermometer draußen. Jeder neue Sensor = Alarmanlage wieder umschreiben.'); },
-      () => { H(code, 'public interface ISensor', 'class Thermometer : ISensor', 'class Rauchmelder : ISensor'); hide_('err'); unlink(sc, 'al'); show_('is'); link(sc, 'th', 'is', { color: 'var(--x)', dash: true, from: 'top', to: 'bottom', label: 'setzt um' }); link(sc, 'rm', 'is', { color: 'var(--x)', dash: true, from: 'top', to: 'bottom' }); say('Lösung: der gemeinsame <b>Vertrag</b>. Beide Sensoren unterschreiben ihn.'); },
-      () => { H(code, 'private ISensor _sensor', 'public Alarmanlage(ISensor'); typ('ISensor'); link(sc, 'al', 'is', { color: 'var(--ok)', label: 'kennt nur den Vertrag' }); say('Die Alarmanlage kennt <b>keine</b> konkrete Klasse mehr – nur ISensor.'); },
-      () => { H(code, 'new Alarmanlage(new Thermometer());   // ✅', 'new Alarmanlage(new Rauchmelder());   // ✅'); const e = $('err'); e.className = 'okbox pop'; e.textContent = '✅ beide Sensoren passen – Alarmanlage unverändert'; say('Ein dritter Sensor? Neue Klasse <code>: ISensor</code> – die Alarmanlage bleibt, wie sie ist.'); },
+      () => { HH('private Thermometer _sensor', 'public Alarmanlage(Thermometer'); link(sc, 'al', 'th', { color: 'var(--bad)', label: 'kennt die Klasse' }); say('Die Alarmanlage hängt direkt an <b>einer</b> konkreten Klasse.'); },
+      () => { HH('public class Rauchmelder {'); show_('rm'); say('Ein neuer Sensor wird geschrieben. Er kann auch <code>Messen()</code>.'); },
+      () => { HH('new Alarmanlage(new Rauchmelder());   // ❌'); fehler('❌ CS1503: cannot convert from Rauchmelder to Thermometer'); say('Die Alarmanlage nimmt ihn <b>nicht</b> – sie kennt nur Thermometer.'); },
+      () => { HH('private Rauchmelder _sensor', 'public Alarmanlage(Rauchmelder'); unlink(sc, 'al'); link(sc, 'al', 'rm', { color: 'var(--bad)', label: 'umgeschrieben' }); typ('Rauchmelder'); shake('al'); hide_('err'); say('Also <b>in der anderen Klasse</b> austauschen: Feld und Konstruktor ändern.'); },
+      () => { HH('new Alarmanlage(new Thermometer());   // ❌'); fehler('❌ CS1503: cannot convert from Thermometer to Rauchmelder'); say('Jetzt ist das Thermometer draußen. Jeder neue Sensor = Alarmanlage wieder umschreiben.'); },
+      () => { HH('public interface ISensor', 'class Thermometer : ISensor', 'class Rauchmelder : ISensor'); hide_('err'); unlink(sc, 'al'); show_('is'); link(sc, 'th', 'is', { color: 'var(--x)', dash: true, from: 'top', to: 'bottom', label: 'setzt um' }); link(sc, 'rm', 'is', { color: 'var(--x)', dash: true, from: 'top', to: 'bottom' }); say('Lösung: der gemeinsame <b>Vertrag</b>. Beide Sensoren unterschreiben ihn.'); },
+      () => { HH('private ISensor _sensor', 'public Alarmanlage(ISensor'); typ('ISensor'); link(sc, 'al', 'is', { color: 'var(--ok)', label: 'kennt nur den Vertrag' }); say('Die Alarmanlage kennt <b>keine</b> konkrete Klasse mehr – nur ISensor.'); },
+      () => { HH('new Alarmanlage(new Thermometer());   // ✅', 'new Alarmanlage(new Rauchmelder());   // ✅'); const e = $('err'); e.className = 'okbox pop'; e.textContent = '✅ beide Sensoren passen – Alarmanlage unverändert'; say('Ein dritter Sensor? Neue Klasse <code>: ISensor</code> – die Alarmanlage bleibt, wie sie ist.'); },
     ]);
   } },
 
 // ---------- 5: Dependency Injection ----------
-{ ch: 5, title: 'Dependency Injection: Abhängigkeiten hineingeben', code: cDI, hl: [],
+{ ch: 7, title: 'Dependency Injection: Abhängigkeiten hineingeben', code: cDI, hl: [],
   text: `<p>Die Alarmanlage <b>braucht</b> einen Sensor – das ist ihre <b>Abhängigkeit</b> (Dependency). Statt sie selbst mit <code>new</code> zu erzeugen, bekommt sie sie von <b>außen</b> über den Konstruktor <b>hineingegeben</b> (injiziert).</p>
 <p>Vorteile:<br>
 • <b>austauschbar</b>: dieselbe Alarmanlage mit Thermometer, Rauchmelder, …<br>
@@ -810,7 +1074,7 @@ const steps = [
   } },
 
 // ---------- 6: Inversion of Control ----------
-{ ch: 6, title: 'Inversion of Control: die Kontrolle umdrehen', code: cIoC, hl: [],
+{ ch: 8, title: 'Inversion of Control: die Kontrolle umdrehen', code: cIoC, hl: [],
   text: `<p><b>Inversion of Control</b> (IoC, „Umkehr der Kontrolle“) ist ein <b>Prinzip</b>: Eine Klasse gibt die Kontrolle ab – darüber, <b>womit</b> sie arbeitet, oder darüber, <b>wann</b> ihr Code läuft. Rechts in drei Stufen:</p>
 <table class="t"><tr><th></th><th>wer wählt den Sensor?</th><th>wer ruft wen?</th></tr>
 <tr><td>1) ohne IoC</td><td>die <b>Klasse</b> selbst (<code>new</code> innen)</td><td>unser Code ruft alles</td></tr>
@@ -843,7 +1107,7 @@ const steps = [
   } },
 
 // ---------- 7: Zusammenfassung ----------
-{ ch: 7, title: 'Zusammenfassung', code: C(`
+{ ch: 9, title: 'Zusammenfassung', code: C(`
 interface ISensor { double Messen(); }               // Vertrag
 interface IHatSensor { ISensor Sensor { get; } }     // hat-Beziehung im Vertrag
 class Geraet : IComparable<Geraet>, IDisposable { }  // Sort() + using
@@ -884,6 +1148,7 @@ function show(i) {
   $('counter').textContent = `Schritt ${cur + 1} / ${steps.length}`;
   $('text').innerHTML = s.text;
   renderCode(s.code, s.hl);
+  if (s.split) splitCode(s.code, s.split);
   const st = $('stage'); st.innerHTML = ''; st.style.flexDirection = ''; st.style.gap = '';
   ctrl = s.render(st) || null;
   $('autoBtn').disabled = !(ctrl && ctrl.auto);

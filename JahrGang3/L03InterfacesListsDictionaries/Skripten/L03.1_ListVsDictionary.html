@@ -1131,6 +1131,55 @@ arp["B2:02"].PingMs = 80;                      // PingMs ist nicht im Hash`), hl
     ], 1500);
   } },
 
+{ ch: 5, title: 'Immutable: am Beispiel record – und string', code: C(`
+record Pos(int X, int Y);                 // Kurzform: X und Y sind { get; init; }
+
+Dictionary<Pos, string> orte = new Dictionary<Pos, string>();
+Pos a = new Pos(2, 1);
+orte[a] = "🌱";                           // Key = Referenz auf #1 (2, 1)
+
+// a.X = 5;                               // ❌ CS8852: init – nur beim Erzeugen
+Pos b = a with { X = 5 };                 // "ändern" = NEUES Objekt #2 (5, 1)
+
+orte.ContainsKey(a)                       // True – #1 ist immer noch (2, 1)
+orte.ContainsKey(new Pos(2, 1))           // True – Wertsemantik
+
+// string funktioniert genauso:
+Dictionary<string, int> plz = new Dictionary<string, int>();
+string s = "wien";
+plz[s] = 1010;
+// s[0] = 'W';                            // ❌ CS0200: string ist schreibgeschützt
+string t = s.ToUpper();                   // "ändern" = NEUER string "WIEN"
+plz.ContainsKey(s)                        // True – "wien" ist unverändert`), hl: [],
+  text: `<p><b>Immutable</b> (unveränderlich) heißt: Ein Objekt wird beim <b>Erzeugen</b> fertig befüllt und ändert sich danach <b>nie mehr</b>. Wer etwas „ändern“ will, bekommt ein <b>neues</b> Objekt – das alte bleibt, wie es ist.</p>
+<p><b>record:</b> In der Kurzform <code>record Pos(int X, int Y)</code> sind X und Y <code>{ get; init; }</code> – setzbar nur beim Erzeugen. <code>a.X = 5</code> ist ein Compilerfehler (<b>CS8852</b>). „Ändern“ geht nur mit <code>with</code>: Es kopiert das Objekt und setzt in der <b>Kopie</b> X = 5.</p>
+<p><b>string</b> funktioniert genauso: <code>s[0] = 'W'</code> geht nicht (<b>CS0200</b>). Jede „ändernde“ Methode – <code>ToUpper</code>, <code>Replace</code>, <code>Trim</code>, <code>+</code> – liefert einen <b>neuen</b> string.</p>
+<p><b>Warum das für das Dictionary so wichtig ist:</b> Im Dictionary liegt nur eine <b>Referenz</b> auf den Key. Weil das Objekt dahinter sich nicht ändern kann, passt sein Hash <b>für immer</b> zum Fach. Genau das, was beim veränderbaren <code>Feld</code> schiefging, kann hier nicht passieren.</p>`,
+  render(st) {
+    const sc = scene();
+    const stack = wrap('col', [lab('Stack (Variablen)')]); stack.style.gap = '14px'; stack.style.minWidth = '170px';
+    const heap = wrap('col', [lab('Heap (Objekte)')]); heap.style.gap = '14px'; heap.style.minWidth = '200px';
+    const row = wrap('row top', [stack, heap]); row.style.gap = '110px'; row.style.flexWrap = 'nowrap';
+    const box = hid(el('div', 'okbox', '')); box.id = 'erg';
+    sc.appendChild(wrap('col', [Object.assign(el('div', 'story', '🟩 <b>record</b> – immutable'), { id: 'fall' }), row, box, infoBox()])); st.appendChild(sc);
+    const code = steps[cur].code;
+    const v = (id, name) => { const b = vbox(id, name, '→', 'ref'); b.classList.add('pop'); stack.appendChild(b); };
+    const o = (id, head, felder) => { const c = objCard(id, head, felder); c.classList.add('pop'); heap.appendChild(c); };
+    const zeig = (t, ok) => { const e = $('erg'); e.className = (ok ? 'okbox' : 'errbox') + ' pop'; e.textContent = t; };
+    const leeren = () => { sc._links = []; redraw(sc); [...stack.children].slice(1).forEach(c => c.remove()); [...heap.children].slice(1).forEach(c => c.remove()); hide_('erg'); };
+    return seq([
+      () => { H(code, 'Pos a = new Pos(2, 1)'); v('a', 'Pos a'); o('p1', '<u>#1 : Pos</u>', [['X', '2'], ['Y', '1']]); link(sc, 'a', 'p1'); say('Beim Erzeugen bekommt #1 seine Werte – zum letzten Mal.'); },
+      () => { H(code, 'orte[a] = '); v('ko', 'Key in orte'); link(sc, 'ko', 'p1', { color: 'var(--x)' }); say('Das Dictionary speichert eine <b>Referenz</b> auf #1 und rechnet das Fach aus (2, 1) aus.'); },
+      () => { H(code, '// a.X = 5;'); zeig('❌ CS8852: Init-only property \'Pos.X\' can only be assigned in an object initializer', false); shake('p1'); say('Direkt ändern? <b>Verboten</b> – X ist <code>init</code>. Damit kann auch der Key im Dictionary nicht verrutschen.'); },
+      () => { H(code, 'Pos b = a with'); hide_('erg'); v('b', 'Pos b'); o('p2', '<u>#2 : Pos</u>', [['X', '5'], ['Y', '1']]); link(sc, 'b', 'p2', { color: 'var(--ok)' }); say('<code>with</code> baut ein <b>neues</b> Objekt #2. #1 – und damit der Key – bleibt (2, 1).'); },
+      () => { H(code, 'orte.ContainsKey(a)', 'orte.ContainsKey(new Pos(2, 1))'); zeig('ContainsKey(a) → True   ·   ContainsKey(new Pos(2, 1)) → True', true); say('Der Key ist unverändert im richtigen Fach – und dank Wertsemantik findet ihn auch ein nachgebautes Pos.'); },
+      () => { leeren(); $('fall').innerHTML = '🟦 <b>string</b> – genauso immutable'; H(code, 'string s = "wien"', 'plz[s] = 1010'); v('s', 'string s'); o('w1', '<u>#3 : string</u>', [['Wert', '"wien"']]); link(sc, 's', 'w1'); v('kp', 'Key in plz'); link(sc, 'kp', 'w1', { color: 'var(--x)' }); say('Auch ein string ist ein Objekt im Heap. Das Dictionary hält eine Referenz darauf.'); },
+      () => { H(code, "// s[0] = 'W';"); zeig("❌ CS0200: Property or indexer 'string.this[int]' cannot be assigned to -- it is read only", false); shake('w1'); say('Einen string kann man nicht verändern – nicht einmal ein einzelnes Zeichen.'); },
+      () => { H(code, 'string t = s.ToUpper()'); hide_('erg'); v('t', 'string t'); o('w2', '<u>#4 : string</u>', [['Wert', '"WIEN"']]); link(sc, 't', 'w2', { color: 'var(--ok)' }); say('<code>ToUpper</code> ändert nichts – es liefert einen <b>neuen</b> string #4. Wie <code>with</code> beim record.'); },
+      () => { H(code, 'plz.ContainsKey(s)'); zeig('plz.ContainsKey(s) → True   ("wien" ist unverändert)', true); say('Darum sind string und record die sichersten Keys: Was im Dictionary liegt, <b>kann</b> sich nicht ändern.'); },
+    ], 1500);
+  } },
+
 { ch: 5, title: 'Daumenregeln: Was nehme ich als Key? – immutable!', code: C(`
 // 🔒 Grundregel: ein Key ist IMMUTABLE (unveränderlich)
 //    alles, was Equals und GetHashCode verwenden, ändert sich nie
